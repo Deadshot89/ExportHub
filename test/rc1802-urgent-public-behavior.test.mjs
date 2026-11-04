@@ -70,6 +70,13 @@ test('verified TESTSERVICE release metadata resolves Azure internal worker Host,
  assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:'worker.azurewebsites.net','x-exporthub-environment':'production'}},'testservice'),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH');
 });
 
+test('unknown preview hosts cannot select Urgent Order production storage',()=>{
+ const preview='exporthub-pr-1193.westeurope.5.azurestaticapps.net';
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:preview}},''),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:preview,origin:'https://wonderful-forest-0f315e310.7.azurestaticapps.net'}},''),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.equal(internal.resolveStorageEnvironment({headers:{host:'wonderful-forest-0f315e310.7.azurestaticapps.net'}},''),'production');
+});
+
 test('Azure deployment isolation fails closed on unknown or contradictory hosts',()=>{
  const ref='https://exporthub360.com',testHost='sample-testservice.azurestaticapps.net';
  assert.throws(()=>internal.storage({headers:{host:'worker.azurewebsites.net',origin:'https://'+testHost}}),e=>e.code==='URGENT_HOST_UNTRUSTED','forged Origin alone cannot choose test data');
