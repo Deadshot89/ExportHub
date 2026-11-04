@@ -42,6 +42,18 @@ test('pack notification locale runtime translates public, AVIS, internal and dra
   assert.equal(runtime.t('pack.draft.deliveryRequirement',{},'de'),'Lieferscheine sind optional. Auch ohne Datei kann die Packmeldung gesendet werden.');
 });
 
+test('copy dimensions label limits copying to the same packaging type in every locale',()=>{
+  const runtime=loadPackI18n();
+  const phrases={de:'gleiche Verpackungsart',en:'same packaging type',pl:'tego samego typu opakowania',es:'mismo tipo de embalaje',fr:'même type d’emballage',it:'stesso tipo di imballaggio'};
+  for(const [language,phrase] of Object.entries(phrases)){
+    assert.ok(runtime.t('pack.copyDimensions',{},language).includes(phrase),language+': copy button must describe matching packaging types');
+  }
+  for(const file of ['pack.html','assets/pack.html']){
+    const html=fs.readFileSync(file,'utf8');
+    assert.match(html,/<button id="packCopyDimensions"[^>]*>[^<]*gleiche Verpackungsart[^<]*<\/button>/,file+': fallback button must describe matching types');
+  }
+});
+
 test('public and internal builds load pack locale runtime before pack UI runtimes',()=>{
   const page=fs.readFileSync('pack.html','utf8');
   const builder=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
