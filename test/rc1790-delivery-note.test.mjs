@@ -159,3 +159,18 @@ test('RC1790: article input lengths match backend and UI prevents excessive rows
  assert.match(frontend,/if\(items\.length>=250\)return/);
  assert.match(frontend,/if\(items\.length<250&&items\[ci\]\)/);
 });
+
+test('RC1790: full address blocks with a tall first position paginate and retain all goods',async()=>{
+ const snapshot=example();
+ snapshot.header.senderAddress=Array.from({length:19},(_,i)=>'Street '+String(i+1)+' Building X').join('\n');
+ snapshot.header.recipientAddress='Harbour Street 5\nBristol\nUnited Kingdom';
+ snapshot.items[0].description='Industrial protective cover and matching installation accessory '.repeat(6);
+ const bytes=await createDeliveryNotePdf(snapshot),pdf=await PDFDocument.load(bytes);
+ const text=(await extractPdfText(bytes)).replace(/\s+/g,' ');
+ assert.ok(pdf.getPageCount()>=2);
+ for(const value of ['SKU-001','SKU-002','Protective plug','Street 1 Building X','Street 19 Building X']){
+  assert.ok(text.includes(value),'Missing item or address after page break: '+value);
+ }
+ const src=fs.readFileSync('api/shared/rc1790-delivery-note-pdf.js','utf8');
+ assert.match(src,/if\(y-68-itemLayout\(data\.items\[0\]\)\.height<BOTTOM\+20\)addPage\(\)/);
+});
