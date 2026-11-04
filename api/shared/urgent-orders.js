@@ -1,6 +1,7 @@
 'use strict';
 // Urgent Order domain model. No D365 access and no implicit claims of stock availability.
 const crypto = require('node:crypto');
+const apiI18n = require('./i18n');
 const PRIORITIES = Object.freeze(['P1','P2','P3','P4']);
 const STATUSES = Object.freeze(['Open','Waved','In Progress','Loaded','Shipped','Invoiced']);
 const LANGUAGES = Object.freeze(['de','en']);
@@ -57,10 +58,28 @@ function draftMail(order,kind,lang,note){
  const l=language(lang||order.language),issue=kind==='problem';
  if(!issue&&kind!=='shipping')throw problem('URGENT_MAIL_KIND_INVALID','Unbekannter E-Mail-Typ.');
  if(!issue&&(order.items||[]).some(x=>!['Shipped','Invoiced'].includes(x.status)))throw problem('URGENT_NOT_SHIPPED','Versandbestätigung erst nach Status Shipped für alle Positionen möglich.',409);
+ const t=key=>apiI18n.tLang(l,'api.urgent.'+key);
  const message=text(note,2000);
- if(issue&&message.length<8)throw problem('URGENT_MAIL_NOTE_REQUIRED','Bitte das Problem beschreiben (mindestens 8 Zeichen).');
- const itemLines=(order.items||[]).map(x=>[(x.line?'Line '+x.line:'') ,(x.article?'Item '+x.article:''),'Qty '+x.quantity,'Status '+x.status].filter(Boolean).join(' · ')).join('\n');
- if(l==='en')return{to:order.email,language:l,subject:(issue?'Urgent Order – Issue / ':'Urgent Order – Shipping confirmation / ')+order.orderNumber,body:(issue?'We would like to inform you about an issue with your urgent order.':'We confirm that the following urgent order positions have been shipped.')+'\n\nSales order: '+order.orderNumber+'\nDelivery: '+(order.delivery==='DIRECT'?'Direct delivery':'DRP')+'\nPriority: '+order.priority+'\n\n'+itemLines+(issue?'\n\nIssue:\n'+message:'')+'\n\nBest regards,\nLogistics Team'};
- return{to:order.email,language:l,subject:(issue?'Urgent Order – Problem / ':'Urgent Order – Versandbestätigung / ')+order.orderNumber,body:(issue?'Wir möchten Sie über ein Problem mit Ihrem dringenden Auftrag informieren.':'Wir bestätigen den Versand der folgenden Positionen Ihres dringenden Auftrags.')+'\n\nAuftrag: '+order.orderNumber+'\nLieferart: '+(order.delivery==='DIRECT'?'Direktlieferung':'DRP')+'\nPriorität: '+order.priority+'\n\n'+itemLines+(issue?'\n\nProblem:\n'+message:'')+'\n\nMit freundlichen Grüßen\nLogistik'};
+ if(issue&&message.length<8)throw problem('URGENT_MAIL_NOTE_REQUIRED',t('issueDescriptionRequired'));
+ const itemLines=(order.items||[]).map(x=>[
+  x.line?t('lineLabel')+' '+x.line:'',
+  x.article?t('itemLabel')+' '+x.article:'',
+  t('qtyLabel')+' '+x.quantity,
+  t('statusLabel')+' '+x.status
+ ].filter(Boolean).join(' · ')).join('\n');
+ return{
+  to:order.email,
+  language:l,
+  subject:t(issue?'subjectIssue':'subjectShipping')+order.orderNumber,
+  body:[
+   t(issue?'introIssue':'introShipping'),'',
+   t('orderLabel')+' '+order.orderNumber,
+   t('deliveryLabel')+' '+(order.delivery==='DIRECT'?t('directDelivery'):'DRP'),
+   t('priorityLabel')+' '+order.priority,
+   '',itemLines,
+   ...(issue?['',t('issueLabel'),message]:[]),
+   '',t('signoff')
+  ].join('\n')
+ };
 }
 module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,text,problem,email,language,orderNumber,createOrder,canManage,canRead,setItemStatus,summaryStatus,draftMail};
