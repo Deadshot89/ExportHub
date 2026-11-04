@@ -46,10 +46,13 @@ test('RC1553 P0: public automatic-POD download must pass through the version-awa
   assert.match(pickupPod, /podArchive\.getPodDownload\(accessKey,resolved\.environment,fileId\)/);
 });
 
-test('RC1553 P0: backup retry must not re-archive an outdated automatic POD layout', () => {
+test('RC1553 P0: backup retry preserves an outdated signed POD instead of re-rendering', () => {
   const retryStart = source.indexOf('async function retryArchiveBackup(');
   const retryEnd = source.indexOf('async function retryDriveBackup(', retryStart);
   const retryBlock = source.slice(retryStart, retryEnd);
-  assert.match(retryBlock, /!isCurrentAutomaticPod\(currentFile\)/);
-  assert.match(retryBlock, /ensureAutomaticPod\(accessKey, environment, \{ force: true, copyToDrive: true \}\)/);
+  assert.ok(retryStart >= 0 && retryEnd > retryStart);
+  assert.match(retryBlock, /const existing = await readAutomaticPodBuffer\(accessKey, environment, record\)/);
+  assert.match(retryBlock, /saveAzureArchive\(accessKey, environment, record, existing\.buffer, existing\.file\)/);
+  assert.match(retryBlock, /copyToDrive\(accessKey, environment, record, existing\.buffer, existing\.file\)/);
+  assert.doesNotMatch(retryBlock, /force:\s*true/, 'historical signed POD must never be re-rendered by the backup path');
 });

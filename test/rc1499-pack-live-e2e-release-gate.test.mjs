@@ -182,3 +182,17 @@ test('RC1681: required TESTSERVICE gate downloads the real renamed PDF through t
   assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,
     'post-save Azure readback gate is still mandatory');
 });
+
+test('P0: required TESTSERVICE Packmeldung live gate opens a real preview tab as well as downloading the original PDF',()=>{
+  const helper=read(helperPath);
+  const preview=helper.indexOf("const packOpenButton=page.locator('#packNotificationDetail [data-pack-doc-open]')");
+  const popup=helper.indexOf("page.waitForEvent('popup'");
+  const blob=helper.indexOf("expect.poll(()=>packPreview.url()");
+  const download=helper.indexOf("const packDownloadButton=page.locator('#packNotificationDetail [data-pack-doc-download]')");
+  assert.ok(preview>=0&&popup>preview&&blob>popup&&download>blob,
+    'Packmeldung must preview the original PDF via the real user button before checking Download');
+  assert.match(helper,/toMatch\(\/\^blob:\/\)/,
+    'preview must navigate to the verified PDF Blob, never to Azure Microsoft login');
+  assert.match(helper,/await packPreview\.close\(\)/,
+    'preview tab must be closed before continuing the shipment handoff');
+});

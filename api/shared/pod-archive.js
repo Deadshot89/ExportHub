@@ -766,7 +766,10 @@ async function retryArchiveBackup(accessKey, environment) {
   const got = await store.getRecord(accessKey, environment);
   let record = got.record || {};
   const currentFile = automaticPod(record);
-  if (currentFile && !isCurrentAutomaticPod(currentFile) && text(currentFile.source) !== 'pickup-client-supplied') return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
+  // A backup retry must never change an existing signed POD, even if it has
+  // an older server layout. Re-rendering is a separate, explicit document
+  // operation; the archive/SharePoint copy always uses the original PDF bytes.
+  // readAutomaticPodBuffer also permits only hash-verified archive recovery.
   const existing = await readAutomaticPodBuffer(accessKey, environment, record);
   // A recorded signed POD whose primary blob reference is missing must never be
   // silently replaced by a freshly rendered document during archive recovery.

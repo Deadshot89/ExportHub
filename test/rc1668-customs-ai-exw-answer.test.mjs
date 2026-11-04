@@ -118,7 +118,7 @@ test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachan
   addEventListener(name,listener,capture){if(name==='click'&&capture)clickListener=listener}
  };
  const window={document,addEventListener(){},ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}}};
- vm.runInNewContext(runtime,{window},{timeout:1000});
+ vm.runInNewContext(runtime,{window,URL},{timeout:1000});
  assert.equal(typeof clickListener,'function');
  let prevented=false,stopped=false;
  clickListener({target:{closest(){return {}}},preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});
@@ -143,7 +143,7 @@ test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachan
 test('Zoll KI 2.0: geänderte Zoll-KI-Assets erhalten neue Cache-Version für TESTSERVICE und Produktion',()=>{
  const build=fs.readFileSync(new URL('../.github/rc1532/build-three-env.mjs',import.meta.url),'utf8');
  assert.match(build,/rc1532-customs-ai\.css\?v=1668/);
- assert.match(build,/rc1532-customs-ai\.js\?v=1668/);
+ assert.match(build,/rc1532-customs-ai\.js\?v=1669/);
  assert.doesNotMatch(build,/rc1532-customs-ai\.(?:css|js)\?v=153[23]/);
 });
 
@@ -213,7 +213,7 @@ test('Zoll KI 2.0: API HTTP 200 ohne vertrauenswürdigen Inhalt darf niemals als
   ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}},
   fetch:async()=>({ok:true,text:async()=>JSON.stringify(payload)})
  };
- vm.runInNewContext(runtime,{window},{timeout:1000});
+ vm.runInNewContext(runtime,{window,URL},{timeout:1000});
  async function check(response,label,cls){
   payload=response;
   await window.ExportHUBRC1532CustomsAI.ask('Wer erstellt das ABD?');
@@ -227,4 +227,16 @@ test('Zoll KI 2.0: API HTTP 200 ohne vertrauenswürdigen Inhalt darf niemals als
   sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://iccwbo.org/',title:'ICC'}]},'grounded','is-ok');
  await check({ok:false,answer:'API fehlgeschlagen',uncertainty:false,
   sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://iccwbo.org/',title:'ICC'}]},'uncertain','is-warning');
+ await check({ok:true,mode:'ai',answer:'Unsichere Quelle [[incoterms-exw-fca-export]]',uncertainty:false,
+  sources:[{id:'incoterms-exw-fca-export',sourceUrl:'javascript:alert(1)',title:'Falsche Quelle'}]},'uncertain','is-warning');
+ assert.equal(sources.children.length,1);
+ assert.equal(sources.children[0].children.some(child=>child.tagName==='a'),false,'javascript: darf nicht anklickbar sein');
+ assert.match(sources.children[0].textContent,/Falsche Quelle/);
+ assert.doesNotMatch(answer.textContent,/\[1\]/);
+ await check({ok:true,mode:'ai',answer:'Unzulässige URL [[incoterms-exw-fca-export]]',uncertainty:false,
+  sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://user:secret@iccwbo.org/',title:'Zugangsdaten im Link'}]},'uncertain','is-warning');
+ assert.equal(sources.children[0].children.some(child=>child.tagName==='a'),false);
+ await check({ok:true,mode:'ai',answer:'Quelle [[incoterms-exw-fca-export]]',uncertainty:false,
+  sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://iccwbo.org/',title:'ICC'}]},'grounded','is-ok');
+ assert.equal(sources.children[0].children.find(child=>child.tagName==='a')?.href,'https://iccwbo.org/');
 });

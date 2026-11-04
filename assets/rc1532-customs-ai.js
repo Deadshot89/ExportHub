@@ -51,14 +51,20 @@ function formatContext(snapshot){
  return parts.join(' · ')
 }
 function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!box)return;var snapshot=latestSnapshot(),value=formatContext(snapshot);setText(box,value||tr('noContext'));if(box.classList.contains('is-empty')!==!value)box.classList.toggle('is-empty',!value)}
+/* Nur sichere HTTPS-Quellen als Links ausgeben, auch bei widersprüchlichen API-Daten. */
+function safeSourceUrl(value){
+ var raw=q(value);if(!raw)return'';
+ try{var url=new URL(raw);return url.protocol==='https:'&&url.hostname&&!url.username&&!url.password?url.href:''}catch(_){return''}
+}
 function renderSources(host,result){
  clear(host);var sources=Array.isArray(result&&result.sources)?result.sources:[];
  if(result&&result.evidence==='invoice-analysis'){var local=el('div','rc1532-source rc1532-source-local');local.appendChild(el('strong','',tr('analysis')));host.appendChild(local)}
- sources.forEach(function(source,index){
-  var card=el('div','rc1532-source'),link=el('a','',q(source.title)||q(source.sourceName)||source.id||tr('sources'));
+ sources.forEach(function(row,index){
+  var source=row||{},card=el('div','rc1532-source'),label=q(source.title)||q(source.sourceName)||source.id||tr('sources'),url=safeSourceUrl(source.sourceUrl);
   card.id=sourceAnchorId(source.id);
-  link.href=q(source.sourceUrl)||'#';link.target='_blank';link.rel='noopener noreferrer';
-  card.appendChild(el('span','rc1532-source-index','['+(index+1)+']'));card.appendChild(link);
+  card.appendChild(el('span','rc1532-source-index','['+(index+1)+']'));
+  if(url){var link=el('a','',label);link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.appendChild(link)}
+  else card.appendChild(el('strong','',label));
   var meta=[];if(q(source.sourceName))meta.push(q(source.sourceName));if(q(source.checkedAt))meta.push(tr('checked')+': '+q(source.checkedAt));
   if(meta.length)card.appendChild(el('div','rc1532-source-meta',meta.join(' · ')));
   host.appendChild(card)
@@ -85,7 +91,7 @@ function appendAnswerInline(node,line,citations){
 function renderAnswer(host,raw,sources){
  clear(host);
  var citations=Object.create(null),rows=Array.isArray(sources)?sources:[];
- for(var j=0;j<rows.length;j++){var source=rows[j]||{},id=q(source.id);if(id)citations[id]={number:j+1,id:sourceAnchorId(id)}}
+ for(var j=0;j<rows.length;j++){var source=rows[j]||{},id=q(source.id);if(id&&safeSourceUrl(source.sourceUrl))citations[id]={number:j+1,id:sourceAnchorId(id)}}
  var lines=String(raw||'').replace(/\r\n?/g,'\n').split('\n'),paragraph=null,list=null,listType='';
  for(var i=0;i<lines.length;i++){
   var line=q(lines[i]);if(!line){paragraph=null;list=null;listType='';continue}
@@ -111,7 +117,7 @@ function renderResult(result){
  var answer=d.querySelector('[data-rc1532-answer]'),sourceBox=d.querySelector('[data-rc1532-sources]'),badge=d.querySelector('[data-rc1532-badge]'),checked=d.querySelector('[data-rc1532-checked]');if(!answer||!sourceBox)return;
  renderAnswer(answer,q(result&&result.answer)||tr('error'),result&&result.sources);
  var sourceRows=Array.isArray(result&&result.sources)?result.sources:[];
- var hasSources=sourceRows.some(function(source){return source&&q(source.id)&&/^https:\/\//i.test(q(source.sourceUrl))});
+ var hasSources=sourceRows.some(function(source){return source&&q(source.id)&&safeSourceUrl(source.sourceUrl)});
  var invoiceSourced=!!(result&&result.mode==='deterministic'&&result.evidence==='invoice-analysis');
  var grounded=!!(result&&result.ok===true&&result.uncertainty===false&&(hasSources||invoiceSourced));
  var uncertain=!grounded;badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
