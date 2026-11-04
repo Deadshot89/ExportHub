@@ -288,5 +288,16 @@
   "api.urgent.qtyLabel": "Cantidad",
   "api.urgent.statusLabel": "Estado",
   "api.urgent.serverError": "No se pudo procesar el pedido urgente. Inténtelo de nuevo más tarde.",
-  "api.urgent.invalidRequest": "Solicitud no válida."
+  "api.urgent.invalidRequest": "Solicitud no válida.",
+  "api.urgent.arrivalAt": "Llegada prevista:",
+  "api.urgent.arrivalMode": "Transporte de entrada:",
+  "api.urgent.arrivalCarrier": "Transportista de entrada:",
+  "api.urgent.outboundMethod": "Modalidad de salida:",
+  "api.urgent.requestedDispatch": "Envío previsto:",
+  "api.urgent.express": "Exprés",
+  "api.urgent.specialTransport": "Transporte especial",
+  "api.urgent.truck": "Camión",
+  "api.urgent.parcel": "Paquetería",
+  "api.urgent.courier": "Mensajero",
+  "api.urgent.otherTransport": "Otro"
 }
