@@ -42,3 +42,19 @@ Stand 04.11.2026 · Prüfzweig feature/urgent-orders-cs-workflow · keine Produk
 - CS-Benutzerzugänge und verifizierte E-Mail-Zuordnung.
 - Optionale D365-Prüfungen, Nachmeldungen zu einer bestehenden SO und dokumentierter direkter Microsoft-Graph-Mailversand.
 - Manuelle Testservice-Abnahme und gesonderte Produktionsfreigabe.
+
+
+## Erweiterung 04.11.2026 – Direktumschlag und öffentliche Meldung
+- Neue Auftragsart DIRECT_OUTBOUND zusätzlich zu STANDARD, bei der Ware erst eintrifft und direkt per Express oder Sondertransport weitergeht.
+- Pflichtfelder: geplante Ankunft (Europe/Berlin), Eingangstransportart, Anlieferdienstleister, Ausgangsversandart; optionale Anlieferreferenz und gewünschter Versandtermin.
+- Manuelle Checks für Direktumschlag: Lieferschein vorhanden, ASN funktioniert, weder Don't Process noch Credit Hold. Bei neuen Artikeln zusätzlich Artikelstammdaten korrekt und Prozess eingehalten; Minibag-Leadtime weiterhin nur bei Minibag.
+- Pickbarer aktueller Bestand ist bei noch nicht angelieferter Ware ausdrücklich keine Pflichtprüfung. Negative Ergebnisse müssen mit Begründung erfasst werden.
+- Status Problem hinzugefügt. Statusfarben: Open grau, Waved blau, In Progress gelb, Problem rot, Loaded violett, Shipped türkis, Invoiced grün.
+- Offen: mindestens eine Position ist nicht Invoiced. Geschlossen: alle Positionen Invoiced.
+- Öffentlicher Melde-Link /urgent-order, ohne ExportHUB-Login, mit eigener Seite im Stil Packmeldung.
+- Bei erstmaliger Meldung entsteht ein persönlicher 256-Bit-Überwachungslink (URL-Fragment). Der zugehörige Schlüssel wird nicht im Klartext im Azure-Blob gespeichert, sondern nur als SHA-256-Hash.
+- Nur Anfragen mit passendem individuellen Melder-Token sind in der öffentlichen Übersicht sichtbar. Wer den Link besitzt, kann diese Anfragen lesen; niemand darf ihn weitergeben. Öffentliche API hat ausschließlich create/list, kein edit/status/mail.
+- Derselbe Link kann weitere Anfragen derselben E-Mail unter derselben Meldersicht erzeugen. E-Mail-Adresse allein ist kein Authentisierungsnachweis. Ohne persönlichen Link kein Rückgriff auf frühere Anfragen.
+- Schutz: Eingabelimit, serverseitige Datenvalidierung, begrenzte Meldemenge, in-memory Rate-Limit; vor Produktion ist zusätzlich ein persistenter/globaler Missbrauchsschutz zu prüfen. Kein öffentliches Verzeichnis aller SOs.
+- Interne Logistik sieht die zusammengeführten öffentlichen und internen Urgent Orders über ihre eigene authentifizierte Oberfläche.
+- TESTSERVICE/Produktion bleiben getrennt. Kein Merge/Deployment ohne eigenständige Freigabe.
