@@ -25151,7 +25151,7 @@ async function savedSignedPod(sh){
  var official=window.ExportHUBRC1602OfficialPOD;
  if(!official)throw new Error('Original-POD-Abruf ist nicht verfügbar. Die Sicherung wurde nicht als erfolgreich markiert.');
  var blob=null;
- if(typeof official.storedSignedBlob==='function')blob=await official.storedSignedBlob(sh);
+ if(typeof official.storedSignedBlob==='function')blob=await official.storedSignedBlob(sh,{signedOnly:true});
  if(!blob&&typeof official.canonicalPdf==='function')blob=await official.canonicalPdf(sh);
  if(!blob||blob.size<1000)throw new Error('Keine gespeicherte vollständige unterschriebene Ladeliste abrufbar.');
  var bytes=new Uint8Array(await blob.arrayBuffer());
