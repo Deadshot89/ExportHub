@@ -179,3 +179,52 @@ test('Zoll KI 2.0: historischer Tab nutzt dieselben Eingabe-IDs wie der neue Abf
   assert.ok(index.includes(key),key+' fehlt in der bestehenden Website');
  }
 });
+
+
+test('Zoll KI 2.0: API HTTP 200 ohne vertrauenswürdigen Inhalt darf niemals als Belegt erscheinen',async()=>{
+ const runtime=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
+ function node(tag){
+  let own='';
+  return {tagName:tag,children:[],className:'',attributes:{},
+   appendChild(child){this.children.push(child);return child},
+   removeChild(child){this.children.splice(this.children.indexOf(child),1);return child},
+   get firstChild(){return this.children[0]||null},
+   get textContent(){return own+this.children.map(x=>x.textContent||'').join('')},
+   set textContent(value){own=String(value);this.children.length=0},
+   setAttribute(key,value){this.attributes[key]=String(value)}
+  }
+ }
+ const answer=node('div');answer.parentNode={hidden:true};
+ const sources=node('div'),badge=node('span'),checked=node('span'),status=node('div'),button=node('button');
+ let payload={};
+ const elements={
+  '[data-rc1532-answer]':answer,'[data-rc1532-sources]':sources,
+  '[data-rc1532-badge]':badge,'[data-rc1532-checked]':checked,
+  '[data-rc1532-status]':status,'[data-rc1532-ask]':button
+ };
+ const document={
+  createElement:node,
+  createTextNode(text){const n=node('#text');n.textContent=text;return n},
+  querySelector(selector){return elements[selector]||null},
+  getElementById(){return null},
+  addEventListener(){}
+ };
+ const window={document,addEventListener(){},
+  ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}},
+  fetch:async()=>({ok:true,text:async()=>JSON.stringify(payload)})
+ };
+ vm.runInNewContext(runtime,{window},{timeout:1000});
+ async function check(response,label,cls){
+  payload=response;
+  await window.ExportHUBRC1532CustomsAI.ask('Wer erstellt das ABD?');
+  assert.equal(badge.textContent,label);
+  assert.ok(badge.className.includes(cls),badge.className);
+ }
+ await check({},'uncertain','is-warning');
+ await check({ok:true,answer:'Antwort ohne Beleg',uncertainty:false,sources:[]},'uncertain','is-warning');
+ await check({ok:true,mode:'deterministic',evidence:'invoice-analysis',answer:'Geprüfte Rechnungsdaten',uncertainty:false,sources:[]},'grounded','is-ok');
+ await check({ok:true,mode:'ai',answer:'Ein belegter Satz [[incoterms-exw-fca-export]]',uncertainty:false,
+  sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://iccwbo.org/',title:'ICC'}]},'grounded','is-ok');
+ await check({ok:false,answer:'API fehlgeschlagen',uncertainty:false,
+  sources:[{id:'incoterms-exw-fca-export',sourceUrl:'https://iccwbo.org/',title:'ICC'}]},'uncertain','is-warning');
+});

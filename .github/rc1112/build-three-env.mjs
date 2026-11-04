@@ -1080,7 +1080,7 @@ async function rc1340PrepareDeliveryAttachmentPrints(sh){
     try{var resolved=new URL(url,window.location.href);documentApi=resolved.origin===window.location.origin&&resolved.pathname==='/api/exporthub-document'}catch(_){}
     // RC1703: migrated delivery-note URLs must carry the existing ExportHUB
     // session, otherwise Azure may return a Microsoft login document instead.
-    if(documentApi){if(!helper||typeof helper.headers!=='function')throw new Error('ExportHUB-Sitzung für Lieferschein fehlt.');options.headers=helper.headers()}
+    if(documentApi){if(!helper||typeof helper.headers!=='function')throw new Error('ExportHUB-Sitzung für Lieferschein fehlt.');options.headers=helper.headers();options.credentials='omit'}
     var response=await fetch(url,options);
     if(response.type==='opaqueredirect'||response.redirected===true||/\\/\\.auth\\/|login\\.microsoftonline\\.com/i.test(q(response.url))){var redirectError=new Error('Die Dokumenten-API hat zur Anmeldung umgeleitet.');redirectError.code='DOCUMENT_API_LOGIN_REDIRECT';throw redirectError}
     if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');
@@ -2075,6 +2075,14 @@ for (const file of ['index.html','TESTVERSION.html','demo.html']) {
   if (!shipped.includes("nextInit.credentials = init && init.credentials === 'omit' ? 'omit' : 'same-origin';") ||
       shipped.includes("nextInit.credentials = 'same-origin';")) {
     throw new Error('RC1768: '+file+' would reintroduce Microsoft login redirects for PDF downloads');
+  }
+  // RC1775: the migration reader is injected into the shipped HTML. Verify
+  // this path after all transforms, not only against the builder source.
+  // The PDF API requires ExportHUB bearer headers without Azure login cookies.
+  const migratedFetch="options.headers=helper.headers();options.credentials='omit'";
+  const obsoleteFetch="options.headers=helper.headers()}";
+  if (!shipped.includes(migratedFetch) || shipped.includes(obsoleteFetch)) {
+    throw new Error('RC1775: '+file+' missing protected migrated document URL fetch');
   }
 }
 

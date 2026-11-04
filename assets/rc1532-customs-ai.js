@@ -110,7 +110,11 @@ function renderAnswer(host,raw,sources){
 function renderResult(result){
  var answer=d.querySelector('[data-rc1532-answer]'),sourceBox=d.querySelector('[data-rc1532-sources]'),badge=d.querySelector('[data-rc1532-badge]'),checked=d.querySelector('[data-rc1532-checked]');if(!answer||!sourceBox)return;
  renderAnswer(answer,q(result&&result.answer)||tr('error'),result&&result.sources);
- var uncertain=!!(result&&(result.uncertainty||result.ok===false));badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
+ var sourceRows=Array.isArray(result&&result.sources)?result.sources:[];
+ var hasSources=sourceRows.some(function(source){return source&&q(source.id)&&/^https:\/\//i.test(q(source.sourceUrl))});
+ var invoiceSourced=!!(result&&result.mode==='deterministic'&&result.evidence==='invoice-analysis');
+ var grounded=!!(result&&result.ok===true&&result.uncertainty===false&&(hasSources||invoiceSourced));
+ var uncertain=!grounded;badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
  checked.textContent=q(result&&result.checkedAt)?tr('checked')+': '+q(result.checkedAt):'';
  renderSources(sourceBox,result||{});
  answer.parentNode.hidden=false

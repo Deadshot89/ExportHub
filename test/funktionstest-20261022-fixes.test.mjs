@@ -40,7 +40,9 @@ test('Funktionstest 22.10.: Geänderte Assets bekommen neue Cache-Versionen',()=
 });
 
 test('Funktionstest 22.10.: KI-Zollexperte zeigt bei Fehlern nicht „Belegt“',()=>{
-  assert.match(customsAi,/var uncertain=!!\(result&&\(result\.uncertainty\|\|result\.ok===false\)\);/);
+  assert.match(customsAi,/var grounded=!!\(result&&result\.ok===true/);
+  assert.match(customsAi,/var uncertain=!grounded;/);
+  assert.match(customsAi,/result\.evidence==='invoice-analysis'/);
   assert.match(customsAi,/if\(!response\.ok\)\{body\.ok=false;/);
 });
 
