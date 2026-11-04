@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
+const apiI18n=require('../shared/i18n');
 const guard=new Map();
 const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
 function txt(v,max=250){return String(v==null?'':v).trim().slice(0,max);}
@@ -95,8 +96,25 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,...result});
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
-  context.log&&context.log.warn&&context.log.warn('urgent-order-public',e&&e.code||'UNEXPECTED',status);
-  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_PUBLIC_FAILED',message:status>=500?'The request could not be processed. Please try again later.':e&&e.message||'Invalid request.'});
+  const internalCode=String(e&&e.code||'URGENT_PUBLIC_FAILED');
+  // Only our own error codes are safe to expose. Azure SDK errors such as
+  // AuthorizationFailure/ContainerNotFound may report 403/404 but are operational
+  // failures, not a customer validation error. Never send their raw message.
+  const recognized=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(internalCode);
+  const publicCode=recognized?internalCode:'URGENT_PUBLIC_FAILED';
+  const responseStatus=!recognized&&status<500?503:status;
+  context.log&&context.log.warn&&context.log.warn('urgent-order-public',internalCode,status);
+  const serviceError=responseStatus>=500;
+  const safeMessages={
+   URGENT_STORAGE_MISSING:'Urgent Order ist noch nicht mit dem Datenspeicher verbunden. Bitte die Logistik informieren.',
+   URGENT_HOST_UNTRUSTED:'Die Urgent-Order-Umgebung konnte nicht eindeutig geprüft werden. Bitte die Logistik informieren.',
+   URGENT_WRITE_UNVERIFIED:'Die Speicherung wurde nicht bestätigt. Bitte zuerst in der Übersicht prüfen, ob der Auftrag vorhanden ist.',
+   URGENT_CAPACITY:'Der Dienst hat seine Kapazitätsgrenze erreicht. Bitte die Logistik informieren.'
+  };
+  const message=serviceError
+   ?safeMessages[publicCode]||apiI18n.t(req,'api.urgent.serverError')
+   :e&&e.message||'Ungültige Anfrage.';
+  context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
  }
 };
 module.exports.publicAction=publicAction;

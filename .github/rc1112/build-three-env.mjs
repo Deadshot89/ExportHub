@@ -1972,6 +1972,14 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
     html=html.slice(0,targetStart)+rc1741Source+html.slice(targetEnd);
   }
   if(!html.includes('function addonButton(b){'))throw new Error(file+': RC1741 Menü-Zusatzknöpfe fehlen');
+  // Urgent Order is a third sidebar add-on. Without registration menuValid()
+  // interprets it as an unexpected core item and repeatedly rebuilds the menu.
+  // Keep the canonical source contract intact; extend only the released
+  // index/TESTSERVICE/demo menu check, never unrelated routes or modules.
+  const rc1805CoreAddons="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav]';";
+  const rc1805UrgentAddons="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav],[data-exporthub-urgent-nav]';";
+  if(html.includes(rc1805CoreAddons))html=html.replace(rc1805CoreAddons,rc1805UrgentAddons);
+  if(!html.includes(rc1805UrgentAddons))throw new Error(file+': RC1805 Urgent-Order-Menü wird nicht als Add-on erkannt');
   fs.writeFileSync(target,html);
 }
 for(const file of ['index.html','TESTVERSION.html','demo.html']){

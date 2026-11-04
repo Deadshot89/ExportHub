@@ -1,6 +1,8 @@
 'use strict';
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const fs=require('node:fs');
+const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
@@ -17,27 +19,54 @@ function publicSiteEnvironment(url){
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
-  if(hostname.endsWith('.azurestaticapps.net'))return hostname.includes('-testservice.')?'testservice':'production';
+  // Only the designated Urgent Order production site may select production data.
+  // Unknown Azure PR/preview hosts must never silently become production.
+  if(hostname==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'production';
+  if(hostname.endsWith('.azurestaticapps.net')&&hostname.includes('-testservice.'))return'testservice';
   if(hostname==='exporthub360.com'||hostname==='www.exporthub360.com'||hostname==='exporthub360.de'||hostname==='www.exporthub360.de')return'production';
  }catch(_){}
  return'';
 }
-function storage(req){
+// Release metadata is produced by the deployment pipeline, stored on the
+// Azure Functions filesystem, and verified by exporthub-health. Unlike Origin
+// or X-Forwarded-Host it cannot be supplied by an anonymous browser request.
+function deploymentEnv(metadata){
+ if(!metadata||!(/^[0-9a-f]{40}$/i.test(String(metadata.buildId||''))))return'';
+ if(metadata.environment!=='testservice'||!metadata.visibleRelease||!metadata.technicalBuild||!metadata.builtAt)return'';
+ return'testservice';
+}
+function serverDeploymentEnvironment(){
+ try{
+  const location=process.env.EXPORTHUB_RELEASE_METADATA_PATH?path.resolve(process.env.EXPORTHUB_RELEASE_METADATA_PATH):path.join(__dirname,'..','release-metadata.json');
+  return deploymentEnv(JSON.parse(fs.readFileSync(location,'utf8')));
+ }catch(_){return'';}
+}
+function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnvironment()){
  const h=req&&req.headers||{};
  const direct=publicSiteEnvironment(h.host||h.Host||'');
  const forwarded=publicSiteEnvironment(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'');
  const site=publicSiteEnvironment(h.origin||h.Origin||h.referer||h.Referer||'');
- // Do not let an unauthenticated browser-supplied Origin or an X-ExportHUB-Environment
- // select a production/test blob when Azure's genuine Host is not identifiable.
- if(!direct&&!forwarded)throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
+ const requested=String(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||'').toLowerCase().trim();
  if(direct&&forwarded&&direct!==forwarded)
   throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The deployment host values disagree.',409);
- const environment=direct||forwarded;
+ // Unknown Azure worker Host is acceptable ONLY if signed release metadata
+ // confirms TESTSERVICE. Never infer production from an untrusted Origin.
+ if(!direct&&!forwarded&&serverEnvironment!=='testservice')
+  throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
+ const environment=direct||forwarded||serverEnvironment;
  if(site&&site!==environment)
-  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The urgent order origin does not match the deployment host.',409);
- const detected=auth.environmentFromRequest(req);
- if(detected!==environment)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The urgent order origin does not match the deployment.',409);
+ if(requested&&requested!==environment)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The requested environment conflicts with the deployment.',409);
+ if(serverEnvironment&&serverEnvironment!==environment)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','Verified deployment and request host disagree.',409);
+ // Original legacy host contract stays intact whenever a public Host exists.
+ if((direct||forwarded)&&auth.environmentFromRequest(req)!==environment)
   throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The requested environment conflicts with the deployment host.',409);
+ return environment;
+}
+function storage(req){
+ const environment=resolveStorageEnvironment(req);
  const isolated=environment==='testservice'?isolationConfig():{enabled:false};
  const configured=isolated.enabled?isolated.connectionString:(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'');
  if(!configured)throw model.problem('URGENT_STORAGE_MISSING','Azure-Speicherung für Urgent Orders ist nicht konfiguriert.',503);
@@ -125,6 +154,8 @@ module.exports=async function(context,req){
 };
 module.exports.execute=execute;
 module.exports.storage=storage;
+module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
+module.exports.deploymentEnv=deploymentEnv;
 module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty())).value);};
 module.exports.write=write;
 module.exports.empty=empty;
