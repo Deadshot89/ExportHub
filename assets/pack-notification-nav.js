@@ -90,3 +90,26 @@
   root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,repairAfterViewChange,install,setPackNavLabel,setPackNavIcon});
   install();
 })(typeof window!=='undefined'?window:globalThis);
+
+
+/* Urgent Order: independent navigation entry; leaves existing Packmeldung routing unchanged. */
+(function(w){
+ 'use strict';
+ if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV__)return;
+ w.__EXPORT_HUB_URGENT_NAV__=true;
+ var d=w.document;
+ function ensure(){
+  if(d.querySelector('[data-exporthub-urgent-nav]'))return;
+  var anchor=d.querySelector('[data-pack-notifications-nav]')||d.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
+  if(!anchor||!anchor.parentNode)return;
+  var n=d.createElement('button');n.type='button';n.className=(anchor.className||'')+' urgent-orders-nav-entry';
+  n.setAttribute('data-exporthub-urgent-nav','');n.setAttribute('aria-label','Urgent Order');n.title='Urgent Order';
+  n.innerHTML='<span class="index308-nav-icon" aria-hidden="true" style="--menu-accent:#dc7226;color:#dc7226">!</span><span class="index308-nav-label">Urgent Order</span>';
+  n.style.setProperty('--menu-accent','#dc7226');
+  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/urgent-orders.html');},true);
+  anchor.parentNode.insertBefore(n,anchor.nextSibling);
+ }
+ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
+ if(w.setInterval)w.setInterval(function(){if(!d.hidden)ensure()},1500);
+ if(w.addEventListener)['exporthub:viewchange','exporthub:rendered','exporthub:ready'].forEach(function(type){w.addEventListener(type,ensure)});
+})(typeof window!=='undefined'?window:globalThis);
