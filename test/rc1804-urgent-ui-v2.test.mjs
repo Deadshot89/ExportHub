@@ -199,3 +199,24 @@ test('canonical tracking link preserves real capability token when activated and
  }
  assert.match(source,/clipboard\.writeText\(\$\('trackingUrl'\)\.textContent\)/);
 });
+
+
+test('urgent-only ExportHUB menu opens wonderful-forest while other module routing stays untouched',()=>{
+ const menu=read('assets/pack-notification-nav.js');
+ const start=menu.indexOf(' function urgentOrdersDestination(){');
+ const end=menu.indexOf('\n function ensure(){',start);
+ assert.ok(start>=0&&end>start,'urgent-only destination helper is present');
+ const helper=menu.slice(start,end);
+ const destination=hostname=>{
+  const ctx=vm.createContext({w:{location:{hostname}}});
+  vm.runInContext(helper,ctx);
+  return ctx.urgentOrdersDestination();
+ };
+ const canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net/assets/urgent-orders.html';
+ for(const hostname of ['wonderful-forest-0f315e310.7.azurestaticapps.net','exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'])
+  assert.equal(destination(hostname),canonical);
+ assert.equal(destination('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'),'/assets/urgent-orders.html');
+ assert.equal(destination('localhost'),'/assets/urgent-orders.html');
+ assert.match(menu,/w\.location\.assign\(urgentOrdersDestination\(\)\)/);
+ assert.match(menu,/function openInbox\(/,'the Packmeldung module remains present');
+});
