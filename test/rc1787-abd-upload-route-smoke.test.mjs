@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
 import {verifyUploadAsset,verifyUnauthenticatedApi,verifyLiveUploadRoute} from '../scripts/rc1787-abd-upload-route-smoke.mjs';
 const SHA='a'.repeat(40);
 const ASSET="function authToken(){} exporthub_rc301_tab_session data-rc1294-files ABD_UPLOAD_ROUTE_UNAVAILABLE";
@@ -44,4 +46,12 @@ test('RC1787: integration checks asset and API route without credentials or real
 test('RC1787: environment/commit validation fails closed',async()=>{
  await assert.rejects(verifyLiveUploadRoute('unknown',SHA,async()=>{}),/unsupported/);
  await assert.rejects(verifyLiveUploadRoute('production','bad',async()=>{}),/invalid/);
+});
+
+test('RC1787: real ABD auth guard rejects anonymous requests before accessing storage',async()=>{
+ const auth=require('../api/shared/fast-auth-store.js');
+ for(const host of ['ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','wonderful-forest-0f315e310.7.azurestaticapps.net']){
+  const req={method:'POST',headers:{host,'content-type':'application/json'},body:{action:'status',uploadId:'rc1787-nonexistent'}};
+  await assert.rejects(auth.validateSession(req),error=>error?.code==='AUTH_REQUIRED'&&error?.status===401,host);
+ }
 });
