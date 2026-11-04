@@ -294,7 +294,7 @@
   "api.urgent.arrivalCarrier": "Transporteur entrant :",
   "api.urgent.outboundMethod": "Mode d'expédition :",
   "api.urgent.requestedDispatch": "Expédition prévue :",
-  "api.urgent.express": "Express",
+  "api.urgent.express": "Livraison express",
   "api.urgent.specialTransport": "Transport spécial",
   "api.urgent.truck": "Camion",
   "api.urgent.parcel": "Colis",

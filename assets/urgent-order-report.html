@@ -20,6 +20,12 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 .order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}.order summary{list-style:none;cursor:pointer;padding:13px}.order summary::-webkit-details-marker{display:none}.order-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:space-between}.order-head strong{font-size:15px}.order summary:hover{background:#f7faff}.order-details{background:#f8fbff;padding:12px;border-top:1px solid var(--line)}.item-row{border-top:1px solid var(--line);padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.item-row:first-of-type{border-top:0}.empty{padding:30px 15px;color:var(--sub);border:1px dashed #c5d3e5;border-radius:12px;text-align:center}.date{font-variant-numeric:tabular-nums}.counters{display:flex;gap:8px;color:var(--sub);font-size:12px;margin:0 0 10px}
 @media(max-width:1050px){.board{grid-template-columns:1fr}.panel{padding:17px}}@media(max-width:470px){.pair,.filterbar{grid-template-columns:1fr}.check{grid-template-columns:1fr}.check select{width:100%}.panel{padding:13px}}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--page:#101927;--surface:#192b40;--ink:#eff6ff;--sub:#bac7d9;--line:#3a506c;--blue:#3475d1}.line,.order-details{background:#18283a}.line .field,.field,.check label{color:#d9e4f5}.btn.secondary,.btn.danger{background:#233852;color:#e1edff;border-color:#5b7392}.tracking{background:#213b58;border-color:#446a95}.tracking code{background:#182e44}.tab[aria-selected=true]{background:#284263;color:#eff6ff}.order summary:hover{background:#223952}.p-P1,.s-Problem{background:#56323a;color:#ffc3ca}.p-P2,.s-InProgress{background:#584329;color:#ffdea6}.p-P3,.s-Waved{background:#293e66;color:#bcd5ff}.p-P4,.s-Open,.s-Mixed{background:#384658;color:#d3dbe5}.s-Loaded{background:#49385d;color:#e5c9ff}.s-Shipped{background:#20504e;color:#b6f4ec}.s-Invoiced{background:#244b37;color:#b7f2c9}}
+
+/* Request badges: number of orders, not order positions. */
+.tab .request-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:24px;padding:0 7px;margin-left:6px;border-radius:999px;background:#e3eaf4;border:1px solid #cfdbed;color:#354a65;font-weight:850;font-size:12px;line-height:1;font-variant-numeric:tabular-nums;vertical-align:middle}
+.tab[aria-selected="true"] .request-count{background:#225cc0;border-color:#225cc0;color:#fff}
+.tab[data-has-open="true"][aria-selected="false"] .request-count{background:#ffecdc;border-color:#f7c69c;color:#9a4808}
+@media(prefers-color-scheme:dark){.tab .request-count{background:#334761;border-color:#4e6787;color:#edf5ff}.tab[aria-selected="true"] .request-count{background:#4f92ff;border-color:#4f92ff;color:#081a31}.tab[data-has-open="true"][aria-selected="false"] .request-count{background:#68452d;border-color:#96704e;color:#ffe3bf}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
@@ -50,7 +56,7 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 </form></section>
 <section class="panel"><div class="actions" style="justify-content:space-between"><h2 style="margin:0">Meine Anfragen</h2><button type="button" id="refresh" class="btn secondary small">Aktualisieren</button></div>
 <p class="muted">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
-<div class="tabrow" role="tablist" aria-label="Anfragen filtern"><button id="tabOpen" type="button" class="tab" role="tab" aria-selected="true">Offen <span id="countOpen">0</span></button><button id="tabClosed" type="button" class="tab" role="tab" aria-selected="false">Geschlossen <span id="countClosed">0</span></button></div>
+<div class="tabrow" role="tablist" aria-label="Anfragen filtern"><button id="tabOpen" type="button" class="tab" role="tab" aria-selected="true">Offen <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button id="tabClosed" type="button" class="tab" role="tab" aria-selected="false">Geschlossen <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></div>
 <div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
@@ -137,6 +143,9 @@ function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==
 function render(){
  const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
  $('countOpen').textContent=open;$('countClosed').textContent=done;
+ $('tabOpen').setAttribute('aria-label','Offen, '+open+' Anfragen');
+ $('tabClosed').setAttribute('aria-label','Geschlossen, '+done+' Anfragen');
+ $('tabOpen').dataset.hasOpen=open>0?'true':'false';
  $('tabOpen').setAttribute('aria-selected',tab==='open'?'true':'false');
  $('tabClosed').setAttribute('aria-selected',tab==='closed'?'true':'false');
  const q=$('search').value.trim().toLowerCase(),p=$('priorityFilter').value;

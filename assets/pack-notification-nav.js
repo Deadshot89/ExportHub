@@ -113,3 +113,66 @@
  if(w.setInterval)w.setInterval(function(){if(!d.hidden)ensure()},1500);
  if(w.addEventListener)['exporthub:viewchange','exporthub:rendered','exporthub:ready'].forEach(function(type){w.addEventListener(type,ensure)});
 })(typeof window!=='undefined'?window:globalThis);
+
+
+/* Urgent Order: a lightweight, permission-scoped open-request count beside the nav tab.
+   Do not change existing Packmeldungen navigation, routing or inbox counters. */
+(function(w){
+ 'use strict';
+ if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV_COUNTER__)return;
+ w.__EXPORT_HUB_URGENT_NAV_COUNTER__=true;
+ const d=w.document;
+ let lastRefresh=0,inFlight=false;
+ function ensureBadge(){
+  const node=d.querySelector('[data-exporthub-urgent-nav]');
+  if(!node)return null;
+  if(!d.getElementById('exporthub-urgent-nav-counter-style')){
+   const style=d.createElement('style');style.id='exporthub-urgent-nav-counter-style';
+   style.textContent='[data-exporthub-urgent-nav] .urgent-nav-count{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 7px;margin-left:auto;border-radius:999px;background:#e8edf3;border:1px solid #d2dce7;color:#465366;font:800 12px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="true"]{background:#fff0da;color:#8e4705;border-color:#edc08a}[data-exporthub-urgent-nav] .urgent-nav-count[hidden]{display:none!important}@media(prefers-color-scheme:dark){[data-exporthub-urgent-nav] .urgent-nav-count{background:#354960;color:#e6eefc;border-color:#516785}[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="true"]{background:#5b442b;color:#ffe1b4;border-color:#90704a}}';
+   (d.head||d.documentElement).appendChild(style);
+  }
+  let badge=node.querySelector('[data-urgent-open-count]');
+  if(!badge){badge=d.createElement('span');badge.setAttribute('data-urgent-open-count','');badge.className='urgent-nav-count';badge.setAttribute('aria-hidden','true');badge.hidden=true;node.appendChild(badge);}
+  return {node,badge};
+ }
+ function token(){
+  try{const runtime=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(runtime.authToken||runtime.token||runtime.sessionToken)return String(runtime.authToken||runtime.token||runtime.sessionToken);}catch(_){}
+  try{const tab=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return String(tab.token||'');}catch(_){return'';}
+ }
+ async function refresh(force){
+  const ui=ensureBadge();
+  if(!ui||inFlight||d.hidden)return;
+  const authToken=token();
+  if(!authToken){ui.badge.hidden=true;ui.node.setAttribute('aria-label','Urgent Order');return;}
+  const now=Date.now();
+  if(!force&&now-lastRefresh<45000)return;
+  lastRefresh=now;inFlight=true;
+  try{
+   const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':authToken},
+    body:JSON.stringify({action:'list'})});
+   if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
+   const data=await response.json();
+   if(data.ok!==true||!Array.isArray(data.orders))throw new Error('URGENT_COUNT_INVALID');
+   const count=data.orders.filter(o=>!(Array.isArray(o.items)&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced'))).length;
+   // The authenticated API returns only orders visible to this current login.
+   const current=ensureBadge();if(!current)return;
+   current.badge.textContent=String(count);
+   current.badge.dataset.hasOpen=count>0?'true':'false';
+   current.badge.hidden=false;
+   current.node.setAttribute('aria-label','Urgent Order: '+count+' offene Anfragen');
+  }catch(_){
+   const current=ensureBadge();if(current){current.badge.hidden=true;current.node.setAttribute('aria-label','Urgent Order');}
+  }finally{inFlight=false;}
+ }
+ function register(){
+  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',()=>refresh(true),{once:true});else refresh(true);
+  if(w.addEventListener){
+   ['exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:state-loaded'].forEach(name=>w.addEventListener(name,()=>refresh(true)));
+   w.addEventListener('focus',()=>refresh(true));
+  }
+  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(true)});
+  if(typeof w.setInterval==='function')w.setInterval(()=>refresh(false),45000);
+ }
+ register();
+})(typeof window!=='undefined'?window:globalThis);
