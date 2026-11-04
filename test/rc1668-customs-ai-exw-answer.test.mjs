@@ -9,6 +9,7 @@ const knowledge=require('../api/shared/customs-knowledge.js');
 const selector=require('../api/shared/customs-ai-sources.js');
 const service=require('../api/shared/customs-ai-service.js');
 const policy=require('../api/shared/customs-ai-policy.js');
+const provider=require('../api/shared/customs-ai-provider.js');
 const articles=JSON.parse(fs.readFileSync(new URL('../api/data/customs-knowledge.json',import.meta.url),'utf8'));
 const question='Sendung von Deutschland nach Serbien Incoterms EXW. Deutschland ist Versender. Wer muss das ABD erstellen?';
 
@@ -144,4 +145,37 @@ test('Zoll KI 2.0: geänderte Zoll-KI-Assets erhalten neue Cache-Version für TE
  assert.match(build,/rc1532-customs-ai\.css\?v=1668/);
  assert.match(build,/rc1532-customs-ai\.js\?v=1668/);
  assert.doesNotMatch(build,/rc1532-customs-ai\.(?:css|js)\?v=153[23]/);
+});
+
+
+test('Zoll KI 2.0: Provider fordert tatsächliche Quellen-ID statt nicht existierender S1-ID an',async()=>{
+ const source=knowledge.publishedArticles(articles).find(item=>item.id==='incoterms-exw-fca-export');
+ assert.ok(source);
+ let body=null;
+ const response=await provider.askCustomsModel({
+  question,
+  context:{destinationCountry:'RS'},
+  sources:[{...source,excerpt:source.summary}],
+  env:{EXPORTHUB_CUSTOMS_AI_API_KEY:'test-only-secret',EXPORTHUB_CUSTOMS_AI_MODEL:'gpt-6.1-sol'},
+  fetchImpl:async(_url,options)=>{
+   body=JSON.parse(options.body);
+   return{ok:true,status:200,json:async()=>({
+    output_text:'## Kurzantwort\nDer Käufer organisiert bei EXW die Ausfuhr [[incoterms-exw-fca-export]].'
+   })};
+  }
+ });
+ assert.equal(response.ok,true);
+ assert.deepEqual(response.citations,['incoterms-exw-fca-export']);
+ const prompt=body.input[0].content[0].text;
+ assert.match(prompt,/Beispiel \[\[incoterms-exw-fca-export\]\]/);
+ assert.match(prompt,/Verwende keine/);
+ assert.doesNotMatch(prompt,/\[\[S1\]\]/);
+ assert.doesNotMatch(JSON.stringify(body),/test-only-secret/);
+});
+
+test('Zoll KI 2.0: historischer Tab nutzt dieselben Eingabe-IDs wie der neue Abfang-Handler',()=>{
+ const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ for(const key of ['rc821ZollBody','zollAiQuestion','zollAiAnswer','askZollAi()']){
+  assert.ok(index.includes(key),key+' fehlt in der bestehenden Website');
+ }
 });
