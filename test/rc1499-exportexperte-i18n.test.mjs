@@ -23,19 +23,29 @@ test('RC1499: Exportexperte feature i18n covers all six UI languages with identi
   }
 });
 
-test('RC1499: Exportexperte runtime loads feature i18n and contains no new German UI fallbacks',()=>{
-  const runtime=fs.readFileSync(runtimePath,'utf8');
-  assert.match(runtime,/\/assets\/i18n\/rc1499-exportexperte\.js\?v=1499/,'Feature-Sprachpaket wird nicht geladen');
-  assert.match(runtime,/ExportHUBRC1499I18n/,'Feature-Sprach-API wird nicht verwendet');
-  for(const literal of [
-    'Wähle den passenden Einstieg.',
-    'Aus Sendung',
-    'Rechnung analysieren',
-    'Noch zu prüfen',
-    'Gruppierte Daten für die Zollanmeldung',
-    'Daten für Zollportal',
-    'Der bestehende Sendungs-ABD-Ablauf ist derzeit nicht verfügbar.'
-  ])assert.equal(runtime.includes(literal),false,'Hardcoded UI-Text verbleibt: '+literal);
+test('RC1786: Exportexperte runtime loads all six localized offline fallback packs',()=>{
+ const runtime=fs.readFileSync(runtimePath,'utf8');
+ assert.match(runtime,/rc1499-exportexperte\.js\?v=\d+/,'Feature-Sprachpaket wird nicht geladen');
+ assert.match(runtime,/ExportHUBRC1499I18n/,'Feature-Sprach-API wird nicht verwendet');
+ const begin=runtime.indexOf('var languageFallback={'),end=runtime.indexOf('function xtr(',begin);
+ assert.ok(begin>=0&&end>begin,'Fallback-Sprachpakete fehlen');
+ const isolated={};
+ vm.runInNewContext(runtime.slice(begin,end)+'\nthis.fallback=languageFallback;',isolated);
+ const fallback=isolated.fallback;
+ const packSource=fs.readFileSync(packPath,'utf8');
+ const original={console,Intl,URL,setTimeout,clearTimeout};
+ vm.runInNewContext(packSource,original,{filename:packPath});
+ const expected=original.ExportHUBRC1499I18n.packs;
+ const languages=['de','en','pl','es','fr','it'];
+ const required=Object.keys(fallback.de).sort();
+ assert.ok(required.length>=15,'Zu wenig Fallback-Texte für den Upload');
+ for(const language of languages){
+  assert.ok(fallback[language],language+' Fallback fehlt');
+  assert.deepEqual(Object.keys(fallback[language]).sort(),required,language+' Fallback-Schlüssel nicht vollständig');
+  for(const key of required)assert.equal(fallback[language][key],expected[language][key],language+'.'+key+' weicht vom Sprachpaket ab');
+ }
+ assert.ok(runtime.includes('return pack[key]||key'),'Fallback wird nicht verwendet');
+ assert.ok(!runtime.includes('if(!ensureFeatureI18n())return false'),'Dateiauswahl darf nicht auf optionales Sprachpaket warten');
 });
 
 test('RC1499: handoff loader waits for analysis results and does not create abort-prone navigation requests',()=>{
