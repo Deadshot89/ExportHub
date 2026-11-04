@@ -2076,6 +2076,14 @@ for (const file of ['index.html','TESTVERSION.html','demo.html']) {
       shipped.includes("nextInit.credentials = 'same-origin';")) {
     throw new Error('RC1768: '+file+' would reintroduce Microsoft login redirects for PDF downloads');
   }
+  // RC1775: the migration reader is injected into the shipped HTML. Verify
+  // this path after all transforms, not only against the builder source.
+  // The PDF API requires ExportHUB bearer headers without Azure login cookies.
+  const migratedFetch="options.headers=helper.headers();options.credentials='omit'";
+  const obsoleteFetch="options.headers=helper.headers()}";
+  if (!shipped.includes(migratedFetch) || shipped.includes(obsoleteFetch)) {
+    throw new Error('RC1775: '+file+' missing protected migrated document URL fetch');
+  }
 }
 
 console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');

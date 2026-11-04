@@ -46,3 +46,13 @@ test('P0: only protected document URL omits credentials; unrelated requests reta
 test('P0: document URL without ExportHUB session fails closed',async()=>{
   await assert.rejects(run('/api/exporthub-document?blob=missing',null),/ExportHUB-Sitzung/);
 });
+
+test('RC1775: release builder checks migrated PDF transport in all shipped environments after fingerprinting',()=>{
+  const source=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  const fingerprint=source.indexOf('fingerprintAssets({root:ROOT,out:OUT});');
+  const finalFiles=source.indexOf("for (const file of ['index.html','TESTVERSION.html','demo.html'])",fingerprint);
+  const protectedFetch=source.indexOf("const migratedFetch=\"options.headers=helper.headers();options.credentials='omit'\";",finalFiles);
+  assert.ok(fingerprint>=0 && finalFiles>fingerprint && protectedFetch>finalFiles,'final release package, not root HTML, is inspected');
+  assert.match(source.slice(finalFiles),/shipped\.includes\(migratedFetch\)/);
+  assert.match(source.slice(finalFiles),/shipped\.includes\(obsoleteFetch\)/);
+});
