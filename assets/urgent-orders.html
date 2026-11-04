@@ -81,6 +81,7 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh">Aktualisieren</button></div>
 
 <div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="">Alle Stufen</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">Alle Status</option><option value="Open" data-i18n="urgentOrderV2.statusOpen">Offen</option><option value="Waved" data-i18n="urgentOrderV2.statusWaved">Welle freigegeben</option><option value="In Progress" data-i18n="urgentOrderV2.statusInProgress">In Bearbeitung</option><option value="Problem" data-i18n="urgentOrderV2.statusProblem">Problem</option><option value="Loaded" data-i18n="urgentOrderV2.statusLoaded">Verladen</option><option value="Shipped" data-i18n="urgentOrderV2.statusShipped">Versendet</option><option value="Invoiced" data-i18n="urgentOrderV2.statusInvoiced">Fakturiert</option><option value="exception">Prüfung erforderlich</option></select></div>
+<div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
 <div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span>Aktionen</span></div>
 <div id="orders" aria-live="polite"><div class="empty">Aufträge werden geladen …</div></div>
@@ -163,10 +164,10 @@ function render(){
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
    const previous=(order.items||[]).find(x=>x.id===select.dataset.item)?.status;
    const note=select.value==='Problem'?(window.prompt(localeV2('problemPrompt','Bitte das Problem beschreiben.'))||'').trim():'';
-   if(select.value==='Problem'&&note.length<8){select.value=previous||'Open';setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
+   if(select.value==='Problem'&&note.length<8){select.value=previous||'Open';setMessage('listMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
    select.disabled=true;
-   try{const r=await api('update-status',{id:order.id,itemId:select.dataset.item,status:select.value,note});const idx=orders.findIndex(x=>x.id===order.id);if(idx>=0)orders[idx]=r.order;const wasOpen=details.open;render();if(wasOpen){const found=[...$('orders').querySelectorAll('details')].find(x=>x.querySelector('.so')?.textContent.includes(order.orderNumber));if(found)found.open=true;}setMessage('createMessage','Status gespeichert.','ok');}
-   catch(e){select.value=previous||'Open';setMessage('createMessage',e.message,'error');}
+   try{const r=await api('update-status',{id:order.id,itemId:select.dataset.item,status:select.value,note});const idx=orders.findIndex(x=>x.id===order.id);if(idx>=0)orders[idx]=r.order;const wasOpen=details.open;render();if(wasOpen){const found=[...$('orders').querySelectorAll('details')].find(x=>x.querySelector('.so')?.textContent.includes(order.orderNumber));if(found)found.open=true;}setMessage('listMessage','Status gespeichert.','ok');}
+   catch(e){select.value=previous||'Open';setMessage('listMessage',e.message,'error');}
    finally{select.disabled=false}
   }));
   root.appendChild(details);
