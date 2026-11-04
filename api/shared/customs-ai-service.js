@@ -52,7 +52,7 @@ async function answerCustomsQuestion(options={}){
   return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',answer:apiI18n.tLang(language,'api.customsAi.unavailable'),sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
  }
  const citations=Array.isArray(modelResult.citations)?modelResult.citations:[],citedSources=publicSources(sources,citations);
- return{ok:true,mode:'ai',answer:text(modelResult.answer,12000),sources:citedSources,checkedAt,uncertainty:citations.length===0,modelInfo:modelResult.modelInfo&&typeof modelResult.modelInfo==='object'?{provider:text(modelResult.modelInfo.provider,40),model:text(modelResult.modelInfo.model,120)}:undefined,recoverable:true,contextSummary:summary}
+ return{ok:true,mode:'ai',answer:text(modelResult.answer,12000),sources:citedSources,checkedAt:latestCheckedAt(citedSources),uncertainty:citedSources.length===0,modelInfo:modelResult.modelInfo&&typeof modelResult.modelInfo==='object'?{provider:text(modelResult.modelInfo.provider,40),model:text(modelResult.modelInfo.model,120)}:undefined,recoverable:true,contextSummary:summary}
 }
 
 module.exports={answerCustomsQuestion};
