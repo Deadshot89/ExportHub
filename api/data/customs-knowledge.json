@@ -5,17 +5,8 @@
     "title": "ATLAS Ausfuhrverfahren – Grundlagen",
     "summary": "Der Verfahrensbereich Ausfuhr in ATLAS dient unter anderem der Überführung von Unionswaren in das Ausfuhrverfahren, der Überwachung an der Ausgangszollstelle und der Erledigung des Vorgangs.",
     "content": "Für konkrete Ausfuhrfälle sind Verfahrensart, Ausfuhr- und Ausgangszollstelle sowie mögliche Sonderregelungen anhand der aktuellen Zollvorgaben zu prüfen. Die Quelle ist die offizielle ATLAS-Verfahrensanweisung des deutschen Zolls.",
-    "topics": [
-      "atlas",
-      "ausfuhrverfahren",
-      "abd",
-      "ausfuhranmeldung",
-      "ausgangszollstelle"
-    ],
-    "countries": [
-      "DE",
-      "EU"
-    ],
+    "topics": ["atlas", "ausfuhrverfahren", "abd", "ausfuhranmeldung", "ausgangszollstelle"],
+    "countries": ["DE", "EU"],
     "sourceName": "Deutscher Zoll – ATLAS Verfahrensanweisung",
     "sourceUrl": "https://www.zoll.de/SharedDocs/Downloads/DE/Links-fuer-Inhaltseiten/Fachthemen/Zoelle/Atlas/va_atlas.pdf",
     "publishedAt": "",
@@ -29,18 +20,8 @@
     "title": "TARIC – EU-Zolltarif und Maßnahmen",
     "summary": "TARIC ist die mehrsprachige EU-Datenbank für Maßnahmen des Gemeinsamen Zolltarifs sowie handels- und agrarpolitische Maßnahmen.",
     "content": "TARIC gibt Wirtschaftsbeteiligten einen Überblick über zolltarifäre Maßnahmen und unter anderem Ein- und Ausfuhrverbote, Beschränkungen und Kontrollen. TARIC-Daten werden laufend an die nationalen Verwaltungen übermittelt.",
-    "topics": [
-      "taric",
-      "hs-code",
-      "warentarifierung",
-      "zolltarif",
-      "verbote",
-      "beschraenkungen",
-      "dual-use"
-    ],
-    "countries": [
-      "EU"
-    ],
+    "topics": ["taric", "hs-code", "warentarifierung", "zolltarif", "verbote", "beschraenkungen", "dual-use"],
+    "countries": ["EU"],
     "sourceName": "Europäische Kommission – TARIC",
     "sourceUrl": "https://taxation-customs.ec.europa.eu/online-services/online-services-and-databases-customs/eu-customs-tariff-taric_de",
     "publishedAt": "",
@@ -54,16 +35,8 @@
     "title": "Nichtpräferenzieller Ursprung",
     "summary": "Der nichtpräferenzielle Ursprung bestimmt die wirtschaftliche Herkunft einer Ware für verschiedene handelspolitische Maßnahmen; die richtige Warentarifierung ist dabei ein wesentlicher Faktor.",
     "content": "Die EU-Regeln unterscheiden unter anderem vollständig gewonnene Waren und die letzte wesentliche Be- oder Verarbeitung. Die konkrete Ursprungsbestimmung ist anhand der anwendbaren Regeln und der tatsächlichen Herstellung zu prüfen.",
-    "topics": [
-      "ursprung",
-      "nichtpraeferenziell",
-      "ursprungsland",
-      "warentarifierung",
-      "hs-code"
-    ],
-    "countries": [
-      "EU"
-    ],
+    "topics": ["ursprung", "nichtpraeferenziell", "ursprungsland", "warentarifierung", "hs-code"],
+    "countries": ["EU"],
     "sourceName": "Europäische Kommission – Nichtpräferenzielle Ursprungsregeln",
     "sourceUrl": "https://taxation-customs.ec.europa.eu/customs/rules-origin-goods/non-preferential-rules-origin_en",
     "publishedAt": "",
@@ -77,17 +50,8 @@
     "title": "Präferenzieller Ursprung und Zollvorteile",
     "summary": "Präferenzursprung kann im Handel mit Partnerländern zu ermäßigten oder null Zollsätzen führen, wenn die Regeln des jeweiligen Abkommens oder der autonomen Regelung erfüllt sind.",
     "content": "Ob eine Ware Ursprungseigenschaft besitzt, hängt von den konkreten Ursprungsregeln ab. Für Waren aus Vormaterialien ohne Ursprungseigenschaft sind insbesondere die produktspezifischen Listenregeln und die einschlägigen Verarbeitungsbedingungen zu prüfen.",
-    "topics": [
-      "ursprung",
-      "praeferenz",
-      "ursprungserklaerung",
-      "listenregeln",
-      "zollvorteil",
-      "rex"
-    ],
-    "countries": [
-      "EU"
-    ],
+    "topics": ["ursprung", "praeferenz", "ursprungserklaerung", "listenregeln", "zollvorteil", "rex"],
+    "countries": ["EU"],
     "sourceName": "Europäische Kommission – Präferenzielle Ursprungsregeln",
     "sourceUrl": "https://taxation-customs.ec.europa.eu/customs/rules-origin-goods/preferential-rules-origin_en",
     "publishedAt": "",
@@ -101,18 +65,8 @@
     "title": "Access2Markets – Anforderungen im Zielland prüfen",
     "summary": "Access2Markets stellt Informationen zu Zöllen, Ursprungsregeln, Steuern, Einfuhrformalitäten, Produktanforderungen und Handelshemmnissen für Märkte außerhalb der EU bereit.",
     "content": "Für länderspezifische Anforderungen im Bestimmungsland kann Access2Markets als offizielle EU-Informationsquelle genutzt werden. Die konkrete Prüfung bleibt produkt- und landabhängig.",
-    "topics": [
-      "bestimmungsland",
-      "zielland",
-      "exportanforderungen",
-      "einfuhr",
-      "formalitaeten",
-      "produktanforderungen",
-      "access2markets"
-    ],
-    "countries": [
-      "EU"
-    ],
+    "topics": ["bestimmungsland", "zielland", "exportanforderungen", "einfuhr", "formalitaeten", "produktanforderungen", "access2markets"],
+    "countries": ["EU"],
     "sourceName": "Europäische Kommission – Access2Markets",
     "sourceUrl": "https://policy.trade.ec.europa.eu/help-exporters-and-importers/eu-companies-accessing-world-markets_en",
     "publishedAt": "",
@@ -126,17 +80,8 @@
     "title": "EORI bei ATLAS und Zollanmeldungen",
     "summary": "Die EORI-Nummer dient der Identifikation von Wirtschaftsbeteiligten; bei der Teilnahme an ATLAS ist die zugeteilte EORI-Nummer einschließlich der einschlägigen Niederlassungsangabe zu verwenden.",
     "content": "Welche Beteiligtenangaben in einer konkreten Zollanmeldung erforderlich sind, richtet sich nach dem jeweiligen Verfahren und den vorgeschriebenen Datenelementen. Die offiziellen ATLAS-Unterlagen erläutern die Teilnahmevoraussetzungen und Stammdaten.",
-    "topics": [
-      "eori",
-      "atlas",
-      "wirtschaftsbeteiligter",
-      "zollanmeldung",
-      "stammdaten"
-    ],
-    "countries": [
-      "DE",
-      "EU"
-    ],
+    "topics": ["eori", "atlas", "wirtschaftsbeteiligter", "zollanmeldung", "stammdaten"],
+    "countries": ["DE", "EU"],
     "sourceName": "Deutscher Zoll – ATLAS Merkblatt für Teilnehmer",
     "sourceUrl": "https://www.zoll.de/SharedDocs/Downloads/DE/FormulareMerkblaetter/Zollrecht/ATLAS/mb_atlas_release_10_1_112024.pdf",
     "publishedAt": "",
@@ -238,6 +183,38 @@
     "sourceName": "Spanische Steuer- und Zollverwaltung (AEAT) – AES P1 Export FAQ",
     "sourceUrl": "https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD",
     "publishedAt": "",
+    "checkedAt": "2026-11-04",
+    "updatedAt": "2026-11-04",
+    "status": "published"
+  },
+  {
+    "id": "incoterms-dap-ddp-clearance",
+    "slug": "incoterms-dap-ddp-zollabwicklung",
+    "title": "Incoterms 2020: DAP und DDP – Ausfuhr, Einfuhr und Kosten",
+    "summary": "Bei DAP übernimmt der Verkäufer die Ausfuhrformalitäten; der Käufer die Einfuhrformalitäten und Einfuhrabgaben. Bei DDP übernimmt grundsätzlich der Verkäufer sowohl die Ausfuhr- als auch die Einfuhrabwicklung einschließlich Einfuhrabgaben.",
+    "content": "Gemäß Incoterms 2020 trägt bei DAP (Delivered at Place) der Verkäufer die vereinbarte Beförderung bis zum benannten Ort sowie die Ausfuhrabwicklung; der Käufer trägt Einfuhrformalitäten, Zölle und in der Regel das Entladen. Bei DDP (Delivered Duty Paid) übernimmt der Verkäufer Ausfuhr und Einfuhr einschließlich der dabei anfallenden Abgaben; DDP kann schwierig sein, wenn er im Bestimmungsland nicht als Importeur handeln darf. Bei FCA und anderen F- bzw. C-Klauseln trägt grundsätzlich der Verkäufer die Ausfuhrfreimachung, der Käufer die Einfuhrfreimachung. Entscheidend bleiben vereinbarte Klausel und Ort sowie die tatsächlich anwendbaren Zollvorschriften.",
+    "topics": [
+      "incoterms",
+      "dap",
+      "ddp",
+      "ausfuhr",
+      "einfuhr",
+      "abd",
+      "ausfuhranmeldung",
+      "zollabwicklung",
+      "import",
+      "export",
+      "kosten",
+      "verantwortlichkeit"
+    ],
+    "countries": [
+      "EU",
+      "DE",
+      "RS"
+    ],
+    "sourceName": "International Chamber of Commerce – Using Incoterms to Manage Tariff Risks (2025)",
+    "sourceUrl": "https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf",
+    "publishedAt": "2025-04-01",
     "checkedAt": "2026-11-04",
     "updatedAt": "2026-11-04",
     "status": "published"
