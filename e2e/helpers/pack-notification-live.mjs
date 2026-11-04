@@ -168,6 +168,17 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(originalPdf.count).toBeGreaterThan(40);
       expect(originalPdf.storage).toBe('blob');
 
+      // P0: Opening the Lieferschein must create a real PDF preview tab,
+      // not leave the user at about:blank or redirect to a Microsoft login.
+      const packOpenButton=page.locator('#packNotificationDetail [data-pack-doc-open]').first();
+      await expect(packOpenButton).toBeVisible({timeout:10_000});
+      const [packPreview]=await Promise.all([
+        page.waitForEvent('popup',{timeout:25_000}),
+        packOpenButton.click()
+      ]);
+      await expect.poll(()=>packPreview.url(),{timeout:25_000}).toMatch(/^blob:/);
+      await packPreview.close();
+
       // RC1702: Validate the actual staff-facing Download button, not just a
       // direct JavaScript fetch. An Azure/Microsoft login page cannot pass
       // as a delivery-note PDF; the downloaded file must contain PDF bytes.
