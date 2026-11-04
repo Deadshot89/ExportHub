@@ -263,7 +263,7 @@ async function submit(ev){
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();}
+ try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
