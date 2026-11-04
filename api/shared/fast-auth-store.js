@@ -107,7 +107,7 @@ function hasExportHubCredential(req){
   // ExportHUB-specific signed bearer form counts as an explicit application
   // credential for endpoints that opt in to the strict anonymous probe.
   const authorization=String(headers.authorization||headers.Authorization||'').trim();
-  return /^Bearer\\s+ehs1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(authorization);
+  return /^Bearer\s+ehs1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(authorization);
 }
 
 async function validateSession(req, options = {}){
