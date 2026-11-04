@@ -2,6 +2,7 @@
 const auth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
 const exporter=require('../shared/abd-analysis-export');
+const deliveryNote=require('../shared/rc1790-delivery-note-pdf');
 
 const MAX_OUTPUT_BYTES=8*1024*1024;
 function text(value){return String(value==null?'':value).trim()}
@@ -15,7 +16,7 @@ function allowed(user){
 }
 function invoiceLabel(snapshot){return text(snapshot&&snapshot.header&&snapshot.header.invoiceNumber).replace(/[^a-zA-Z0-9._-]+/g,'_').slice(0,80)}
 function fileBase(snapshot,format){
- const invoice=invoiceLabel(snapshot),prefix=format==='proforma'?'Proforma':'ABD-Auswertung';
+ const invoice=format==='lieferschein'?text(snapshot&&snapshot.header&&snapshot.header.documentNumber).replace(/[^a-zA-Z0-9._-]+/g,'_').slice(0,80):invoiceLabel(snapshot),prefix=format==='proforma'?'Proforma':format==='lieferschein'?'Lieferschein':'ABD-Auswertung';
  return prefix+(invoice?'-'+invoice:'')
 }
 module.exports=async function(context,req){
@@ -25,8 +26,8 @@ module.exports=async function(context,req){
   const current=await auth.validateSession(req);if(!allowed(current.user))throw error('ABD_EXPORT_FORBIDDEN',apiI18n.t(req,'api.abdAnalysis.forbidden'),403);
   const payload=auth.body(req),format=lower(payload.format),snapshot=payload.snapshot&&typeof payload.snapshot==='object'?payload.snapshot:null;
   if(!snapshot)throw error('ABD_EXPORT_SNAPSHOT_REQUIRED',apiI18n.t(req,'api.abdAnalysis.failed'),400);
-  if(!['pdf','xlsx','proforma'].includes(format))throw error('ABD_EXPORT_FORMAT_INVALID',apiI18n.t(req,'api.abdAnalysis.actionInvalid'),400);
-  const bytes=format==='pdf'?await exporter.createPdf(snapshot):format==='proforma'?await exporter.createProformaPdf(snapshot):await exporter.createXlsx(snapshot);
+  if(!['pdf','xlsx','proforma','lieferschein'].includes(format))throw error('ABD_EXPORT_FORMAT_INVALID',apiI18n.t(req,'api.abdAnalysis.actionInvalid'),400);
+  const bytes=format==='pdf'?await exporter.createPdf(snapshot):format==='proforma'?await exporter.createProformaPdf(snapshot):format==='lieferschein'?await deliveryNote.createDeliveryNotePdf(snapshot):await exporter.createXlsx(snapshot);
   if(bytes.length>MAX_OUTPUT_BYTES)throw error('ABD_EXPORT_TOO_LARGE',apiI18n.t(req,'api.abdAnalysis.failed'),413);
   const extension=format==='xlsx'?'xlsx':'pdf',base=fileBase(snapshot,format),mimeType=format==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf';
   context.res=response(200,{ok:true,file:{name:base+'.'+extension,mimeType,size:bytes.length,base64:Buffer.from(bytes).toString('base64')}})
