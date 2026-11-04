@@ -160,9 +160,17 @@ function ensureFeatureI18n(){
  return true
 }
 function authToken(){
- try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
- try{for(var i=0;w.sessionStorage&&i<w.sessionStorage.length;i++){var raw=w.sessionStorage.getItem(w.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var x=JSON.parse(raw);if(x&&x.token)return q(x.token)}}catch(_){}
- return''
+ // RC1787: use the same active ExportHUB tab session as the shipment/ABD APIs.
+ // Never pick an unrelated token from an arbitrary JSON value in sessionStorage.
+ try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.token||rt.sessionToken);if(t)return t}catch(_){}
+ try{
+  var raw=w.sessionStorage&&w.sessionStorage.getItem('exporthub_rc301_tab_session');
+  if(!raw)return'';
+  var session=JSON.parse(raw),token=q(session&&session.token);
+  if(!token||!session.user)return'';
+  var source=q(session.environment||session.dataEnvironment).toLowerCase();
+  return !source||source===environment()?token:''
+ }catch(_){return''}
 }
 function environment(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function headers(){

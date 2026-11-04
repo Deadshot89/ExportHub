@@ -234,6 +234,12 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1787 ABD-Datei-Upload API Routing TESTSERVICE prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1787-abd-upload-route-smoke.mjs testservice "$GITHUB_SHA"
+
       - name: RC1702 Dokumenten-API Routing TESTSERVICE
         shell: bash
         run: |

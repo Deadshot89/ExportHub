@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const src=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
 
@@ -48,4 +49,28 @@ test('RC1786: late i18n load preserves mounted Proforma editor and selected file
  assert.match(callback,/\.querySelector\('\[data-rc1294-invoice-panel\]'\)/);
  assert.match(callback,/\.textContent=xtr\('invoiceMode'\)/);
  assert.doesNotMatch(callback,/\.remove\(\)|\.innerHTML=/,'Refreshing translations must not destroy the editor or native file input');
+});
+
+test('RC1787: Rechnungsupload verwendet nur die aktive ExportHUB-Sitzung mit korrekter Umgebung',()=>{
+ const begin=src.indexOf('function authToken(){'),end=src.indexOf('function headers(){',begin);
+ assert.ok(begin>=0&&end>begin,'Auth-Token und Umgebungsprüfung fehlen');
+ const run=(runtime,stored,hostname='www.exporthub360.de')=>{
+  const w={
+   ExportHUBClean:{runtime},
+   location:{hostname},
+   sessionStorage:{getItem(key){return stored[key]||null}}
+  };
+  const scope={w,q:value=>String(value==null?'':value).trim()};
+  vm.runInNewContext(src.slice(begin,end)+'\nthis.pickToken=authToken;',scope);
+  return scope.pickToken()
+ };
+ const normal={exporthub_rc301_tab_session:JSON.stringify({token:'CANONICAL-TOKEN',user:{id:'u1'},environment:'production'})};
+ assert.equal(run({authToken:'RUNTIME-TOKEN'},normal),'RUNTIME-TOKEN');
+ assert.equal(run({token:'SECONDARY-RUNTIME-TOKEN'},normal),'SECONDARY-RUNTIME-TOKEN');
+ assert.equal(run({},normal),'CANONICAL-TOKEN');
+ assert.equal(run({},normal,'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'),'');
+ assert.equal(run({},{unrelated:JSON.stringify({token:'FOREIGN-TOKEN'})}),'');
+ assert.equal(run({},{exporthub_rc301_tab_session:JSON.stringify({token:'TOKEN-WITHOUT-USER',environment:'production'})}),'');
+ const testSession={exporthub_rc301_tab_session:JSON.stringify({token:'TEST-TOKEN',user:{id:'u2'},environment:'testservice'})};
+ assert.equal(run({},testSession,'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'),'TEST-TOKEN');
 });
