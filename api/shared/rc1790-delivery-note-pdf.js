@@ -13,7 +13,7 @@ function safe(value,max=500){
  return s.replace(/[\x00-\x08\x0b-\x1f\x7f]/g,' ');
 }
 function printable(value){
- return safe(value,800).replace(/[ß]/g,'ss').replace(/[łŁ]/g,'l').replace(/[øØ]/g,'o')
+ return safe(value,800).replace(/\s+/g,' ').replace(/[ß]/g,'ss').replace(/[łŁ]/g,'l').replace(/[øØ]/g,'o')
   .replace(/[€]/g,'EUR').replace(/[–—−]/g,'-').replace(/[’‘]/g,"'").replace(/[“”]/g,'"')
   .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
   .replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').replace(/\s+/g,' ').trim();
