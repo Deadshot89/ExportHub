@@ -9,8 +9,8 @@ const PROD_BLOB='urgent-orders/v1.json';
 const TEST_BLOB='testservice/urgent-orders/v1.json';
 
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
-function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{}};}
-function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};return d;}
+function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},reporterGroups:[]};}
+function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
 function storage(req){
  const environment=auth.environmentFromRequest(req);
  const isolated=environment==='testservice'?isolationConfig():{enabled:false};
@@ -89,3 +89,7 @@ module.exports=async function(context,req){
 };
 module.exports.execute=execute;
 module.exports.storage=storage;
+module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty())).value);};
+module.exports.write=write;
+module.exports.empty=empty;
+module.exports.normalize=normalize;
