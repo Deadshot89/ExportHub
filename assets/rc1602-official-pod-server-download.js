@@ -89,7 +89,7 @@ function originalFile(sh){return pickVerifiedPod(sh&&sh.podFiles)}
 // read the original signed loading-list bytes directly from the existing
 // document store (inline PDF or authenticated Azure document blob).
 // Token-only pickup URLs and unrelated external file links are not POD PDFs.
-async function storedSignedBlob(sh){
+async function storedSignedBlob(sh,options){
  var ref=refOf(sh),id=idOf(sh),copies=[sh],state={};
  try{state=typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__()||{}:{}}catch(_){}
  ['shipments','savedShipments','salesSharedShipments','sharedShipments'].forEach(function(key){
@@ -107,6 +107,9 @@ async function storedSignedBlob(sh){
   var signed=/_ladeliste_mit_unterschrift\.pdf$/i.test(name);
   var automatic=kind==='automatic-pod'&&(/_ladeliste_unterschrieben\.pdf$/i.test(name)||/\/automatic\/[^/]+\.pdf$/i.test(q(f.blobName||f.storageBlobName)));
   var manualPod=manual&&/\.pdf$/i.test(name);
+  // Bulk original backups must never replace a missing digital original with
+  // a manual attachment, even when its filename resembles a signed load list.
+  if(options&&options.signedOnly===true&&(manual||/manual-upload|user-upload/.test(kind)||(!signed&&!automatic)))return;
   if(signed||automatic||manualPod)files.push({file:f,priority:signed?3:automatic?2:1})
  })});
  files.sort(function(a,b){return b.priority-a.priority});

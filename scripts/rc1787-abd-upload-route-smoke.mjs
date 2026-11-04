@@ -22,7 +22,11 @@ export function verifyUnauthenticatedApi(status,type,body){
  if(status!==401)throw new Error('RC1787: upload API routing/auth probe returned HTTP '+status+' instead of 401');
  if(!String(type||'').toLowerCase().includes('application/json'))throw new Error('RC1787: upload API did not return JSON');
  let json;try{json=JSON.parse(String(body||''))}catch{throw new Error('RC1787: upload API JSON malformed')}
- if(!json||json.ok!==false||json.code!=='AUTH_REQUIRED')throw new Error('RC1787: upload API did not enforce AUTH_REQUIRED');
+ if(!json||json.ok!==false||json.code!=='AUTH_REQUIRED'){
+  // Log only the bounded machine-readable code: never echo API body, messages, tokens or headers.
+  const observed=typeof json?.code==='string'&&/^[A-Z][A-Z0-9_]{0,63}$/.test(json.code)?json.code:'UNKNOWN';
+  throw new Error('RC1787: upload API did not enforce AUTH_REQUIRED (received code='+observed+')');
+ }
  return true;
 }
 

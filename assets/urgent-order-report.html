@@ -26,48 +26,80 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 .tab[aria-selected="true"] .request-count{background:#225cc0;border-color:#225cc0;color:#fff}
 .tab[data-has-open="true"][aria-selected="false"] .request-count{background:#ffecdc;border-color:#f7c69c;color:#9a4808}
 @media(prefers-color-scheme:dark){.tab .request-count{background:#334761;border-color:#4e6787;color:#edf5ff}.tab[aria-selected="true"] .request-count{background:#4f92ff;border-color:#4f92ff;color:#081a31}.tab[data-has-open="true"][aria-selected="false"] .request-count{background:#68452d;border-color:#96704e;color:#ffe3bf}}
+
+/* Urgent 2.0: one workspace at a time */
+header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;padding-top:31px}h1{font-size:clamp(30px,3vw,40px)}.intro{max-width:690px;line-height:1.65}
+.workspace-nav{display:flex;flex-wrap:wrap;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:10px;margin:10px 0 22px;box-shadow:0 12px 36px #1b49751a}
+.workspace-nav .workspace-tab{display:inline-flex;align-items:center;gap:8px;justify-content:center;border:1px solid transparent;min-height:50px;font-weight:800;border-radius:11px;padding:10px 17px;color:var(--sub)}.workspace-nav .workspace-tab[aria-selected=true]{background:#245fc3;color:#fff;border-color:#245fc3}.workspace-nav .workspace-tab[aria-selected=true] .request-count{background:#fff;color:#1b4c95;border-color:#fff}
+.board{display:block}.board>.panel{width:100%;padding:clamp(19px,3.5vw,34px);border-radius:19px;box-shadow:0 15px 45px #1c487518}.workspace-heading{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}.workspace-heading h2{font-size:24px;margin:0 0 6px}.workspace-heading p{margin:0;font-size:13px}
+.request-type{padding:16px;border-radius:13px;border:1px solid #c7daf3;background:#f3f8ff}.request-type label{font-size:13px;font-weight:800;color:#285b9a}.type-explanation{border-radius:10px;padding:10px 12px;background:#e8f1ff;border:1px solid #d2e3fa}.type-explanation p{margin:0;font-size:12px;line-height:1.6;color:#28527e}
+@media(max-width:640px){.workspace-nav{padding:7px}.workspace-nav .workspace-tab{flex:1 1 100%}.board>.panel{padding:16px}}
+@media(prefers-color-scheme:dark){.request-type,.type-explanation{background:#203857;border-color:#405d80}.request-type label,.type-explanation p{color:#daeaff}}
+
+.urgent-hero{background:linear-gradient(125deg,#e6f2ff,#fafcff 70%);border:1px solid #d3e5fa;border-radius:20px;padding:28px 30px;margin-bottom:19px;position:relative;overflow:hidden}.urgent-hero:after{content:'';position:absolute;right:-45px;top:-75px;width:230px;height:230px;border:36px solid #2563eb0b;border-radius:50%;pointer-events:none}.urgent-hero h1{position:relative;letter-spacing:-.045em;font-size:clamp(27px,3.3vw,40px)}.urgent-hero .intro{position:relative;max-width:780px;margin:8px 0 0;line-height:1.68;font-size:14px}.hero-kicker{position:relative;display:block;color:#2465a8;font-weight:900;font-size:10px;letter-spacing:.15em;margin:0 0 10px}@media(max-width:600px){.urgent-hero{padding:20px 17px}}@media(prefers-color-scheme:dark){.urgent-hero{background:linear-gradient(120deg,#203955,#14273b);border-color:#355572}.hero-kicker{color:#a4cbfa}}
+
+.urgent-hero{padding:21px 25px;margin-bottom:12px}.urgent-hero h1{font-size:clamp(26px,2.5vw,34px)}
+.workspace-nav{position:sticky;top:0;z-index:11;backdrop-filter:blur(12px);margin:9px 0 15px}.workspace-nav .workspace-tab{flex:1 1 175px}.board>.panel{padding:clamp(18px,2.7vw,28px)}
+.wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 17px;border-bottom:1px solid var(--line)}.wizard-track>span{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:750;color:var(--sub)}
+.wizard-track b{width:29px;height:29px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--page)}.wizard-track>span[aria-current="step"]{background:var(--blue);color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff25;border-color:#ffffff55}
+[data-wizard-step]{padding-top:16px}[data-wizard-step][hidden]{display:none!important}.wizard-review{border:1px solid #b4ccee;background:#eef5ff;border-radius:14px;padding:17px}.wizard-review p{line-height:1.6}.wizard-review #wizardReview{font-weight:800;color:#205287}.wizard-actions{display:flex;gap:9px;align-items:center;padding-top:16px;border-top:1px solid var(--line)}.wizard-actions>span{flex:1}
+@media(max-width:670px){.workspace-nav{position:static}.wizard-track>span{flex-direction:column;text-align:center;gap:4px;font-size:11px}.wizard-actions button{flex:1}}
+@media(prefers-color-scheme:dark){.wizard-review{background:#213b58;border-color:#446a95}.wizard-review #wizardReview{color:#d4e8ff}}
+.saved-banner{background:#ecfdf2;border:1px solid #a4d9b6;color:#1b6d42;font-weight:800;border-radius:12px;padding:12px 16px;margin:0 0 12px}@media(prefers-color-scheme:dark){.saved-banner{background:#17402e;border-color:#346f50;color:#b6f1cc}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
 <body>
 <header><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order melden</span></div></header>
 <main>
-<h1>Urgent Order melden</h1><p class="intro">Dringende Aufträge erfassen, Lieferungen prüfen und die eigenen Anfragen ohne Anmeldung verfolgen.</p>
-<div class="tracking" id="tracking" hidden><strong>Dein persönlicher Überwachungslink</strong><p class="muted">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small">Link kopieren</button></div></div>
+<section class="urgent-hero"><span class="hero-kicker" data-i18n="urgentOrderV2.heroEyebrow">KUNDENSERVICE · URGENT ORDER</span><h1 data-i18n="urgentOrderV2.publicHero">Dringende Kundenaufträge im Blick</h1><p class="intro" data-i18n="urgentOrderV2.publicIntro">Anfrage erfassen, Bearbeitungsstand verfolgen und Informationen übersichtlich finden.</p></section>
+<div id="createdBanner" class="saved-banner" hidden role="status" aria-live="polite"></div>
+<div class="tracking" id="tracking" hidden><strong data-i18n="urgentOrderV2.trackingTitle">Dein persönlicher Überwachungslink</strong><p class="muted" data-i18n="urgentOrderV2.trackingHelp">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small" data-i18n="urgentOrderV2.copyLink">Link kopieren</button></div></div>
+<nav class="workspace-nav tabrow" role="tablist" aria-label="Arbeitsbereiche"><button type="button" class="tab workspace-tab" id="tabNew" role="tab" aria-selected="true"><span data-i18n="urgentOrderV2.tabNew">Neue Anfrage</span></button><button type="button" class="tab workspace-tab" id="tabOpen" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</span> <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button type="button" class="tab workspace-tab" id="tabClosed" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabClosed">Geschlossene Anfragen</span> <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></nav>
 <div class="board">
-<section class="panel"><h2>Neue Anfrage</h2><form id="reportForm" class="stack">
-<div class="pair"><label class="field">Auftragsnummer *<input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field">Priorität *<select name="priority"><option value="P1">P1 · Kritisch</option><option value="P2">P2 · Sehr dringend</option><option value="P3">P3 · Dringend</option><option value="P4">P4 · Priorisiert</option></select></label></div>
-<div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="DRP">DRP</option><option value="DIRECT">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
-<label class="field">E-Mail-Adresse des Melders *<input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
-<label class="field">Art der Anfrage *<select name="orderType" id="orderType"><option value="STANDARD">Urgent Order – Ware vorhanden</option><option value="DIRECT_OUTBOUND">Direktumschlag – Ware kommt und geht sofort</option></select></label>
+<section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-wizard-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-wizard-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-wizard-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-wizard-step="1">
+<div class="pair"><label class="field"><span data-i18n="urgentOrderV2.orderNumber">Auftragsnummer *</span><input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
+<div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
+<label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
+<div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
 <label class="field">Geplante Ankunft bei uns * (deutsche Ortszeit)<input name="arrivalAt" type="datetime-local"></label>
-<div class="pair"><label class="field">Womit kommt die Ware? *<select name="arrivalMode"><option value="">Bitte auswählen</option><option value="TRUCK">Lkw</option><option value="PARCEL">Paketdienst</option><option value="COURIER">Kurier</option><option value="OTHER">Sonstiges</option></select></label><label class="field">Anliefernder Dienstleister *<input name="arrivalProvider" maxlength="120" placeholder="Spedition / Kurier"></label></div>
+<div class="pair"><label class="field">Womit kommt die Ware? *<select name="arrivalMode"><option value="" data-i18n="urgentOrderV2.choose">Bitte auswählen</option><option value="TRUCK" data-i18n="urgentOrderV2.freightTruck">Lkw</option><option value="PARCEL" data-i18n="urgentOrderV2.freightParcel">Paketdienst</option><option value="COURIER" data-i18n="urgentOrderV2.freightCourier">Kurier</option><option value="OTHER" data-i18n="urgentOrderV2.freightOther">Sonstiges</option></select></label><label class="field">Anliefernder Dienstleister *<input name="arrivalProvider" maxlength="120" placeholder="Spedition / Kurier"></label></div>
 <label class="field">Anlieferreferenz / Tracking<input name="arrivalReference" maxlength="120"></label>
-<div class="pair"><label class="field">Wie muss die Ware raus? *<select name="dispatchMethod"><option value="">Bitte auswählen</option><option value="SPECIAL_TRANSPORT">Sondertransport</option><option value="EXPRESS">Express</option></select></label><label class="field">Gewünschter Versandtermin<input name="plannedDispatchAt" type="datetime-local"></label></div>
-<div class="check"><label for="deliveryNotePresent">Lieferschein vorhanden? *</label><select name="deliveryNotePresent" id="deliveryNotePresent"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
-<div class="check"><label for="asnWorking">Funktioniert die ASN? *</label><select name="asnWorking" id="asnWorking"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
-<div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
+<div class="pair"><label class="field">Wie muss die Ware raus? *<select name="dispatchMethod"><option value="" data-i18n="urgentOrderV2.choose">Bitte auswählen</option><option value="SPECIAL_TRANSPORT" data-i18n="urgentOrderV2.specialTransport">Sondertransport</option><option value="EXPRESS" data-i18n="urgentOrderV2.expressService">Express</option></select></label><label class="field">Gewünschter Versandtermin<input name="plannedDispatchAt" type="datetime-local"></label></div>
+<div class="check"><label for="deliveryNotePresent">Lieferschein vorhanden? *</label><select name="deliveryNotePresent" id="deliveryNotePresent"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<div class="check"><label for="asnWorking">Funktioniert die ASN? *</label><select name="asnWorking" id="asnWorking"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-<div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
-<div class="actions"><button class="btn" id="submitOrder" type="submit">Anfrage verbindlich melden</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
+</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
-<section class="panel"><div class="actions" style="justify-content:space-between"><h2 style="margin:0">Meine Anfragen</h2><button type="button" id="refresh" class="btn secondary small">Aktualisieren</button></div>
-<p class="muted">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
-<div class="tabrow" role="tablist" aria-label="Anfragen filtern"><button id="tabOpen" type="button" class="tab" role="tab" aria-selected="true">Offen <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button id="tabClosed" type="button" class="tab" role="tab" aria-selected="false">Geschlossen <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></div>
-<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+<section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
+<p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
+
+<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allPriorities">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
 </main>
 <script>
 (function(){
 'use strict';
+// Redirect only legacy Urgent-Order production URLs. Never change other ExportHUB routes.
+function redirectLegacyUrgentHost(){
+ const host=String(location.hostname||'').toLowerCase();
+ const legacy=['exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'];
+ if(!legacy.includes(host))return false;
+ const target='https://wonderful-forest-0f315e310.7.azurestaticapps.net/urgent-order'+(location.search||'')+(location.hash||'');
+ location.replace(target);
+ return true;
+}
+if(redirectLegacyUrgentHost())return;
 const ENDPOINT='/api/urgent-order-public';
 const STATUS=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
 const $=id=>document.getElementById(id);
-let secret='',orders=[],tab='open';
+let secret='',orders=[],tab='open',activeView='new';
 const str=v=>String(v==null?'':v);
 const esc=v=>str(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function accessFromHash(){
@@ -75,16 +107,30 @@ function accessFromHash(){
  return m?m[1]:'';
 }
 function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
-function statusClass(v){return 's-'+str(v).replace(/[^A-Za-z]/g,'');}
+function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
 function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
 async function api(action,params){
- const response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});
- let data;try{data=await response.json();}catch(_){throw new Error('Antwort vom Server ist ungültig.');}
- if(!response.ok||data.ok===false){const e=new Error(data.message||'Fehler bei der Meldung.');e.status=response.status;throw e;}return data;
+ let response;
+ try{response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});}
+ catch(_){throw new Error(localeV2('networkError','Keine Verbindung zum Urgent-Order-Dienst. Bitte die Internetverbindung prüfen und erneut versuchen.'));}
+ let data;try{data=await response.json();}catch(_){throw new Error(localeV2('networkError','Der Urgent-Order-Dienst liefert keine gültige Antwort. Bitte erneut versuchen.'));}
+ if(!response.ok||data.ok===false){
+  const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
+  const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
+  e.status=response.status;e.code=code;throw e;
+ }return data;
+}
+function localizeLineChoices(box){
+ const opts={'':'chooseCheck','true':'yes','false':'no'};
+ for(const option of box.querySelectorAll('select option')){
+  const key=opts[option.value];if(!key)continue;
+  option.setAttribute('data-i18n','urgentOrderV2.'+key);
+  option.textContent=localeV2(key,option.textContent);
+ }
 }
 function lineCard(){
  const box=document.createElement('div');box.className='line uo-line';
- box.innerHTML='<div class="line-head"><strong>Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
+ box.innerHTML='<div class="line-head"><strong data-i18n="urgentOrderV2.itemHeading">Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
  '<div class="pair"><label class="field">Line-Nummer<input data-field="line" maxlength="70" placeholder="10"></label><label class="field">Artikelnummer<input data-field="article" maxlength="120"></label></div>'+
  '<label class="field" style="margin-top:9px">Menge *<input data-field="quantity" type="number" min="1" max="10000000" step="1" value="1" required></label>'+
  '<div class="check" style="margin-top:10px" data-pickable><label>Genügend Bestand auf pickbarer Location? *</label><select data-field="pickableStock"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
@@ -100,10 +146,11 @@ function lineCard(){
  for(const [check,wrap] of [['newArticle','newarticle'],['minibag','minibag']]){
   box.querySelector('[data-field="'+check+'"]').addEventListener('change',e=>{const el=box.querySelector('[data-'+wrap+']');el.hidden=!e.target.checked;el.querySelectorAll('select').forEach(s=>{s.required=e.target.checked;if(!e.target.checked)s.value='';});});
  }
- $('lines').appendChild(box);syncType();
+ localizeLineChoices(box);$('lines').appendChild(box);syncType();
 }
 function syncType(){
  const direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('typeStandardHelp').hidden=direct;$('typeDirectHelp').hidden=!direct;
  $('directFields').hidden=!direct;
  $('directFields').querySelectorAll('input,select').forEach(i=>{
   if(['arrivalAt','arrivalMode','arrivalProvider','dispatchMethod','deliveryNotePresent','asnWorking','holdsClear'].includes(i.name))i.required=direct;
@@ -138,41 +185,76 @@ function buildPayload(){
   email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
   directOutbound:directOutbound(form),items:items()};
 }
+
+let wizardStep=1;
+function showWizardStep(step){
+ wizardStep=Math.max(1,Math.min(3,step));
+ for(const block of document.querySelectorAll('[data-wizard-step]'))block.hidden=Number(block.dataset.wizardStep)!==wizardStep;
+ for(const marker of document.querySelectorAll('[data-wizard-mark]')){if(Number(marker.dataset.wizardMark)===wizardStep)marker.setAttribute('aria-current','step');else marker.removeAttribute('aria-current');}
+ $('wizardBack').hidden=wizardStep===1;$('wizardNext').hidden=wizardStep===3;
+ if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+p.items.length+' '+localeV2('positions','Positionen')+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
+}
+function nextWizardStep(){
+ const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
+ for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
+ if(wizardStep===2){
+  const p=buildPayload();
+  if(p.items.some(x=>!x.line&&!x.article)){showMessage(localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
+  if(p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8)){showMessage(localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
+ }
+ showMessage('','');showWizardStep(wizardStep+1);
+}
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
+function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function statusText(code){const ids={Open:'statusOpen',Waved:'statusWaved','In Progress':'statusInProgress',Problem:'statusProblem',Loaded:'statusLoaded',Shipped:'statusShipped',Invoiced:'statusInvoiced',Gemischt:'statusMixed',Mixed:'statusMixed'};const fallback={Open:'Offen',Waved:'Welle freigegeben','In Progress':'In Bearbeitung',Problem:'Problem',Loaded:'Verladen',Shipped:'Versendet',Invoiced:'Fakturiert',Gemischt:'Gemischt',Mixed:'Gemischt'};return localeV2(ids[code]||'',fallback[code]||code);}
+function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
+function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function render(){
+ showView(activeView);
  const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
  $('countOpen').textContent=open;$('countClosed').textContent=done;
- $('tabOpen').setAttribute('aria-label','Offen, '+open+' Anfragen');
- $('tabClosed').setAttribute('aria-label','Geschlossen, '+done+' Anfragen');
+ $('tabOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+open);
+ $('tabClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+done);
  $('tabOpen').dataset.hasOpen=open>0?'true':'false';
- $('tabOpen').setAttribute('aria-selected',tab==='open'?'true':'false');
- $('tabClosed').setAttribute('aria-selected',tab==='closed'?'true':'false');
+ $('tabOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');
+ $('tabClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');
  const q=$('search').value.trim().toLowerCase(),p=$('priorityFilter').value;
  const rows=orders.filter(o=>(tab==='closed'?closed(o):!closed(o))&&(!p||o.priority===p)&&(!q||[o.orderNumber,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(x=>str(x).toLowerCase().includes(q))))
   .sort((a,b)=>({P1:1,P2:2,P3:3,P4:4}[a.priority]||5)-({P1:1,P2:2,P3:3,P4:4}[b.priority]||5)||str(b.createdAt).localeCompare(str(a.createdAt)));
  const target=$('orders');target.innerHTML='';
- if(!rows.length){target.innerHTML='<div class="empty">'+(secret?'In diesem Reiter sind keine passenden Anfragen vorhanden.':'Noch keine Anfragen vorhanden. Melde deinen ersten Auftrag.')+'</div>';return;}
+ if(!rows.length){const emptyLabel=secret?localeV2('noResults','Keine passenden Anfragen in diesem Reiter.'):localeV2('noRequests','Noch keine Anfragen vorhanden. Bitte zuerst eine neue Anfrage melden.');target.innerHTML='<div class="empty">'+esc(emptyLabel)+'</div>';return;}
  for(const o of rows){
   const node=document.createElement('details');node.className='order';
-  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(x.status)+'</span></div>').join('');
-  const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">Ankunft: <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · Ausgang: '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?'Express':'Sondertransport')+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(o.priority)+'</span><span class="pill '+statusClass(status)+'">'+esc(status)+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  const status=humanStatus(o);
+  const lineHtml=(o.items||[]).map(x=>{
+   const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
+   return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
+  const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc((o.items||[]).length)+' '+esc(localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
+function urgentTrackingBase(){
+ const host=String(location.hostname||'').toLowerCase();
+ const productionHost='wonderful-forest-0f315e310.7.azurestaticapps.net';
+ const productionHosts=new Set([productionHost,'exporthub360.com','www.exporthub360.com','exporthub360.de','www.exporthub360.de']);
+ const origin=productionHosts.has(host)?'https://'+productionHost:location.origin;
+ return origin+'/urgent-order';
+}
 function activateLink(){
  if(!secret)return;$('tracking').hidden=false;
- $('trackingUrl').textContent=location.href.split('#')[0]+'#access='+encodeURIComponent(secret);
+ $('trackingUrl').textContent=urgentTrackingBase()+'#access='+encodeURIComponent(secret);
 }
 async function refresh(){
  if(!secret){orders=[];render();return;}
  try{const data=await api('list',{accessToken:secret});orders=data.orders||[];render();activateLink();}
- catch(e){$('orders').innerHTML='<div class="empty">Die Anfragen können mit diesem Link nicht geladen werden. '+esc(e.message)+'</div>';}
+ catch(e){const errorText=localeV2('loadError','Die Anfragen können mit diesem Link nicht geladen werden.');$('orders').innerHTML='<div class="empty" role="alert"><p>'+esc(errorText)+' '+esc(e.message)+'</p><button type="button" class="btn secondary small" id="retryPublicList">'+esc(localeV2('retry','Erneut versuchen'))+'</button></div>';$('retryPublicList').addEventListener('click',refresh);}
 }
 async function submit(ev){
  ev.preventDefault();
- if(!$('reportForm').reportValidity())return;
+ if(wizardStep!==3){showWizardStep(1);return;}
+ if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
@@ -182,12 +264,13 @@ async function submit(ev){
  try{
   const data=await api('create',p);
   secret=data.accessToken;
+  $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
   location.hash='access='+encodeURIComponent(secret);
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
-  syncType();activateLink();await refresh();
-  tab='open';render();showMessage('Anfrage '+data.order.orderNumber+' gespeichert. Bitte den Überwachungslink sichern.','ok');
+  syncType();showWizardStep(1);activateLink();await refresh();
+  showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
 }
@@ -196,14 +279,16 @@ async function copyLink(){
  catch(_){showMessage('Link konnte nicht kopiert werden. Bitte manuell markieren.','error');}
 }
 $('reportForm').addEventListener('submit',submit);
+$('wizardNext').addEventListener('click',nextWizardStep);$('wizardBack').addEventListener('click',()=>showWizardStep(wizardStep-1));
 $('orderType').addEventListener('change',syncType);
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
-for(const [id,tabValue] of [['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{tab=tabValue;render();});
+for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
-secret=accessFromHash();lineCard();syncType();refresh();
+window.addEventListener('exporthub:language-changed',render);
+secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
 })();
 </script>
 </body>

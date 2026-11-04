@@ -12,7 +12,7 @@ test('RC1501 Packmeldungen navigation is standalone and no longer clones Aufgabe
   assert.match(nav,/data-pack-notifications-nav-owner/);
   assert.match(nav,/packnotifications/,'Packmeldungen must own a dedicated view identity');
   assert.match(nav,/renderPackInbox/,'Packmeldungen click must render the dedicated inbox');
-  assert.match(nav,/pack-station-admin\.js\?v=1501/,'stable Packmeldungen navigation must load the QR admin runtime');
+  assert.match(nav,/pack-station-admin\.js\?v=1811/,'stable Packmeldungen navigation must load the current QR admin runtime');
 });
 
 test('RC1502 Packmeldungen exposes exactly one shared Pack-QR instead of a multi-station UI',()=>{

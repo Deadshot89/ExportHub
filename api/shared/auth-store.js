@@ -124,7 +124,7 @@ function parseStoredJson(raw, blobName) {
     throw e;
   }
 }
-async function readJson(blob, fallback) {
+async function readJson(blob, fallback, options = {}) {
   try {
     const response = await blob.download(0);
     const chunks = [];
@@ -141,7 +141,12 @@ async function readJson(blob, fallback) {
       throw parseError;
     }
   } catch (e) {
-    if (e && e.statusCode === 404) return { value: clone(fallback), etag: null };
+    if (e && e.statusCode === 404) {
+      if (options.missingBlobOnly && (e.code || (e.details && e.details.errorCode)) !== 'BlobNotFound') {
+        throw error('STORAGE_READ_UNAVAILABLE', 'Der konfigurierte Datenspeicher ist nicht erreichbar.', 503);
+      }
+      return { value: clone(fallback), etag: null };
+    }
     throw e;
   }
 }
