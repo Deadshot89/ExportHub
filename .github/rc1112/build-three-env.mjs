@@ -1080,7 +1080,7 @@ async function rc1340PrepareDeliveryAttachmentPrints(sh){
     try{var resolved=new URL(url,window.location.href);documentApi=resolved.origin===window.location.origin&&resolved.pathname==='/api/exporthub-document'}catch(_){}
     // RC1703: migrated delivery-note URLs must carry the existing ExportHUB
     // session, otherwise Azure may return a Microsoft login document instead.
-    if(documentApi){if(!helper||typeof helper.headers!=='function')throw new Error('ExportHUB-Sitzung für Lieferschein fehlt.');options.headers=helper.headers()}
+    if(documentApi){if(!helper||typeof helper.headers!=='function')throw new Error('ExportHUB-Sitzung für Lieferschein fehlt.');options.headers=helper.headers();options.credentials='omit'}
     var response=await fetch(url,options);
     if(response.type==='opaqueredirect'||response.redirected===true||/\\/\\.auth\\/|login\\.microsoftonline\\.com/i.test(q(response.url))){var redirectError=new Error('Die Dokumenten-API hat zur Anmeldung umgeleitet.');redirectError.code='DOCUMENT_API_LOGIN_REDIRECT';throw redirectError}
     if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');
