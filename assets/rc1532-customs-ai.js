@@ -54,10 +54,11 @@ function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!b
 function renderSources(host,result){
  clear(host);var sources=Array.isArray(result&&result.sources)?result.sources:[];
  if(result&&result.evidence==='invoice-analysis'){var local=el('div','rc1532-source rc1532-source-local');local.appendChild(el('strong','',tr('analysis')));host.appendChild(local)}
- sources.forEach(function(source){
+ sources.forEach(function(source,index){
   var card=el('div','rc1532-source'),link=el('a','',q(source.title)||q(source.sourceName)||source.id||tr('sources'));
+  card.id=sourceAnchorId(source.id);
   link.href=q(source.sourceUrl)||'#';link.target='_blank';link.rel='noopener noreferrer';
-  card.appendChild(link);
+  card.appendChild(el('span','rc1532-source-index','['+(index+1)+']'));card.appendChild(link);
   var meta=[];if(q(source.sourceName))meta.push(q(source.sourceName));if(q(source.checkedAt))meta.push(tr('checked')+': '+q(source.checkedAt));
   if(meta.length)card.appendChild(el('div','rc1532-source-meta',meta.join(' · ')));
   host.appendChild(card)
@@ -65,40 +66,50 @@ function renderSources(host,result){
  if(!sources.length&&!(result&&result.evidence==='invoice-analysis'))host.appendChild(el('div','rc1532-source-empty',tr('noSources')))
 }
 /* Sicheres Rendering: nur DOM-Textknoten und begrenzte Markdown-Abschnitte, niemals Modell-HTML. */
-function appendAnswerInline(node,line){
- var parts=String(line||'').split(/(\*\*[^*\n]+\*\*)/g);
+/* Zitierverweise verlinken nur bereits serverseitig validierte Quellen; kein Modell-HTML. */
+function sourceAnchorId(id){return 'rc1532-cite-'+String(id||'').replace(/[^A-Za-z0-9_-]/g,'-')}
+function appendAnswerInline(node,line,citations){
+ var parts=String(line||'').split(/(\*\*[^*\n]+\*\*|\[\[[A-Za-z0-9._:-]{1,48}\]\])/g);
  for(var i=0;i<parts.length;i++){
-  if(!parts[i])continue;
-  if(/^\*\*[^*]+\*\*$/.test(parts[i]))node.appendChild(el('strong','',parts[i].slice(2,-2)));
-  else node.appendChild(d.createTextNode(parts[i]))
+  var part=parts[i];if(!part)continue;
+  if(/^\*\*[^*]+\*\*$/.test(part)){node.appendChild(el('strong','',part.slice(2,-2)));continue}
+  var marker=part.match(/^\[\[([A-Za-z0-9._:-]{1,48})\]\]$/),source=marker&&citations[marker[1]];
+  if(marker){
+   if(source){var link=el('a','rc1532-citation','['+source.number+']');link.href='#'+source.id;link.setAttribute('aria-label',tr('sources')+' '+source.number);node.appendChild(link)}
+   else node.appendChild(d.createTextNode('[?]'));
+   continue
+  }
+  node.appendChild(d.createTextNode(part))
  }
 }
-function renderAnswer(host,raw){
+function renderAnswer(host,raw,sources){
  clear(host);
+ var citations=Object.create(null),rows=Array.isArray(sources)?sources:[];
+ for(var j=0;j<rows.length;j++){var source=rows[j]||{},id=q(source.id);if(id)citations[id]={number:j+1,id:sourceAnchorId(id)}}
  var lines=String(raw||'').replace(/\r\n?/g,'\n').split('\n'),paragraph=null,list=null,listType='';
  for(var i=0;i<lines.length;i++){
   var line=q(lines[i]);if(!line){paragraph=null;list=null;listType='';continue}
   var heading=line.match(/^#{1,3}\s+(.+)$/);
   if(heading){
    paragraph=null;list=null;listType='';
-   var h=el('h6','rc1532-answer-section');appendAnswerInline(h,heading[1]);host.appendChild(h);continue
+   var h=el('h6','rc1532-answer-section');appendAnswerInline(h,heading[1],citations);host.appendChild(h);continue
   }
   var bullet=line.match(/^(?:[-*]\s+|\d+[.)]\s+)(.+)$/);
   if(bullet){
    paragraph=null;
    var kind=/^\d+[.)]\s+/.test(line)?'ol':'ul';
    if(!list||kind!==listType){list=d.createElement(kind);list.className='rc1532-answer-list';host.appendChild(list);listType=kind}
-   var li=d.createElement('li');appendAnswerInline(li,bullet[1]);list.appendChild(li);continue
+   var li=d.createElement('li');appendAnswerInline(li,bullet[1],citations);list.appendChild(li);continue
   }
   list=null;listType='';
   if(!paragraph){paragraph=el('p','rc1532-answer-paragraph');host.appendChild(paragraph)}
   else paragraph.appendChild(d.createTextNode(' '));
-  appendAnswerInline(paragraph,line)
+  appendAnswerInline(paragraph,line,citations)
  }
 }
 function renderResult(result){
  var answer=d.querySelector('[data-rc1532-answer]'),sourceBox=d.querySelector('[data-rc1532-sources]'),badge=d.querySelector('[data-rc1532-badge]'),checked=d.querySelector('[data-rc1532-checked]');if(!answer||!sourceBox)return;
- renderAnswer(answer,q(result&&result.answer)||tr('error'));
+ renderAnswer(answer,q(result&&result.answer)||tr('error'),result&&result.sources);
  var uncertain=!!(result&&(result.uncertainty||result.ok===false));badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
  checked.textContent=q(result&&result.checkedAt)?tr('checked')+': '+q(result.checkedAt):'';
  renderSources(sourceBox,result||{});
