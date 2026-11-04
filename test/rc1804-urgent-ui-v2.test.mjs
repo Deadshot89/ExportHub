@@ -88,3 +88,14 @@ test('six-language workspaces do not reuse English placeholders for the updated 
  const repaired=['019','022','024','025','026','027','029','031','034','035','036','037','039','043','044','045','047','048','049','051','052','054','055','056','057','060','061','062','064','066','069','070','071','073','074','076','077','079'];
  for(let j=2;j<langs.length;j++)for(const suffix of repaired)assert.notEqual(data[j]['urgentOrder.ui.'+suffix],data[1]['urgentOrder.ui.'+suffix],langs[j]+' untranslated previous UI label '+suffix);
 });
+
+test('public request rendering calls the actual translation helper, including dynamic status cards',()=>{
+ const source=script(publicHtml);
+ assert.match(source,/function localeV2\(/);
+ assert.match(source,/function statusText\(/);
+ assert.match(source,/function priorityText\(/);
+ assert.doesNotMatch(source,/\blabelFor\(/,'undefined translation helper must never be referenced');
+ assert.match(source,/localeV2\(ids\[code\]/);
+ assert.match(source,/localeV2\('arrivalShort'/);
+ assert.match(source,/localeV2\('quantityShort'/);
+});
