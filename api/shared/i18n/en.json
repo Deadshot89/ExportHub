@@ -288,5 +288,16 @@
   "api.urgent.qtyLabel": "Qty",
   "api.urgent.statusLabel": "Status",
   "api.urgent.serverError": "Urgent Order could not be processed. Please try again later.",
-  "api.urgent.invalidRequest": "Invalid request."
+  "api.urgent.invalidRequest": "Invalid request.",
+  "api.urgent.arrivalAt": "Expected arrival:",
+  "api.urgent.arrivalMode": "Inbound transport:",
+  "api.urgent.arrivalCarrier": "Inbound carrier:",
+  "api.urgent.outboundMethod": "Outbound service:",
+  "api.urgent.requestedDispatch": "Requested dispatch:",
+  "api.urgent.express": "Express",
+  "api.urgent.specialTransport": "Special transport",
+  "api.urgent.truck": "Truck",
+  "api.urgent.parcel": "Parcel carrier",
+  "api.urgent.courier": "Courier",
+  "api.urgent.otherTransport": "Other"
 }
