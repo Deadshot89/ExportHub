@@ -2449,5 +2449,16 @@
   "urgentOrderV2.heroEyebrow": "OBSŁUGA KLIENTA · PILNE ZAMÓWIENIA",
   "urgentOrderV2.publicHero": "Pilne zamówienia klientów pod kontrolą",
   "urgentOrderV2.publicIntro": "Utwórz zgłoszenie, śledź postęp i łatwo znajdź potrzebne informacje.",
-  "urgentOrderV2.internalIntro": "Obsługuj otwarte zgłoszenia, sprawdzaj zamknięte lub twórz nowe – każde w osobnej zakładce."
+  "urgentOrderV2.internalIntro": "Obsługuj otwarte zgłoszenia, sprawdzaj zamknięte lub twórz nowe – każde w osobnej zakładce.",
+  "urgentOrderV2.statusOpen": "Otwarte",
+  "urgentOrderV2.statusWaved": "Fala zwolniona",
+  "urgentOrderV2.statusInProgress": "W realizacji",
+  "urgentOrderV2.statusProblem": "Problem",
+  "urgentOrderV2.statusLoaded": "Załadowano",
+  "urgentOrderV2.statusShipped": "Wysłano",
+  "urgentOrderV2.statusInvoiced": "Zafakturowano",
+  "urgentOrderV2.statusMixed": "Mieszany",
+  "urgentOrderV2.statusPositions": "Pozycje",
+  "urgentOrderV2.statusQuantity": "Ilość",
+  "urgentOrderV2.statusLine": "Pozycja"
 }

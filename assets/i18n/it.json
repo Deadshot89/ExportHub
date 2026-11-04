@@ -2449,5 +2449,16 @@
   "urgentOrderV2.heroEyebrow": "SERVIZIO CLIENTI · ORDINI URGENTI",
   "urgentOrderV2.publicHero": "Ordini clienti urgenti sotto controllo",
   "urgentOrderV2.publicIntro": "Crea una richiesta, segui lo stato e trova tutte le informazioni facilmente.",
-  "urgentOrderV2.internalIntro": "Gestisci le richieste aperte, consulta quelle chiuse o creane di nuove, ciascuna in una scheda dedicata."
+  "urgentOrderV2.internalIntro": "Gestisci le richieste aperte, consulta quelle chiuse o creane di nuove, ciascuna in una scheda dedicata.",
+  "urgentOrderV2.statusOpen": "Aperto",
+  "urgentOrderV2.statusWaved": "Ondata rilasciata",
+  "urgentOrderV2.statusInProgress": "In lavorazione",
+  "urgentOrderV2.statusProblem": "Problema",
+  "urgentOrderV2.statusLoaded": "Caricato",
+  "urgentOrderV2.statusShipped": "Spedito",
+  "urgentOrderV2.statusInvoiced": "Fatturato",
+  "urgentOrderV2.statusMixed": "Misto",
+  "urgentOrderV2.statusPositions": "Posizioni",
+  "urgentOrderV2.statusQuantity": "Quantità",
+  "urgentOrderV2.statusLine": "Riga"
 }

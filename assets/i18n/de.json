@@ -2449,5 +2449,16 @@
   "urgentOrderV2.heroEyebrow": "KUNDENSERVICE · URGENT ORDER",
   "urgentOrderV2.publicHero": "Dringende Kundenaufträge im Blick",
   "urgentOrderV2.publicIntro": "Anfrage erfassen, Bearbeitungsstand verfolgen und Informationen übersichtlich finden.",
-  "urgentOrderV2.internalIntro": "Offene Vorgänge bearbeiten, abgeschlossene prüfen oder neue Anfragen erfassen – alles in getrennten Reitern."
+  "urgentOrderV2.internalIntro": "Offene Vorgänge bearbeiten, abgeschlossene prüfen oder neue Anfragen erfassen – alles in getrennten Reitern.",
+  "urgentOrderV2.statusOpen": "Offen",
+  "urgentOrderV2.statusWaved": "Welle freigegeben",
+  "urgentOrderV2.statusInProgress": "In Bearbeitung",
+  "urgentOrderV2.statusProblem": "Problem",
+  "urgentOrderV2.statusLoaded": "Verladen",
+  "urgentOrderV2.statusShipped": "Versendet",
+  "urgentOrderV2.statusInvoiced": "Fakturiert",
+  "urgentOrderV2.statusMixed": "Gemischt",
+  "urgentOrderV2.statusPositions": "Positionen",
+  "urgentOrderV2.statusQuantity": "Menge",
+  "urgentOrderV2.statusLine": "Line"
 }

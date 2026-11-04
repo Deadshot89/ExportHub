@@ -2449,5 +2449,16 @@
   "urgentOrderV2.heroEyebrow": "ATENCIÓN AL CLIENTE · PEDIDOS URGENTES",
   "urgentOrderV2.publicHero": "Pedidos urgentes de clientes de un vistazo",
   "urgentOrderV2.publicIntro": "Crea una solicitud, sigue su estado y consulta toda la información fácilmente.",
-  "urgentOrderV2.internalIntro": "Gestiona solicitudes abiertas, revisa las cerradas o crea nuevas: cada una en su pestaña."
+  "urgentOrderV2.internalIntro": "Gestiona solicitudes abiertas, revisa las cerradas o crea nuevas: cada una en su pestaña.",
+  "urgentOrderV2.statusOpen": "Abierto",
+  "urgentOrderV2.statusWaved": "Ola liberada",
+  "urgentOrderV2.statusInProgress": "En curso",
+  "urgentOrderV2.statusProblem": "Incidencia",
+  "urgentOrderV2.statusLoaded": "Cargado",
+  "urgentOrderV2.statusShipped": "Enviado",
+  "urgentOrderV2.statusInvoiced": "Facturado",
+  "urgentOrderV2.statusMixed": "Mixto",
+  "urgentOrderV2.statusPositions": "Posiciones",
+  "urgentOrderV2.statusQuantity": "Cantidad",
+  "urgentOrderV2.statusLine": "Línea"
 }

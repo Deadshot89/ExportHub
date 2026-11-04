@@ -87,7 +87,7 @@ function accessFromHash(){
  return m?m[1]:'';
 }
 function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
-function statusClass(v){return 's-'+str(v).replace(/[^A-Za-z]/g,'');}
+function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
 function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
 async function api(action,params){
  const response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});
@@ -154,6 +154,7 @@ function buildPayload(){
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function statusText(code){const ids={Open:'statusOpen',Waved:'statusWaved','In Progress':'statusInProgress',Problem:'statusProblem',Loaded:'statusLoaded',Shipped:'statusShipped',Invoiced:'statusInvoiced',Gemischt:'statusMixed',Mixed:'statusMixed'};const fallback={Open:'Offen',Waved:'Welle freigegeben','In Progress':'In Bearbeitung',Problem:'Problem',Loaded:'Verladen',Shipped:'Versendet',Invoiced:'Fakturiert',Gemischt:'Gemischt',Mixed:'Gemischt'};return labelFor(ids[code]||'',fallback[code]||code);}
 function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
 function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function render(){
@@ -172,9 +173,9 @@ function render(){
  if(!rows.length){target.innerHTML='<div class="empty">'+(secret?'In diesem Reiter sind keine passenden Anfragen vorhanden.':'Noch keine Anfragen vorhanden. Melde deinen ersten Auftrag.')+'</div>';return;}
  for(const o of rows){
   const node=document.createElement('details');node.className='order';
-  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(x.status)+'</span></div>').join('');
+  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>').join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">Ankunft: <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · Ausgang: '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?'Express':'Sondertransport')+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(status)+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
