@@ -3,9 +3,13 @@
 const crypto = require('node:crypto');
 const apiI18n = require('./i18n');
 const PRIORITIES = Object.freeze(['P1','P2','P3','P4']);
-const STATUSES = Object.freeze(['Open','Waved','In Progress','Loaded','Shipped','Invoiced']);
+const STATUSES = Object.freeze(['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced']);
 const LANGUAGES = Object.freeze(['de','en']);
 const DELIVERY = Object.freeze(['DRP','DIRECT']);
+const ORDER_TYPES=Object.freeze(['STANDARD','DIRECT_OUTBOUND']);
+const ARRIVAL_MODES=Object.freeze(['TRUCK','PARCEL','COURIER','OTHER']);
+const DISPATCH_METHODS=Object.freeze(['SPECIAL_TRANSPORT','EXPRESS']);
+const CLOSED_STATUSES=Object.freeze(['Invoiced']);
 function text(v,max=200){return String(v==null?'':v).trim().slice(0,max);}
 function problem(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e;}
 function email(v){const value=text(v,254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)||/[\r\n]/.test(value))throw problem('URGENT_EMAIL_INVALID','Bitte eine gültige CS-E-Mail-Adresse angeben.');return value;}
@@ -13,30 +17,72 @@ function language(v){const raw=text(v,10).toLowerCase();return LANGUAGES.include
 function orderNumber(v){const raw=text(v,40).toUpperCase();if(!/^SO[A-Z0-9-]{2,38}$/.test(raw))throw problem('URGENT_SO_INVALID','Die Auftragsnummer muss mit SO beginnen.');return raw;}
 function positiveInt(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<1||n>10000000)throw problem('URGENT_QUANTITY_INVALID','Jede Position braucht eine gültige Menge größer als 0.');return n;}
 function explicitCheck(v,key){if(typeof v!=='boolean')throw problem('URGENT_CHECK_MISSING','Die CS-Prüfung "'+key+'" muss mit Ja oder Nein beantwortet werden.');return v;}
-function validateItems(raw,now){
+
+function localDateTime(value){
+ const v=text(value,16);
+ const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(v);
+ if(!m)throw problem('URGENT_ARRIVAL_TIME_INVALID','Arrival date and time are required.');
+ const y=+m[1],month=+m[2],day=+m[3],hh=+m[4],mm=+m[5];
+ const d=new Date(Date.UTC(y,month-1,day));
+ if(y<2020||y>2100||d.getUTCFullYear()!==y||d.getUTCMonth()!==month-1||d.getUTCDate()!==day||hh>23||mm>59)throw problem('URGENT_ARRIVAL_TIME_INVALID','Invalid arrival date and time.');
+ return v;
+}
+function validateDirectOutbound(raw){
+ const p=raw&&typeof raw==='object'?raw:{};
+ const arrivalMode=text(p.arrivalMode,20).toUpperCase(),dispatchMethod=text(p.dispatchMethod,30).toUpperCase();
+ if(!ARRIVAL_MODES.includes(arrivalMode))throw problem('URGENT_ARRIVAL_MODE_REQUIRED','Please select the inbound transport type.');
+ if(!DISPATCH_METHODS.includes(dispatchMethod))throw problem('URGENT_DISPATCH_REQUIRED','Please choose special transport or express.');
+ const arrivalProvider=text(p.arrivalProvider,120);
+ if(!arrivalProvider)throw problem('URGENT_ARRIVAL_PROVIDER_REQUIRED','Please enter the carrier or inbound provider.');
+ const docs=explicitCheck(p.deliveryNotePresent,'delivery note available');
+ const asn=explicitCheck(p.asnWorking,'ASN functional');
+ const holds=explicitCheck(p.holdsClear,"Don't Process / Credit Hold");
+ const failed=(!docs||!asn||!holds),exceptionReason=text(p.exceptionReason,1000);
+ if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Explain any failed inbound checks (at least 8 characters).');
+ return{arrivalAt:localDateTime(p.arrivalAt),arrivalTimeZone:'Europe/Berlin',arrivalMode,arrivalProvider,
+  arrivalReference:text(p.arrivalReference,120),dispatchMethod,
+  plannedDispatchAt:p.plannedDispatchAt?localDateTime(p.plannedDispatchAt):null,
+  checks:{deliveryNotePresent:docs,asnWorking:asn,holdsClear:holds},
+  checkResult:failed?'exception':'passed',exceptionReason:failed?exceptionReason:''};
+}
+
+function validateItems(raw,now,orderType='STANDARD'){
  if(!Array.isArray(raw)||raw.length<1||raw.length>100)throw problem('URGENT_LINES_REQUIRED','Bitte 1 bis 100 Artikel/Lines erfassen.');
  const seen=new Set();
  return raw.map((r,i)=>{
   const line=text(r&&r.line,70),article=text(r&&r.article,120);
   if(!line&&!article)throw problem('URGENT_LINE_INVALID','Bei jeder Position muss Line oder Artikelnummer eingetragen sein.');
   const key=(line||'#')+'|'+(article||'#');if(seen.has(key))throw problem('URGENT_DUPLICATE_LINE','Eine Position wurde mehrfach eingetragen.');seen.add(key);
-  const isMinibag=r&&r.minibag===true;
-  const checks={pickableStock:explicitCheck(r&&r.pickableStock,'pickbarer Bestand'),holdsClear:explicitCheck(r&&r.holdsClear,"Don't Process / Credit Hold"),minibagLeadtime:isMinibag?explicitCheck(r&&r.minibagLeadtime,'10 Tage Minibag-Leadtime'):null};
-  const failed=!checks.pickableStock||!checks.holdsClear||(isMinibag&&!checks.minibagLeadtime);
+  const isMinibag=r&&r.minibag===true,newArticle=r&&r.newArticle===true;
+  const pickableStock=orderType==='DIRECT_OUTBOUND'?null:explicitCheck(r&&r.pickableStock,'pickable stock');
+  const holdsClear=explicitCheck(r&&r.holdsClear,"Don't Process / Credit Hold");
+  const checks={
+   pickableStock,holdsClear,
+   minibagLeadtime:isMinibag?explicitCheck(r&&r.minibagLeadtime,'ten-day minibag leadtime'):null,
+   articleDataCorrect:newArticle?explicitCheck(r&&r.articleDataCorrect,'new article master data'):null,
+   processCompliant:newArticle?explicitCheck(r&&r.processCompliant,'new article process'):null
+  };
+  const failed=(pickableStock===false)||!holdsClear||(isMinibag&&!checks.minibagLeadtime)||(newArticle&&(!checks.articleDataCorrect||!checks.processCompliant));
   const exceptionReason=text(r&&r.exceptionReason,1000);
-  if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Bei nicht bestandenen Prüfungen ist eine Begründung mit mindestens 8 Zeichen erforderlich.');
-  return {id:crypto.randomUUID(),line,article,quantity:positiveInt(r&&r.quantity),minibag:isMinibag,checks,exceptionReason:failed?exceptionReason:'',checkResult:failed?'exception':'passed',status:'Open',checkedAt:now};
+  if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Explain any failed item checks (at least 8 characters).');
+  return{id:crypto.randomUUID(),line,article,quantity:positiveInt(r&&r.quantity),minibag:isMinibag,newArticle,checks,exceptionReason:failed?exceptionReason:'',checkResult:failed?'exception':'passed',status:'Open',checkedAt:now};
  });
 }
 function createOrder(raw,actor,now=new Date().toISOString()){
  const p=raw&&typeof raw==='object'?raw:{};
  const delivery=text(p.delivery,10).toUpperCase();
  const priority=text(p.priority,2).toUpperCase();
+ const orderType=text(p.orderType||'STANDARD',30).toUpperCase();
  if(!DELIVERY.includes(delivery))throw problem('URGENT_DELIVERY_INVALID','Bitte DRP oder Direktlieferung auswählen.');
  if(!PRIORITIES.includes(priority))throw problem('URGENT_PRIORITY_INVALID','Bitte eine Priorität P1 bis P4 wählen.');
+ if(!ORDER_TYPES.includes(orderType))throw problem('URGENT_ORDER_TYPE_INVALID','Choose a valid urgent order type.');
  const ownerId=text(actor&&actor.id,150);
- if(!ownerId)throw problem('URGENT_ACTOR_REQUIRED','Ein angemeldeter Benutzer ist erforderlich.',401);
- return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,email:email(p.email),language:language(p.language),createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,items:validateItems(p.items,now),history:[{at:now,actorId:ownerId,event:'created'}]};
+ if(!ownerId)throw problem('URGENT_ACTOR_REQUIRED','A validated user or reporter session is required.',401);
+ const directOutbound=orderType==='DIRECT_OUTBOUND'?validateDirectOutbound(p.directOutbound):null;
+ return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,orderType,directOutbound,
+  email:email(p.email),language:language(p.language),
+  createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,
+  items:validateItems(p.items,now,orderType),history:[{at:now,actorId:ownerId,event:'created'}]};
 }
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
@@ -53,6 +99,7 @@ function setItemStatus(order,itemId,status,user,now=new Date().toISOString()){
  if(order.history.length>200)order.history=order.history.slice(-200);
  return true;
 }
+function isClosed(order){return !!(order&&Array.isArray(order.items)&&order.items.length&&order.items.every(x=>CLOSED_STATUSES.includes(x.status)));}
 function summaryStatus(order){const unique=[...new Set((order.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
 function draftMail(order,kind,lang,note){
  const l=language(lang||order.language),issue=kind==='problem';
@@ -82,4 +129,4 @@ function draftMail(order,kind,lang,note){
   ].join('\n')
  };
 }
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,text,problem,email,language,orderNumber,createOrder,canManage,canRead,setItemStatus,summaryStatus,draftMail};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail};
