@@ -17,7 +17,11 @@ test('RC1787: live upload route rejects unauthenticated POST with JSON/401, not 
  assert.throws(()=>verifyUnauthenticatedApi(404,'text/html','<html>Not found</html>'),/HTTP 404/);
  assert.throws(()=>verifyUnauthenticatedApi(302,'text/html',''),/HTTP 302/);
  assert.throws(()=>verifyUnauthenticatedApi(401,'text/html',NO_SESSION),/did not return JSON/);
- assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:false,code:'SESSION_INVALID'})),/AUTH_REQUIRED/);
+ const mismatch=JSON.stringify({ok:false,code:'SESSION_INVALID',message:'DO_NOT_LOG_USER_DATA'});
+ assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',mismatch),error=>
+  error.message.includes('received code=SESSION_INVALID')&&!error.message.includes('DO_NOT_LOG_USER_DATA'));
+ assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:false,code:'AUTH_REQUIRED',message:'unexpected'})),/AUTH_REQUIRED/);
+ assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:false,code:'secret-diagnostic'})),/received code=UNKNOWN/);
 });
 
 test('RC1787: integration checks asset and API route without credentials or real files',async()=>{
