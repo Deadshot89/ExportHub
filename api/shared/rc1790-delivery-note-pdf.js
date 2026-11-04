@@ -20,7 +20,8 @@ function printable(value){
 }
 function date(value){
  const s=safe(value,10),m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
- if(!m||new Date(s+'T12:00:00Z').toISOString().slice(0,10)!==s)fail('DELIVERY_NOTE_DATE_INVALID');
+ const parsed=m?new Date(s+'T12:00:00Z'):null;
+ if(!parsed||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==s)fail('DELIVERY_NOTE_DATE_INVALID');
  return m[3]+'.'+m[2]+'.'+m[1];
 }
 function optionalNumber(value){
