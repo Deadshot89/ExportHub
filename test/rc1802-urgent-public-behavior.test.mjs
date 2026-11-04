@@ -55,3 +55,11 @@ test('public reporter create/list is capability-scoped across users; only token 
   assert.equal(state.orders.length,3,'limit must reject without inserting an order');
  }finally{internal.write=originals.write;internal.readDocument=originals.readDocument;}
 });
+
+test('Azure deployment isolation fails closed on unknown or contradictory hosts',()=>{
+ const ref='https://exporthub360.com',testHost='sample-testservice.azurestaticapps.net';
+ assert.throws(()=>internal.storage({headers:{host:'worker.azurewebsites.net',origin:'https://'+testHost}}),e=>e.code==='URGENT_HOST_UNTRUSTED','forged Origin alone cannot choose test data');
+ assert.throws(()=>internal.storage({headers:{host:testHost,origin:ref}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','test host must not select production Origin');
+ assert.throws(()=>internal.storage({headers:{host:'exporthub360.com','x-forwarded-host':testHost}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','contradictory trusted hosts are rejected');
+ assert.throws(()=>internal.storage({headers:{host:testHost,'x-exporthub-environment':'production'}}),e=>e.code==='ENVIRONMENT_MISMATCH'||e.code==='URGENT_ENVIRONMENT_MISMATCH','spoofed target environment is rejected');
+});
