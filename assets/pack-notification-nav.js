@@ -106,7 +106,7 @@
   n.setAttribute('data-exporthub-urgent-nav','');n.setAttribute('aria-label','Urgent Order');n.title='Urgent Order';
   n.innerHTML='<span class="index308-nav-icon" aria-hidden="true" style="--menu-accent:#dc7226;color:#dc7226">!</span><span class="index308-nav-label">Urgent Order</span>';
   n.style.setProperty('--menu-accent','#dc7226');
-  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/urgent-orders.html');},true);
+  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/assets/urgent-orders.html');},true);
   anchor.parentNode.insertBefore(n,anchor.nextSibling);
  }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
