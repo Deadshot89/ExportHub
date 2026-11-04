@@ -4,11 +4,20 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
 
-const require=createRequire(import.meta.url);
-const {environmentFromRequest}=require('../api/shared/auth-store.js');
-
 const read=file=>fs.readFileSync(file,'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
+const authRequire=createRequire(new URL('../api/shared/auth-store.js',import.meta.url));
+const authModule={exports:{}};
+// Exercise the real server resolver without installing or contacting Azure.
+// This gate intentionally runs before runtime dependencies are installed.
+vm.runInNewContext(read('api/shared/auth-store.js'),{
+  module:authModule,process:{env:{}},Buffer,URL,
+  require(name){
+    if(name==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){throw new Error('Environment resolution must not access storage');}}};
+    return authRequire(name);
+  }
+});
+const {environmentFromRequest}=authModule.exports;
 
 function harness({admin=true,hostname='exporthub360.com',environment='production'}={}){
   const listeners=[],opened=[],requests=[],alerts=[];
