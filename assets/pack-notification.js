@@ -64,7 +64,41 @@
     if(naming.renamed){out.originalName=file.name;out.documentReference=naming.reference||'';out.documentReferenceType=naming.reason==='side'?'SIDE':'DNC';}
     return out;
   }
-  async function api(action,payload){const res=await fetch(`/api/pack-notification?action=${encodeURIComponent(action)}`,{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false){const key=data.code?`pack.api.${String(data.code)}`:'';const translated=key?tr(key):'';const err=new Error(translated&&translated!==key?translated:(data.message||`HTTP ${res.status}`));err.code=data.code||'PACK_REQUEST_FAILED';err.httpStatus=Number(res.status)||0;throw err;}return data;}
+  // RC1813: request deadline includes both headers and response body. Never
+  // automatically retry a draft/submit after an uncertain server acknowledgement.
+  async function api(action,payload){
+    const isWrite=action==='draft-save'||action==='submit';
+    const maxWaitMs=isWrite?45000:25000;
+    const controller=new AbortController();
+    let expired=false;
+    const deadline=setTimeout(()=>{expired=true;controller.abort();},maxWaitMs);
+    try{
+      const res=await fetch(`/api/pack-notification?action=${encodeURIComponent(action)}`,{
+        method:'POST',credentials:'omit',cache:'no-store',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify(payload),signal:controller.signal
+      });
+      let data={};
+      try{data=await res.json();}catch(error){if(expired||error&&error.name==='AbortError')throw error;}
+      if(expired)throw new Error('PACK_REQUEST_TIMEOUT');
+      if(!res.ok||data.ok===false){
+        const key=data.code?`pack.api.${String(data.code)}`:'';
+        const translated=key?tr(key):'';
+        const err=new Error(translated&&translated!==key?translated:(data.message||`HTTP ${res.status}`));
+        err.code=data.code||'PACK_REQUEST_FAILED';
+        err.httpStatus=Number(res.status)||0;
+        throw err;
+      }
+      return data;
+    }catch(error){
+      if(expired||error&&error.name==='AbortError'){
+        const failure=new Error(tr(isWrite?'pack.draft.unknownSave':'pack.draft.requestTimeout'));
+        failure.code='PACK_REQUEST_TIMEOUT';failure.httpStatus=0;
+        throw failure;
+      }
+      throw error;
+    }finally{clearTimeout(deadline);}
+  }
   async function loadPackagingMaster(){try{const data=await api('packaging-list',{stationToken:state.stationToken});state.packagingMaster=Array.isArray(data.packaging)?data.packaging:[];}catch(_){state.packagingMaster=[];}populatePackageTypes();}
   function clearCustomerResults(){els.customerResults.innerHTML='';els.customerResults.hidden=true;}
   function showManualCustomer(){const value=els.customer.value.trim();els.customerManual.hidden=value.length<2||!!state.selectedCustomer||state.customCustomerConfirmed;els.customerSelected.hidden=true;}
