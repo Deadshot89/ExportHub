@@ -72,3 +72,16 @@ test('RC1787: Azure-injected Authorization cannot be mistaken for ExportHUB sess
  assert.equal(auth.hasExportHubCredential({headers:{authorization:'Bearer ehs1.a.b'}}),true);
  assert.equal(auth.hasExportHubCredential({headers:{authorization:'Bearer not-an-exporthub-session'}}),false);
 });
+
+test('RC1787: the actual ABD endpoint rejects Azure Authorization without ExportHUB credentials',async()=>{
+ const handler=require('../api/abd-analysis/index.js');
+ const context={res:null,log:{error(){}}};
+ await handler(context,{method:'POST',headers:{
+  host:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',
+  authorization:'Bearer Azure-platform-identity',
+  'content-type':'application/json'
+ },body:{action:'status',uploadId:'rc1787-nonexistent'}});
+ assert.ok(context.res,'ABD endpoint must produce a response');
+ assert.equal(verifyUnauthenticatedApi(
+  context.res.status,context.res.headers?.['Content-Type'],context.res.body),true);
+});
