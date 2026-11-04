@@ -96,10 +96,14 @@ module.exports=async function(context,req){
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
   const internalCode=String(e&&e.code||'URGENT_PUBLIC_FAILED');
-  // Return only recognized operational codes, never Azure credentials, stack traces or host internals.
-  const publicCode=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(internalCode)?internalCode:'URGENT_PUBLIC_FAILED';
+  // Only our own error codes are safe to expose. Azure SDK errors such as
+  // AuthorizationFailure/ContainerNotFound may report 403/404 but are operational
+  // failures, not a customer validation error. Never send their raw message.
+  const recognized=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(internalCode);
+  const publicCode=recognized?internalCode:'URGENT_PUBLIC_FAILED';
+  const responseStatus=!recognized&&status<500?503:status;
   context.log&&context.log.warn&&context.log.warn('urgent-order-public',internalCode,status);
-  const serviceError=status>=500;
+  const serviceError=responseStatus>=500;
   const safeMessages={
    URGENT_STORAGE_MISSING:'Urgent Order ist noch nicht mit dem Datenspeicher verbunden. Bitte die Logistik informieren.',
    URGENT_HOST_UNTRUSTED:'Die Urgent-Order-Umgebung konnte nicht eindeutig geprüft werden. Bitte die Logistik informieren.',
@@ -109,7 +113,7 @@ module.exports=async function(context,req){
   const message=serviceError
    ?safeMessages[publicCode]||'Urgent Order ist momentan nicht verfügbar. Bitte erneut versuchen und bei Wiederholung die Logistik informieren.'
    :e&&e.message||'Ungültige Anfrage.';
-  context.res=json(status,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
+  context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
  }
 };
 module.exports.publicAction=publicAction;
