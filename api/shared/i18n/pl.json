@@ -271,5 +271,22 @@
   "api.reference.docTypeInvalid": "Dozwolone są PDF, obrazy (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT i e-maile (MSG/EML).",
   "api.reference.docEmpty": "Plik jest pusty lub nieprawidłowy.",
   "api.reference.docTooLarge": "Plik jest większy niż 15 MB.",
-  "api.reference.docSignatureInvalid": "Zawartość pliku nie pasuje do typu pliku."
+  "api.reference.docSignatureInvalid": "Zawartość pliku nie pasuje do typu pliku.",
+  "api.urgent.issueDescriptionRequired": "Proszę opisać problem (co najmniej 8 znaków).",
+  "api.urgent.subjectIssue": "Pilne zamówienie – Problem / ",
+  "api.urgent.subjectShipping": "Pilne zamówienie – Potwierdzenie wysyłki / ",
+  "api.urgent.introIssue": "Chcielibyśmy poinformować o problemie z pilnym zamówieniem.",
+  "api.urgent.introShipping": "Potwierdzamy wysyłkę poniższych pozycji pilnego zamówienia.",
+  "api.urgent.orderLabel": "Zamówienie:",
+  "api.urgent.deliveryLabel": "Rodzaj dostawy:",
+  "api.urgent.directDelivery": "Dostawa bezpośrednia",
+  "api.urgent.priorityLabel": "Priorytet:",
+  "api.urgent.issueLabel": "Problem:",
+  "api.urgent.signoff": "Z poważaniem,\nZespół logistyki",
+  "api.urgent.lineLabel": "Pozycja",
+  "api.urgent.itemLabel": "Artykuł",
+  "api.urgent.qtyLabel": "Ilość",
+  "api.urgent.statusLabel": "Status",
+  "api.urgent.serverError": "Nie udało się przetworzyć pilnego zamówienia. Spróbuj ponownie później.",
+  "api.urgent.invalidRequest": "Nieprawidłowe żądanie."
 }
