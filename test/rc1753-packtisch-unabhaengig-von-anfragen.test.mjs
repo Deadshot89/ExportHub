@@ -2,11 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+
+const require=createRequire(import.meta.url);
+const {environmentFromRequest}=require('../api/shared/auth-store.js');
 
 const read=file=>fs.readFileSync(file,'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-function harness({admin=true}={}){
+function harness({admin=true,hostname='exporthub360.com',environment='production'}={}){
   const listeners=[],opened=[],requests=[],alerts=[];
   const side={children:[],appendChild(node){this.children.push(node);return node;}};
   function makeHeader(){
@@ -29,11 +33,12 @@ function harness({admin=true}={}){
     addEventListener(name,callback,capture){listeners.push({name,callback,capture});}
   };
   const root={
+    location:{hostname},
     document:doc,open(url){const tab={opener:'prior',closed:false,location:{href:url},close(){this.closed=true;}};opened.push(tab);return tab;},
     alert(msg){alerts.push(msg);},setTimeout(){},addEventListener(){},
     __EXPORTHUB_GET_CURRENT_USER__:()=>({isGlobalAdmin:admin}),
     __EXPORTHUB_GET_STATE__:()=>({tasks:[{id:'pack:1',sourceType:'pack_notification',status:'open'},{id:'pack:2',sourceType:'pack_notification',status:'open'}]}),
-    ExportHUBClean:{runtime:{authToken:'VALID'}},
+    ExportHUBClean:{runtime:{authToken:'VALID',environment}},
     fetch:async(url,options)=>{requests.push({url,options});return{ok:true,status:200,async text(){return JSON.stringify({ok:true,url:'https://exporthub360.com/pack/pks1_valid'});}};}
   };
   vm.runInNewContext(read('assets/pack-station-admin.js'),{window:root,globalThis:root,Promise,Array,Object,String,JSON,Date});
@@ -75,6 +80,33 @@ test('Packtisch shared QR remains administrator-only as on existing website',()=
   const h=harness({admin:false});
   assert.equal(h.root.ExportHUBPackStationAdmin.decorateDetail(),false);
   assert.equal(h.side.children.length,0);
+});
+
+test('TESTSERVICE Packtisch link request reaches the same environment behind an internal Azure Functions host',async()=>{
+  const h=harness({hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',environment:'testservice'});
+  h.root.ExportHUBPackStationAdmin.decorateDetail();
+  h.click(h.side.children[0]);
+  await flush();
+  const headers=h.requests[0].options.headers;
+  assert.equal(headers['X-ExportHUB-Environment'],'testservice');
+  assert.equal(environmentFromRequest({headers:{...headers,host:'functions.azurewebsites.net',origin:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'}}),'testservice');
+  assert.equal(headers.Authorization,'Bearer VALID');
+});
+
+test('production Packtisch request cannot inherit stale TESTSERVICE runtime environment',async()=>{
+  const h=harness({hostname:'www.exporthub360.de',environment:'testservice'});
+  h.root.ExportHUBPackStationAdmin.decorateDetail();
+  h.click(h.side.children[0]);
+  await flush();
+  assert.equal(h.requests[0].options.headers['X-ExportHUB-Environment'],'production');
+});
+
+test('local Packtisch development retains the explicitly selected TESTSERVICE environment',async()=>{
+  const h=harness({hostname:'localhost',environment:'testservice'});
+  h.root.ExportHUBPackStationAdmin.decorateDetail();
+  h.click(h.side.children[0]);
+  await flush();
+  assert.equal(h.requests[0].options.headers['X-ExportHUB-Environment'],'testservice');
 });
 
 test('QR preview loading cannot lock direct Packtisch open',async()=>{

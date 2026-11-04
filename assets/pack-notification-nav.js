@@ -44,7 +44,7 @@
     return new Promise(resolve=>{
       let script=doc.getElementById('exporthub-pack-station-admin');
       if(script){script.addEventListener&&script.addEventListener('load',()=>resolve(root.ExportHUBPackStationAdmin||null),{once:true});root.setTimeout&&root.setTimeout(()=>resolve(root.ExportHUBPackStationAdmin||null),1500);return;}
-      script=doc.createElement('script');script.id='exporthub-pack-station-admin';script.src='/assets/pack-station-admin.js?v=1501';script.defer=true;script.onload=()=>resolve(root.ExportHUBPackStationAdmin||null);script.onerror=()=>resolve(null);(doc.head||doc.documentElement).appendChild(script);
+      script=doc.createElement('script');script.id='exporthub-pack-station-admin';script.src='/assets/pack-station-admin.js?v=1811';script.defer=true;script.onload=()=>resolve(root.ExportHUBPackStationAdmin||null);script.onerror=()=>resolve(null);(doc.head||doc.documentElement).appendChild(script);
     });
   }
   function ensurePackagingAdmin(){
