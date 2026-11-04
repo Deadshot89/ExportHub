@@ -336,6 +336,24 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  const count=nav.children.length;
  timers[0]();
  assert.equal(nav.children.length,count);
+ // A node created by an older runtime must be upgraded without losing its badge.
+ currentNav=nav;
+ urgent.className='urgent-orders-nav-entry pack-notification-nav-entry active';
+ urgent.innerHTML='<span class="index308-nav-icon">!</span><span>Urgent Order</span>';
+ delete urgent.attributes['data-urgent-nav-design'];
+ const liveBadge=node('span',{'data-urgent-open-count':''});
+ liveBadge.textContent='6';
+ urgent.appendChild(liveBadge);
+ nav.insertBefore(urgent,dashboard);
+ handlers['exporthub:rendered']();
+ assert.equal(pack.nextSibling,urgent);
+ assert.equal(urgent.getAttribute('data-urgent-nav-design'),'2');
+ assert.ok(urgent.innerHTML.includes('<svg '),'legacy exclamation symbol must become an SVG');
+ assert.strictEqual(urgent.querySelector('[data-urgent-open-count]'),liveBadge,'preserve live counter');
+ assert.equal(liveBadge.textContent,'6');
+ assert.equal(urgent.className.includes('active'),false,'old active class must not survive');
+ assert.equal(urgent.className.includes('pack-notification-nav-entry'),false);
+ assert.equal(head.children.filter(x=>x.id==='exporthub-urgent-nav-style').length,1,'style is not duplicated');
 });
 
 
