@@ -24,14 +24,20 @@ function publicSiteEnvironment(url){
 }
 function storage(req){
  const h=req&&req.headers||{};
- const detected=auth.environmentFromRequest(req);
+ const direct=publicSiteEnvironment(h.host||h.Host||'');
+ const forwarded=publicSiteEnvironment(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'');
  const site=publicSiteEnvironment(h.origin||h.Origin||h.referer||h.Referer||'');
- const direct=publicSiteEnvironment(h.host||h.Host||''),forwarded=publicSiteEnvironment(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'');
- if(site&&(direct&&direct!==site||forwarded&&forwarded!==site))throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The urgent order origin does not match the deployment host.',409);
- // Azure Functions can receive an internal azurewebsites.net Host; use the recognized
- // browser site to select the isolated TESTSERVICE blob in this case, never silently production.
- const environment=site||detected;
- if(site&&detected==='testservice'&&site!=='testservice')throw model.problem('URGENT_ENVIRONMENT_MISMATCH','A testservice request cannot select production order data.',409);
+ // Do not let an unauthenticated browser-supplied Origin or an X-ExportHUB-Environment
+ // select a production/test blob when Azure's genuine Host is not identifiable.
+ if(!direct&&!forwarded)throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
+ if(direct&&forwarded&&direct!==forwarded)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The deployment host values disagree.',409);
+ const environment=direct||forwarded;
+ if(site&&site!==environment)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The urgent order origin does not match the deployment host.',409);
+ const detected=auth.environmentFromRequest(req);
+ if(detected!==environment)
+  throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The requested environment conflicts with the deployment host.',409);
  const isolated=environment==='testservice'?isolationConfig():{enabled:false};
  const configured=isolated.enabled?isolated.connectionString:(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'');
  if(!configured)throw model.problem('URGENT_STORAGE_MISSING','Azure-Speicherung für Urgent Orders ist nicht konfiguriert.',503);
