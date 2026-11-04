@@ -119,3 +119,48 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  for(const key of ['shipmentDate','incotermPlace','insuranceCost'])expect(allExports[1].snapshot.header).not.toHaveProperty(key);
  expect(pageErrors).toEqual([]);
 });
+
+
+test('RC1784: D365-TXT-Upload erzeugt getrennte Empfänger-Rechnungsentwürfe',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='laptop','Chromium Laptop');
+ test.setTimeout(90_000);
+ await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+ await waitReady(page);
+ await page.evaluate(()=>{
+   const original=window.fetch.bind(window);
+   const make=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+   const position=(item,value)=>({position:'1',itemNumber:item,description:'Component '+item,quantity:2,unit:'EA',unitPrice:value/2,value,netMassKg:0.5,grossMassKg:0.6,commodityCode:'3926909790',originCountry:'IN',currency:'EUR',confirmed:false,missing:[]});
+   const document=(name,ref,item,value)=>({
+     fileName:'D365.txt · '+ref+' · '+name,fileType:'d365',
+     header:{recipient:name,recipientAddress:'Warehouse, '+name+', United Kingdom',destinationCountry:'GB',shipmentReference:ref,invoiceTotal:value,currency:'EUR'},
+     positions:[position(item,value)],groups:[],unassigned:[],review:{complete:false},totals:{invoiceTotal:value,currency:'EUR'}
+   });
+   window.fetch=async(input,options)=>{
+     const url=typeof input==='string'?input:String(input&&input.url||'');
+     if(url==='/api/abd-analysis'||url.endsWith('/api/abd-analysis')){
+       const payload=JSON.parse(options&&options.body||'{}');
+       if(payload.action==='upload')return make({ok:true,status:'scanning',upload:{id:'rc1784-mock',name:payload.file.name}},202);
+       if(payload.action==='status'){
+         const docs=[document('Customer A','DNC1','A1',10),document('Customer B','DNC2','B1',20)];
+         return make({ok:true,status:'ready',analysis:{fileName:'D365.txt',positions:docs.flatMap(d=>d.positions),deliveryDocuments:docs}});
+       }
+     }
+     return original(input,options);
+   };
+ });
+ await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+ const panel=page.locator('[data-rc1294-abd-analysis="1"]');
+ await expect(panel).toBeVisible({timeout:10_000});
+ await panel.locator('[data-rc1294-mode="invoice"]').click();
+ await panel.locator('[data-rc1294-files]').setInputFiles({name:'D365.txt',mimeType:'text/plain',buffer:Buffer.from('PACKINGSLIPID\\tITEMNUMBER\\tQTY\\nDNC1\\tA1\\t2')});
+ await panel.locator('[data-rc1294-start]').click();
+ const docs=panel.locator('.rc1294-document');
+ await expect(docs).toHaveCount(2,{timeout:20_000});
+ await expect(docs.nth(0)).toContainText('Customer A');
+ await expect(docs.nth(1)).toContainText('Customer B');
+ await docs.nth(1).locator('[data-rc1549-import]').click();
+ const editor=page.locator('#rc1549AbdManual');
+ await expect(editor.locator('[data-rc1549-header="recipient"]')).toHaveValue('Customer B');
+ await expect(editor.locator('tbody tr')).toHaveCount(1);
+ await expect(editor.locator('[data-field="itemNumber"]')).toHaveValue('B1');
+});
