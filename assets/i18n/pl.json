@@ -2512,5 +2512,16 @@
   "urgentOrderV2.allLevels": "Wszystkie poziomy",
   "urgentOrderV2.allDeliveries": "Wszystkie rodzaje dostawy",
   "urgentOrderV2.allStatuses": "Wszystkie statusy",
-  "urgentOrderV2.directShortDelivery": "Bezpośrednio"
+  "urgentOrderV2.directShortDelivery": "Bezpośrednio",
+  "urgentOrderV2.stepBasics": "Dane zamówienia",
+  "urgentOrderV2.stepChecks": "Artykuły i kontrole",
+  "urgentOrderV2.stepConfirm": "Sprawdź i wyślij",
+  "urgentOrderV2.reviewIntro": "Sprawdź dane. Po zapisaniu można śledzić zgłoszenie.",
+  "urgentOrderV2.sendRequest": "Zgłoś pilne zamówienie",
+  "urgentOrderV2.previous": "Wstecz",
+  "urgentOrderV2.next": "Dalej",
+  "urgentOrderV2.retry": "Spróbuj ponownie",
+  "urgentOrderV2.missingArticle": "Podaj numer pozycji lub artykułu.",
+  "urgentOrderV2.explainException": "Negatywna kontrola wymaga uzasadnienia co najmniej 8 znaków.",
+  "urgentOrderV2.networkError": "Usługa pilnych zamówień nie odpowiada. Sprawdź połączenie i spróbuj ponownie."
 }
