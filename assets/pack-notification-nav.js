@@ -92,26 +92,91 @@
 })(typeof window!=='undefined'?window:globalThis);
 
 
-/* Urgent Order: independent navigation entry; leaves existing Packmeldung routing unchanged. */
+/* Urgent Order: sidebar add-on immediately below Packmeldungen, never above Dashboard.
+   Do not alter the normal ExportHUB navigation, Packmeldungen or any other domain. */
 (function(w){
  'use strict';
  if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV__)return;
  w.__EXPORT_HUB_URGENT_NAV__=true;
  var d=w.document;
+ var URGENT_ACCENT='#dc7226';
+ var URGENT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"></path></svg>';
+ function urgentOrdersDestination(){
+  var host=String(w.location&&w.location.hostname||'').toLowerCase();
+  var canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+  var productionHosts=['wonderful-forest-0f315e310.7.azurestaticapps.net','exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'];
+  return productionHosts.includes(host)?canonical+'/assets/urgent-orders.html':'/assets/urgent-orders.html';
+ }
  function ensure(){
-  if(d.querySelector('[data-exporthub-urgent-nav]'))return;
-  var anchor=d.querySelector('[data-pack-notifications-nav]')||d.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
-  if(!anchor||!anchor.parentNode)return;
-  var n=d.createElement('button');n.type='button';n.className=(anchor.className||'')+' urgent-orders-nav-entry';
-  n.setAttribute('data-exporthub-urgent-nav','');n.setAttribute('aria-label','Urgent Order');n.title='Urgent Order';
-  n.innerHTML='<span class="index308-nav-icon" aria-hidden="true" style="--menu-accent:#dc7226;color:#dc7226">!</span><span class="index308-nav-label">Urgent Order</span>';
-  n.style.setProperty('--menu-accent','#dc7226');
-  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/assets/urgent-orders.html');},true);
-  anchor.parentNode.insertBefore(n,anchor.nextSibling);
+  // Wait for the real application sidebar. A startup fallback must not appear above Dashboard.
+  var nav=d.querySelector('#nav');
+  if(!nav)return null;
+  var pack=nav.querySelector('[data-pack-notifications-nav]');
+  var tasks=nav.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
+  var anchor=pack&&pack.parentNode===nav?pack:tasks&&tasks.parentNode===nav?tasks:null;
+  if(!anchor)return null;
+  var node=d.querySelector('[data-exporthub-urgent-nav]');
+  // Apply the same style even when a previous runtime created the button.
+  injectStyle();
+  if(!node){
+   node=d.createElement('button');
+   node.type='button';
+   // Reuse native sidebar typography and sizing, never inherit Packmeldungen-specific classes.
+   var nativeEntry=tasks&&tasks.parentNode===nav?tasks:anchor;
+   var inherited=String(nativeEntry.className||'').replace(/\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\b/g,'').trim();
+   node.className=(inherited?inherited+' ':'')+'urgent-orders-nav-entry';
+   node.setAttribute('data-exporthub-urgent-nav','');
+   node.setAttribute('aria-label','Urgent Order');
+   node.setAttribute('title','Urgent Order');
+   node.setAttribute('data-menu-accent',URGENT_ACCENT);
+   node.style.setProperty('--menu-accent',URGENT_ACCENT);
+   node.innerHTML='<span class="index308-nav-icon urgent-orders-nav-icon" aria-hidden="true">'+URGENT_ICON+'</span><span class="index308-nav-label urgent-orders-nav-label">Urgent Order</span>';
+   node.setAttribute('data-urgent-nav-design','2');
+   node.addEventListener('click',function(e){
+    e.preventDefault();e.stopImmediatePropagation();
+    w.location.assign(urgentOrdersDestination());
+   },true);
+  }else if(!node.getAttribute||node.getAttribute('data-urgent-nav-design')!=='2'){
+   // Upgrade old menu buttons in place; retain the live counter node and its state.
+   var badge=node.querySelector&&node.querySelector('[data-urgent-open-count]');
+   var previousLabel=node.getAttribute&&String(node.getAttribute('aria-label')||'');
+   var reference=tasks&&tasks.parentNode===nav?tasks:anchor;
+   var classes=String(reference.className||'').replace(/\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\b/g,'').trim();
+   node.className=(classes?classes+' ':'')+'urgent-orders-nav-entry';
+   node.setAttribute('aria-label',badge&&/^Urgent Order: [0-9]+ offene Anfragen$/.test(previousLabel)?previousLabel:'Urgent Order');
+   node.setAttribute('title','Urgent Order');
+   node.setAttribute('data-menu-accent',URGENT_ACCENT);
+   node.style.setProperty('--menu-accent',URGENT_ACCENT);
+   node.innerHTML='<span class="index308-nav-icon urgent-orders-nav-icon" aria-hidden="true">'+URGENT_ICON+'</span><span class="index308-nav-label urgent-orders-nav-label">Urgent Order</span>';
+   if(badge)node.appendChild(badge);
+   node.setAttribute('data-urgent-nav-design','2');
+  }
+  // Re-home older/stale buttons and move again when the menu gets rebuilt.
+  if(node.parentNode!==nav||anchor.nextSibling!==node)nav.insertBefore(node,anchor.nextSibling);
+  return node;
+ }
+ function injectStyle(){
+  if(d.getElementById('exporthub-urgent-nav-style'))return;
+  var style=d.createElement('style');style.id='exporthub-urgent-nav-style';
+  style.textContent=
+   '#nav.nav[data-index305-authoritative="1"]>button[data-exporthub-urgent-nav]:not([hidden]){display:flex!important;align-items:center!important;gap:9px!important;width:100%!important;cursor:pointer}'+
+   '#nav.nav[data-index305-authoritative="1"]>button[data-exporthub-urgent-nav]>span:first-child{width:20px;text-align:center;flex:0 0 20px}'+
+   '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--menu-accent,#dc7226)}'+
+   '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-icon svg{width:20px;height:20px;display:block}'+
+   '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+   'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]{min-height:43px!important;border:1px solid transparent!important;color:#dbe7f5!important;background:transparent!important}'+
+   'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]:hover{color:#fff!important;border-color:rgba(255,255,255,.08)!important;background:rgba(255,255,255,.07)!important}'+
+   'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav] .index308-nav-icon{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.10)!important;color:var(--menu-accent,#dc7226)!important}'+
+   'html[data-eh-design="modern"] #nav>button[data-exporthub-urgent-nav]{display:grid!important;grid-template-columns:34px minmax(0,1fr) 18px!important;align-items:center!important;min-height:46px!important;padding:6px 9px!important;border-radius:12px!important}'+
+   'html[data-eh-design="modern"] #nav>button[data-exporthub-urgent-nav]::after{content:"›";opacity:.35;font-size:17px;justify-self:end}'+
+   'html[data-eh-design="glass"] #nav>button[data-exporthub-urgent-nav]{min-height:44px!important;padding:6px 9px!important;border-radius:15px!important}'+
+   'html[data-eh-design="neon"] #nav>button[data-exporthub-urgent-nav]{grid-template-columns:30px 1fr!important;min-height:38px!important;padding:4px 7px!important;border-radius:8px!important;font-size:12px!important}'+
+   '@media(max-width:760px){html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;min-width:62px!important;min-height:54px!important;padding:4px!important;border-radius:10px!important}html[data-eh-design]:not([data-eh-design="classic"]) #nav.nav[data-index305-authoritative="1"]>button[data-exporthub-urgent-nav]:not([hidden]){width:auto!important;flex:0 0 auto!important}html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]::after{display:none!important}html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{max-width:64px!important}}';
+  (d.head||d.documentElement).appendChild(style);
  }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
  if(w.setInterval)w.setInterval(function(){if(!d.hidden)ensure()},1500);
- if(w.addEventListener)['exporthub:viewchange','exporthub:rendered','exporthub:ready'].forEach(function(type){w.addEventListener(type,ensure)});
+ if(w.addEventListener)['exporthub:viewchange','exporthub:rendered','exporthub:ready','exporthub:language-changed'].forEach(function(type){w.addEventListener(type,ensure)});
 })(typeof window!=='undefined'?window:globalThis);
 
 
