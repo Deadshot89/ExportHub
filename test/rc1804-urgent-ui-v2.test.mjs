@@ -120,8 +120,8 @@ test('all human-readable dropdown choices have explicit six-language translation
    for(let i=0;i<packs.length;i++)assert.ok(packs[i][match[1]],langs[i]+' missing '+match[1]);
   }
  }
- assert.match(publicHtml,/function localizeLineChoices\\(/);
- assert.match(internalHtml,/function localizeLineChoices\\(/);
- for(const html of [publicHtml,internalHtml])assert.match(html,/option.setAttribute\\('data-i18n','urgentOrderV2\\.'\\+key\\)/);
+ assert.match(publicHtml,/function localizeLineChoices\(/);
+ assert.match(internalHtml,/function localizeLineChoices\(/);
+ for(const html of [publicHtml,internalHtml])assert.match(html,/option.setAttribute\('data-i18n','urgentOrderV2\.'\+key\)/);
 
 });
