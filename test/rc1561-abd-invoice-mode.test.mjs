@@ -61,7 +61,7 @@ test('RC1787: Rechnungsupload verwendet nur die aktive ExportHUB-Sitzung mit kor
    sessionStorage:{getItem(key){return stored[key]||null}}
   };
   const scope={w,q:value=>String(value==null?'':value).trim()};
-  vm.runInNewContext(src.slice(begin,end)+'\\nthis.pickToken=authToken;',scope);
+  vm.runInNewContext(src.slice(begin,end)+'\nthis.pickToken=authToken;',scope);
   return scope.pickToken()
  };
  const normal={exporthub_rc301_tab_session:JSON.stringify({token:'CANONICAL-TOKEN',user:{id:'u1'},environment:'production'})};
