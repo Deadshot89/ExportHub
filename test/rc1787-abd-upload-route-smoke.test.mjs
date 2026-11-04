@@ -20,7 +20,7 @@ test('RC1787: live upload route rejects unauthenticated POST with JSON/401, not 
  const mismatch=JSON.stringify({ok:false,code:'SESSION_INVALID',message:'DO_NOT_LOG_USER_DATA'});
  assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',mismatch),error=>
   error.message.includes('received code=SESSION_INVALID')&&!error.message.includes('DO_NOT_LOG_USER_DATA'));
- assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:false,code:'AUTH_REQUIRED',message:'unexpected'})),/AUTH_REQUIRED/);
+ assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:true,code:'AUTH_REQUIRED'})),/received code=AUTH_REQUIRED/);
  assert.throws(()=>verifyUnauthenticatedApi(401,'application/json',JSON.stringify({ok:false,code:'secret-diagnostic'})),/received code=UNKNOWN/);
 });
 
