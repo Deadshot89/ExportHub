@@ -308,6 +308,10 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  assert.match(urgent.innerHTML,/<svg /,'use a native-style SVG icon instead of a text exclamation mark');
  assert.match(urgent.innerHTML,/index308-nav-label urgent-orders-nav-label/);
  assert.equal((head.children.filter(n=>n.id==='exporthub-urgent-nav-style')).length,1);
+ const urgentStyles=head.children.find(n=>n.id==='exporthub-urgent-nav-style').textContent;
+ assert.match(urgentStyles,/html\\[data-eh-design="modern"\\]/,'modern sidebar styling remains supported');
+ assert.match(urgentStyles,/@media\\(max-width:760px\\)/,'mobile layout must be responsive');
+ assert.match(urgentStyles,/width:auto!important;flex:0 0 auto!important/,'urgent button must not fill mobile navigation width');
  urgent.onclick({preventDefault(){},stopImmediatePropagation(){}});
  assert.equal(navigation[0],'https://wonderful-forest-0f315e310.7.azurestaticapps.net/assets/urgent-orders.html');
  // Simulate a sidebar redraw: the old button appears ahead of Dashboard again.
