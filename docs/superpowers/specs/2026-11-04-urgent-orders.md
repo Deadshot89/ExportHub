@@ -13,7 +13,7 @@ Stand 04.11.2026 · Prüfzweig feature/urgent-orders-cs-workflow · keine Produk
 - Pro Auftrag eine ausklappbare Zeile mit Positionen.
 - Jede Position hat einen eigenen Status: Open, Waved, In Progress, Loaded, Shipped, Invoiced.
 - Suche und Filter nach SO, Line, Artikel, E-Mail, Priorität, Lieferart und Status.
-- Die Logistik sieht alle Aufträge, CS nur eigene Meldungen. Rechte über bestehenden ExportHUB-Benutzer und shipmentoverview/tasks-Bearbeitungsrecht.
+- Die Logistik sieht alle Aufträge, CS nur eigene Meldungen. Rechte über bestehenden ExportHUB-Benutzer und shipmentoverview-Bearbeitungsrecht.
 
 ## E-Mail
 - Aktionen „Problem melden“ und „Versandbestätigung“ erzeugen einen DE-/EN-Entwurf.
