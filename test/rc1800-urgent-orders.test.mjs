@@ -37,6 +37,7 @@ test('CS can read their own orders but cannot change logistics status',()=>{
  const o=order();assert.equal(orders.canRead(o,user),true);
  assert.equal(orders.canRead(o,{id:'CS-99'}),false);
  assert.equal(orders.canRead(o,logistics),true);
+ assert.equal(orders.canRead(o,{id:'CS-99',rights:{tasks:{edit:true}}}),false,'generic task rights must not expose all CS orders');
  assert.throws(()=>orders.setItemStatus(o,o.items[0].id,'Shipped',user),/Logistik/);
  assert.throws(()=>orders.setItemStatus(o,o.items[0].id,'Cancelled',logistics),/Ungültiger/);
 });
