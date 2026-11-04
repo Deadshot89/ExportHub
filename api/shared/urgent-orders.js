@@ -67,7 +67,7 @@ function validateItems(raw,now,orderType='STANDARD'){
   };
   const failed=(pickableStock===false)||!holdsClear||(isMinibag&&!checks.minibagLeadtime)||(newArticle&&(!checks.articleDataCorrect||!checks.processCompliant));
   const exceptionReason=text(r&&r.exceptionReason,1000);
-  if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Explain any failed item checks (at least 8 characters).');
+  if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Bei nicht bestandenen Artikelprüfungen ist eine Begründung (mindestens 8 Zeichen) erforderlich.');
   return{id:crypto.randomUUID(),line,article,quantity:positiveInt(r&&r.quantity),minibag:isMinibag,newArticle,checks,exceptionReason:failed?exceptionReason:'',checkResult:failed?'exception':'passed',status:'Open',checkedAt:now};
  });
 }
