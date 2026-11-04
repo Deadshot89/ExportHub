@@ -286,7 +286,7 @@
   "api.urgent.lineLabel": "Pozycja",
   "api.urgent.itemLabel": "Artykuł",
   "api.urgent.qtyLabel": "Ilość",
-  "api.urgent.statusLabel": "Status",
+  "api.urgent.statusLabel": "Stan",
   "api.urgent.serverError": "Nie udało się przetworzyć pilnego zamówienia. Spróbuj ponownie później.",
   "api.urgent.invalidRequest": "Nieprawidłowe żądanie."
 }
