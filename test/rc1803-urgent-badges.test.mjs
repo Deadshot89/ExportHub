@@ -82,3 +82,36 @@ test('counts API aggregates authorized orders only and never returns customer de
   assert.equal('orders' in all,false);
  }finally{auth.readJson=old;}
 });
+
+test('navigation badge uses cookie-only sessions and never shows a stale count after account switch',async()=>{
+ const source=menu.slice(menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count'));
+ assert.ok(source.startsWith('/* Urgent Order:'),'isolate real urgent nav IIFE');
+ const handlers={},requests=[],styleHost={appendChild(node){styleHost.style=node;}};
+ const node={attributes:{},badge:null,setAttribute(k,v){this.attributes[k]=v;},appendChild(el){this.badge=el;},querySelector(sel){return sel==='[data-urgent-open-count]'?this.badge:null;}};
+ const d={hidden:false,readyState:'complete',head:styleHost,documentElement:styleHost,
+  querySelector(sel){return sel==='[data-exporthub-urgent-nav]'?node:null;},
+  getElementById(id){return id==='exporthub-urgent-nav-counter-style'?styleHost.style||null:null;},
+  createElement(name){return {tagName:name,hidden:false,dataset:{},attributes:{},setAttribute(k,v){this.attributes[k]=v;}};},
+  addEventListener(name,fn){handlers[name]=fn;}};
+ const w={document:d,sessionStorage:{getItem(){return'{}';}},
+  addEventListener(name,fn){handlers[name]=fn;},setInterval(){},
+  fetch(url,init){let finish;const promise=new Promise(resolve=>finish=resolve);requests.push({url,init,finish});return promise;}};
+ vm.runInNewContext(source,{window:w,document:d,globalThis:w,Date,Promise,JSON,Number,Error});
+ assert.equal(requests.length,1);
+ assert.equal(requests[0].url,'/api/urgent-orders');
+ assert.deepEqual(JSON.parse(requests[0].init.body),{action:'counts'});
+ assert.equal(requests[0].init.credentials,'same-origin','browser sends HttpOnly session cookie');
+ assert.equal('X-ExportHUB-Token' in requests[0].init.headers,false,'no readable token is required');
+ handlers['exporthub:user-changed']();
+ assert.equal(node.badge.hidden,true,'clear previous account badge immediately');
+ requests[0].finish({ok:true,json:async()=>({ok:true,open:99})});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(node.badge.hidden,true,'stale response must not become visible');
+ assert.equal(requests.length,2,'current account must be reloaded');
+ requests[1].finish({ok:true,json:async()=>({ok:true,open:3})});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(node.badge.textContent,'3');
+ assert.equal(node.badge.hidden,false);
+ handlers['exporthub:logout']();
+ assert.equal(node.badge.hidden,true,'logout hides count immediately');
+});

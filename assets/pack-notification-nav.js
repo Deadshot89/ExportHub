@@ -122,7 +122,7 @@
  if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV_COUNTER__)return;
  w.__EXPORT_HUB_URGENT_NAV_COUNTER__=true;
  const d=w.document;
- let lastRefresh=0,inFlight=false;
+ let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false;
  function ensureBadge(){
   const node=d.querySelector('[data-exporthub-urgent-nav]');
   if(!node)return null;
@@ -139,9 +139,14 @@
   try{const runtime=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(runtime.authToken||runtime.token||runtime.sessionToken)return String(runtime.authToken||runtime.token||runtime.sessionToken);}catch(_){}
   try{const tab=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return String(tab.token||'');}catch(_){return'';}
  }
+ function hideBadge(){
+  const current=ensureBadge();
+  if(current){current.badge.hidden=true;current.node.setAttribute('aria-label','Urgent Order');}
+ }
  async function refresh(force){
   const ui=ensureBadge();
-  if(!ui||inFlight||d.hidden)return;
+  if(!ui||inFlight||d.hidden||loggedOut)return;
+  const epoch=sessionEpoch;
   const authToken=token();
   // The protected eh_session cookie may authenticate the same-origin API without
   // exposing any readable token to JavaScript. Never mistake that for logged out.
@@ -155,6 +160,8 @@
     headers,body:JSON.stringify({action:'counts'})});
    if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
    const data=await response.json();
+   // A previous login's asynchronous response must not overwrite a newer session.
+   if(epoch!==sessionEpoch)return;
    if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw new Error('URGENT_COUNT_INVALID');
    const count=data.open;
    // Only authorized aggregate counts cross the network: no order/customer data.
@@ -164,13 +171,22 @@
    current.badge.hidden=false;
    current.node.setAttribute('aria-label','Urgent Order: '+count+' offene Anfragen');
   }catch(_){
-   const current=ensureBadge();if(current){current.badge.hidden=true;current.node.setAttribute('aria-label','Urgent Order');}
-  }finally{inFlight=false;}
+   if(epoch===sessionEpoch)hideBadge();
+  }finally{
+   inFlight=false;
+   if(epoch!==sessionEpoch&&!loggedOut)refresh(true);
+  }
  }
  function register(){
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',()=>refresh(true),{once:true});else refresh(true);
   if(w.addEventListener){
-   ['exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:state-loaded'].forEach(name=>w.addEventListener(name,()=>refresh(true)));
+   ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(name=>w.addEventListener(name,()=>{
+    sessionEpoch++;loggedOut=false;lastRefresh=0;hideBadge();refresh(true);
+   }));
+   ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(name=>w.addEventListener(name,()=>{
+    sessionEpoch++;loggedOut=true;lastRefresh=0;hideBadge();
+   }));
+   w.addEventListener('exporthub:state-loaded',()=>refresh(true));
    w.addEventListener('focus',()=>refresh(true));
   }
   if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(true)});
