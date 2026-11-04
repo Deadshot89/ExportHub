@@ -91,3 +91,31 @@ test('RC1668 Service: Prüfdatum stammt von der tatsächlich zitierten Quelle, n
  assert.deepEqual(result.sources.map(x=>x.id),['pref']);
  assert.equal(result.checkedAt,'2026-10-14');
 });
+
+
+test('RC1668 Service: gültige und erfundene Marker gemeinsam dürfen nicht als belegt erscheinen',async()=>{
+ const result=await service.answerCustomsQuestion({
+  question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',
+  articles,
+  askModel:async()=>({
+   ok:true,answer:'Quelle [[pref]], aber eine weitere Behauptung [[NICHT_VORHANDEN]].',
+   citations:['pref']
+  })
+ });
+ assert.equal(result.ok,true);
+ assert.equal(result.uncertainty,true);
+ assert.deepEqual(result.sources.map(x=>x.id),['pref']);
+ assert.equal(result.checkedAt,'2026-10-14');
+});
+
+test('RC1668 Service: bloße Provider-Zitiermetadaten ohne Antwortmarker sind kein Beleg',async()=>{
+ const result=await service.answerCustomsQuestion({
+  question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',
+  articles,
+  askModel:async()=>({ok:true,answer:'Behauptung ohne direkten Beleg.',citations:['pref']})
+ });
+ assert.equal(result.ok,true);
+ assert.equal(result.uncertainty,true);
+ assert.deepEqual(result.sources,[]);
+ assert.equal(result.checkedAt,'');
+});
