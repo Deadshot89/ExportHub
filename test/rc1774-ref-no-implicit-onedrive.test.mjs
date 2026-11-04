@@ -21,6 +21,8 @@ test('RC1774: REF must not use an implicit personal OneDrive user; absent destin
     process.env.EXPORTHUB_GRAPH_TENANT_ID = 'synthetic-tenant';
     process.env.EXPORTHUB_GRAPH_CLIENT_ID = 'synthetic-client';
     process.env.EXPORTHUB_GRAPH_CLIENT_SECRET = 'synthetic-secret';
+    // POD credentials alone may never enable REF access at module initialization.
+    process.env.EXPORTHUB_POD_DRIVE_USER = 'synthetic-pod@example.invalid';
     delete require.cache[moduleId];
     const ref = require(moduleId);
     globalThis.fetch = async () => { networkCalls++; throw Error('no Graph request without explicit target'); };
@@ -31,8 +33,7 @@ test('RC1774: REF must not use an implicit personal OneDrive user; absent destin
     await assert.rejects(ref.listFiles('ABC123'), e => e.code === 'GRAPH_NOT_CONFIGURED' && e.status === 503);
     assert.equal(networkCalls, 0, 'a missing destination must not query or mutate Graph');
 
-    // POD-only credentials must never implicitly become the REF destination.
-    process.env.EXPORTHUB_POD_DRIVE_USER = 'synthetic-pod@example.invalid';
+    // Explicitly reject the POD-only fallback when REF IDs and user are absent.
     assert.equal(ref.DRIVE_USER, '', 'POD user is not an authorized REF identity');
     assert.throws(() => ref.config(), e => e.code === 'GRAPH_NOT_CONFIGURED');
     await assert.rejects(ref.getFolder('ABC123'), e => e.code === 'GRAPH_NOT_CONFIGURED');
