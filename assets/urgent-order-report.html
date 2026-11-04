@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Urgent Order melden | ExportHUB360</title>
+<link rel="icon" href="/assets/exporthub360-favicon.svg" type="image/svg+xml">
+<style>
+:root{--page:#f2f6fb;--surface:#fff;--ink:#18263e;--sub:#62728a;--line:#dce5f0;--blue:#235cc0;font:14px/1.47 system-ui,Segoe UI,Arial,sans-serif;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #79b4fa;outline-offset:2px}*[hidden]{display:none!important}
+header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)/2))}.brand{font-size:18px;font-weight:850;letter-spacing:-.02em}main{max-width:1440px;margin:auto;padding:25px clamp(14px,3vw,34px) 60px}h1{font-size:clamp(25px,3vw,36px);margin:0;letter-spacing:-.04em}h2{font-size:18px;margin:0 0 12px}p{color:var(--sub)}.intro{margin:5px 0 20px}
+.board{display:grid;grid-template-columns:minmax(340px,470px) minmax(0,1fr);gap:17px;align-items:start}.panel{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:21px;box-shadow:0 3px 20px #294a710b;min-width:0}.stack{display:grid;gap:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:5px;font-weight:720;font-size:12px;color:#36506a}.field input,.field select,.field textarea{width:100%;padding:10px;border-radius:9px;border:1px solid #b3c3d8;min-height:41px;background:var(--surface);color:var(--ink)}textarea{min-height:66px;resize:vertical}.muted{color:var(--sub);font-size:12px}.section{margin:12px 0 5px;padding-top:13px;border-top:1px solid var(--line)}.section h3{font-size:15px;margin:0 0 10px}
+.check{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:8px;align-items:center}.check label{font-size:12px;font-weight:650;color:#36506a}.check select{min-height:39px}.pill{font-weight:750;display:inline-flex;padding:4px 9px;border-radius:20px;font-size:11px;white-space:nowrap;align-items:center}
+.p-P1{background:#ffe3e4;color:#a3111c}.p-P2{background:#fff0d9;color:#8e4f0b}.p-P3{background:#e4f0ff;color:#245d9e}.p-P4{background:#edf0f6;color:#596276}
+.s-Open{background:#e8ebf0;color:#475467}.s-Waved{background:#dee9ff;color:#254e9d}.s-InProgress{background:#fff0ca;color:#81510b}.s-Problem{background:#ffe0e4;color:#b11f33}.s-Loaded{background:#efe5ff;color:#7745a0}.s-Shipped{background:#d7f4f1;color:#087a79}.s-Invoiced{background:#d8f2e4;color:#147142}.s-Mixed{background:#e9edf2;color:#546077}
+.btn{background:var(--blue);color:white;border:1px solid var(--blue);border-radius:9px;padding:9px 13px;font-weight:750;min-height:41px}.btn.secondary{background:white;color:var(--blue);border-color:#aac0df}.btn.danger{background:white;color:#aa2030;border-color:#e0bcc2}.btn.small{padding:6px 9px;font-size:12px;min-height:33px}.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.line{padding:12px;background:#f8fafd;border:1px solid var(--line);border-radius:12px}.line-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}.line-head strong{font-size:13px}.linecheck{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650}.linecheck input{width:17px;height:17px}
+.tracking{background:#eaf2ff;border:1px solid #b7d0ed;padding:13px;border-radius:12px;margin-bottom:17px}.tracking strong{display:block}.tracking p{margin:4px 0 8px}.tracking code{display:block;padding:8px;background:#fff;border-radius:8px;font-size:11px;overflow-wrap:anywhere}
+.message{font-size:13px;font-weight:700;min-height:18px;margin:10px 0}.message[data-state=error]{color:#a3232f}.message[data-state=ok]{color:#176944}
+.tabrow{display:flex;gap:8px;margin:10px 0 15px;border-bottom:1px solid var(--line);padding-bottom:10px}.tab{border:1px solid transparent;background:transparent;color:var(--sub);padding:9px 14px;font-weight:760;border-radius:9px}.tab[aria-selected=true]{background:#e8f0ff;border-color:#b9d0f0;color:#204e99}.filterbar{display:grid;grid-template-columns:minmax(120px,1fr) 120px;gap:8px;margin-bottom:13px}.filterbar input,.filterbar select{min-height:40px;border:1px solid #b3c3d8;padding:9px;border-radius:9px;background:var(--surface)}
+.order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}.order summary{list-style:none;cursor:pointer;padding:13px}.order summary::-webkit-details-marker{display:none}.order-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:space-between}.order-head strong{font-size:15px}.order summary:hover{background:#f7faff}.order-details{background:#f8fbff;padding:12px;border-top:1px solid var(--line)}.item-row{border-top:1px solid var(--line);padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.item-row:first-of-type{border-top:0}.empty{padding:30px 15px;color:var(--sub);border:1px dashed #c5d3e5;border-radius:12px;text-align:center}.date{font-variant-numeric:tabular-nums}.counters{display:flex;gap:8px;color:var(--sub);font-size:12px;margin:0 0 10px}
+@media(max-width:1050px){.board{grid-template-columns:1fr}.panel{padding:17px}}@media(max-width:470px){.pair,.filterbar{grid-template-columns:1fr}.check{grid-template-columns:1fr}.check select{width:100%}.panel{padding:13px}}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--page:#101927;--surface:#192b40;--ink:#eff6ff;--sub:#bac7d9;--line:#3a506c;--blue:#3475d1}.line,.order-details{background:#18283a}.line .field,.field,.check label{color:#d9e4f5}.btn.secondary,.btn.danger{background:#233852;color:#e1edff;border-color:#5b7392}.tracking{background:#213b58;border-color:#446a95}.tracking code{background:#182e44}.tab[aria-selected=true]{background:#284263;color:#eff6ff}.order summary:hover{background:#223952}.p-P1,.s-Problem{background:#56323a;color:#ffc3ca}.p-P2,.s-InProgress{background:#584329;color:#ffdea6}.p-P3,.s-Waved{background:#293e66;color:#bcd5ff}.p-P4,.s-Open,.s-Mixed{background:#384658;color:#d3dbe5}.s-Loaded{background:#49385d;color:#e5c9ff}.s-Shipped{background:#20504e;color:#b6f4ec}.s-Invoiced{background:#244b37;color:#b7f2c9}}
+</style>
+</head>
+<body>
+<header><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order melden</span></div></header>
+<main>
+<h1>Urgent Order melden</h1><p class="intro">Dringende Aufträge erfassen, Lieferungen prüfen und die eigenen Anfragen ohne Anmeldung verfolgen.</p>
+<div class="tracking" id="tracking" hidden><strong>Dein persönlicher Überwachungslink</strong><p class="muted">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small">Link kopieren</button></div></div>
+<div class="board">
+<section class="panel"><h2>Neue Anfrage</h2><form id="reportForm" class="stack">
+<div class="pair"><label class="field">Auftragsnummer *<input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field">Priorität *<select name="priority"><option value="P1">P1 · Kritisch</option><option value="P2">P2 · Sehr dringend</option><option value="P3">P3 · Dringend</option><option value="P4">P4 · Priorisiert</option></select></label></div>
+<div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="DRP">DRP</option><option value="DIRECT">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
+<label class="field">E-Mail-Adresse des Melders *<input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
+<label class="field">Art der Anfrage *<select name="orderType" id="orderType"><option value="STANDARD">Urgent Order – Ware vorhanden</option><option value="DIRECT_OUTBOUND">Direktumschlag – Ware kommt und geht sofort</option></select></label>
+<div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
+<div class="stack">
+<label class="field">Geplante Ankunft bei uns * (deutsche Ortszeit)<input name="arrivalAt" type="datetime-local"></label>
+<div class="pair"><label class="field">Womit kommt die Ware? *<select name="arrivalMode"><option value="">Bitte auswählen</option><option value="TRUCK">Lkw</option><option value="PARCEL">Paketdienst</option><option value="COURIER">Kurier</option><option value="OTHER">Sonstiges</option></select></label><label class="field">Anliefernder Dienstleister *<input name="arrivalProvider" maxlength="120" placeholder="Spedition / Kurier"></label></div>
+<label class="field">Anlieferreferenz / Tracking<input name="arrivalReference" maxlength="120"></label>
+<div class="pair"><label class="field">Wie muss die Ware raus? *<select name="dispatchMethod"><option value="">Bitte auswählen</option><option value="SPECIAL_TRANSPORT">Sondertransport</option><option value="EXPRESS">Express</option></select></label><label class="field">Gewünschter Versandtermin<input name="plannedDispatchAt" type="datetime-local"></label></div>
+<div class="check"><label for="deliveryNotePresent">Lieferschein vorhanden? *</label><select name="deliveryNotePresent" id="deliveryNotePresent"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
+<div class="check"><label for="asnWorking">Funktioniert die ASN? *</label><select name="asnWorking" id="asnWorking"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
+<div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>
+<label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
+</div></div>
+<div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
+<div class="actions"><button class="btn" id="submitOrder" type="submit">Anfrage verbindlich melden</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</form></section>
+<section class="panel"><div class="actions" style="justify-content:space-between"><h2 style="margin:0">Meine Anfragen</h2><button type="button" id="refresh" class="btn secondary small">Aktualisieren</button></div>
+<p class="muted">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
+<div class="tabrow" role="tablist" aria-label="Anfragen filtern"><button id="tabOpen" type="button" class="tab" role="tab" aria-selected="true">Offen <span id="countOpen">0</span></button><button id="tabClosed" type="button" class="tab" role="tab" aria-selected="false">Geschlossen <span id="countClosed">0</span></button></div>
+<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+<div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
+</section></div>
+</main>
+<script>
+(function(){
+'use strict';
+const ENDPOINT='/api/urgent-order-public';
+const STATUS=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
+const $=id=>document.getElementById(id);
+let secret='',orders=[],tab='open';
+const str=v=>String(v==null?'':v);
+const esc=v=>str(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function accessFromHash(){
+ const m=/^(?:#)?access=(uro_[A-Za-z0-9_-]{43})$/.exec(location.hash.replace(/^#/,''));
+ return m?m[1]:'';
+}
+function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
+function statusClass(v){return 's-'+str(v).replace(/[^A-Za-z]/g,'');}
+function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
+async function api(action,params){
+ const response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});
+ let data;try{data=await response.json();}catch(_){throw new Error('Antwort vom Server ist ungültig.');}
+ if(!response.ok||data.ok===false){const e=new Error(data.message||'Fehler bei der Meldung.');e.status=response.status;throw e;}return data;
+}
+function lineCard(){
+ const box=document.createElement('div');box.className='line uo-line';
+ box.innerHTML='<div class="line-head"><strong>Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
+ '<div class="pair"><label class="field">Line-Nummer<input data-field="line" maxlength="70" placeholder="10"></label><label class="field">Artikelnummer<input data-field="article" maxlength="120"></label></div>'+
+ '<label class="field" style="margin-top:9px">Menge *<input data-field="quantity" type="number" min="1" max="10000000" step="1" value="1" required></label>'+
+ '<div class="check" style="margin-top:10px" data-pickable><label>Genügend Bestand auf pickbarer Location? *</label><select data-field="pickableStock"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<div class="check" style="margin-top:9px"><label>Weder Don’t Process noch Credit Hold? *</label><select data-field="holdsClear" required><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<label class="linecheck" style="margin-top:10px"><input type="checkbox" data-field="newArticle"> Neuer Artikel</label>'+
+ '<div data-newarticle hidden class="stack" style="margin-top:10px">'+
+ '<div class="check"><label>Artikelstammdaten korrekt? *</label><select data-field="articleDataCorrect"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<div class="check"><label>Vorgeschriebener Prozess eingehalten? *</label><select data-field="processCompliant"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div></div>'+
+ '<label class="linecheck" style="margin-top:10px"><input type="checkbox" data-field="minibag"> Minibag</label>'+
+ '<div data-minibag hidden class="check" style="margin-top:10px"><label>10 Tage Minibag-Leadtime eingehalten? *</label><select data-field="minibagLeadtime"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<label class="field" style="margin-top:10px">Begründung bei negativer Prüfung<textarea data-field="exceptionReason"></textarea></label>';
+ box.querySelector('[data-remove]').addEventListener('click',()=>{box.remove();if(!$('lines').children.length)lineCard()});
+ for(const [check,wrap] of [['newArticle','newarticle'],['minibag','minibag']]){
+  box.querySelector('[data-field="'+check+'"]').addEventListener('change',e=>{const el=box.querySelector('[data-'+wrap+']');el.hidden=!e.target.checked;el.querySelectorAll('select').forEach(s=>{s.required=e.target.checked;if(!e.target.checked)s.value='';});});
+ }
+ $('lines').appendChild(box);syncType();
+}
+function syncType(){
+ const direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('directFields').hidden=!direct;
+ $('directFields').querySelectorAll('input,select').forEach(i=>{
+  if(['arrivalAt','arrivalMode','arrivalProvider','dispatchMethod','deliveryNotePresent','asnWorking','holdsClear'].includes(i.name))i.required=direct;
+  else i.required=false;
+ });
+ document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});
+}
+function items(){
+ return[...document.querySelectorAll('.uo-line')].map(box=>{
+  const v=name=>box.querySelector('[data-field="'+name+'"]');
+  return{
+   line:v('line').value.trim(),article:v('article').value.trim(),quantity:Number(v('quantity').value),
+   pickableStock:flag(v('pickableStock')),holdsClear:flag(v('holdsClear')),
+   newArticle:v('newArticle').checked,articleDataCorrect:v('newArticle').checked?flag(v('articleDataCorrect')):null,
+   processCompliant:v('newArticle').checked?flag(v('processCompliant')):null,
+   minibag:v('minibag').checked,minibagLeadtime:v('minibag').checked?flag(v('minibagLeadtime')):null,
+   exceptionReason:v('exceptionReason').value.trim()
+  };
+ });
+}
+function directOutbound(form){
+ if(form.elements.orderType.value!=='DIRECT_OUTBOUND')return null;
+ const x=form.elements;
+ return{arrivalAt:x.arrivalAt.value,arrivalMode:x.arrivalMode.value,arrivalProvider:x.arrivalProvider.value,
+  arrivalReference:x.arrivalReference.value,dispatchMethod:x.dispatchMethod.value,
+  plannedDispatchAt:x.plannedDispatchAt.value,deliveryNotePresent:flag(x.deliveryNotePresent),
+  asnWorking:flag(x.asnWorking),holdsClear:flag(x.holdsClear),exceptionReason:x.exceptionReason.value.trim()};
+}
+function buildPayload(){
+ const form=$('reportForm'),x=form.elements;
+ return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
+  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
+  directOutbound:directOutbound(form),items:items()};
+}
+function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
+function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
+function render(){
+ const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
+ $('countOpen').textContent=open;$('countClosed').textContent=done;
+ $('tabOpen').setAttribute('aria-selected',tab==='open'?'true':'false');
+ $('tabClosed').setAttribute('aria-selected',tab==='closed'?'true':'false');
+ const q=$('search').value.trim().toLowerCase(),p=$('priorityFilter').value;
+ const rows=orders.filter(o=>(tab==='closed'?closed(o):!closed(o))&&(!p||o.priority===p)&&(!q||[o.orderNumber,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(x=>str(x).toLowerCase().includes(q))))
+  .sort((a,b)=>({P1:1,P2:2,P3:3,P4:4}[a.priority]||5)-({P1:1,P2:2,P3:3,P4:4}[b.priority]||5)||str(b.createdAt).localeCompare(str(a.createdAt)));
+ const target=$('orders');target.innerHTML='';
+ if(!rows.length){target.innerHTML='<div class="empty">'+(secret?'In diesem Reiter sind keine passenden Anfragen vorhanden.':'Noch keine Anfragen vorhanden. Melde deinen ersten Auftrag.')+'</div>';return;}
+ for(const o of rows){
+  const node=document.createElement('details');node.className='order';
+  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div></div><span class="pill '+statusClass(x.status)+'">'+esc(x.status)+'</span></div>').join('');
+  const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">Ankunft: <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · Ausgang: '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?'Express':'Sondertransport')+'</p>':'';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(o.priority)+'</span><span class="pill '+statusClass(status)+'">'+esc(status)+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  target.appendChild(node);
+ }
+}
+function activateLink(){
+ if(!secret)return;$('tracking').hidden=false;
+ $('trackingUrl').textContent=location.href.split('#')[0]+'#access='+encodeURIComponent(secret);
+}
+async function refresh(){
+ if(!secret){orders=[];render();return;}
+ try{const data=await api('list',{accessToken:secret});orders=data.orders||[];render();activateLink();}
+ catch(e){$('orders').innerHTML='<div class="empty">Die Anfragen können mit diesem Link nicht geladen werden. '+esc(e.message)+'</div>';}
+}
+async function submit(ev){
+ ev.preventDefault();
+ if(!$('reportForm').reportValidity())return;
+ const p=buildPayload();
+ if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
+ const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
+ if(invalid){showMessage('Fehlgeschlagene Artikelprüfungen benötigen eine Begründung.','error');return;}
+ if(p.directOutbound&&(p.directOutbound.deliveryNotePresent===false||p.directOutbound.asnWorking===false||p.directOutbound.holdsClear===false)&&p.directOutbound.exceptionReason.length<8){showMessage('Fehlgeschlagene Wareneingangsprüfung benötigt eine Begründung.','error');return;}
+ $('submitOrder').disabled=true;showMessage('Anfrage wird gespeichert …','');
+ try{
+  const data=await api('create',p);
+  secret=data.accessToken;
+  location.hash='access='+encodeURIComponent(secret);
+  const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
+  $('reportForm').reset();$('lines').innerHTML='';lineCard();
+  $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
+  syncType();activateLink();await refresh();
+  tab='open';render();showMessage('Anfrage '+data.order.orderNumber+' gespeichert. Bitte den Überwachungslink sichern.','ok');
+ }catch(e){showMessage(e.message,'error');}
+ finally{$('submitOrder').disabled=false;}
+}
+async function copyLink(){
+ try{await navigator.clipboard.writeText($('trackingUrl').textContent);showMessage('Überwachungslink kopiert.','ok');}
+ catch(_){showMessage('Link konnte nicht kopiert werden. Bitte manuell markieren.','error');}
+}
+$('reportForm').addEventListener('submit',submit);
+$('orderType').addEventListener('change',syncType);
+$('addLine').addEventListener('click',lineCard);
+$('copyLink').addEventListener('click',copyLink);
+$('refresh').addEventListener('click',refresh);
+for(const [id,tabValue] of [['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{tab=tabValue;render();});
+for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
+window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
+secret=accessFromHash();lineCard();syncType();refresh();
+})();
+</script>
+</body>
+</html>
