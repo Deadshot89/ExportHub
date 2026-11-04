@@ -18,12 +18,14 @@
  function stateMessage(s,kind){var target=panel()&&panel().querySelector('[data-rc1790-status]');if(target){target.hidden=!s;target.textContent=s;target.setAttribute('data-kind',kind||'info')}}
  function rowHtml(p,i){
   var fields=[['itemNumber','itemNumber'],['description','description'],['quantity','quantity'],['unit','unit'],['orderPosition','orderPosition']];
-  return '<tr data-row="'+i+'"><td>'+(i+1)+'</td>'+fields.map(function(f){return '<td><input aria-label="'+esc(t(f[1])+' '+t('position')+' '+(i+1))+'" data-field="'+f[0]+'" value="'+esc(p[f[0]]||'')+'" '+(f[0]==='description'?'maxlength="500"':'maxlength="100"')+' '+(f[0]==='quantity'?'inputmode="decimal"':'')+'></td>'}).join('')+
-  '<td class="rc1790-row-actions"><button type="button" class="ghost" data-rc1790-copy="'+i+'" aria-label="'+esc(t('duplicate'))+'">+</button><button type="button" class="ghost" data-rc1790-remove="'+i+'" '+(items.length===1?'disabled':'')+' aria-label="'+esc(t('remove'))+'">−</button></td></tr>'
+  var limits={itemNumber:100,description:500,quantity:32,unit:24,orderPosition:50};
+  return '<tr data-row="'+i+'"><td>'+(i+1)+'</td>'+fields.map(function(f){return '<td><input aria-label="'+esc(t(f[1])+' '+t('position')+' '+(i+1))+'" data-field="'+f[0]+'" value="'+esc(p[f[0]]||'')+'" maxlength="'+limits[f[0]]+'" '+(f[0]==='quantity'?'inputmode="decimal"':'')+'></td>'}).join('')+
+  '<td class="rc1790-row-actions"><button type="button" class="ghost" data-rc1790-copy="'+i+'" '+(items.length>=250?'disabled':'')+' aria-label="'+esc(t('duplicate'))+'">+</button><button type="button" class="ghost" data-rc1790-remove="'+i+'" '+(items.length===1?'disabled':'')+' aria-label="'+esc(t('remove'))+'">−</button></td></tr>'
  }
  function renderRows(){
   var tbody=panel()&&panel().querySelector('[data-rc1790-items]');if(!tbody)return;
-  tbody.innerHTML=items.map(rowHtml).join('')
+  tbody.innerHTML=items.map(rowHtml).join('');
+  var add=panel()&&panel().querySelector('[data-rc1790-add]');if(add)add.disabled=items.length>=250;
  }
  function snapshot(){
   var data=Object.assign({},headerDraft),p=panel();
@@ -125,9 +127,9 @@
    });
    section.addEventListener('click',function(e){
     var button=e.target&&e.target.closest('button');if(!button)return;
-    if(button.hasAttribute('data-rc1790-add')){items.push({itemNumber:'',description:'',quantity:'',unit:'Stk',orderPosition:''});renderRows();return}
+    if(button.hasAttribute('data-rc1790-add')){if(items.length>=250)return;items.push({itemNumber:'',description:'',quantity:'',unit:'Stk',orderPosition:''});renderRows();return}
     if(button.hasAttribute('data-rc1790-remove')){var ri=Number(button.getAttribute('data-rc1790-remove'));if(items.length>1&&items[ri]){items.splice(ri,1);renderRows()}return}
-    if(button.hasAttribute('data-rc1790-copy')){var ci=Number(button.getAttribute('data-rc1790-copy'));if(items[ci]){items.splice(ci+1,0,Object.assign({},items[ci]));renderRows()}return}
+    if(button.hasAttribute('data-rc1790-copy')){var ci=Number(button.getAttribute('data-rc1790-copy'));if(items.length<250&&items[ci]){items.splice(ci+1,0,Object.assign({},items[ci]));renderRows()}return}
     if(button.hasAttribute('data-rc1790-export'))save();
    })
   }
