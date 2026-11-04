@@ -337,3 +337,17 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  timers[0]();
  assert.equal(nav.children.length,count);
 });
+
+
+test('released sidebar menu treats Urgent Order as an add-on without reshuffling core navigation',()=>{
+ const builder=read('.github/rc1112/build-three-env.mjs');
+ const canonical=read('index.html');
+ const original="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav]';";
+ const extended="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav],[data-exporthub-urgent-nav]';";
+ assert.ok(canonical.includes(original),'the existing source menu contract remains unchanged');
+ assert.ok(builder.includes('const rc1805CoreAddons='+JSON.stringify(original)+';'));
+ assert.ok(builder.includes('const rc1805UrgentAddons='+JSON.stringify(extended)+';'));
+ assert.match(builder,/if\(html\.includes\(rc1805CoreAddons\)\)html=html\.replace\(rc1805CoreAddons,rc1805UrgentAddons\)/);
+ assert.match(builder,/RC1805 Urgent-Order-Menü wird nicht als Add-on erkannt/);
+ for(const file of ['index.html','TESTVERSION.html','demo.html'])assert.ok(builder.includes("'"+file+"'"));
+});
