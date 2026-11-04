@@ -279,11 +279,20 @@ test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkenn
   await expect(page.locator('[data-draft-id]')).toContainText('E2E Saved Customer');
 });
 
-test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
+test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser,playwright,browserName,launchOptions,headless},testInfo)=>{
   test.setTimeout(300_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1499 läuft nur im mutierenden TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','RC1499 läuft genau einmal auf dem Laptop-Profil.');
   const token=packStationTokenFromFixture();
   expect(token,'Temporärer RC1499 Packtisch-Token fehlt').toMatch(/^E2E-PACK-/);
-  await runPackNotificationLiveFlow(browser,testInfo,token);
+  // The headless shell downloads PDFs and leaves the reserved tab blank.
+  // Only this original-PDF flow needs the full Chromium inline viewer.
+  const pdfBrowser=browserName==='chromium'
+    ?await playwright.chromium.launch({...launchOptions,headless,channel:'chromium'})
+    :browser;
+  try{
+    await runPackNotificationLiveFlow(pdfBrowser,testInfo,token);
+  }finally{
+    if(pdfBrowser!==browser)await pdfBrowser.close();
+  }
 });
