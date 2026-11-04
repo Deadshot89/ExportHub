@@ -176,11 +176,15 @@ async function createDeliveryNotePdf(snapshot){
   put('EINHEIT',RIGHT-50,y-13,7,true,50);
   y-=38;
  }
- function itemRow(item){
+ function itemLayout(item){
   const sku=wrap(normal,item.itemNumber||'-',8,90,16),desc=wrap(normal,item.description,8,231,40),unitLines=wrap(normal,item.unit,8,46,8);
   const order=item.orderPosition?wrap(normal,'Bestellpos.: '+item.orderPosition,7,231,7):[];
   const height=Math.max(32,13+Math.max(sku.length*11,desc.length*11+order.length*10,unitLines.length*11)+8);
   if(height>HEIGHT-220)fail('DELIVERY_NOTE_TEXT_OVERFLOW');
+  return{sku,desc,unitLines,order,height}
+ }
+ function itemRow(item){
+  const {sku,desc,unitLines,order,height}=itemLayout(item);
   if(y-height<BOTTOM+20){addPage();tableHead(true)}
   const yy=y;
   put(String(item.position),LEFT+5,yy,8,true,28);
@@ -204,7 +208,8 @@ async function createDeliveryNotePdf(snapshot){
   }
  }
  addPage();addresses();details();
- if(y<150)addPage();
+ // Reserve the column heading AND the first item; never print an empty table header.
+ if(y-68-itemLayout(data.items[0]).height<BOTTOM+20)addPage();
  tableHead(false);
  for(const p of data.items)itemRow(p);
  conclusion();
