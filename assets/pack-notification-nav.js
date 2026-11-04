@@ -116,8 +116,9 @@
   var anchor=pack&&pack.parentNode===nav?pack:tasks&&tasks.parentNode===nav?tasks:null;
   if(!anchor)return null;
   var node=d.querySelector('[data-exporthub-urgent-nav]');
+  // Apply the same style even when a previous runtime created the button.
+  injectStyle();
   if(!node){
-   injectStyle();
    node=d.createElement('button');
    node.type='button';
    // Reuse native sidebar typography and sizing, never inherit Packmeldungen-specific classes.
@@ -130,10 +131,24 @@
    node.setAttribute('data-menu-accent',URGENT_ACCENT);
    node.style.setProperty('--menu-accent',URGENT_ACCENT);
    node.innerHTML='<span class="index308-nav-icon urgent-orders-nav-icon" aria-hidden="true">'+URGENT_ICON+'</span><span class="index308-nav-label urgent-orders-nav-label">Urgent Order</span>';
+   node.setAttribute('data-urgent-nav-design','2');
    node.addEventListener('click',function(e){
     e.preventDefault();e.stopImmediatePropagation();
     w.location.assign(urgentOrdersDestination());
    },true);
+  }else if(!node.getAttribute||node.getAttribute('data-urgent-nav-design')!=='2'){
+   // Upgrade old menu buttons in place; retain the live counter node and its state.
+   var badge=node.querySelector&&node.querySelector('[data-urgent-open-count]');
+   var reference=tasks&&tasks.parentNode===nav?tasks:anchor;
+   var classes=String(reference.className||'').replace(/\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\b/g,'').trim();
+   node.className=(classes?classes+' ':'')+'urgent-orders-nav-entry';
+   node.setAttribute('aria-label','Urgent Order');
+   node.setAttribute('title','Urgent Order');
+   node.setAttribute('data-menu-accent',URGENT_ACCENT);
+   node.style.setProperty('--menu-accent',URGENT_ACCENT);
+   node.innerHTML='<span class="index308-nav-icon urgent-orders-nav-icon" aria-hidden="true">'+URGENT_ICON+'</span><span class="index308-nav-label urgent-orders-nav-label">Urgent Order</span>';
+   if(badge)node.appendChild(badge);
+   node.setAttribute('data-urgent-nav-design','2');
   }
   // Re-home older/stale buttons and move again when the menu gets rebuilt.
   if(node.parentNode!==nav||anchor.nextSibling!==node)nav.insertBefore(node,anchor.nextSibling);
