@@ -48,6 +48,7 @@ test('Delivery note, ASN and holds must be checked; negative results require an 
 test('New item validates master data and process steps, even for future arrivals',()=>{
  const b=base(),item=b.items[0];
  assert.throws(()=>model.createOrder(base({items:[{...item,articleDataCorrect:null}]}),actor),/Ja oder Nein/);
+ assert.throws(()=>model.createOrder(base({items:[{...item,article:'',line:'10'}]}),actor),/Artikelnummer/);
  assert.throws(()=>model.createOrder(base({items:[{...item,processCompliant:false}]}),actor),/Explain any failed/);
  assert.equal(model.createOrder(base({items:[{...item,processCompliant:false,exceptionReason:'Fehlender Wareneingangsprozess'}]}),actor).items[0].checkResult,'exception');
 });
