@@ -143,14 +143,16 @@
   const ui=ensureBadge();
   if(!ui||inFlight||d.hidden)return;
   const authToken=token();
-  if(!authToken){ui.badge.hidden=true;ui.node.setAttribute('aria-label','Urgent Order');return;}
+  // The protected eh_session cookie may authenticate the same-origin API without
+  // exposing any readable token to JavaScript. Never mistake that for logged out.
   const now=Date.now();
   if(!force&&now-lastRefresh<45000)return;
   lastRefresh=now;inFlight=true;
   try{
+   const headers={'Content-Type':'application/json','Accept':'application/json'};
+   if(authToken)headers['X-ExportHUB-Token']=authToken;
    const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
-    headers:{'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':authToken},
-    body:JSON.stringify({action:'list'})});
+    headers,body:JSON.stringify({action:'list'})});
    if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
    const data=await response.json();
    if(data.ok!==true||!Array.isArray(data.orders))throw new Error('URGENT_COUNT_INVALID');

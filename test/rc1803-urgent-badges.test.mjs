@@ -33,7 +33,9 @@ test('navigation counter uses authenticated internal list and only counts unfini
  assert.match(menu,/\/api\/urgent-orders/);
  assert.match(menu,/action:'list'/);
  assert.match(menu,/x\.status==='Invoiced'/);
- assert.match(menu,/!authToken\)\{ui\.badge\.hidden=true/);
+ assert.match(menu,/if\(authToken\)headers\['X-ExportHUB-Token'\]=authToken/);
+ assert.match(menu,/credentials:'same-origin'/);
+ assert.doesNotMatch(menu,/if\(!authToken\)\{ui\.badge\.hidden=true/,'cookie-only sessions must still fetch an authorized count');
  assert.match(menu,/setInterval\(\(\)=>refresh\(false\),45000\)/);
  assert.doesNotMatch(menu,/\/api\/urgent-order-public/,'never use anonymous reporter access for global badge');
 });
