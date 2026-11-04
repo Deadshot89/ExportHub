@@ -76,7 +76,7 @@ function storage(req){
 }
 async function write(storageRef,mutator){
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
-  const doc=await auth.readJson(storageRef.blob,empty()),state=normalize(doc.value),result=mutator(state);
+  const doc=await auth.readJson(storageRef.blob,empty(),{missingBlobOnly:true}),state=normalize(doc.value),result=mutator(state);
   state.updatedAt=new Date().toISOString();
   try{
    const response=await auth.writeJson(storageRef.blob,state,doc.etag);
@@ -94,13 +94,13 @@ function accessibleOrder(doc,id,user){const order=findOrder(doc,id);if(!model.ca
 async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
  if(action==='list'){
-  const doc=normalize((await auth.readJson(refs.blob,empty())).value);
+  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);
   return{orders:visibleOrders(doc,user),profile:doc.profiles[model.text(user.id)]||null,canManage:model.canManage(user),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
   // private order lines, reporter emails or exception notes.
-  const doc=normalize((await auth.readJson(refs.blob,empty())).value);
+  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);
   let open=0,closed=0;
   for(const order of doc.orders){
    if(!model.canRead(order,user))continue;
@@ -133,7 +133,7 @@ async function execute(req,user,refs){
  }
  if(action==='prepare-mail'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails vorbereiten.',403);
-  const doc=normalize((await auth.readJson(refs.blob,empty())).value),order=accessibleOrder(doc,model.text(p.id,90),user);
+  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value),order=accessibleOrder(doc,model.text(p.id,90),user);
   return{draft:model.draftMail(order,model.text(p.kind,30),model.language(p.language||order.language),p.note),orderId:order.id};
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
@@ -156,7 +156,7 @@ module.exports.execute=execute;
 module.exports.storage=storage;
 module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
 module.exports.deploymentEnv=deploymentEnv;
-module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty())).value);};
+module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);};
 module.exports.write=write;
 module.exports.empty=empty;
 module.exports.normalize=normalize;
