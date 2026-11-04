@@ -146,3 +146,25 @@ test('urgent tracking link uses wonderful-forest on production, isolates testser
  assert.equal(make('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',testOrigin),testOrigin+'/urgent-order');
  assert.match(source,/trackingUrl'\)\.textContent=urgentTrackingBase\(\)\+'#access='\+encodeURIComponent\(secret\)/);
 });
+
+
+test('internal urgent-order navigation uses wonderful-forest for production and stays on testservice',()=>{
+ const source=script(internalHtml);
+ assert.match(internalHtml,/id="urgentPublicFormLink"/);
+ assert.match(internalHtml,/id="urgentBackToHub"/);
+ assert.match(source,/urgentPublicFormLink'\)\.href=urgentPublicOrigin\(\)\+'\/urgent-order'/);
+ assert.match(source,/urgentBackToHub'\)\.href=urgentPublicOrigin\(\)\+'\/'/);
+ const from=source.indexOf('function urgentPublicOrigin(){');
+ const until=source.indexOf('\nlet orders=',from);
+ assert.ok(from>=0&&until>from,'navigation origin must be defined');
+ const check=(host,origin)=>{
+  const ctx=vm.createContext({location:{hostname:host,origin},Set});
+  vm.runInContext(source.slice(from,until),ctx);
+  return ctx.urgentPublicOrigin();
+ };
+ const official='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+ assert.equal(check('exporthub360.com','https://exporthub360.com'),official);
+ assert.equal(check('wonderful-forest-0f315e310.7.azurestaticapps.net',official),official);
+ const testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ assert.equal(check('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',testservice),testservice);
+});
