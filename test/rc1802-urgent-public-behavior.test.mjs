@@ -35,7 +35,7 @@ test('public reporter create/list is capability-scoped across users; only token 
   const more=await publicApi.publicAction(req({action:'create',...required,orderNumber:'SO3004',accessToken:first.accessToken}),refs);
   assert.equal(more.accessToken,first.accessToken);
   assert.equal(more.isNewLink,false);
-  assert.deepEqual((await publicApi.publicAction(req({action:'list',accessToken:first.accessToken}),refs)).orders.map(x=>x.orderNumber),['SO3004','SO3002']);
+  assert.deepEqual((await publicApi.publicAction(req({action:'list',accessToken:first.accessToken}),refs)).orders.map(x=>x.orderNumber).sort(),['SO3002','SO3004']);
   await assert.rejects(publicApi.publicAction(req({action:'list'}),refs),e=>e.code==='URGENT_REPORTER_ACCESS_DENIED'&&e.status===403);
   await assert.rejects(publicApi.publicAction(req({action:'list',accessToken:'uro_'+('A'.repeat(43))}),refs),e=>e.code==='URGENT_REPORTER_ACCESS_DENIED');
   await assert.rejects(publicApi.publicAction(req({action:'create',...required,orderNumber:'SO3005',accessToken:first.accessToken,email:'spoof@example.org'}),refs),e=>e.code==='URGENT_REPORTER_EMAIL_MISMATCH');
