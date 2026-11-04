@@ -73,7 +73,10 @@
   root.document.head.appendChild(tag)
  }
  function label(title,key,kind,span,attributes){
-  var input=kind==='textarea'?'<textarea rows="3" data-rc1790-header="'+key+'" maxlength="800"></textarea>':'<input data-rc1790-header="'+key+'" type="'+(kind||'text')+'" '+(attributes||'')+' maxlength="500">';
+  var limits={documentNumber:40,senderName:160,senderAddress:500,recipient:160,recipientAddress:500,
+   customerNumber:60,customerOrder:80,shipmentReference:80,packageType:100,notes:800};
+  var max=limits[key]||100;
+  var input=kind==='textarea'?'<textarea rows="3" data-rc1790-header="'+key+'" maxlength="'+max+'"></textarea>':'<input data-rc1790-header="'+key+'" type="'+(kind||'text')+'" '+(attributes||'')+' maxlength="'+max+'">';
   return '<label'+(span?' class="rc1790-span2"':'')+'>'+title+input+'</label>';
  }
  function mount(){
