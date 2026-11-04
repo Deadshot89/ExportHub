@@ -431,3 +431,12 @@ test('RC1810 release blocks if testservice still shows old one-page UI or the AP
  assert.ok(step>=0&&next>step,'gate must run after deployment and before later live release checks');
  assert.ok(workflow.includes('node scripts/rc1810-urgent-public-api-live.mjs testservice "$GITHUB_SHA"'));
 });
+
+
+test('successful urgent creation confirms saving in the workspace the user actually sees',()=>{
+ const publicJs=script(publicHtml),internalJs=script(internalHtml);
+ assert.match(publicHtml,/id="createdBanner" class="saved-banner" hidden role="status"/);
+ assert.match(publicJs,/createdBanner'\)\.hidden=false/);
+ assert.match(publicJs,/location\.hash='access='\+encodeURIComponent\(secret\)/);
+ assert.match(internalJs,/showView\('open'\);render\(\);setMessage\('listMessage'/);
+});
