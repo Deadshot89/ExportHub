@@ -55,3 +55,20 @@ test('RC1787: real ABD auth guard rejects anonymous requests before accessing st
   await assert.rejects(auth.validateSession(req),error=>error?.code==='AUTH_REQUIRED'&&error?.status===401,host);
  }
 });
+
+test('RC1787: Azure-injected Authorization cannot be mistaken for ExportHUB session',async()=>{
+ const auth=require('../api/shared/fast-auth-store.js');
+ const fs=await import('node:fs');
+ const source=fs.readFileSync('api/abd-analysis/index.js','utf8');
+ assert.match(source,/validateSession\(req,\{requireExportHubToken:true\}\)/);
+ const host='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ const azure={method:'POST',headers:{host,authorization:'Bearer Azure-platform-identity'},body:{action:'status',uploadId:'rc1787-nonexistent'}};
+ assert.equal(auth.hasExportHubCredential(azure),false);
+ await assert.rejects(auth.validateSession(azure,{requireExportHubToken:true}),
+  error=>error?.code==='AUTH_REQUIRED'&&error?.status===401);
+ assert.equal(auth.hasExportHubCredential({headers:{'x-exporthub-token':'ehs1.a.b'}}),true);
+ assert.equal(auth.hasExportHubCredential({headers:{'X-ExportHUB-Session':'ehs1.a.b'}}),true);
+ assert.equal(auth.hasExportHubCredential({headers:{cookie:'eh_session=ehs1.a.b'}}),true);
+ assert.equal(auth.hasExportHubCredential({headers:{authorization:'Bearer ehs1.a.b'}}),true);
+ assert.equal(auth.hasExportHubCredential({headers:{authorization:'Bearer not-an-exporthub-session'}}),false);
+});
