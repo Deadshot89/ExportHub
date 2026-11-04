@@ -79,3 +79,52 @@ test('RC1774: AV file endpoint validates environment-specific exact IDs without 
   assert.match(api, /graphFetch\(url,\{headers:\{Accept:'\*\/\*'\}\},env\)/);
   assert.match(shared, /const c=config\(environment\);[\s\S]*?if\(tokenCache/);
 });
+
+test('RC1774: vanished REF child folder fails closed instead of returning partial documents', async () => {
+  const vm = await import('node:vm');
+  const source = readFileSync(new URL('../api/reference-files/index.js', import.meta.url), 'utf8');
+  const start = source.indexOf('async function listFiles(ref,req){');
+  const end = source.indexOf('\nfunction disposition(', start);
+  assert.ok(start > 0 && end > start, 'use the real REF listFiles implementation');
+  const functionText = source.slice(start, end).trim();
+
+  function prepare(graphFetch) {
+    return vm.runInNewContext('(' + functionText + ')', {
+      GRAPH_BASE: 'https://graph.example.invalid/v1.0',
+      DRIVE_USER: 'synthetic-ref@example.invalid',
+      publicAccess: { environment: () => 'production' },
+      referenceFolder: { exactTarget: () => null },
+      folderPath: ref => 'REF/' + ref,
+      encPath: path => path,
+      text: value => String(value == null ? '' : value).trim(),
+      apiI18n: { t: () => 'Dokument' },
+      error: (code, message, status) => Object.assign(new Error(message), { code, status }),
+      graphFetch
+    });
+  }
+  function response(status, body) {
+    return { status, ok: status >= 200 && status < 300, json: async () => body };
+  }
+  function expectIncomplete(error) {
+    return error.code === 'GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE' && error.status === 503;
+  }
+
+  const childMissing = prepare(async url => url.includes('/items/folder-1/children')
+    ? response(404, { error: { code: 'itemNotFound' } })
+    : response(200, { value: [{ id: 'folder-1', folder: {} }] }));
+  await assert.rejects(childMissing('ABC123', {}), expectIncomplete);
+
+  let page = 0;
+  const secondPageMissing = prepare(async () => ++page === 1
+    ? response(200, { value: [], '@odata.nextLink': 'https://graph.example.invalid/next' })
+    : response(404, { error: { code: 'itemNotFound' } }));
+  await assert.rejects(secondPageMissing('ABC123', {}), expectIncomplete);
+
+  const malformedListing = prepare(async () => response(200, { unexpected: 'no value array' }));
+  await assert.rejects(malformedListing('ABC123', {}),
+    error => error.code === 'GRAPH_REFERENCE_FOLDER_LIST_INVALID');
+
+  const invalidFile = prepare(async () => response(200, { value: [{ name: 'invoice.pdf', file: {} }] }));
+  await assert.rejects(invalidFile('ABC123', {}),
+    error => error.code === 'GRAPH_REFERENCE_FOLDER_LIST_INVALID');
+});
