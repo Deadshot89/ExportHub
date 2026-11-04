@@ -6,6 +6,7 @@ const apiI18n=require('../shared/i18n');
 const pdfSecurity=require('../shared/customer-avis-pdf-security');
 const pdfContent=require('../shared/customer-avis-document-content');
 const analyzer=require('../shared/abd-analysis');
+const d365=require('../shared/abd-d365-import');
 const analysisModel=require('../shared/abd-analysis-model');
 const documentIntelligence=require('../shared/abd-document-intelligence');
 
@@ -38,7 +39,7 @@ function safeName(value){
  return name
 }
 function kindFromName(name){
- const m=safeName(name).toLowerCase().match(/\.(pdf|xlsx|csv|jpg|jpeg|png)$/);if(!m)return'';
+ const m=safeName(name).toLowerCase().match(/\.(pdf|xlsx|csv|txt|tsv|jpg|jpeg|png)$/);if(!m)return'';
  return m[1]==='jpeg'?'jpg':m[1]
 }
 function jpegSignature(buffer){return buffer.length>=3&&buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff}
@@ -70,9 +71,9 @@ function genericFile(file,req){
   if(!allowedMime.includes(claimed)||!pngSignature(buffer))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
   mimeType='image/png'
  }else{
-  const allowedMime=['','text/csv','text/plain','application/csv','application/vnd.ms-excel'];
+  const allowedMime=['','text/csv','text/plain','text/tab-separated-values','application/csv','application/vnd.ms-excel','application/octet-stream'];
   if(!allowedMime.includes(claimed)||buffer.includes(0))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
-  mimeType='text/csv'
+  mimeType=kind==='txt'?'text/plain':kind==='tsv'?'text/tab-separated-values':'text/csv'
  }
  const sha256=crypto.createHash('sha256').update(buffer).digest('hex');
  return{name,kind,buffer,size:buffer.length,sha256,mimeType}
@@ -80,7 +81,7 @@ function genericFile(file,req){
 function identity(current){return text(current&&current.user&&(current.user.id||current.user.userId||current.user.username||current.user.user||current.user.name))||'user'}
 function scope(environment,current){return pdfSecurity.scopeHash('abd-analysis|'+environment+'|'+identity(current))}
 function uploadId(hash,kind){return hash+':'+kind}
-function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|jpg|png)$/);return m?{sha256:m[1],kind:m[2]}:null}
+function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|txt|tsv|jpg|png)$/);return m?{sha256:m[1],kind:m[2]}:null}
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+'.'+id.kind}
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function cellText(cell){
@@ -100,16 +101,22 @@ function groupedEnvelope(result,header){
 async function analyzeXlsx(buffer,name){
  let ExcelJS;try{ExcelJS=require('exceljs')}catch(_){throw error('ABD_XLSX_RUNTIME_MISSING','Excel-Auswertung ist auf dem Server nicht verfügbar.',503)}
  const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(buffer);
- const objects=[],sheets=[];
+ const objects=[],sheets=[],d365Documents=[],d365Positions=[];
  workbook.worksheets.slice(0,12).forEach(ws=>{
-  const matrix=[];ws.eachRow({includeEmpty:false},(row,rowNumber)=>{if(matrix.length>=1000)return;const values=[];for(let i=1;i<=Math.min(row.cellCount||row.actualCellCount||40,40);i++)values.push(cellText(row.getCell(i).value));matrix.push(values)});
+  const matrix=[];ws.eachRow({includeEmpty:false},(row,rowNumber)=>{if(matrix.length>=1000)return;const values=[];for(let i=1;i<=Math.min(row.cellCount||row.actualCellCount||80,80);i++)values.push(cellText(row.getCell(i).value));matrix.push(values)});
+  const document=d365.d365Invoice(matrix,name+' · '+ws.name,analyzer,analysisModel);
+  if(document){d365Documents.push(...document.deliveryDocuments);d365Positions.push(...document.positions);sheets.push(ws.name);return}
   const parsed=analyzer.matrixToObjects(matrix,name+' · '+ws.name);if(parsed.length){objects.push(...parsed);sheets.push(ws.name)}
  });
+ if(d365Documents.length){const combined=groupedEnvelope(Object.assign(analyzer.analyzeObjects(d365Positions),{fileName:name,fileType:'d365',sheets,requiresReview:true}));combined.deliveryDocuments=d365Documents;combined.deliveryCount=d365Documents.length;return combined}
  return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'xlsx',sheets,requiresReview:true}))
 }
 function analyzeCsv(buffer,name){
- const matrix=analyzer.parseDelimited(buffer.toString('utf8')),objects=analyzer.matrixToObjects(matrix,name);
- return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'csv',requiresReview:true}))
+ const matrix=d365.delimitedRows(buffer.toString('utf8'));
+ const d365Result=d365.d365Invoice(matrix,name,analyzer,analysisModel);
+ if(d365Result)return d365Result;
+ const objects=analyzer.matrixToObjects(matrix,name);
+ return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:kindFromName(name),requiresReview:true}))
 }
 async function analyzeWithOcr(buffer,name,kind){
  const ocr=await documentIntelligence.analyzeInvoiceBuffer(buffer,{name,mimeType:kind==='pdf'?'application/pdf':kind==='png'?'image/png':'image/jpeg'});
