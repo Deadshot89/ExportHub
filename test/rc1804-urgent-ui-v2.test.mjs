@@ -83,7 +83,11 @@ test('six-language workspaces do not reuse English placeholders for the updated 
  for(let j=1;j<langs.length;j++)for(const key of keys){
   assert.equal(typeof data[j][key],'string',langs[j]+' missing '+key);
   assert.ok(data[j][key].trim(),langs[j]+' empty '+key);
-  if(j>1&&key!=='urgentOrderV2.heroEyebrow')assert.notEqual(data[j][key],data[1][key],langs[j]+' English placeholder '+key);
+  // Some short words are identically spelled in English and the target language.
+  const validSharedWords={es:{'urgentOrderV2.no':'No'},fr:{'urgentOrderV2.expressService':'Express','urgentOrderV2.directShortDelivery':'Direct'},it:{'urgentOrderV2.no':'No'}};
+  const lang=langs[j],shared=validSharedWords[lang]&&validSharedWords[lang][key];
+  if(shared!==undefined)assert.equal(data[j][key],shared,lang+' shared word changed unexpectedly');
+  else if(j>1&&key!=='urgentOrderV2.heroEyebrow')assert.notEqual(data[j][key],data[1][key],lang+' English placeholder '+key);
  }
  const repaired=['019','022','024','025','026','027','029','031','034','035','036','037','039','043','044','045','047','048','049','051','052','054','055','056','057','060','061','062','064','066','069','070','071','073','074','076','077','079'];
  for(let j=2;j<langs.length;j++)for(const suffix of repaired)assert.notEqual(data[j]['urgentOrder.ui.'+suffix],data[1]['urgentOrder.ui.'+suffix],langs[j]+' untranslated previous UI label '+suffix);
