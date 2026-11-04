@@ -130,3 +130,24 @@ test('RC1790: long valid DNC references wrap without clipping the printed date',
  assert.match(text,/W{39}/);
  assert.match(text,/04\.11\.2026/);
 });
+
+test('RC1790: multiline shipping addresses and long units remain printable without overflow',async()=>{
+ const snapshot=example();
+ snapshot.header.senderAddress='Montel-Allee 3\n41334 Nettetal\nGermany';
+ snapshot.header.recipientAddress='Industrial Way 12\nBristol\nUnited Kingdom';
+ snapshot.items[0].unit='boxes of small bags';
+ const bytes=await createDeliveryNotePdf(snapshot);
+ const pdf=await PDFDocument.load(bytes);
+ const visible=(await extractPdfText(bytes)).replace(/\s+/g,' ');
+ assert.equal(pdf.getPageCount(),1);
+ for(const value of ['Montel-Allee 3','Nettetal','Industrial Way 12','Bristol','boxes','small','bags']){
+  assert.ok(visible.includes(value),'Missing delivery-note content '+value);
+ }
+});
+test('RC1790: customer PDF metadata contains no internal application or ERP details',async()=>{
+ const bytes=await createDeliveryNotePdf(example());
+ const pdf=await PDFDocument.load(bytes);
+ assert.equal(pdf.getAuthor(),'Essentra Components GmbH');
+ assert.match(pdf.getSubject(),/Delivery Note/);
+ assert.ok(!/ExportHUB|D365|nicht abgeglichen/i.test([pdf.getAuthor(),pdf.getSubject()].join(' ')));
+});
