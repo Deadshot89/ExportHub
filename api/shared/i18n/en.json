@@ -271,5 +271,22 @@
   "api.reference.docTypeInvalid": "Allowed are PDF, images (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT and e-mails (MSG/EML).",
   "api.reference.docEmpty": "The file is empty or invalid.",
   "api.reference.docTooLarge": "The file is larger than 15 MB.",
-  "api.reference.docSignatureInvalid": "The file content does not match the file type."
+  "api.reference.docSignatureInvalid": "The file content does not match the file type.",
+  "api.urgent.issueDescriptionRequired": "Please describe the issue (at least 8 characters).",
+  "api.urgent.subjectIssue": "Urgent Order – Issue / ",
+  "api.urgent.subjectShipping": "Urgent Order – Shipping confirmation / ",
+  "api.urgent.introIssue": "We would like to inform you about an issue with your urgent order.",
+  "api.urgent.introShipping": "We confirm that the following urgent order positions have been shipped.",
+  "api.urgent.orderLabel": "Sales order:",
+  "api.urgent.deliveryLabel": "Delivery:",
+  "api.urgent.directDelivery": "Direct delivery",
+  "api.urgent.priorityLabel": "Priority:",
+  "api.urgent.issueLabel": "Issue:",
+  "api.urgent.signoff": "Best regards,\nLogistics Team",
+  "api.urgent.lineLabel": "Line",
+  "api.urgent.itemLabel": "Item",
+  "api.urgent.qtyLabel": "Qty",
+  "api.urgent.statusLabel": "Status",
+  "api.urgent.serverError": "Urgent Order could not be processed. Please try again later.",
+  "api.urgent.invalidRequest": "Invalid request."
 }
