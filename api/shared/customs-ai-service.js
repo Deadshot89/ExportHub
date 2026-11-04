@@ -51,8 +51,11 @@ async function answerCustomsQuestion(options={}){
  if(!modelResult||modelResult.ok!==true){
   return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',answer:apiI18n.tLang(language,'api.customsAi.unavailable'),sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
  }
- const citations=Array.isArray(modelResult.citations)?modelResult.citations:[],citedSources=publicSources(sources,citations);
- return{ok:true,mode:'ai',answer:text(modelResult.answer,12000),sources:citedSources,checkedAt:latestCheckedAt(citedSources),uncertainty:citedSources.length===0,modelInfo:modelResult.modelInfo&&typeof modelResult.modelInfo==='object'?{provider:text(modelResult.modelInfo.provider,40),model:text(modelResult.modelInfo.model,120)}:undefined,recoverable:true,contextSummary:summary}
+ // Nur Marker im tatsächlich angezeigten Antworttext zählen. Provider-Metadaten allein sind kein Quellenbeleg.
+ const answer=text(modelResult.answer,12000),markers=Array.from(answer.matchAll(/\[\[([A-Za-z0-9._:-]{1,48})\]\]/g),match=>match[1]);
+ const allowed=new Set(sources.map(source=>source.id)),hasUnknownMarker=markers.some(id=>!allowed.has(id));
+ const citedSources=publicSources(sources,markers);
+ return{ok:true,mode:'ai',answer,sources:citedSources,checkedAt:latestCheckedAt(citedSources),uncertainty:citedSources.length===0||hasUnknownMarker,modelInfo:modelResult.modelInfo&&typeof modelResult.modelInfo==='object'?{provider:text(modelResult.modelInfo.provider,40),model:text(modelResult.modelInfo.model,120)}:undefined,recoverable:true,contextSummary:summary}
 }
 
 module.exports={answerCustomsQuestion};
