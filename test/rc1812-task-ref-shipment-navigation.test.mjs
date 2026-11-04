@@ -90,4 +90,3 @@ test('RC1812: task detail preserves a valid REF when only the task remains in cu
   assert.equal(runtime.linkedShipmentTarget({sourceType:'av_missing',sourceRef:'ZVYH89'},
     {state:{shipments:[],savedShipments:[]}}),'ZVYH89');
 });
-
