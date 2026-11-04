@@ -60,6 +60,13 @@ test('RC1812: missing reference never opens another shipment',()=>{
   assert.equal(runtime.find(''),null);
 });
 
+test('RC1812: volatile current drafts do not enter the saved shipment list',()=>{
+  const runtime=openBuiltLookup();
+  runtime.roots()[0].currentShipment={id:'DRAFT-X',ref:'DRAFT1'};
+  assert.equal(runtime.savedShipments().length,7);
+  assert.equal(runtime.savedShipments().some(sh=>sh.ref==='DRAFT1'),false);
+});
+
 function taskRuntime(){
   const script=fs.readFileSync('assets/rc1014-task-runtime.js','utf8');
   const root={document:null,addEventListener(){},dispatchEvent(){},
