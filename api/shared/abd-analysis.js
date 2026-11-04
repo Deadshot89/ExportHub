@@ -62,13 +62,14 @@ function headerMap(headers){
  return out
 }
 function countMapped(headers){return Object.keys(headerMap(headers)).length}
-function matrixToObjects(matrix,source){
+function matrixToObjects(matrix,source,maxPositions=500){
  const rows=Array.isArray(matrix)?matrix:[];if(!rows.length)return[];
  let bestIndex=-1,bestCount=0;
  for(let i=0;i<Math.min(rows.length,12);i++){const count=countMapped(rows[i]);if(count>bestCount){bestCount=count;bestIndex=i}}
  if(bestIndex<0||bestCount<2)return[];
  const map=headerMap(rows[bestIndex]),out=[];
- for(let i=bestIndex+1;i<rows.length&&out.length<500;i++){
+ const limit=Number.isInteger(maxPositions)&&maxPositions>0&&maxPositions<=501?maxPositions:500;
+ for(let i=bestIndex+1;i<rows.length&&out.length<limit;i++){
   const row=Array.isArray(rows[i])?rows[i]:[],obj={_source:source||'',_row:i+1};let nonEmpty=0;
   for(const [key,index] of Object.entries(map)){const value=row[index];if(text(value))nonEmpty++;obj[key]=value}
   if(nonEmpty)out.push(obj)
