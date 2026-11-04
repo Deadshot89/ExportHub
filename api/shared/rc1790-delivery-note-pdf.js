@@ -49,6 +49,7 @@ function modelFrom(snapshot){
   notes:safe(h.notes,800)
  },items:[]};
  if(!result.header.senderName||!result.header.senderAddress||!result.header.recipient||!result.header.recipientAddress)fail('DELIVERY_NOTE_ADDRESS_REQUIRED');
+ if(result.header.packageCount!=null&&!Number.isInteger(result.header.packageCount))fail('DELIVERY_NOTE_PACKAGE_COUNT_INVALID');
  if(result.header.grossWeight!=null&&result.header.netWeight!=null&&result.header.grossWeight<result.header.netWeight)fail('DELIVERY_NOTE_WEIGHT_INVALID');
  const items=Array.isArray(src.items)?src.items:[];
  if(!items.length||items.length>250)fail('DELIVERY_NOTE_ITEMS_REQUIRED');
