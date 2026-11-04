@@ -73,3 +73,20 @@ test('Zoll KI 2.0: Antwortdarstellung verwendet ausschließlich sichere DOM-Text
  assert.match(css,/\.rc1532-answer-section/);
  assert.match(css,/@media\s*\(max-width:\s*700px\)/);
 });
+
+
+test('Zoll KI 2.0: alte Offline-KI mit EXW-/FCA-/DAP-/DDP-Antwort ohne neue Provider-Aufrufe abgefangen',()=>{
+ const ui=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
+ assert.match(ui,/function legacyIncotermsAnswer/);
+ assert.match(ui,/function legacyCustomsIntercept/);
+ assert.match(ui,/zollAiQuestion/);
+ assert.match(ui,/zollAiAnswer/);
+ assert.match(ui,/stopImmediatePropagation/);
+ assert.match(ui,/Offline-Schnellhilfe/);
+ assert.match(ui,/exw:|exw\s*:/);
+ assert.match(ui,/fca:|fca\s*:/);
+ assert.match(ui,/dap:|dap\s*:/);
+ assert.match(ui,/ddp:|ddp\s*:/);
+ const offline=ui.slice(ui.indexOf('function legacyIncotermsAnswer'),ui.indexOf('function show(active)'));
+ assert.doesNotMatch(offline,/fetch\s*\(/);
+});
