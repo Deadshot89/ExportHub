@@ -62,7 +62,7 @@ test('Zoll KI 2.0: EXW-Frage wird als Fachfrage an geprüfte Quellen geroutet',a
 test('Zoll KI 2.0: Antwortdarstellung verwendet ausschließlich sichere DOM-Textknoten',()=>{
  const ui=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
  const css=fs.readFileSync(new URL('../assets/rc1532-customs-ai.css',import.meta.url),'utf8');
- assert.match(ui,/function renderAnswer\(host,raw\)/);
+ assert.match(ui,/function renderAnswer\(host,raw,sources\)/);
  assert.match(ui,/renderAnswer\(answer,/);
  assert.match(ui,/d\.createTextNode\(/);
  assert.match(ui,/rc1532-answer-list/);
