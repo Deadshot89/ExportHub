@@ -1,6 +1,7 @@
 'use strict';
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
 const MAX_RETRIES=8;
@@ -83,7 +84,7 @@ module.exports=async function(context,req){
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
   context.log&&context.log.warn&&context.log.warn('urgent-orders',e&&e.code||'UNEXPECTED',status);
-  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?'Urgent Order konnte nicht verarbeitet werden. Bitte später erneut versuchen.':e&&e.message||'Ungültige Anfrage.'});
+  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
  }
 };
 module.exports.execute=execute;
