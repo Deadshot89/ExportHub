@@ -76,6 +76,16 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;
 <script>
 (function(){
 'use strict';
+// Redirect only legacy Urgent-Order production URLs. Never change other ExportHUB routes.
+function redirectLegacyUrgentHost(){
+ const host=String(location.hostname||'').toLowerCase();
+ const legacy=['exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'];
+ if(!legacy.includes(host))return false;
+ const target='https://wonderful-forest-0f315e310.7.azurestaticapps.net/urgent-order'+(location.search||'')+(location.hash||'');
+ location.replace(target);
+ return true;
+}
+if(redirectLegacyUrgentHost())return;
 const ENDPOINT='/api/urgent-order-public';
 const STATUS=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
 const $=id=>document.getElementById(id);
