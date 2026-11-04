@@ -12,7 +12,7 @@ const envKeys = [
   'EXPORTHUB_TEST_REFERENCE_DRIVE_ID', 'EXPORTHUB_TEST_REFERENCE_FOLDER_ID'
 ];
 
-test('RC1772: REF must not use an implicit personal OneDrive user; absent destination fails closed', async () => {
+test('RC1774: REF must not use an implicit personal OneDrive user; absent destination fails closed', async () => {
   const previous = Object.fromEntries(envKeys.map(k => [k, process.env[k]]));
   const oldFetch = globalThis.fetch;
   let networkCalls = 0;
@@ -57,7 +57,7 @@ test('RC1772: REF must not use an implicit personal OneDrive user; absent destin
   }
 });
 
-test('RC1772: AV file endpoint validates environment-specific exact IDs without a legacy user', () => {
+test('RC1774: AV file endpoint validates environment-specific exact IDs without a legacy user', () => {
   const shared = readFileSync(new URL('../api/shared/reference-folder-upload.js', import.meta.url), 'utf8');
   const api = readFileSync(new URL('../api/reference-files/index.js', import.meta.url), 'utf8');
   for (const source of [shared, api]) {
