@@ -180,3 +180,35 @@ test('RC1771: lesbare REF-Wurzel und fehlender Geschwisterordner werden separat 
     assert.ok(!calls.some(call=>call.method!=='GET'&&call.hostname==='graph.microsoft.com'));
   });
 });
+
+
+test('RC1774: POD-only identity cannot authorize REF fallback discovery or write',async()=>{
+  setEnv(); // POD is configured, but neither REF library IDs nor REF user are supplied.
+  const graph=fresh();
+  await withFakeHttps(call=>brokenPodDrive(call)||notFound,async calls=>{
+    await assert.rejects(graph.uploadPdf(PDF,'POD_ABC123.pdf',{environment:'production'}),error=>{
+      assert.equal(error.referenceFallbackCode,'GRAPH_REFERENCE_FALLBACK_NOT_CONFIGURED');
+      return true;
+    });
+    const graphCalls=calls.filter(call=>call.hostname==='graph.microsoft.com');
+    assert.ok(graphCalls.every(call=>
+      !call.path.includes('/users/export@essentra.com/') &&
+      !call.path.includes('/drives/ref-drive/')),
+      'POD credentials may never become an implicit REF library');
+    assert.ok(!graphCalls.some(call=>call.method==='POST'),
+      'no REF folder may be created');
+  });
+});
+
+test('RC1774: read-only Graph diagnosis reports REF fallback not configured when only POD user is present',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps(call=>brokenPodDrive(call)||notFound,async calls=>{
+    const result=await graph.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.ok(result.checks.some(check=>check.stage==='reference-library-abliefernachweise' &&
+      check.providerCode==='GRAPH_REFERENCE_FALLBACK_NOT_CONFIGURED'));
+    assert.ok(!calls.some(call=>call.method!=='GET' && call.hostname==='graph.microsoft.com'),
+      'Graph diagnosis is read-only');
+  });
+});
