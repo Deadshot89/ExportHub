@@ -45,15 +45,17 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 .info-note{border-radius:12px;border:1px solid #cadff8;background:#f0f6ff;color:#2d5680;padding:13px;font-size:12px;line-height:1.6;margin:0 0 10px}
 @media(max-width:650px){.workspace-nav{padding:7px}.workspace-nav .workspace-tab{flex:1 1 100%}.layout>.panel{padding:15px}}
 @media(prefers-color-scheme:dark){.info-note{background:#243d58;border-color:#456787;color:#d2e5ff}}
+
+.urgent-hero{background:linear-gradient(125deg,#e6f2ff,#fafcff 70%);border:1px solid #d3e5fa;border-radius:20px;padding:28px 30px;margin-bottom:19px;position:relative;overflow:hidden}.urgent-hero:after{content:'';position:absolute;right:-45px;top:-75px;width:230px;height:230px;border:36px solid #2563eb0b;border-radius:50%;pointer-events:none}.urgent-hero h1{position:relative;letter-spacing:-.045em;font-size:clamp(27px,3.3vw,40px)}.urgent-hero .intro{position:relative;max-width:780px;margin:8px 0 0;line-height:1.68;font-size:14px}.hero-kicker{position:relative;display:block;color:#2465a8;font-weight:900;font-size:10px;letter-spacing:.15em;margin:0 0 10px}@media(max-width:600px){.urgent-hero{padding:20px 17px}}@media(prefers-color-scheme:dark){.urgent-hero{background:linear-gradient(120deg,#203955,#14273b);border-color:#355572}.hero-kicker{color:#a4cbfa}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
 <body>
 <header class="top"><div class="inner"><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order</span></div><a class="back" href="/">Zurück zu ExportHUB360</a></div></header>
 <main>
-<h1>Urgent Order</h1>
+<section class="urgent-hero"><span class="hero-kicker" data-i18n="urgentOrderV2.heroEyebrow">KUNDENSERVICE · URGENT ORDER</span><h1>Urgent Order</h1><p class="intro" data-i18n="urgentOrderV2.internalIntro">Offene Vorgänge bearbeiten, abgeschlossene prüfen oder neue Anfragen erfassen – alles in getrennten Reitern.</p></section>
 <div class="btn-row"><a class="btn alt" href="/urgent-order">Öffentliches Meldeformular öffnen</a></div>
-<p class="intro">Dringende Kundenaufträge melden, Prüfungen dokumentieren und jede Auftragsposition nachverfolgen.</p>
+
 <div id="access" class="alert" hidden role="alert"></div>
 <div class="stats" aria-label="Auftragsübersicht"><div class="stat"><b id="statTotal">–</b><span>Aufträge</span></div><div class="stat"><b id="statP1">–</b><span data-i18n="urgentOrderV2.P1">P1 · Sondertransport</span></div><div class="stat"><b id="statOpen">–</b><span>Offene Positionen</span></div><div class="stat"><b id="statExceptions">–</b><span>Prüfungen mit Ausnahme</span></div></div>
 <nav class="workspace-nav tabbar" role="tablist" aria-label="Arbeitsbereiche"><button type="button" class="workspace-tab" id="internalOpen" role="tab" aria-selected="true"><span data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</span> <span id="internalOpenCount" class="request-count" aria-hidden="true">0</span></button><button type="button" class="workspace-tab" id="internalClosed" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabClosed">Geschlossene Anfragen</span> <span id="internalClosedCount" class="request-count" aria-hidden="true">0</span></button><button type="button" class="workspace-tab" id="internalNew" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabNew">Neue Anfrage</span></button></nav>
@@ -142,7 +144,8 @@ function filtered(){
  return orders.filter(o=>(currentTab==='closed'?isClosedOrder(o):!isClosedOrder(o))&&(!p||o.priority===p)&&(!d||o.delivery===d)&&(!s||(s==='exception'?(o.items||[]).some(x=>x.checkResult==='exception'):(o.items||[]).some(x=>x.status===s)))&&(!q||[o.orderNumber,o.email,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(v=>txt(v).toLowerCase().includes(q)))).sort((a,b)=>rank(a)-rank(b)||txt(b.updatedAt).localeCompare(txt(a.updatedAt)));
 }
 function statusSummary(o){const list=[...new Set((o.items||[]).map(x=>x.status))];return list.length===1?list[0]:'Gemischt'}
-function showView(view){activeView=view;currentTab=view==='closed'?'closed':'open';$('internalCreatePanel').hidden=view!=='new';$('internalListPanel').hidden=view==='new';for(const [id,key] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?'Geschlossene Anfragen':'Offene Anfragen';}
+function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function showView(view){activeView=view;currentTab=view==='closed'?'closed':'open';$('internalCreatePanel').hidden=view!=='new';$('internalListPanel').hidden=view==='new';for(const [id,key] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function priorityText(code){const fallback=({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code;try{const i=window.ExportHUBI18n,v=i&&i.t('urgentOrderV2.'+code,null,i.language());return v&&v!=='urgentOrderV2.'+code?v:fallback;}catch(_){return fallback;}}
 function render(){
  showView(activeView);
@@ -230,6 +233,7 @@ for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internal
 $('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
 $('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
+window.addEventListener('exporthub:language-changed',render);
 lineField();refresh();
 })();
 </script>

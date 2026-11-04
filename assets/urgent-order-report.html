@@ -35,13 +35,15 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;
 .request-type{padding:16px;border-radius:13px;border:1px solid #c7daf3;background:#f3f8ff}.request-type label{font-size:13px;font-weight:800;color:#285b9a}.type-explanation{border-radius:10px;padding:10px 12px;background:#e8f1ff;border:1px solid #d2e3fa}.type-explanation p{margin:0;font-size:12px;line-height:1.6;color:#28527e}
 @media(max-width:640px){.workspace-nav{padding:7px}.workspace-nav .workspace-tab{flex:1 1 100%}.board>.panel{padding:16px}}
 @media(prefers-color-scheme:dark){.request-type,.type-explanation{background:#203857;border-color:#405d80}.request-type label,.type-explanation p{color:#daeaff}}
+
+.urgent-hero{background:linear-gradient(125deg,#e6f2ff,#fafcff 70%);border:1px solid #d3e5fa;border-radius:20px;padding:28px 30px;margin-bottom:19px;position:relative;overflow:hidden}.urgent-hero:after{content:'';position:absolute;right:-45px;top:-75px;width:230px;height:230px;border:36px solid #2563eb0b;border-radius:50%;pointer-events:none}.urgent-hero h1{position:relative;letter-spacing:-.045em;font-size:clamp(27px,3.3vw,40px)}.urgent-hero .intro{position:relative;max-width:780px;margin:8px 0 0;line-height:1.68;font-size:14px}.hero-kicker{position:relative;display:block;color:#2465a8;font-weight:900;font-size:10px;letter-spacing:.15em;margin:0 0 10px}@media(max-width:600px){.urgent-hero{padding:20px 17px}}@media(prefers-color-scheme:dark){.urgent-hero{background:linear-gradient(120deg,#203955,#14273b);border-color:#355572}.hero-kicker{color:#a4cbfa}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
 <body>
 <header><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order melden</span></div></header>
 <main>
-<h1>Urgent Order melden</h1><p class="intro">Dringende Aufträge erfassen, Lieferungen prüfen und die eigenen Anfragen ohne Anmeldung verfolgen.</p>
+<section class="urgent-hero"><span class="hero-kicker" data-i18n="urgentOrderV2.heroEyebrow">KUNDENSERVICE · URGENT ORDER</span><h1 data-i18n="urgentOrderV2.publicHero">Dringende Kundenaufträge im Blick</h1><p class="intro" data-i18n="urgentOrderV2.publicIntro">Anfrage erfassen, Bearbeitungsstand verfolgen und Informationen übersichtlich finden.</p></section>
 <div class="tracking" id="tracking" hidden><strong>Dein persönlicher Überwachungslink</strong><p class="muted">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small">Link kopieren</button></div></div>
 <nav class="workspace-nav tabrow" role="tablist" aria-label="Arbeitsbereiche"><button type="button" class="tab workspace-tab" id="tabNew" role="tab" aria-selected="true"><span data-i18n="urgentOrderV2.tabNew">Neue Anfrage</span></button><button type="button" class="tab workspace-tab" id="tabOpen" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</span> <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button type="button" class="tab workspace-tab" id="tabClosed" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabClosed">Geschlossene Anfragen</span> <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></nav>
 <div class="board">
@@ -151,7 +153,9 @@ function buildPayload(){
 }
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
-function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?'Geschlossene Anfragen':'Offene Anfragen';}
+function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
+function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function render(){
  showView(activeView);
  const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
@@ -170,7 +174,7 @@ function render(){
   const node=document.createElement('details');node.className='order';
   const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(x.status)+'</span></div>').join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">Ankunft: <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · Ausgang: '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?'Express':'Sondertransport')+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(o.priority)+'</span><span class="pill '+statusClass(status)+'">'+esc(status)+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(status)+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
@@ -216,6 +220,7 @@ $('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
+window.addEventListener('exporthub:language-changed',render);
 secret=accessFromHash();lineCard();syncType();refresh();
 })();
 </script>
