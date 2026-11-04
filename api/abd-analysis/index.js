@@ -80,9 +80,9 @@ function genericFile(file,req){
 }
 function identity(current){return text(current&&current.user&&(current.user.id||current.user.userId||current.user.username||current.user.user||current.user.name))||'user'}
 function scope(environment,current){return pdfSecurity.scopeHash('abd-analysis|'+environment+'|'+identity(current))}
-function uploadId(hash,kind){return hash+':'+kind}
-function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|txt|tsv|jpg|png)$/);return m?{sha256:m[1],kind:m[2]}:null}
-function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+'.'+id.kind}
+function uploadId(hash,kind,nonce){return hash+':'+kind+(nonce?':'+nonce:'')}
+function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|txt|tsv|jpg|png)(?::([a-f0-9]{32}))?$/);return m?{sha256:m[1],kind:m[2],nonce:m[3]||''}:null}
+function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+(id.nonce?'-'+id.nonce:'')+'.'+id.kind}
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function cellText(cell){
  if(cell==null)return'';
@@ -149,11 +149,14 @@ async function analyzeFile(buffer,name,kind){
  return analyzeCsv(buffer,name)
 }
 async function upload(req,current,environment,payload){
- const file=genericFile(payload.file,req),container=await quarantine(),id={sha256:file.sha256,kind:file.kind},blob=container.getBlockBlobClient(blobName(environment,current,id));
+ const file=genericFile(payload.file,req),container=await quarantine(),id={sha256:file.sha256,kind:file.kind,nonce:crypto.randomBytes(16).toString('hex')},blob=container.getBlockBlobClient(blobName(environment,current,id));
  try{
   await blob.uploadData(file.buffer,{blobHTTPHeaders:{blobContentType:file.mimeType,blobCacheControl:'no-store'},metadata:{name:Buffer.from(file.name,'utf8').toString('base64url').slice(0,512),kind:file.kind,owner:scope(environment,current),uploadedAt:Date.now().toString()},conditions:{ifNoneMatch:'*'}})
- }catch(e){if(!e||![409,412].includes(Number(e.statusCode||e.status)))throw e}
- return{ok:true,status:'scanning',upload:{id:uploadId(file.sha256,file.kind),name:file.name,size:file.size,fileType:file.kind,provider:'Microsoft Defender for Storage'}}
+ }catch(e){
+  if([409,412].includes(Number(e&& (e.statusCode||e.status))))throw error('ABD_UPLOAD_CONFLICT','Die Datei konnte nicht eindeutig für eine neue Virenprüfung gespeichert werden. Bitte erneut hochladen.',409);
+  throw e
+ }
+ return{ok:true,status:'scanning',upload:{id:uploadId(file.sha256,file.kind,id.nonce),name:file.name,size:file.size,fileType:file.kind,provider:'Microsoft Defender for Storage'}}
 }
 function reanalyze(req,payload){
  const positions=Array.isArray(payload&&payload.positions)?payload.positions:null;
