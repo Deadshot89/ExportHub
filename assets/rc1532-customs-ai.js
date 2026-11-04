@@ -144,7 +144,7 @@ function legacyIncotermsAnswer(raw){
  var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu';
  if(types.length>1){
   var compared=['## Kurzantwort','Die genannten Incoterms unterscheiden sich bei den Zollformalitäten:'];
-  types.forEach(function(code){var rule=labels[code];compared.push('- **'+rule.name+':** '+rule.organization)});
+  types.forEach(function(code){var rule=labels[code];compared.push('- **'+rule.name+':** '+rule.organization+' [['+icc+']].')});
   compared.push('','## Was gilt unabhängig von der Klausel?','- **EU-Ausführer:** Die zollrechtlich zulässige Person muss gesondert geprüft werden. [['+eu+']].','- **Anmelder:** Anmeldung durch den Anmelder oder einen Zollvertreter; Kosten nach der vereinbarten Klausel und ergänzenden Abreden.','', '## Vorgehen im Warenausgang','1. Vereinbarte Incoterms-Klausel und benannten Ort verbindlich feststellen.','2. EU-Ausführer, Anmelder und mögliche Zollvertretung bestimmen.','3. Erforderliche Zollüberlassung und Dokumente vor Versand prüfen.');
   return{ok:true,mode:'offline-rule',answer:compared.join('\n'),uncertainty:true,checkedAt:'2026-11-04',sources:[
     {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
