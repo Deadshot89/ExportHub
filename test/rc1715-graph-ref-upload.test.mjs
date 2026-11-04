@@ -5,9 +5,9 @@ const require=createRequire(import.meta.url);
 
 test('P2: Graph requires upload metadata AND independent REF-folder readback',async()=>{
  const fetchBefore=globalThis.fetch;
- const keys=['EXPORTHUB_GRAPH_TENANT_ID','EXPORTHUB_GRAPH_CLIENT_ID','EXPORTHUB_GRAPH_CLIENT_SECRET'];
+ const keys=['EXPORTHUB_GRAPH_TENANT_ID','EXPORTHUB_GRAPH_CLIENT_ID','EXPORTHUB_GRAPH_CLIENT_SECRET','EXPORTHUB_REFERENCE_DRIVE_USER'];
  const before=keys.map(k=>process.env[k]);
- keys.forEach(k=>{process.env[k]='test'});
+ keys.forEach(k=>{process.env[k]=k==='EXPORTHUB_REFERENCE_DRIVE_USER'?'synthetic-ref@example.invalid':'test'});
  const moduleFile=require.resolve('../api/shared/reference-folder-upload.js');
  delete require.cache[moduleFile];
  const store=require(moduleFile);

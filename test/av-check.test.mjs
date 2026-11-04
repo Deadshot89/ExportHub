@@ -359,7 +359,7 @@ function graphFolderListingFixture(kind){
   ].join('\n');
   const res=spawnSync(process.execPath,['-e',script,kind],{
     cwd:process.cwd(),encoding:'utf8',
-    env:{...process.env,EXPORTHUB_GRAPH_TENANT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_SECRET:'fixture'}
+    env:{...process.env,EXPORTHUB_GRAPH_TENANT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_SECRET:'fixture',EXPORTHUB_REFERENCE_DRIVE_USER:'synthetic-ref@example.invalid'}
   });
   assert.equal(res.status,0,res.stderr);
   return JSON.parse(res.stdout.trim());

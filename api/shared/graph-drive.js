@@ -882,8 +882,8 @@ let referenceTargetCache = null;
 function referenceLibrarySettings() {
   const driveId = text(process.env.EXPORTHUB_REFERENCE_DRIVE_ID);
   const folderId = text(process.env.EXPORTHUB_REFERENCE_FOLDER_ID);
-  const user = text(process.env.EXPORTHUB_REFERENCE_DRIVE_USER) ||
-    text(process.env.EXPORTHUB_POD_DRIVE_USER);
+  // RC1774: a configured POD user does not authorize a separate REF-library lookup.
+  const user = text(process.env.EXPORTHUB_REFERENCE_DRIVE_USER);
   const refFolder = rawFolder(process.env.EXPORTHUB_REFERENCE_FOLDER || '003 Export/ExportHub/Sendungen');
   return { driveId, folderId, user, refFolder };
 }
@@ -913,6 +913,12 @@ function referenceFallbackAllowed(error, environment) {
 
 async function resolveReferenceLibraryTarget(token, force) {
   const settings = referenceLibrarySettings();
+  // Never discover a REF sibling inside a POD-only personal OneDrive.
+  if (!settings.driveId && !settings.user) {
+    throw targetError('GRAPH_REFERENCE_FALLBACK_NOT_CONFIGURED',
+      'Für die REF-Ausweichablage fehlt eine ausdrücklich konfigurierte Microsoft-365-Bibliothek.',
+      { statusCode: 503 });
+  }
   const key = [settings.driveId, settings.folderId, settings.user.toLowerCase(), settings.refFolder.toLowerCase(),
     fallbackLeaves().join('|').toLowerCase()].join('\n');
   if (!force && referenceTargetCache && referenceTargetCache.key === key && referenceTargetCache.expiresAt > Date.now()) {
