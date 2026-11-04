@@ -49,5 +49,9 @@ test('public reporter create/list is capability-scoped across users; only token 
   model.setItemStatus(row,row.items[0].id,'Problem',logistics);
   const current=await publicApi.publicAction(req({action:'list',accessToken:first.accessToken}),refs);
   assert.equal(current.orders.find(x=>x.orderNumber==='SO3002').items[0].status,'Problem');
+  assert.equal(state.publicDaily.count,3,'all anonymous creates share a durable daily counter');
+  state.publicDaily.count=200;
+  await assert.rejects(publicApi.publicAction(req({action:'create',...required,orderNumber:'SO3006',accessToken:first.accessToken}),refs),e=>e.code==='URGENT_PUBLIC_DAILY_LIMIT'&&e.status===429);
+  assert.equal(state.orders.length,3,'limit must reject without inserting an order');
  }finally{internal.write=originals.write;internal.readDocument=originals.readDocument;}
 });
