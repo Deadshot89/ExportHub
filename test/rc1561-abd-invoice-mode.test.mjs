@@ -28,3 +28,24 @@ test('RC1561: Browser-Regression läuft in einem eigenen Workflow',()=>{
   assert.match(wf,/assets\/rc1294-abd-self-service\.js/);
   assert.match(wf,/e2e\/specs\/rc1561-abd-invoice-mode\.spec\.mjs --project=laptop/);
 });
+
+
+test('RC1786: invoice file chooser never waits for an optional language asset',()=>{
+ assert.match(src,/function ensureFeatureI18n\(\)\{/);
+ assert.match(src,/return pack\[key\]\|\|key/);
+ assert.match(src,/chooseFiles:'Dateien auswählen'/);
+ assert.match(src,/ensureFeatureI18n\(\);\s*ensureStyle\(\)/);
+ assert.doesNotMatch(src,/if\(!ensureFeatureI18n\(\)\)return false/);
+ assert.match(src,/s\.addEventListener\('error',function\(\)\{try\{s\.remove\(\)\}catch\(_\)\{\}\},\{once:true\}\)/);
+});
+
+
+test('RC1786: late i18n load preserves mounted Proforma editor and selected files',()=>{
+ const start=src.indexOf('function refreshLabelsAfterI18n(){');
+ const end=src.indexOf('function ensureFeatureI18n(){',start);
+ assert.ok(start>=0&&end>start,'Refresh callback required');
+ const callback=src.slice(start,end);
+ assert.match(callback,/\.querySelector\('\[data-rc1294-invoice-panel\]'\)/);
+ assert.match(callback,/\.textContent=xtr\('invoiceMode'\)/);
+ assert.doesNotMatch(callback,/\.remove\(\)|\.innerHTML=/,'Refreshing translations must not destroy the editor or native file input');
+});
