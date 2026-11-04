@@ -234,6 +234,12 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1810-urgent-public-api-live.mjs testservice "$GITHUB_SHA"
+
       - name: RC1787 ABD-Datei-Upload API Routing TESTSERVICE prüfen
         shell: bash
         run: |
