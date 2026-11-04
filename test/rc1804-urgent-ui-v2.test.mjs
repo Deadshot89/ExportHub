@@ -268,7 +268,7 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
    querySelector(selector){
     const clauses=selector.split(',').map(v=>v.trim());
     const matches=c=>clauses.some(clause=>{
-     const m=clause.match(/^\\[([a-z-]+)(?:="([^"]+)")?\\]$/);
+     const m=clause.match(/^\[([a-z-]+)(?:="([^"]+)")?\]$/);
      return m&&(m[1] in c.attributes)&&(m[2]===undefined||c.attributes[m[1]]===m[2]);
     });
     const stack=[...this.children];
