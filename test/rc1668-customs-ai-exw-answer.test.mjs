@@ -126,6 +126,8 @@ test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachan
  assert.match(answer.textContent,/Käufer organisiert/);
  assert.match(answer.textContent,/EU-Ausführer/);
  assert.match(answer.textContent,/ICC/);
+ assert.match(answer.textContent,/AEAT/);
+ assert.match(answer.textContent,/\[3\]/);
  assert.doesNotMatch(answer.textContent,/Passende Wissensbereiche/);
 
  textarea.value='Was ist der Unterschied zwischen EXW und FCA?';
