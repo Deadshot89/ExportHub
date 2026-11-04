@@ -477,7 +477,7 @@ function enhance(){
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
-root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null}});
+root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,activate)});
 })(typeof window!=='undefined'?window:globalThis);
