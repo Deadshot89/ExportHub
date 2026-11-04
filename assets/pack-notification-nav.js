@@ -90,3 +90,107 @@
   root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,repairAfterViewChange,install,setPackNavLabel,setPackNavIcon});
   install();
 })(typeof window!=='undefined'?window:globalThis);
+
+
+/* Urgent Order: independent navigation entry; leaves existing Packmeldung routing unchanged. */
+(function(w){
+ 'use strict';
+ if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV__)return;
+ w.__EXPORT_HUB_URGENT_NAV__=true;
+ var d=w.document;
+ function ensure(){
+  if(d.querySelector('[data-exporthub-urgent-nav]'))return;
+  var anchor=d.querySelector('[data-pack-notifications-nav]')||d.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
+  if(!anchor||!anchor.parentNode)return;
+  var n=d.createElement('button');n.type='button';n.className=(anchor.className||'')+' urgent-orders-nav-entry';
+  n.setAttribute('data-exporthub-urgent-nav','');n.setAttribute('aria-label','Urgent Order');n.title='Urgent Order';
+  n.innerHTML='<span class="index308-nav-icon" aria-hidden="true" style="--menu-accent:#dc7226;color:#dc7226">!</span><span class="index308-nav-label">Urgent Order</span>';
+  n.style.setProperty('--menu-accent','#dc7226');
+  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/assets/urgent-orders.html');},true);
+  anchor.parentNode.insertBefore(n,anchor.nextSibling);
+ }
+ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
+ if(w.setInterval)w.setInterval(function(){if(!d.hidden)ensure()},1500);
+ if(w.addEventListener)['exporthub:viewchange','exporthub:rendered','exporthub:ready'].forEach(function(type){w.addEventListener(type,ensure)});
+})(typeof window!=='undefined'?window:globalThis);
+
+
+/* Urgent Order: a lightweight, permission-scoped open-request count beside the nav tab.
+   Do not change existing Packmeldungen navigation, routing or inbox counters. */
+(function(w){
+ 'use strict';
+ if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV_COUNTER__)return;
+ w.__EXPORT_HUB_URGENT_NAV_COUNTER__=true;
+ const d=w.document;
+ let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false;
+ function ensureBadge(){
+  const node=d.querySelector('[data-exporthub-urgent-nav]');
+  if(!node)return null;
+  if(!d.getElementById('exporthub-urgent-nav-counter-style')){
+   const style=d.createElement('style');style.id='exporthub-urgent-nav-counter-style';
+   style.textContent='[data-exporthub-urgent-nav] .urgent-nav-count{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 7px;margin-left:auto;border-radius:999px;background:#e8edf3;border:1px solid #d2dce7;color:#465366;font:800 12px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="true"]{background:#fff0da;color:#8e4705;border-color:#edc08a}[data-exporthub-urgent-nav] .urgent-nav-count[hidden]{display:none!important}@media(prefers-color-scheme:dark){[data-exporthub-urgent-nav] .urgent-nav-count{background:#354960;color:#e6eefc;border-color:#516785}[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="true"]{background:#5b442b;color:#ffe1b4;border-color:#90704a}}';
+   (d.head||d.documentElement).appendChild(style);
+  }
+  let badge=node.querySelector('[data-urgent-open-count]');
+  if(!badge){badge=d.createElement('span');badge.setAttribute('data-urgent-open-count','');badge.className='urgent-nav-count';badge.setAttribute('aria-hidden','true');badge.hidden=true;node.appendChild(badge);}
+  return {node,badge};
+ }
+ function token(){
+  try{const runtime=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(runtime.authToken||runtime.token||runtime.sessionToken)return String(runtime.authToken||runtime.token||runtime.sessionToken);}catch(_){}
+  try{const tab=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return String(tab.token||'');}catch(_){return'';}
+ }
+ function hideBadge(){
+  const current=ensureBadge();
+  if(current){current.badge.hidden=true;current.node.setAttribute('aria-label','Urgent Order');}
+ }
+ async function refresh(force){
+  const ui=ensureBadge();
+  if(!ui||inFlight||d.hidden||loggedOut)return;
+  const epoch=sessionEpoch;
+  const authToken=token();
+  // The protected eh_session cookie may authenticate the same-origin API without
+  // exposing any readable token to JavaScript. Never mistake that for logged out.
+  const now=Date.now();
+  if(!force&&now-lastRefresh<45000)return;
+  lastRefresh=now;inFlight=true;
+  try{
+   const headers={'Content-Type':'application/json','Accept':'application/json'};
+   if(authToken)headers['X-ExportHUB-Token']=authToken;
+   const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers,body:JSON.stringify({action:'counts'})});
+   if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
+   const data=await response.json();
+   // A previous login's asynchronous response must not overwrite a newer session.
+   if(epoch!==sessionEpoch)return;
+   if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw new Error('URGENT_COUNT_INVALID');
+   const count=data.open;
+   // Only authorized aggregate counts cross the network: no order/customer data.
+   const current=ensureBadge();if(!current)return;
+   current.badge.textContent=String(count);
+   current.badge.dataset.hasOpen=count>0?'true':'false';
+   current.badge.hidden=false;
+   current.node.setAttribute('aria-label','Urgent Order: '+count+' offene Anfragen');
+  }catch(_){
+   if(epoch===sessionEpoch)hideBadge();
+  }finally{
+   inFlight=false;
+   if(epoch!==sessionEpoch&&!loggedOut)refresh(true);
+  }
+ }
+ function register(){
+  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',()=>refresh(true),{once:true});else refresh(true);
+  if(w.addEventListener){
+   ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(name=>w.addEventListener(name,()=>{
+    sessionEpoch++;loggedOut=false;lastRefresh=0;hideBadge();refresh(true);
+   }));
+   ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(name=>w.addEventListener(name,()=>{
+    sessionEpoch++;loggedOut=true;lastRefresh=0;hideBadge();
+   }));
+   w.addEventListener('exporthub:state-loaded',()=>refresh(true));
+   w.addEventListener('focus',()=>refresh(true));
+  }
+  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(true)});
+  if(typeof w.setInterval==='function')w.setInterval(()=>refresh(false),45000);
+ }
+ register();
+})(typeof window!=='undefined'?window:globalThis);
