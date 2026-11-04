@@ -60,7 +60,9 @@ test('RC1790: malformed DNC, blank goods, invalid quantity, weight and date fail
   s=>{s.header.recipientAddress='';},
   s=>{s.items[0].description='';},
   s=>{s.items[0].quantity=-5;},
-  s=>{s.header.grossWeight=1;}
+  s=>{s.header.grossWeight=1;},
+  s=>{s.header.packageCount=1.5;},
+  s=>{s.header.recipientAddress='A'.repeat(501);}
  ];
  for(const update of mutations){
   const s=example();update(s);
@@ -108,4 +110,12 @@ test('RC1790: invoice and delivery panels stay exclusive; language changes retai
  assert.match(frontend,/headerDraft\[input\.getAttribute\('data-rc1790-header'\)\]=input\.value/);
  assert.match(frontend,/root\.addEventListener\('exporthub:language-changed',localizeWithoutLosingDraft\)/);
  assert.match(frontend,/items\.map\(function\(item\)\{return Object\.assign\(\{\},item\)\}\)/);
+});
+
+test('RC1790: form field limits match PDF validation for customer and shipping data',()=>{
+ for(const marker of ['documentNumber:40','senderName:160','senderAddress:500','recipient:160',
+  'recipientAddress:500','customerNumber:60','customerOrder:80','shipmentReference:80','packageType:100','notes:800'])
+  assert.ok(frontend.includes(marker),'Missing form limit '+marker);
+ const modelSrc=fs.readFileSync('api/shared/rc1790-delivery-note-pdf.js','utf8');
+ assert.match(modelSrc,/DELIVERY_NOTE_PACKAGE_COUNT_INVALID/);
 });
