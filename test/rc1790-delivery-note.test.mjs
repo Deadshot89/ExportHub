@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {PDFDocument}=require('../api/node_modules/pdf-lib');
@@ -85,4 +86,26 @@ test('RC1790: editor appears inside ABD invoice workspace in all three builds',(
  assert.match(build,/assets\/rc1790-delivery-note\.js/);
  assert.match(build,/DELIVERY_TAG/);
  assert.match(build,/const ENTRIES=\['index\.html','TESTVERSION\.html','demo\.html'\]/);
+});
+
+test('RC1790: all six languages have translated labels and errors',()=>{
+ const code=fs.readFileSync('assets/i18n/rc1790-delivery-note.js','utf8');
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const root={ExportHUBI18n:{language:()=>locale}};
+  vm.runInNewContext(code,{window:root});
+  const i18n=root.ExportHUBRC1790I18n;
+  assert.equal(i18n.language(),locale);
+  for(const key of ['pageTitle','documentNumber','recipientAddress','add','export','validationItems','error']){
+   const translated=i18n.t(key);
+   assert.ok(typeof translated==='string'&&translated.length>4&&translated!==key,locale+'/'+key);
+  }
+ }
+});
+test('RC1790: invoice and delivery panels stay exclusive; language changes retain entered draft and items',()=>{
+ assert.match(frontend,/a\.hidden=mode==='delivery'/);
+ assert.match(frontend,/#rc1549AbdManual\[hidden\]\{display:none!important\}/);
+ assert.match(frontend,/function localizeWithoutLosingDraft\(\)/);
+ assert.match(frontend,/headerDraft\[input\.getAttribute\('data-rc1790-header'\)\]=input\.value/);
+ assert.match(frontend,/root\.addEventListener\('exporthub:language-changed',localizeWithoutLosingDraft\)/);
+ assert.match(frontend,/items\.map\(function\(item\)\{return Object\.assign\(\{\},item\)\}\)/);
 });
