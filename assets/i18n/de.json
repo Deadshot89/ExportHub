@@ -2495,5 +2495,22 @@
   "urgentOrderV2.statusSaved": "Status gespeichert.",
   "urgentOrderV2.problemMin": "Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.",
   "urgentOrderV2.backToHub": "Zurück zu ExportHUB360",
-  "urgentOrderV2.publicFormLink": "Öffentliches Meldeformular öffnen"
+  "urgentOrderV2.publicFormLink": "Öffentliches Meldeformular öffnen",
+  "urgentOrderV2.choose": "Bitte auswählen",
+  "urgentOrderV2.chooseCheck": "Bitte prüfen",
+  "urgentOrderV2.chooseOrder": "Bitte wählen",
+  "urgentOrderV2.yes": "Ja",
+  "urgentOrderV2.no": "Nein",
+  "urgentOrderV2.directDelivery": "Direktlieferung",
+  "urgentOrderV2.freightTruck": "Lkw",
+  "urgentOrderV2.freightParcel": "Paketdienst",
+  "urgentOrderV2.freightCourier": "Kurier",
+  "urgentOrderV2.freightOther": "Sonstiges",
+  "urgentOrderV2.specialTransport": "Sondertransport",
+  "urgentOrderV2.expressService": "Express",
+  "urgentOrderV2.allPriorities": "Alle Prioritäten",
+  "urgentOrderV2.allLevels": "Alle Stufen",
+  "urgentOrderV2.allDeliveries": "Alle Lieferarten",
+  "urgentOrderV2.allStatuses": "Alle Status",
+  "urgentOrderV2.directShortDelivery": "Direkt"
 }

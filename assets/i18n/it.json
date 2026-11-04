@@ -2495,5 +2495,22 @@
   "urgentOrderV2.statusSaved": "Stato salvato.",
   "urgentOrderV2.problemMin": "Descrivi il problema con almeno 8 caratteri.",
   "urgentOrderV2.backToHub": "Torna a ExportHUB360",
-  "urgentOrderV2.publicFormLink": "Apri il modulo pubblico"
+  "urgentOrderV2.publicFormLink": "Apri il modulo pubblico",
+  "urgentOrderV2.choose": "Seleziona",
+  "urgentOrderV2.chooseCheck": "Verifica",
+  "urgentOrderV2.chooseOrder": "Scegli",
+  "urgentOrderV2.yes": "Sì",
+  "urgentOrderV2.no": "No",
+  "urgentOrderV2.directDelivery": "Consegna diretta",
+  "urgentOrderV2.freightTruck": "Camion",
+  "urgentOrderV2.freightParcel": "Servizio pacchi",
+  "urgentOrderV2.freightCourier": "Corriere",
+  "urgentOrderV2.freightOther": "Altro",
+  "urgentOrderV2.specialTransport": "Trasporto speciale",
+  "urgentOrderV2.expressService": "Espresso",
+  "urgentOrderV2.allPriorities": "Tutte le priorità",
+  "urgentOrderV2.allLevels": "Tutti i livelli",
+  "urgentOrderV2.allDeliveries": "Tutti i tipi di consegna",
+  "urgentOrderV2.allStatuses": "Tutti gli stati",
+  "urgentOrderV2.directShortDelivery": "Diretto"
 }
