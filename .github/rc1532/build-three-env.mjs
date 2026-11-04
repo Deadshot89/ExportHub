@@ -11,8 +11,8 @@ export const RC1532_ASSETS=Object.freeze([
   'assets/rc1532-customs-ai.css',
   'assets/i18n/rc1532-customs-ai.js'
 ]);
-const STYLE_TAG='<link id="exporthub-rc1532-customs-ai-style" rel="stylesheet" href="/assets/rc1532-customs-ai.css?v=1532">';
-const SCRIPT_TAG='<script id="exporthub-rc1532-customs-ai" defer src="/assets/rc1532-customs-ai.js?v=1533"></script>';
+const STYLE_TAG='<link id="exporthub-rc1532-customs-ai-style" rel="stylesheet" href="/assets/rc1532-customs-ai.css?v=1668">';
+const SCRIPT_TAG='<script id="exporthub-rc1532-customs-ai" defer src="/assets/rc1532-customs-ai.js?v=1668"></script>';
 
 function count(html,id){return String(html||'').split(`id="${id}"`).length-1}
 export function injectCustomsAi(html,file){
