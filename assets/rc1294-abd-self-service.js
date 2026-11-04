@@ -5,7 +5,8 @@ w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__=true;
 
 var busy=false,reviewBusy={},lastPositions=[],lastResults=[],lastGroups=[],lastUnassigned=[],mountTimer=0,hostObserver=null,hostObserverRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
 // RC1561: survive a re-render of the ABD view (#rc626Abd) – the chosen mode and files must not be lost
-var currentMode='manual',pendingFiles=[];
+var currentMode='manual',pendingFiles=[],pendingUploads=new WeakMap();
+function hasPendingUploads(){return pendingFiles.some(function(file){return pendingUploads.has(file)})}
 function q(v){return String(v==null?'':v).trim()}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function lang(){try{return w.ExportHUBI18n&&w.ExportHUBI18n.language?w.ExportHUBI18n.language():'de'}catch(_){return'de'}}
@@ -135,7 +136,7 @@ function refreshLabelsAfterI18n(){
   if(help)help.textContent=xtr('invoiceHelp');
   if(note)note.textContent=xtr('previewOnly');
   if(label)label.textContent=xtr('chooseFiles');
-  if(start)start.textContent=xtr('start')
+  if(start)start.textContent=hasPendingUploads()?xtr('resumeScan'):xtr('start')
  }
  var host=d.getElementById('rc626Abd'),heading=host&&host.querySelector('.rc626-head h2');
  if(heading)heading.textContent=xtr('workspaceTitle')
@@ -310,9 +311,25 @@ async function poll(upload,fileName){
  var e=new Error(tr('abd.analysis.waiting'));e.code='ABD_SCAN_PENDING';throw e
 }
 async function analyzeFile(file){
- var uploaded=await post({action:'upload',file:{name:file.name,type:file.type||'',base64:await base64(file)}}),upload=uploaded.data&&uploaded.data.upload;
- if(!upload||!upload.id)throw new Error('Upload-ID fehlt');
- return poll(upload,file.name)
+ // RC1792: a pending Defender scan is not an upload failure; preserve its
+ // upload ID for the same File object instead of triggering a new BlobCreated.
+ var upload=pendingUploads.get(file);
+ if(!upload){
+  var uploaded=await post({action:'upload',file:{name:file.name,type:file.type||'',base64:await base64(file)}});
+  upload=uploaded.data&&uploaded.data.upload;
+  if(!upload||!upload.id)throw new Error('Upload-ID fehlt');
+  pendingUploads.set(file,upload)
+ }
+ try{
+  var result=await poll(upload,file.name);
+  pendingUploads.delete(file);
+  return result
+ }catch(e){
+  // Terminal scan results/expired blobs cannot be resumed; keep all other
+  // states resumable, including Defender delays and transient network errors.
+  if(e&&['ABD_MALWARE_DETECTED','ABD_SCAN_FAILED','ABD_UPLOAD_EXPIRED','ABD_UPLOAD_ID_INVALID'].indexOf(e.code)>=0)pendingUploads.delete(file);
+  throw e
+ }
 }
 async function start(){
  if(busy)return false;var p=panel(),input=p&&p.querySelector('[data-rc1294-files]'),button=p&&p.querySelector('[data-rc1294-start]'),files=Array.from(input&&input.files||[]);
@@ -320,6 +337,7 @@ async function start(){
  clearStatus();var out=resultBox();if(out){out.hidden=true;out.innerHTML=''}
  if(!files.length){setStatus(tr('abd.analysis.fileRequired'),'bad');return false}
  if(files.length>5){setStatus(tr('abd.analysis.fileLimit'),'bad');return false}
+ pendingFiles=files.slice();
  busy=true;if(button)button.disabled=true;lastPositions=[];lastResults=[];lastGroups=[];lastUnassigned=[];
  try{
   var results=[];
@@ -329,12 +347,15 @@ async function start(){
     var result=await analyzeFile(files[i]),analysis=result&&result.analysis||{},documents=Array.isArray(analysis.deliveryDocuments)?analysis.deliveryDocuments:[];
     if(documents.length){documents.forEach(function(doc){results.push({ok:true,status:'ready',analysis:doc})});fileLine(files[i].name,documents.length+' getrennte Lieferscheine / '+(analysis.positions||[]).length+' Positionen','ok')}
     else{results.push(result);fileLine(files[i].name,(analysis.positions||[]).length+' Position(en)','ok')}
-   }catch(e){fileLine(files[i].name,q(e&&e.message)||tr('errors.generic'),'bad')}
+   }catch(e){
+    if(e&&e.code==='ABD_SCAN_PENDING')fileLine(files[i].name,xtr('scanPendingNote'),'scan');
+    else fileLine(files[i].name,q(e&&e.message)||tr('errors.generic'),'bad')
+   }
   }
   renderResults(results);
   return results.length>0
  }catch(e){setStatus(tr('abd.analysis.error',{message:q(e&&e.message)}),'bad');return false}
- finally{busy=false;if(button)button.disabled=false}
+ finally{busy=false;if(button){button.disabled=false;button.textContent=hasPendingUploads()?xtr('resumeScan'):xtr('start')}}
 }
 async function reanalyzeDocument(resultIndex,positions){
  resultIndex=Number(resultIndex);if(!Number.isInteger(resultIndex)||resultIndex<0||resultIndex>=lastResults.length||reviewBusy[resultIndex])return false;
@@ -456,7 +477,7 @@ function mount(){
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
  p.querySelector('[data-rc1294-start]').addEventListener('click',start);
  // The ABD form re-renders #rc626Abd on change/input events from its own fields; the file picker must not trigger that.
- function keepFileEventLocal(e){var f=e.target&&e.target.closest&&e.target.closest('[data-rc1294-files]');if(!f)return false;e.stopPropagation();if(e.type==='change')pendingFiles=Array.from(f.files||[]);return true}
+ function keepFileEventLocal(e){var f=e.target&&e.target.closest&&e.target.closest('[data-rc1294-files]');if(!f)return false;e.stopPropagation();if(e.type==='change'){pendingFiles=Array.from(f.files||[]);var start=p.querySelector('[data-rc1294-start]');if(start)start.textContent=hasPendingUploads()?xtr('resumeScan'):xtr('start')}return true}
  p.addEventListener('input',keepFileEventLocal);
  p.addEventListener('change',function(e){if(keepFileEventLocal(e))return;var input=e.target&&e.target.closest&&e.target.closest('[data-rc1499-edit-hs],[data-rc1499-edit-origin],[data-rc1499-edit-value]');if(input)applyReviewEdit(input)});
  // Arrow keys move tab focus without unexpectedly importing shipment data.
