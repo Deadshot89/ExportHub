@@ -125,3 +125,24 @@ test('all human-readable dropdown choices have explicit six-language translation
  for(const html of [publicHtml,internalHtml])assert.match(html,/option.setAttribute\('data-i18n','urgentOrderV2\.'\+key\)/);
 
 });
+
+
+test('urgent tracking link uses wonderful-forest on production, isolates testservice and preserves token',()=>{
+ const source=script(publicHtml);
+ const from=source.indexOf('function urgentTrackingBase(){');
+ const until=source.indexOf('\nfunction activateLink(){',from);
+ assert.ok(from>=0&&until>from,'canonical link builder must exist');
+ const body=source.slice(from,until);
+ const make=(hostname,origin)=>{
+  const context=vm.createContext({location:{hostname,origin},Set});
+  vm.runInContext(body,context);
+  return context.urgentTrackingBase();
+ };
+ const canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net/urgent-order';
+ assert.equal(make('wonderful-forest-0f315e310.7.azurestaticapps.net','https://wonderful-forest-0f315e310.7.azurestaticapps.net'),canonical);
+ assert.equal(make('exporthub360.com','https://exporthub360.com'),canonical);
+ assert.equal(make('www.exporthub360.de','https://www.exporthub360.de'),canonical);
+ const testOrigin='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ assert.equal(make('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',testOrigin),testOrigin+'/urgent-order');
+ assert.match(source,/trackingUrl'\)\.textContent=urgentTrackingBase\(\)\+'#access='\+encodeURIComponent\(secret\)/);
+});
