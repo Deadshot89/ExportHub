@@ -190,9 +190,16 @@ function render(){
   target.appendChild(node);
  }
 }
+function urgentTrackingBase(){
+ const host=String(location.hostname||'').toLowerCase();
+ const productionHost='wonderful-forest-0f315e310.7.azurestaticapps.net';
+ const productionHosts=new Set([productionHost,'exporthub360.com','www.exporthub360.com','exporthub360.de','www.exporthub360.de']);
+ const origin=productionHosts.has(host)?'https://'+productionHost:location.origin;
+ return origin+'/urgent-order';
+}
 function activateLink(){
  if(!secret)return;$('tracking').hidden=false;
- $('trackingUrl').textContent=location.href.split('#')[0]+'#access='+encodeURIComponent(secret);
+ $('trackingUrl').textContent=urgentTrackingBase()+'#access='+encodeURIComponent(secret);
 }
 async function refresh(){
  if(!secret){orders=[];render();return;}
