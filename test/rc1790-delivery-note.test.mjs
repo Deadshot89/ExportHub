@@ -119,3 +119,12 @@ test('RC1790: form field limits match PDF validation for customer and shipping d
  const modelSrc=fs.readFileSync('api/shared/rc1790-delivery-note-pdf.js','utf8');
  assert.match(modelSrc,/DELIVERY_NOTE_PACKAGE_COUNT_INVALID/);
 });
+
+test('RC1790: long valid DNC references wrap without clipping the printed date',async()=>{
+ const snapshot=example();
+ snapshot.header.documentNumber='W'.repeat(39);
+ const bytes=await createDeliveryNotePdf(snapshot);
+ const text=(await extractPdfText(bytes)).replace(/\s+/g,' ');
+ assert.match(text,/W{39}/);
+ assert.match(text,/04\.11\.2026/);
+});
