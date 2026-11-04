@@ -414,3 +414,20 @@ test('urgent 2.1 errors remain actionable and preserve form state on failure',()
    assert.ok(typeof dict['urgentOrderV2.'+key]==='string'&&dict['urgentOrderV2.'+key].trim(),lang+' missing '+key);
  }
 });
+
+
+test('RC1810 release blocks if testservice still shows old one-page UI or the API returns 500',()=>{
+ const script=read('scripts/rc1810-urgent-public-api-live.mjs');
+ const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+ assert.match(script,/tabNew/);assert.match(script,/tabOpen/);assert.match(script,/tabClosed/);
+ assert.match(script,/wizardNext/);assert.match(script,/wizardBack/);
+ assert.match(script,/method:'POST'/);
+ assert.match(script,/data\.ok!==false/);
+ assert.match(script,/URGENT_REPORTER_ACCESS_DENIED/);
+ assert.match(script,/r\.status!==403/);
+ assert.doesNotMatch(script,/action:'create'/,'live gate must not create or modify orders');
+ const step=workflow.indexOf('RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate');
+ const next=workflow.indexOf('RC1787 ABD-Datei-Upload API Routing TESTSERVICE',step);
+ assert.ok(step>=0&&next>step,'gate must run after deployment and before later live release checks');
+ assert.ok(workflow.includes('node scripts/rc1810-urgent-public-api-live.mjs testservice "$GITHUB_SHA"'));
+});
