@@ -371,3 +371,46 @@ test('released sidebar menu treats Urgent Order as an add-on without reshuffling
  assert.match(builder,/RC1805 Urgent-Order-Menü wird nicht als Add-on erkannt/);
  for(const file of ['index.html','TESTVERSION.html','demo.html'])assert.ok(builder.includes("'"+file+"'"));
 });
+
+
+test('urgent 2.1 guides public and internal order creation through three exclusive steps',()=>{
+ for(const [html,formId,prefix] of [[publicHtml,'reportForm','wizard'],[internalHtml,'newOrder','internal']]){
+  const form=html.slice(html.indexOf('<form id="'+formId+'"'),html.indexOf('</form>',html.indexOf('<form id="'+formId+'"'))+7);
+  assert.ok(form.includes('novalidate'),'final validation is performed explicitly in guided flow');
+  for(const step of [1,2,3]){
+   assert.match(form,new RegExp('data-'+prefix+'-step="'+step+'"'),'step '+step+' must exist');
+   assert.match(form,new RegExp('data-'+prefix+'-mark="'+step+'"'),'progress marker '+step+' must exist');
+  }
+  assert.ok(form.includes('data-i18n="urgentOrderV2.reviewIntro"'));
+  assert.match(form,/id="(?:wizardReview|internalWizardReview)"/);
+  assert.match(form,/id="(?:wizardNext|internalWizardNext)"/);
+  assert.match(form,/id="(?:wizardBack|internalWizardBack)"/);
+  assert.match(form,/name="priority" required/,'priority must be deliberately selected');
+  assert.match(form,/option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder"/);
+  assert.doesNotThrow(()=>new vm.Script(script(html)));
+ }
+ const publicJs=script(publicHtml),internalJs=script(internalHtml);
+ assert.match(publicJs,/function showWizardStep\(step\)/);
+ assert.match(publicJs,/function nextWizardStep\(\)/);
+ assert.match(publicJs,/for\(const control of section\.querySelectorAll\('input,select,textarea'\)\)/);
+ assert.match(publicJs,/showWizardStep\(1\);activateLink\(\)/);
+ assert.match(internalJs,/function showInternalStep\(step\)/);
+ assert.match(internalJs,/function nextInternalStep\(\)/);
+ assert.match(internalJs,/showInternalStep\(1\);await refresh\(\)/);
+});
+test('urgent 2.1 errors remain actionable and preserve form state on failure',()=>{
+ const publicJs=script(publicHtml),internalJs=script(internalHtml),publicApi=read('api/urgent-order-public/index.js');
+ assert.match(publicJs,/retryPublicList/);
+ assert.match(internalJs,/retryInternalList/);
+ assert.match(publicJs,/Code: /);
+ assert.match(internalJs,/Code: /);
+ assert.doesNotMatch(publicApi,/The request could not be processed\. Please try again later\./);
+ assert.match(publicApi,/const responseStatus=!recognized&&status<500\?503:status/);
+ assert.match(publicApi,/retryable:serviceError/);
+ assert.match(publicApi,/URGENT_STORAGE_MISSING/);
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dict=JSON.parse(read('assets/i18n/'+lang+'.json'));
+  for(const key of ['stepBasics','stepChecks','stepConfirm','reviewIntro','sendRequest','previous','next','retry','missingArticle','explainException','networkError'])
+   assert.ok(typeof dict['urgentOrderV2.'+key]==='string'&&dict['urgentOrderV2.'+key].trim(),lang+' missing '+key);
+ }
+});
