@@ -2445,5 +2445,9 @@
   "urgentOrderV2.mailStatus": "Estado guardado.",
   "urgentOrderV2.remove": "Eliminar",
   "urgentOrderV2.addLine": "+ Artículo",
-  "urgentOrderV2.sent": "Enviar solicitud"
+  "urgentOrderV2.sent": "Enviar solicitud",
+  "urgentOrderV2.heroEyebrow": "ATENCIÓN AL CLIENTE · PEDIDOS URGENTES",
+  "urgentOrderV2.publicHero": "Pedidos urgentes de clientes de un vistazo",
+  "urgentOrderV2.publicIntro": "Crea una solicitud, sigue su estado y consulta toda la información fácilmente.",
+  "urgentOrderV2.internalIntro": "Gestiona solicitudes abiertas, revisa las cerradas o crea nuevas: cada una en su pestaña."
 }

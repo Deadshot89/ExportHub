@@ -2445,5 +2445,9 @@
   "urgentOrderV2.mailStatus": "Statut enregistré.",
   "urgentOrderV2.remove": "Supprimer",
   "urgentOrderV2.addLine": "+ Article",
-  "urgentOrderV2.sent": "Envoyer la demande"
+  "urgentOrderV2.sent": "Envoyer la demande",
+  "urgentOrderV2.heroEyebrow": "SERVICE CLIENT · COMMANDES URGENTES",
+  "urgentOrderV2.publicHero": "Suivez les commandes clients urgentes",
+  "urgentOrderV2.publicIntro": "Créez une demande, suivez son avancement et retrouvez les informations en un coup d'œil.",
+  "urgentOrderV2.internalIntro": "Traitez les demandes ouvertes, consultez les demandes clôturées ou créez-en de nouvelles, dans des onglets séparés."
 }

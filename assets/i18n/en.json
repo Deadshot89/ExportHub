@@ -2445,5 +2445,9 @@
   "urgentOrderV2.mailStatus": "Status saved.",
   "urgentOrderV2.remove": "Remove",
   "urgentOrderV2.addLine": "+ Item",
-  "urgentOrderV2.sent": "Submit request"
+  "urgentOrderV2.sent": "Submit request",
+  "urgentOrderV2.heroEyebrow": "CUSTOMER SERVICE · URGENT ORDER",
+  "urgentOrderV2.publicHero": "Urgent customer orders at a glance",
+  "urgentOrderV2.publicIntro": "Create a request, track progress and find all information at a glance.",
+  "urgentOrderV2.internalIntro": "Process open requests, review closed ones or create new requests – each in a separate tab."
 }

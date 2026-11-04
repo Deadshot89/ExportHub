@@ -2445,5 +2445,9 @@
   "urgentOrderV2.mailStatus": "Status zapisany.",
   "urgentOrderV2.remove": "Usuń",
   "urgentOrderV2.addLine": "+ Pozycja",
-  "urgentOrderV2.sent": "Wyślij zgłoszenie"
+  "urgentOrderV2.sent": "Wyślij zgłoszenie",
+  "urgentOrderV2.heroEyebrow": "OBSŁUGA KLIENTA · PILNE ZAMÓWIENIA",
+  "urgentOrderV2.publicHero": "Pilne zamówienia klientów pod kontrolą",
+  "urgentOrderV2.publicIntro": "Utwórz zgłoszenie, śledź postęp i łatwo znajdź potrzebne informacje.",
+  "urgentOrderV2.internalIntro": "Obsługuj otwarte zgłoszenia, sprawdzaj zamknięte lub twórz nowe – każde w osobnej zakładce."
 }

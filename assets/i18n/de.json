@@ -2445,5 +2445,9 @@
   "urgentOrderV2.mailStatus": "Status gespeichert.",
   "urgentOrderV2.remove": "Entfernen",
   "urgentOrderV2.addLine": "+ Position",
-  "urgentOrderV2.sent": "Anfrage verbindlich melden"
+  "urgentOrderV2.sent": "Anfrage verbindlich melden",
+  "urgentOrderV2.heroEyebrow": "KUNDENSERVICE · URGENT ORDER",
+  "urgentOrderV2.publicHero": "Dringende Kundenaufträge im Blick",
+  "urgentOrderV2.publicIntro": "Anfrage erfassen, Bearbeitungsstand verfolgen und Informationen übersichtlich finden.",
+  "urgentOrderV2.internalIntro": "Offene Vorgänge bearbeiten, abgeschlossene prüfen oder neue Anfragen erfassen – alles in getrennten Reitern."
 }
