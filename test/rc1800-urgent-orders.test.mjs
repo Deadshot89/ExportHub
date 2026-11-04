@@ -42,7 +42,7 @@ test('CS can read their own orders but cannot change logistics status',()=>{
  assert.throws(()=>orders.setItemStatus(o,o.items[0].id,'Cancelled',logistics),/Ungültiger/);
 });
 test('each position has an independently editable status and history',()=>{
- const o=order();for(const status of orders.STATUSES){orders.setItemStatus(o,o.items[0].id,status,logistics)}
+ const o=order();for(const status of orders.STATUSES){orders.setItemStatus(o,o.items[0].id,status,logistics,undefined,status==='Problem'?'Artikel im Wareneingang gesperrt':'')}
  assert.equal(o.items[0].status,'Invoiced');assert.equal(o.items[1].status,'Open');assert.equal(orders.summaryStatus(o),'Mixed');
  assert.equal(o.history.filter(h=>h.event==='status').length,6);
 });
