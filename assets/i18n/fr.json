@@ -2512,5 +2512,16 @@
   "urgentOrderV2.allLevels": "Tous les niveaux",
   "urgentOrderV2.allDeliveries": "Tous les modes de livraison",
   "urgentOrderV2.allStatuses": "Tous les statuts",
-  "urgentOrderV2.directShortDelivery": "Direct"
+  "urgentOrderV2.directShortDelivery": "Direct",
+  "urgentOrderV2.stepBasics": "Détails de la commande",
+  "urgentOrderV2.stepChecks": "Articles et vérifications",
+  "urgentOrderV2.stepConfirm": "Vérifier et envoyer",
+  "urgentOrderV2.reviewIntro": "Vérifiez les informations. Vous pourrez suivre la demande après l'enregistrement.",
+  "urgentOrderV2.sendRequest": "Envoyer la commande urgente",
+  "urgentOrderV2.previous": "Retour",
+  "urgentOrderV2.next": "Continuer",
+  "urgentOrderV2.retry": "Réessayer",
+  "urgentOrderV2.missingArticle": "Saisissez un numéro de ligne ou d'article.",
+  "urgentOrderV2.explainException": "Toute vérification négative nécessite une explication d'au moins 8 caractères.",
+  "urgentOrderV2.networkError": "Le service des commandes urgentes ne répond pas. Vérifiez la connexion et réessayez."
 }
