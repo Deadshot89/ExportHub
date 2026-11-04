@@ -38,7 +38,7 @@ function createOrder(raw,actor,now=new Date().toISOString()){
  if(!ownerId)throw problem('URGENT_ACTOR_REQUIRED','Ein angemeldeter Benutzer ist erforderlich.',401);
  return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,email:email(p.email),language:language(p.language),createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,items:validateItems(p.items,now),history:[{at:now,actorId:ownerId,event:'created'}]};
 }
-function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview','tasks'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
+function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
 function setItemStatus(order,itemId,status,user,now=new Date().toISOString()){
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
