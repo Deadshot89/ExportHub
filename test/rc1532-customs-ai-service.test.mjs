@@ -66,3 +66,28 @@ test('RC1532 Service: leere oder zu lange Frage wird vor jeder KI-Nutzung abgewi
  const long=await service.answerCustomsQuestion({question:'x'.repeat(2501),invoiceAnalysis:invoice(),articles});
  assert.equal(long.ok,false);assert.equal(long.code,'QUESTION_TOO_LONG');
 });
+
+
+test('RC1668 Service: erfundene Quellenkennung gilt nicht als Beleg',async()=>{
+ const result=await service.answerCustomsQuestion({
+  question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',
+  articles,
+  askModel:async()=>({ok:true,answer:'Ungeprüfte Behauptung [[NICHT_VORHANDEN]].',citations:['NICHT_VORHANDEN']})
+ });
+ assert.equal(result.ok,true);
+ assert.equal(result.uncertainty,true);
+ assert.deepEqual(result.sources,[]);
+ assert.equal(result.checkedAt,'');
+});
+
+test('RC1668 Service: Prüfdatum stammt von der tatsächlich zitierten Quelle, nicht von anderen Treffern',async()=>{
+ const newer={...articles[0],id:'pref-newer',slug:'praeferenz-neuer',title:'Aktuelle Präferenzregel Schweiz',checkedAt:'2026-11-04'};
+ const result=await service.answerCustomsQuestion({
+  question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',
+  articles:[...articles,newer],
+  askModel:async()=>({ok:true,answer:'Geprüfte Ursprungsaussage [[pref]].',citations:['pref']})
+ });
+ assert.equal(result.uncertainty,false);
+ assert.deepEqual(result.sources.map(x=>x.id),['pref']);
+ assert.equal(result.checkedAt,'2026-10-14');
+});
