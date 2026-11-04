@@ -7,6 +7,7 @@
   senderAddress:'Montel-Allee 3\nD-41334 Nettetal\nGermany',recipient:'',recipientAddress:'',
   customerNumber:'',customerOrder:'',shipmentReference:'',packageCount:'',packageType:'',
   netWeight:'',grossWeight:'',notes:''};
+ var headerDraft=Object.assign({},defaults);
  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]})}
  function q(s){return String(s==null?'':s).trim()}
  function host(){var h=root.document&&root.document.getElementById('rc1294AbdAnalysis');return h&&h.querySelector('[data-rc1294-invoice-panel]')}
@@ -23,7 +24,7 @@
   tbody.innerHTML=items.map(rowHtml).join('')
  }
  function snapshot(){
-  var data=Object.assign({},defaults),p=panel();
+  var data=Object.assign({},headerDraft),p=panel();
   if(p)p.querySelectorAll('[data-rc1790-header]').forEach(function(field){data[field.getAttribute('data-rc1790-header')]=field.value});
   return{header:data,items:items.map(function(item){return Object.assign({},item)})}
  }
@@ -109,9 +110,11 @@
     '<div class="rc1790-actions"><button type="button" class="ghost" data-rc1790-add>+ Position hinzufügen</button><button type="button" class="btn" data-rc1790-export>Essentra-Lieferschein als PDF erstellen</button></div>'+
     '<div role="status" aria-live="polite" data-rc1790-status hidden></div>';
    parent.appendChild(section);
-   section.querySelectorAll('[data-rc1790-header]').forEach(function(input){input.value=defaults[input.getAttribute('data-rc1790-header')]||''});
+   section.querySelectorAll('[data-rc1790-header]').forEach(function(input){input.value=headerDraft[input.getAttribute('data-rc1790-header')]||''});
    renderRows();
    section.addEventListener('input',function(e){
+    var header=e.target&&e.target.closest('[data-rc1790-header]');
+    if(header)headerDraft[header.getAttribute('data-rc1790-header')]=header.value;
     var control=e.target&&e.target.closest('tr[data-row] [data-field]');
     if(control){var i=Number(control.closest('[data-row]').getAttribute('data-row'));if(items[i])items[i][control.getAttribute('data-field')]=control.value}
    });
