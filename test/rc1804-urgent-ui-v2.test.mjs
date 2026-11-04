@@ -343,6 +343,7 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  delete urgent.attributes['data-urgent-nav-design'];
  const liveBadge=node('span',{'data-urgent-open-count':''});
  liveBadge.textContent='6';
+ urgent.setAttribute('aria-label','Urgent Order: 6 offene Anfragen');
  urgent.appendChild(liveBadge);
  nav.insertBefore(urgent,dashboard);
  handlers['exporthub:rendered']();
@@ -351,6 +352,7 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  assert.ok(urgent.innerHTML.includes('<svg '),'legacy exclamation symbol must become an SVG');
  assert.strictEqual(urgent.querySelector('[data-urgent-open-count]'),liveBadge,'preserve live counter');
  assert.equal(liveBadge.textContent,'6');
+ assert.equal(urgent.getAttribute('aria-label'),'Urgent Order: 6 offene Anfragen','accessible count must remain intact');
  assert.equal(urgent.className.includes('active'),false,'old active class must not survive');
  assert.equal(urgent.className.includes('pack-notification-nav-entry'),false);
  assert.equal(head.children.filter(x=>x.id==='exporthub-urgent-nav-style').length,1,'style is not duplicated');
