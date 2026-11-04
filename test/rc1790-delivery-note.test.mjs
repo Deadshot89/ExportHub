@@ -39,6 +39,8 @@ test('RC1790: generated customer delivery note is A4 and includes Essentra sende
  for(const value of ['LIEFERSCHEIN','DNC3019223442','Essentra Components GmbH','Example Customer','Bristol','PO-4711','SKU-001','SKU-002','Plastic end cap','500','250','Seite 1 / 1'])
   assert.ok(text.includes(value),'Missing PDF text: '+value);
  assert.ok(!text.includes('RECHNUNGSWERT'),'Delivery note must not include invoice values');
+ assert.ok(!text.includes('D365')&&!text.includes('ExportHUB360'),'Customer PDF must not disclose internal ERP or app processes');
+ assert.ok(text.includes('Delivery Note'),'Customer-facing document must include a neutral footer');
 });
 test('RC1790: lengthy items paginate without silently losing first or last position',async()=>{
  const snapshot=example();
