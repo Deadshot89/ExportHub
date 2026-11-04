@@ -24,12 +24,19 @@ test('Urgent Order supports planned inbound and immediate express shipment',()=>
  assert.equal(order.items[0].checks.articleDataCorrect,true);
  assert.equal(order.items[0].checks.processCompliant,true);
  assert.equal(order.items[0].checkResult,'passed');
+ const en=model.draftMail(order,'problem','en','The inbound truck will arrive late.');
+ const de=model.draftMail(order,'problem','de','Der Wareneingang ist verspätet.');
+ assert.match(en.body,/Expected arrival: 2026-11-09 08:30/);
+ assert.match(en.body,/Outbound service: Express/);
+ assert.match(de.body,/Geplante Ankunft: 2026-11-09 08:30/);
+ assert.match(de.body,/Versandart: Express/);
 });
 test('Direct outbound requires a real arrival date, transport mode, carrier and outbound service',()=>{
  assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,arrivalAt:'2026-11-31T09:00'}}),actor),/arrival date/i);
  assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,arrivalMode:'AIR'}}),actor),/inbound transport/i);
  assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,arrivalProvider:''}}),actor),/carrier/i);
  assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,dispatchMethod:'STANDARD'}}),actor),/special transport/i);
+ assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,plannedDispatchAt:'2026-11-09T07:30'}}),actor),/before arrival/i);
 });
 test('Delivery note, ASN and holds must be checked; negative results require an exception reason',()=>{
  const b=base(),d=b.directOutbound;
