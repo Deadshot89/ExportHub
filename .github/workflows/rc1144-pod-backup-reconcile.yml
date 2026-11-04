@@ -4,6 +4,9 @@ on:
   workflow_run:
     workflows:
       - ExportHUB Production Release
+      # RC1773: failed AV checks prove a possible shared REF/Graph outage.
+      # Trigger read-only POD target diagnostics; never start POD reconciliation.
+      - ExportHUB AV-Prüfung
     types:
       - completed
     branches:
@@ -43,12 +46,12 @@ concurrency:
 jobs:
   testservice:
     name: POD-Backup-Nachholung TESTSERVICE
-    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'testservice' || inputs.environment == 'both') }}
+    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_run' || github.event.workflow_run.name != 'ExportHUB AV-Prüfung' || github.event.workflow_run.conclusion == 'failure') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'testservice' || inputs.environment == 'both') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: RC1687 Microsoft-365 Graph-Ziel sicher diagnostizieren (testservice)
-        if: ${{ (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') || (github.event_name == 'workflow_dispatch' && inputs.graphTargetDiagnostic == true) }}
+        if: ${{ (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') || (github.event_name == 'workflow_dispatch' && inputs.graphTargetDiagnostic == true) || (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'ExportHUB AV-Prüfung' && github.event.workflow_run.conclusion == 'failure') }}
         continue-on-error: true
         shell: bash
         env:
@@ -98,7 +101,7 @@ jobs:
           NODE
       - name: Offene TESTSERVICE POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true) && (github.event_name != 'workflow_run' || github.event.workflow_run.name != 'ExportHUB AV-Prüfung') }}
         shell: bash
         env:
           BASE_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
@@ -229,12 +232,12 @@ jobs:
 
   production:
     name: POD-Backup-Nachholung PRODUCTION
-    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'production' || inputs.environment == 'both') }}
+    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_run' || github.event.workflow_run.name != 'ExportHUB AV-Prüfung' || github.event.workflow_run.conclusion == 'failure') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'production' || inputs.environment == 'both') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: RC1687 Microsoft-365 Graph-Ziel sicher diagnostizieren (production)
-        if: ${{ (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') || (github.event_name == 'workflow_dispatch' && inputs.graphTargetDiagnostic == true) }}
+        if: ${{ (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') || (github.event_name == 'workflow_dispatch' && inputs.graphTargetDiagnostic == true) || (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'ExportHUB AV-Prüfung' && github.event.workflow_run.conclusion == 'failure') }}
         continue-on-error: true
         shell: bash
         env:
@@ -284,7 +287,7 @@ jobs:
           NODE
       - name: Offene PRODUCTION POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true) && (github.event_name != 'workflow_run' || github.event.workflow_run.name != 'ExportHUB AV-Prüfung') }}
         shell: bash
         env:
           BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
