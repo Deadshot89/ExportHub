@@ -110,6 +110,15 @@ function draftMail(order,kind,lang,note){
  const t=key=>apiI18n.tLang(l,'api.urgent.'+key);
  const message=text(note,2000);
  if(issue&&message.length<8)throw problem('URGENT_MAIL_NOTE_REQUIRED',t('issueDescriptionRequired'));
+ const crossDock=order.orderType==='DIRECT_OUTBOUND'&&order.directOutbound||null;
+ const inboundMode=crossDock?({'TRUCK':t('truck'),'PARCEL':t('parcel'),'COURIER':t('courier'),'OTHER':t('otherTransport')}[crossDock.arrivalMode]||crossDock.arrivalMode):'';
+ const directDetails=crossDock?[
+  t('arrivalAt')+' '+crossDock.arrivalAt.replace('T',' ')+' (Europe/Berlin)',
+  t('arrivalMode')+' '+inboundMode,
+  t('arrivalCarrier')+' '+crossDock.arrivalProvider,
+  t('outboundMethod')+' '+t(crossDock.dispatchMethod==='EXPRESS'?'express':'specialTransport'),
+  ...(crossDock.plannedDispatchAt?[t('requestedDispatch')+' '+crossDock.plannedDispatchAt.replace('T',' ')+' (Europe/Berlin)']:[])
+ ]:[];
  const itemLines=(order.items||[]).map(x=>[
   x.line?t('lineLabel')+' '+x.line:'',
   x.article?t('itemLabel')+' '+x.article:'',
@@ -125,6 +134,7 @@ function draftMail(order,kind,lang,note){
    t('orderLabel')+' '+order.orderNumber,
    t('deliveryLabel')+' '+(order.delivery==='DIRECT'?t('directDelivery'):'DRP'),
    t('priorityLabel')+' '+order.priority,
+   ...(directDetails.length?['',...directDetails]:[]),
    '',itemLines,
    ...(issue?['',t('issueLabel'),message]:[]),
    '',t('signoff')
