@@ -44,7 +44,7 @@ test('CS can read their own orders but cannot change logistics status',()=>{
 test('each position has an independently editable status and history',()=>{
  const o=order();for(const status of orders.STATUSES){orders.setItemStatus(o,o.items[0].id,status,logistics)}
  assert.equal(o.items[0].status,'Invoiced');assert.equal(o.items[1].status,'Open');assert.equal(orders.summaryStatus(o),'Mixed');
- assert.equal(o.history.filter(h=>h.event==='status').length,5);
+ assert.equal(o.history.filter(h=>h.event==='status').length,6);
 });
 test('DE/EN templates are deterministic; shipping confirmation blocked until entire order shipped',()=>{
  const o=order();assert.throws(()=>orders.draftMail(o,'shipping','en'),/erst nach Status/);
@@ -73,6 +73,9 @@ test('frontend and API are dedicated, authenticated and do not automatically sen
  assert.match(html,/data-field="minibag"/);
  assert.match(html,/id="filterStatus"/);
  assert.match(html,/id="mailLanguage"/);
+ assert.match(html,/id="internalOpen"/);
+ assert.match(html,/id="internalClosed"/);
+ assert.match(html,/Problem/);
  assert.doesNotMatch(html,/localStorage\.setItem/);
  assert.doesNotMatch(api,/sendTextMail|sendMail\(/);
 });
