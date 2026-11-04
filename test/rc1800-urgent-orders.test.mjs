@@ -52,7 +52,7 @@ test('DE/EN templates are deterministic; shipping confirmation blocked until ent
  assert.match(de.subject,/Problem/);assert.match(en.subject,/Issue/);
  assert.match(de.body,/SO3002/);assert.match(en.body,/ART-200/);
  assert.equal(de.to,'example@company.com');
- assert.throws(()=>orders.draftMail(o,'problem','en','x'),/mindestens 8/);
+ assert.throws(()=>orders.draftMail(o,'problem','en','x'),/at least 8/);
  for(const item of o.items)orders.setItemStatus(o,item.id,'Shipped',logistics);
  assert.match(orders.draftMail(o,'shipping','en').body,/confirm/);
  assert.match(orders.draftMail(o,'shipping','de').body,/bestätigen/);
