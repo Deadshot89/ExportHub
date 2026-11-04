@@ -102,12 +102,20 @@ async function analyzeXlsx(buffer,name){
  let ExcelJS;try{ExcelJS=require('exceljs')}catch(_){throw error('ABD_XLSX_RUNTIME_MISSING','Excel-Auswertung ist auf dem Server nicht verfügbar.',503)}
  const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(buffer);
  const objects=[],sheets=[],d365Documents=[],d365Positions=[];
- workbook.worksheets.slice(0,12).forEach(ws=>{
+ const nonemptySheets=workbook.worksheets.filter(ws=>ws.actualRowCount>0);
+ if(nonemptySheets.length>12)throw error('ABD_XLSX_SHEET_LIMIT','Excel-Datei enthält mehr als 12 Tabellenblätter mit Daten. Bitte die Datei aufteilen.',422);
+ nonemptySheets.forEach(ws=>{
+  // Never silently discard spreadsheet rows and create a partial invoice.
+  if(ws.actualRowCount>1000)throw error('ABD_XLSX_ROW_LIMIT','Excel-Datei enthält mehr als 1.000 Datenzeilen in einem Blatt. Bitte die Datei aufteilen.',422);
   const matrix=[];ws.eachRow({includeEmpty:false},(row,rowNumber)=>{if(matrix.length>=1000)return;const values=[];for(let i=1;i<=Math.min(row.cellCount||row.actualCellCount||80,80);i++)values.push(cellText(row.getCell(i).value));matrix.push(values)});
   const document=d365.d365Invoice(matrix,name+' · '+ws.name,analyzer,analysisModel);
   if(document){d365Documents.push(...document.deliveryDocuments);d365Positions.push(...document.positions);sheets.push(ws.name);return}
-  const parsed=analyzer.matrixToObjects(matrix,name+' · '+ws.name);if(parsed.length){objects.push(...parsed);sheets.push(ws.name)}
+  const parsed=analyzer.matrixToObjects(matrix,name+' · '+ws.name,501);if(parsed.length){objects.push(...parsed);sheets.push(ws.name)}
  });
+ // The shared analyzer accepts at most 500 positions. Never silently truncate
+ // across worksheets or discard non-D365 sheets in a mixed workbook.
+ if(d365Positions.length&&objects.length)throw error('ABD_XLSX_MIXED_FORMAT','Excel-Datei enthält D365- und andere Positionsformate. Bitte die Tabellenblätter getrennt hochladen.',422);
+ if(d365Positions.length>500||objects.length>500)throw error('ABD_XLSX_POSITION_LIMIT','Excel-Datei enthält insgesamt mehr als 500 Warenpositionen. Bitte nach Lieferscheinen aufteilen.',422);
  if(d365Documents.length){const combined=groupedEnvelope(Object.assign(analyzer.analyzeObjects(d365Positions),{fileName:name,fileType:'d365',sheets,requiresReview:true}));combined.deliveryDocuments=d365Documents;combined.deliveryCount=d365Documents.length;return combined}
  return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'xlsx',sheets,requiresReview:true}))
 }
@@ -115,7 +123,8 @@ function analyzeCsv(buffer,name){
  const matrix=d365.delimitedRows(buffer.toString('utf8'));
  const d365Result=d365.d365Invoice(matrix,name,analyzer,analysisModel);
  if(d365Result)return d365Result;
- const objects=analyzer.matrixToObjects(matrix,name);
+ const objects=analyzer.matrixToObjects(matrix,name,501);
+ if(objects.length>500)throw error('ABD_TABULAR_POSITION_LIMIT','Tabellendatei enthält mehr als 500 Warenpositionen. Bitte die Datei aufteilen.',422);
  return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:kindFromName(name),requiresReview:true}))
 }
 async function analyzeWithOcr(buffer,name,kind){
