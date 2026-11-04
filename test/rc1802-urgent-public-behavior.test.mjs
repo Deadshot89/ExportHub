@@ -84,3 +84,32 @@ test('Azure deployment isolation fails closed on unknown or contradictory hosts'
  assert.throws(()=>internal.storage({headers:{host:'exporthub360.com','x-forwarded-host':testHost}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','contradictory trusted hosts are rejected');
  assert.throws(()=>internal.storage({headers:{host:testHost,'x-exporthub-environment':'production'}}),e=>e.code==='ENVIRONMENT_MISMATCH'||e.code==='URGENT_ENVIRONMENT_MISMATCH','spoofed target environment is rejected');
 });
+
+
+test('public endpoint reports safe service codes without leaking Azure SDK error messages',async()=>{
+ const storage=internal.storage;
+ const invoke=async error=>{
+  internal.storage=()=>{throw error;};
+  const ctx={res:null,log:{warn(){}}};
+  await publicApi(ctx,{method:'POST',headers:{},body:{action:'create'}});
+  return{status:ctx.res.status,result:JSON.parse(ctx.res.body)};
+ };
+ try{
+  const missing=await invoke(model.problem('URGENT_STORAGE_MISSING','raw internal secret marker',503));
+  assert.equal(missing.status,503);
+  assert.equal(missing.result.code,'URGENT_STORAGE_MISSING');
+  assert.doesNotMatch(JSON.stringify(missing.result),/raw internal secret marker/);
+  assert.match(missing.result.message,/Datenspeicher/);
+  const azure=new Error('AccountKey=secret123; container private-exporthub-data');
+  azure.statusCode=403;azure.code='AuthorizationFailure';
+  const denied=await invoke(azure);
+  assert.equal(denied.status,503,'Azure SDK errors are service errors even with 403');
+  assert.equal(denied.result.code,'URGENT_PUBLIC_FAILED');
+  assert.doesNotMatch(JSON.stringify(denied.result),/AccountKey|secret123|private-exporthub-data/);
+  assert.equal(denied.result.retryable,true);
+  const validation=await invoke(model.problem('URGENT_EMAIL_INVALID','Bitte eine gültige E-Mail-Adresse angeben.',400));
+  assert.equal(validation.status,400);
+  assert.equal(validation.result.code,'URGENT_EMAIL_INVALID');
+  assert.match(validation.result.message,/E-Mail-Adresse/);
+ }finally{internal.storage=storage;}
+});
