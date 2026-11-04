@@ -271,5 +271,22 @@
   "api.reference.docTypeInvalid": "Se permiten PDF, imágenes (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT y correos (MSG/EML).",
   "api.reference.docEmpty": "El archivo está vacío o no es válido.",
   "api.reference.docTooLarge": "El archivo supera los 15 MB.",
-  "api.reference.docSignatureInvalid": "El contenido del archivo no coincide con el tipo de archivo."
+  "api.reference.docSignatureInvalid": "El contenido del archivo no coincide con el tipo de archivo.",
+  "api.urgent.issueDescriptionRequired": "Describa la incidencia (al menos 8 caracteres).",
+  "api.urgent.subjectIssue": "Pedido urgente – Incidencia / ",
+  "api.urgent.subjectShipping": "Pedido urgente – Confirmación de envío / ",
+  "api.urgent.introIssue": "Queremos informarle sobre una incidencia en su pedido urgente.",
+  "api.urgent.introShipping": "Confirmamos el envío de las siguientes líneas de su pedido urgente.",
+  "api.urgent.orderLabel": "Pedido:",
+  "api.urgent.deliveryLabel": "Tipo de entrega:",
+  "api.urgent.directDelivery": "Entrega directa",
+  "api.urgent.priorityLabel": "Prioridad:",
+  "api.urgent.issueLabel": "Incidencia:",
+  "api.urgent.signoff": "Atentamente,\nEquipo de logística",
+  "api.urgent.lineLabel": "Línea",
+  "api.urgent.itemLabel": "Artículo",
+  "api.urgent.qtyLabel": "Cantidad",
+  "api.urgent.statusLabel": "Estado",
+  "api.urgent.serverError": "No se pudo procesar el pedido urgente. Inténtelo de nuevo más tarde.",
+  "api.urgent.invalidRequest": "Solicitud no válida."
 }
