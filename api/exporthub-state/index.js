@@ -140,17 +140,25 @@ async function readJson(blob,fallback,repairAuth=false){
 }
 async function uploadJson(blob,value,etag){
  const raw=Buffer.from(JSON.stringify(value)),bytes=raw.length,conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'},base={blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions};
+ // HTTP success without an Azure ETag is not durable acknowledgement.
+ // The save merger will re-read the authoritative blob before any guarded retry.
+ function acknowledged(uploaded){
+  if(!uploaded||!String(uploaded.etag||'').trim()){
+   const e=new Error('Azure Blob returned no ETag for the state write.');e.code='STORAGE_WRITE_ACK_UNVERIFIED';e.status=503;throw e;
+  }
+  return Object.assign({},uploaded,{bytes});
+ }
  const metadata={schema:String(value.schemaVersion||3),revision:String(value.revision||0),updatedepoch:String(Date.parse(value.updatedAt||'')||Date.now()),clientversion:String(value.clientVersion||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)};
  // Avoid two 20-second identical PUTs for large Team-State snapshots. An
  // ambiguous write is resolved by saveMerged using fresh ETag + operationId.
  if(bytes>=16*1024*1024)base.transportAttempts=1;
- try{const uploaded=await blob.upload(raw,bytes,Object.assign({},base,{metadata}));return Object.assign({},uploaded||{},{bytes})}
+ try{const uploaded=await blob.upload(raw,bytes,Object.assign({},base,{metadata}));return acknowledged(uploaded)}
  catch(e){
   const code=String(e&&e.code||e&&e.details&&e.details.errorCode||'');
   // Only retry without metadata when Azure explicitly rejects metadata/headers.
   // An unrelated 400 on a 65 MB team-state must not trigger a blind second PUT.
   const metadataError=/(?:InvalidMetadata|InvalidHeader(?:Value)?)/i.test(code)||/(?:InvalidMetadata|InvalidHeader(?:Value)?)/i.test(String(e&&e.message||''));
-  if(Number(e&&e.statusCode||0)===400&&metadataError){const uploaded=await blob.upload(raw,bytes,base);return Object.assign({},uploaded||{},{bytes})}
+  if(Number(e&&e.statusCode||0)===400&&metadataError){const uploaded=await blob.upload(raw,bytes,base);return acknowledged(uploaded)}
   throw e;
  }
 }
