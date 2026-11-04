@@ -288,5 +288,16 @@
   "api.urgent.qtyLabel": "Quantità",
   "api.urgent.statusLabel": "Stato",
   "api.urgent.serverError": "Impossibile elaborare l’ordine urgente. Riprovare più tardi.",
-  "api.urgent.invalidRequest": "Richiesta non valida."
+  "api.urgent.invalidRequest": "Richiesta non valida.",
+  "api.urgent.arrivalAt": "Arrivo previsto:",
+  "api.urgent.arrivalMode": "Trasporto in ingresso:",
+  "api.urgent.arrivalCarrier": "Vettore in ingresso:",
+  "api.urgent.outboundMethod": "Servizio in uscita:",
+  "api.urgent.requestedDispatch": "Spedizione prevista:",
+  "api.urgent.express": "Espresso",
+  "api.urgent.specialTransport": "Trasporto speciale",
+  "api.urgent.truck": "Camion",
+  "api.urgent.parcel": "Corriere pacchi",
+  "api.urgent.courier": "Corriere espresso",
+  "api.urgent.otherTransport": "Altro"
 }
