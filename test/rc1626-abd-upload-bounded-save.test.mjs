@@ -101,3 +101,16 @@ test('RC1626: ABD analysis reports a 2xx without JSON instead of "Upload-ID fehl
   vm.runInNewContext(src.slice(start,end)+'\nthis.post=post;',ok);
   assert.equal((await ok.post({action:'upload'})).data.upload.id,'x:pdf');
 });
+
+test('RC1786: missing upload API route has an actionable German error',async()=>{
+ const src=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
+ const start=src.indexOf('async function post(payload){');
+ const end=src.indexOf('async function base64(',start);
+ assert.ok(start>=0&&end>start);
+ for(const status of [404,405]){
+  const context={JSON,Error,q:v=>String(v==null?'':v).trim(),headers:()=>({}),
+   w:{fetch:async()=>({ok:false,status,headers:{get:()=>'text/html'},text:async()=>'<html>Not Found</html>'})}};
+  vm.runInNewContext(src.slice(start,end)+'\nthis.post=post;',context);
+  await assert.rejects(context.post({action:'upload'}),e=>e.code==='ABD_UPLOAD_ROUTE_UNAVAILABLE'&&e.message.includes('HTTP '+status)&&e.message.includes('Upload-Dienst'));
+ }
+});
