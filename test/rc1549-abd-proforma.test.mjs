@@ -83,6 +83,9 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
  fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.mkdirSync(out,{recursive:true});
  fs.writeFileSync(path.join(root,'assets/rc1549-abd-proforma.js'),'window.__RC1549__=true;\n');
  fs.copyFileSync('assets/rc1790-delivery-note.js',path.join(root,'assets/rc1790-delivery-note.js'));
+ fs.mkdirSync(path.join(root,'assets/i18n'),{recursive:true});
+ fs.copyFileSync('assets/i18n/rc1790-delivery-note.js',path.join(root,'assets/i18n/rc1790-delivery-note.js'));
+
  // Integration copies every mandatory asset; mirror the production logo in this isolated fixture.
  const logo=path.join('assets','essentra-company-logo.png');
  assert.ok(fs.existsSync(logo),'RC1549 logo fixture must exist in the branch');
@@ -96,7 +99,8 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
    const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1549"></script>';
    assert.equal((html.match(/exporthub-rc1549-abd-proforma/g)||[]).length,1);
    assert.ok(html.indexOf(tag)<html.indexOf('</head>'),'RC1549-Tag muss vor dem echten ersten </head> stehen');
-   assert.equal((html.match(/exporthub-rc1790-delivery-note/g)||[]).length,1);
+   assert.equal((html.match(/id="exporthub-rc1790-delivery-note"/g)||[]).length,1);
+   assert.equal((html.match(/id="exporthub-rc1790-delivery-note-i18n"/g)||[]).length,1);
    assert.ok(html.indexOf('id="exporthub-rc1790-delivery-note"')<html.indexOf('</head>'),'RC1790 muss im echten Head stehen');
    assert.match(html,/var html='<!doctype html><html><head><title>Print<\/title><\/head><body>OK<\/body><\/html>'/);
   }
