@@ -1362,7 +1362,9 @@ function shipmentAssociatedDocs(sh,prior){
    addFields(note,[['documents','Lieferscheine'],['files','Anhänge']])
   })
  });
- return out.filter(Boolean).filter(fallbackDocUsable)
+ // Repeated loader passes and persisted aliases can contain the same original.
+ // Apply the existing storage-identity merge on every fallback path as well.
+ return mergeReferenceDocs([],out.filter(Boolean))
 }
 function mergeReferenceDocs(live,fallback){
  // A filename is not a storage identity: two independent original files can

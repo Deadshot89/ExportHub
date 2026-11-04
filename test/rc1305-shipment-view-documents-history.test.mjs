@@ -165,7 +165,7 @@ test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packt
   vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context,{filename:'generated-shipment-doc-helpers.js'});
   const docs=context.shipmentAssociatedDocs(shipment,[]);
   const names=docs.map(d=>d.name).sort();
-  assert.deepEqual(names,['Packtisch_Lieferschein.pdf','Rechnung_9Z7L82.pdf','SIDE250071804.pdf']);
+  assert.deepEqual(Array.from(names),['Packtisch_Lieferschein.pdf','Rechnung_9Z7L82.pdf','SIDE250071804.pdf']);
   assert.equal(names.includes('FREMDE_Rechnung.pdf'),false);
 });
 
@@ -279,7 +279,7 @@ test('RC1616: pack-station DNC files linked only by exact shipment reference app
  };
  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
  const found=context.shipmentAssociatedDocs(state.shipments[0],[]);
- assert.deepEqual(found.map(x=>x.name),['DNC3019223442.pdf']);
+ assert.deepEqual(Array.from(found,x=>x.name),['DNC3019223442.pdf']);
 });
 
 
@@ -309,7 +309,7 @@ test('RC1671: REF document fallback never imports a foreign pack PDF, ABD or ref
  };
  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
  const names=context.shipmentAssociatedDocs(own,[]).map(d=>d.name);
- assert.deepEqual(names.sort(),['OWN.pdf','PACK_OWN.pdf']);
+ assert.deepEqual(Array.from(names).sort(),['OWN.pdf','PACK_OWN.pdf']);
  for(const filename of ['FOREIGN_REF.pdf','FOREIGN_ID.pdf','FOREIGN_ABD.pdf','FOREIGN_PACK_REF.pdf','FOREIGN_PACK_ID.pdf'])assert.ok(!names.includes(filename),filename+' leaked into different REF');
 });
 
@@ -329,5 +329,5 @@ test('RC1671: unique legacy pack notification ID-only link stays usable for an u
   fileUrl:()=>'',normalizeFallback:x=>x,collectDocs:()=>[]
  };
  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
- assert.deepEqual(context.shipmentAssociatedDocs(own,[]).map(x=>x.name),['LEGACY_NOTE.pdf']);
+ assert.deepEqual(Array.from(context.shipmentAssociatedDocs(own,[]),x=>x.name),['LEGACY_NOTE.pdf']);
 });
