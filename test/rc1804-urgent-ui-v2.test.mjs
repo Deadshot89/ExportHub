@@ -64,7 +64,7 @@ test('internal logistics separates order creation from open/closed status lists'
 test('urgent priority values remain P1..P4, but labels use the customer-defined meanings',()=>{
  for(const page of [publicHtml,internalHtml]){
   for(const [code,label] of [['P1','Sondertransport'],['P2','Express Lieferung'],['P3','Backlog'],['P4','Auftrag von Heute']])
-   assert.match(page,new RegExp('<option value="'+code+'" data-i18n="urgentOrderV2\\.'+code+'">'+code+' · '+label+'</option>'));
+   assert.match(page,new RegExp('<option value="'+code+'" data-i18n="urgentOrderV2\.'+code+'">'+code+' · '+label+'</option>'));
  }
  assert.match(publicHtml,/esc\(priorityText\(o\.priority\)\)/);
  assert.match(internalHtml,/escapeHtml\(priorityText\(order\.priority\)\)/);
@@ -113,10 +113,10 @@ test('all human-readable dropdown choices have explicit six-language translation
  const all=[publicHtml,internalHtml].join('\\n');
  for(const label of ['Bitte auswählen','Bitte prüfen','Ja','Nein','Direktlieferung','Lkw','Paketdienst','Kurier','Sonstiges','Alle Prioritäten','Alle Stufen','Alle Lieferarten','Alle Status']){
   const re=new RegExp('<option[^>]*>'+label+'<\\/option>','g');
-  for(const match of all.matchAll(re))assert.match(match[0],/data-i18n="urgentOrderV2\\.[A-Za-z0-9]+"/,'untranslated dropdown '+label);
+  for(const match of all.matchAll(re))assert.match(match[0],/data-i18n="urgentOrderV2\.[A-Za-z0-9]+"/,'untranslated dropdown '+label);
  }
  for(const html of [publicHtml,internalHtml]){
-  for(const match of html.matchAll(/<option[^>]+data-i18n="(urgentOrderV2\\.[A-Za-z0-9]+)"[^>]*>/g)){
+  for(const match of html.matchAll(/<option[^>]+data-i18n="(urgentOrderV2\.[A-Za-z0-9]+)"[^>]*>/g)){
    for(let i=0;i<packs.length;i++)assert.ok(packs[i][match[1]],langs[i]+' missing '+match[1]);
   }
  }
