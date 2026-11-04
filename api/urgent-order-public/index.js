@@ -4,7 +4,7 @@ const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
 const guard=new Map();
-const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100;
+const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
 function txt(v,max=250){return String(v==null?'':v).trim().slice(0,max);}
 function json(status,value){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:JSON.stringify(value)};}
 function body(req){let value=req&&req.body;if(typeof value==='string'){if(value.length>65000)throw model.problem('URGENT_PAYLOAD_TOO_LARGE','Request is too large.',413);try{value=JSON.parse(value)}catch(_){value={}};}if(!value||typeof value!=='object'||Array.isArray(value))return{};if(JSON.stringify(value).length>65000)throw model.problem('URGENT_PAYLOAD_TOO_LARGE','Request is too large.',413);return value;}
@@ -68,12 +68,17 @@ async function publicAction(req,refs){
    if(group&&group.email!==reporterEmail)throw model.problem('URGENT_REPORTER_EMAIL_MISMATCH','Use the email address associated with your tracking link.',403);
    if(doc.orders.length>=MAX_ORDERS)throw model.problem('URGENT_CAPACITY','The report service has reached its request limit.',503);
    if(group&&doc.orders.filter(o=>o.reporterId===group.id).length>=MAX_REPORTER_ORDERS)throw model.problem('URGENT_REPORTER_CAPACITY','This tracking link has reached its request limit.',409);
+   // Durable daily cap is enforced inside the same ETag-protected write so parallel
+   // Azure workers cannot bypass a per-instance memory counter.
+   const day=now.slice(0,10),counter=doc.publicDaily&&doc.publicDaily.day===day?Number(doc.publicDaily.count)||0:0;
+   if(counter>=MAX_PUBLIC_CREATES_PER_DAY)throw model.problem('URGENT_PUBLIC_DAILY_LIMIT','Daily public reporting capacity reached. Please contact logistics.',429);
    const actor={id:'REPORTER:'+(group?group.id:secret.id),name:'Customer Service'};
    const order=model.createOrder(p,actor,now);
    if(doc.orders.some(o=>o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
    if(!group)group=issueGroup(doc,secret,reporterEmail,now);
    order.reporterId=group.id;
    doc.orders.push(order);
+   doc.publicDaily={day,count:counter+1};
    return{order:publicOrder(order),accessToken:provided||secret.token,isNewLink:!provided};
   });
   return{...result,environment:refs.environment};
