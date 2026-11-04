@@ -16,6 +16,7 @@ import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagina
 import {patchRc1716PodBatchHtml} from '../../scripts/rc1716-pod-batch-completeness.mjs';
 import {patchRc1718PrintIframeHtml} from '../../scripts/rc1718-qr-print-iframe-pages.mjs';
 import {patchRc1768PackDocumentCredentials} from '../../scripts/rc1768-pack-document-credentials.mjs';
+import {patchRc1785StateBearerCookies,assertRc1785ShippedStateFetch} from '../../scripts/rc1785-state-bearer-cookie-free.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1715,6 +1716,8 @@ function patchHtml(file){
   // RC1768: The deploy builder starts from RC1048 HTML. Without this patch
   // it silently restores RC886's cookie override despite correct root HTML.
   html=patchRc1768PackDocumentCredentials(html,file);
+  // RC1785: bearer-authenticated team state must not carry stale Azure login cookies.
+  html=patchRc1785StateBearerCookies(html,file);
   // RC1770: embed scoped ABD history CSS into each built HTML environment.
   // External CSS requests can be aborted during SPA view changes and invalidate
   // unrelated print/runtime browser checks; inline CSS introduces no new fetch.
@@ -2072,6 +2075,7 @@ fingerprintAssets({root:ROOT,out:OUT});
 // RC1768 must be verified against shipped output, not root source files.
 for (const file of ['index.html','TESTVERSION.html','demo.html']) {
   const shipped=fs.readFileSync(path.join(OUT,file),'utf8');
+  assertRc1785ShippedStateFetch(shipped,file);
   if (!shipped.includes("nextInit.credentials = init && init.credentials === 'omit' ? 'omit' : 'same-origin';") ||
       shipped.includes("nextInit.credentials = 'same-origin';")) {
     throw new Error('RC1768: '+file+' would reintroduce Microsoft login redirects for PDF downloads');
