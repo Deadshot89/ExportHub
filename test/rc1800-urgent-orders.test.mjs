@@ -59,7 +59,7 @@ test('DE/EN templates are deterministic; shipping confirmation blocked until ent
  assert.match(orders.draftMail(o,'shipping','de').body,/bestätigen/);
 });
 test('frontend and API are dedicated, authenticated and do not automatically send mail',()=>{
- const html=fs.readFileSync(new URL('../urgent-orders.html',import.meta.url),'utf8');
+ const html=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
  const api=fs.readFileSync(new URL('../api/urgent-orders/index.js',import.meta.url),'utf8');
  const config=JSON.parse(fs.readFileSync(new URL('../api/urgent-orders/function.json',import.meta.url),'utf8'));
  const script=html.match(/<script>([\s\S]*?)<\/script>/);
