@@ -67,3 +67,31 @@ test('RC1813 timeout feedback exists in all six languages and save lock is relea
  assert.match(source,/finally\{state\.draftSaveLocked=false;els\.saveDraft\.disabled=false;/);
  assert.match(source,/catch\(err\)\{state\.submitLocked=false;els\.submit\.textContent=tr\('pack\.submit'\)/);
 });
+
+test('RC1813 unreadable write acknowledgements remain uncertain and are never retried',async()=>{
+ for(const action of ['draft-save','submit'])for(const problem of [new SyntaxError('Unexpected end of JSON'),new TypeError('terminated')]){
+  const h=harness(async()=>({ok:true,status:200,json:async()=>{throw problem;}}));
+  await assert.rejects(h.api(action,{}),e=>e.code==='PACK_RESPONSE_INVALID'&&e.message==='pack.draft.unknownSave');
+  assert.equal(h.calls.length,1);
+  assert.deepEqual(h.cleared,[1]);
+ }
+});
+
+test('RC1813 write success requires the actual draft ID or notification reference acknowledgement',async()=>{
+ for(const action of ['draft-save','submit'])for(const payload of [null,[],{}, {ok:true},{ok:true,draft:{id:''},reference:''}]){
+  const h=harness(async()=>({ok:true,status:200,json:async()=>payload}));
+  await assert.rejects(h.api(action,{}),e=>e.code==='PACK_RESPONSE_INVALID'&&e.message==='pack.draft.unknownSave');
+  assert.equal(h.calls.length,1);
+ }
+ const draft=harness(async()=>({ok:true,status:200,json:async()=>({ok:true,draft:{id:'D1'}})}));
+ assert.equal((await draft.api('draft-save',{})).draft.id,'D1');
+ const submit=harness(async()=>({ok:true,status:201,json:async()=>({ok:true,reference:'PK-SYNTH'} )}));
+ assert.equal((await submit.api('submit',{})).reference,'PK-SYNTH');
+});
+
+test('RC1813 malformed read responses fail instead of showing an empty successful overview',async()=>{
+ const h=harness(async()=>({ok:true,status:200,json:async()=>{throw new SyntaxError('HTML instead of JSON');}}));
+ await assert.rejects(h.api('draft-list',{}),e=>e.code==='PACK_RESPONSE_INVALID'&&e.message==='pack.draft.pageFailed');
+ assert.equal(h.calls.length,1);
+ assert.deepEqual(h.cleared,[1]);
+});

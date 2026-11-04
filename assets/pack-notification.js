@@ -72,6 +72,11 @@
     const controller=new AbortController();
     let expired=false;
     const deadline=setTimeout(()=>{expired=true;controller.abort();},maxWaitMs);
+    function invalidResponse(status){
+      const failure=new Error(tr(isWrite?'pack.draft.unknownSave':'pack.draft.pageFailed'));
+      failure.code='PACK_RESPONSE_INVALID';failure.httpStatus=Number(status)||0;
+      return failure;
+    }
     try{
       const res=await fetch(`/api/pack-notification?action=${encodeURIComponent(action)}`,{
         method:'POST',credentials:'omit',cache:'no-store',
@@ -79,8 +84,9 @@
         body:JSON.stringify(payload),signal:controller.signal
       });
       let data={};
-      try{data=await res.json();}catch(error){if(expired||error&&error.name==='AbortError')throw error;}
+      try{data=await res.json();}catch(error){if(expired||error&&error.name==='AbortError')throw error;throw invalidResponse(res.status);}
       if(expired)throw new Error('PACK_REQUEST_TIMEOUT');
+      if(!data||typeof data!=='object'||Array.isArray(data))throw invalidResponse(res.status);
       if(!res.ok||data.ok===false){
         const key=data.code?`pack.api.${String(data.code)}`:'';
         const translated=key?tr(key):'';
@@ -89,6 +95,9 @@
         err.httpStatus=Number(res.status)||0;
         throw err;
       }
+      if(data.ok!==true)throw invalidResponse(res.status);
+      if(action==='draft-save'&&(!data.draft||typeof data.draft.id!=='string'||!data.draft.id.trim()))throw invalidResponse(res.status);
+      if(action==='submit'&&(typeof data.reference!=='string'||!data.reference.trim()))throw invalidResponse(res.status);
       return data;
     }catch(error){
       if(expired||error&&error.name==='AbortError'){
