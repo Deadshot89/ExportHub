@@ -1,5 +1,7 @@
 # ExportHUB360 – Urgent Order (CS → Logistik)
 
+UI-Pfad: /assets/urgent-orders.html (über den bestehenden assets-Deploy).
+
 Stand 04.11.2026 · Prüfzweig feature/urgent-orders-cs-workflow · keine Produktionsfreigabe
 
 ## Erfassung
