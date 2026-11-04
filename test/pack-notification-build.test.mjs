@@ -13,7 +13,7 @@ test('runtime injection is idempotent and ordered after existing document head',
   assert.equal(once,twice);
   assert.match(once,/pack-notification-internal\.css\?v=1/);
   assert.match(once,/pack-notification-avis\.css\?v=1/);
-  const i18n=once.indexOf('i18n/pack-notification.js?v=1');
+  const i18n=once.indexOf('i18n/pack-notification.js?v=3');
   const a=once.indexOf('pack-notification-internal.js?v=1');
   const nav=once.indexOf('pack-notification-nav.js?v=1');
   const b=once.indexOf('pack-notification-shipment.js?v=3');
