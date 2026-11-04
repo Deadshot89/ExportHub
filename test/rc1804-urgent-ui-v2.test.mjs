@@ -396,7 +396,7 @@ test('urgent 2.1 guides public and internal order creation through three exclusi
  assert.match(publicJs,/showWizardStep\(1\);activateLink\(\)/);
  assert.match(internalJs,/function showInternalStep\(step\)/);
  assert.match(internalJs,/function nextInternalStep\(\)/);
- assert.match(internalJs,/showInternalStep\(1\);await refresh\(\)/);
+ assert.match(internalJs,/lineField\(\);showInternalStep\(1\)/);
 });
 test('urgent 2.1 errors remain actionable and preserve form state on failure',()=>{
  const publicJs=script(publicHtml),internalJs=script(internalHtml),publicApi=read('api/urgent-order-public/index.js');
