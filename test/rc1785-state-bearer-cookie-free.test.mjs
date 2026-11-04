@@ -57,6 +57,14 @@ test('RC1785: other endpoints and explicit cookie policy are unchanged',async()=
  assert.deepEqual(calls.map(c=>c.opts.credentials),['same-origin','same-origin','include']);
 });
 
+test('RC1785: similarly named state routes keep their original cookie policy',async()=>{
+ const {jsonFetch,calls}=boot(patchRc1785StateBearerCookies(input,'TESTVERSION.html'));
+ await jsonFetch('/api/exporthub-state-extra?mode=read',{method:'POST'});
+ await jsonFetch('/api/exporthub-state/diagnostics',{method:'POST'});
+ assert.deepEqual(calls.map(c=>c.opts.credentials),['same-origin','same-origin'],
+  'only the exact /api/exporthub-state endpoint may omit Azure cookies');
+});
+
 test('RC1785: without an ExportHUB bearer session no unauthenticated state request changes cookie policy',async()=>{
  const {jsonFetch,calls}=boot(patchRc1785StateBearerCookies(input,'TESTVERSION.html'),'');
  await assert.rejects(jsonFetch('/api/exporthub-state?mode=read',{method:'POST'}),
