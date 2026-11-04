@@ -11,8 +11,27 @@ const TEST_BLOB='testservice/urgent-orders/v1.json';
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},reporterGroups:[]};}
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
+function publicSiteEnvironment(url){
+ try{
+  const raw=String(url||'').trim();
+  if(!raw)return'';
+  const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
+  const hostname=value.hostname.toLowerCase();
+  if(hostname.endsWith('.azurestaticapps.net'))return hostname.includes('-testservice.')?'testservice':'production';
+  if(hostname==='exporthub360.com'||hostname==='www.exporthub360.com'||hostname==='exporthub360.de'||hostname==='www.exporthub360.de')return'production';
+ }catch(_){}
+ return'';
+}
 function storage(req){
- const environment=auth.environmentFromRequest(req);
+ const h=req&&req.headers||{};
+ const detected=auth.environmentFromRequest(req);
+ const site=publicSiteEnvironment(h.origin||h.Origin||h.referer||h.Referer||'');
+ const direct=publicSiteEnvironment(h.host||h.Host||''),forwarded=publicSiteEnvironment(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'');
+ if(site&&(direct&&direct!==site||forwarded&&forwarded!==site))throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The urgent order origin does not match the deployment host.',409);
+ // Azure Functions can receive an internal azurewebsites.net Host; use the recognized
+ // browser site to select the isolated TESTSERVICE blob in this case, never silently production.
+ const environment=site||detected;
+ if(site&&detected==='testservice'&&site!=='testservice')throw model.problem('URGENT_ENVIRONMENT_MISMATCH','A testservice request cannot select production order data.',409);
  const isolated=environment==='testservice'?isolationConfig():{enabled:false};
  const configured=isolated.enabled?isolated.connectionString:(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'');
  if(!configured)throw model.problem('URGENT_STORAGE_MISSING','Azure-Speicherung für Urgent Orders ist nicht konfiguriert.',503);
