@@ -51,10 +51,10 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
 <body>
-<header class="top"><div class="inner"><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order</span></div><a class="back" href="/" data-i18n="urgentOrderV2.backToHub">Zurück zu ExportHUB360</a></div></header>
+<header class="top"><div class="inner"><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order</span></div><a class="back" id="urgentBackToHub" href="/" data-i18n="urgentOrderV2.backToHub">Zurück zu ExportHUB360</a></div></header>
 <main>
 <section class="urgent-hero"><span class="hero-kicker" data-i18n="urgentOrderV2.heroEyebrow">KUNDENSERVICE · URGENT ORDER</span><h1>Urgent Order</h1><p class="intro" data-i18n="urgentOrderV2.internalIntro">Offene Vorgänge bearbeiten, abgeschlossene prüfen oder neue Anfragen erfassen – alles in getrennten Reitern.</p></section>
-<div class="btn-row"><a class="btn alt" href="/urgent-order" data-i18n="urgentOrderV2.publicFormLink">Öffentliches Meldeformular öffnen</a></div>
+<div class="btn-row"><a class="btn alt" id="urgentPublicFormLink" href="/urgent-order" data-i18n="urgentOrderV2.publicFormLink">Öffentliches Meldeformular öffnen</a></div>
 
 <div id="access" class="alert" hidden role="alert"></div>
 <div class="stats" aria-label="Auftragsübersicht"><div class="stat"><b id="statTotal">–</b><span>Aufträge</span></div><div class="stat"><b id="statP1">–</b><span data-i18n="urgentOrderV2.P1">P1 · Sondertransport</span></div><div class="stat"><b id="statOpen">–</b><span>Offene Positionen</span></div><div class="stat"><b id="statExceptions">–</b><span>Prüfungen mit Ausnahme</span></div></div>
@@ -95,6 +95,12 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 const ENDPOINT='/api/urgent-orders';
 const STATUS=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
 const $=id=>document.getElementById(id),txt=v=>String(v==null?'':v);
+function urgentPublicOrigin(){
+ const host=String(location.hostname||'').toLowerCase();
+ const productionHost='wonderful-forest-0f315e310.7.azurestaticapps.net';
+ const productionHosts=new Set([productionHost,'exporthub360.com','www.exporthub360.com','exporthub360.de','www.exporthub360.de']);
+ return productionHosts.has(host)?'https://'+productionHost:location.origin;
+}
 let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open';
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
@@ -258,6 +264,8 @@ $('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventLi
 $('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
 window.addEventListener('exporthub:language-changed',render);
+$('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
+$('urgentBackToHub').href=urgentPublicOrigin()+'/';
 lineField();refresh();
 })();
 </script>
