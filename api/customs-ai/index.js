@@ -45,7 +45,7 @@ module.exports=async function(context,req){
   if(!rate.allowed){
    context.res=response(429,{ok:false,code:'RATE_LIMITED',answer:apiI18n.t(req,'api.customsAi.rateLimited'),recoverable:true,retryAfterSeconds:Math.max(1,Math.ceil(rate.retryAfterMs/1000))});return
   }
-  const question=String(payload&&payload.question==null?'':payload.question);
+  const question=String(payload&&payload.question!=null?payload.question:'');
   if(question.length>2000){context.res=response(400,{ok:false,code:'QUESTION_TOO_LONG',answer:apiI18n.t(req,'api.customsAi.questionTooLong',null,payload),recoverable:true});return}
   const result=await service.answerCustomsQuestion({
    question,
