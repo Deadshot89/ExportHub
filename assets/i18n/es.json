@@ -2463,5 +2463,19 @@
   "urgentOrderV2.statusLine": "Línea",
   "urgentOrderV2.arrivalRef": "Referencia de entrega / seguimiento",
   "urgentOrderV2.noHolds": "¿Sin bloqueo Don't Process ni Credit Hold? *",
-  "urgentOrderV2.problemDescription": "Descripción del problema *"
+  "urgentOrderV2.problemDescription": "Descripción del problema *",
+  "urgentOrderV2.itemHeading": "Artículo / línea",
+  "urgentOrderV2.quantityShort": "Cantidad",
+  "urgentOrderV2.lineShort": "Línea",
+  "urgentOrderV2.arrivalShort": "Llegada",
+  "urgentOrderV2.dispatchShort": "Salida",
+  "urgentOrderV2.positions": "Posiciones",
+  "urgentOrderV2.directShort": "Transbordo directo",
+  "urgentOrderV2.expressShort": "Exprés",
+  "urgentOrderV2.specialShort": "Transporte especial",
+  "urgentOrderV2.noResults": "No hay solicitudes coincidentes en esta pestaña.",
+  "urgentOrderV2.noRequests": "Aún no hay solicitudes. Crea una solicitud nueva.",
+  "urgentOrderV2.saved": "Solicitud guardada. Conserva el enlace de seguimiento.",
+  "urgentOrderV2.listHint": "Pedidos – despliega las líneas para ver detalles",
+  "urgentOrderV2.problemPrompt": "Describe el problema."
 }

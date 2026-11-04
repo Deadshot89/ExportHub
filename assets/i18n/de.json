@@ -2463,5 +2463,19 @@
   "urgentOrderV2.statusLine": "Line",
   "urgentOrderV2.arrivalRef": "Anlieferreferenz / Tracking",
   "urgentOrderV2.noHolds": "Weder Don't Process noch Credit Hold? *",
-  "urgentOrderV2.problemDescription": "Problembeschreibung *"
+  "urgentOrderV2.problemDescription": "Problembeschreibung *",
+  "urgentOrderV2.itemHeading": "Artikel / Line",
+  "urgentOrderV2.quantityShort": "Menge",
+  "urgentOrderV2.lineShort": "Line",
+  "urgentOrderV2.arrivalShort": "Ankunft",
+  "urgentOrderV2.dispatchShort": "Ausgang",
+  "urgentOrderV2.positions": "Positionen",
+  "urgentOrderV2.directShort": "Direktumschlag",
+  "urgentOrderV2.expressShort": "Express",
+  "urgentOrderV2.specialShort": "Sondertransport",
+  "urgentOrderV2.noResults": "Keine passenden Anfragen in diesem Reiter.",
+  "urgentOrderV2.noRequests": "Noch keine Anfragen vorhanden. Bitte zuerst eine neue Anfrage melden.",
+  "urgentOrderV2.saved": "Anfrage gespeichert. Bitte den Überwachungslink sichern.",
+  "urgentOrderV2.listHint": "Aufträge – Positionen öffnen für Details",
+  "urgentOrderV2.problemPrompt": "Bitte das Problem beschreiben."
 }

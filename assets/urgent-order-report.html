@@ -96,7 +96,7 @@ async function api(action,params){
 }
 function lineCard(){
  const box=document.createElement('div');box.className='line uo-line';
- box.innerHTML='<div class="line-head"><strong>Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
+ box.innerHTML='<div class="line-head"><strong data-i18n="urgentOrderV2.itemHeading">Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
  '<div class="pair"><label class="field">Line-Nummer<input data-field="line" maxlength="70" placeholder="10"></label><label class="field">Artikelnummer<input data-field="article" maxlength="120"></label></div>'+
  '<label class="field" style="margin-top:9px">Menge *<input data-field="quantity" type="number" min="1" max="10000000" step="1" value="1" required></label>'+
  '<div class="check" style="margin-top:10px" data-pickable><label>Genügend Bestand auf pickbarer Location? *</label><select data-field="pickableStock"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
@@ -161,8 +161,8 @@ function render(){
  showView(activeView);
  const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
  $('countOpen').textContent=open;$('countClosed').textContent=done;
- $('tabOpen').setAttribute('aria-label','Offen, '+open+' Anfragen');
- $('tabClosed').setAttribute('aria-label','Geschlossen, '+done+' Anfragen');
+ $('tabOpen').setAttribute('aria-label',labelFor('tabOpen','Offene Anfragen')+': '+open);
+ $('tabClosed').setAttribute('aria-label',labelFor('tabClosed','Geschlossene Anfragen')+': '+done);
  $('tabOpen').dataset.hasOpen=open>0?'true':'false';
  $('tabOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');
  $('tabClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');
@@ -170,12 +170,12 @@ function render(){
  const rows=orders.filter(o=>(tab==='closed'?closed(o):!closed(o))&&(!p||o.priority===p)&&(!q||[o.orderNumber,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(x=>str(x).toLowerCase().includes(q))))
   .sort((a,b)=>({P1:1,P2:2,P3:3,P4:4}[a.priority]||5)-({P1:1,P2:2,P3:3,P4:4}[b.priority]||5)||str(b.createdAt).localeCompare(str(a.createdAt)));
  const target=$('orders');target.innerHTML='';
- if(!rows.length){target.innerHTML='<div class="empty">'+(secret?'In diesem Reiter sind keine passenden Anfragen vorhanden.':'Noch keine Anfragen vorhanden. Melde deinen ersten Auftrag.')+'</div>';return;}
+ if(!rows.length){target.innerHTML='<div class="empty">'+(secret?labelFor('noResults','Keine passenden Anfragen in diesem Reiter.'):labelFor('noRequests','Noch keine Anfragen vorhanden. Bitte zuerst eine neue Anfrage melden.'))+'</div>';return;}
  for(const o of rows){
   const node=document.createElement('details');node.className='order';
-  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">Line '+esc(x.line||'–')+' · Menge '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>').join('');
-  const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">Ankunft: <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · Ausgang: '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?'Express':'Sondertransport')+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?'Direktumschlag':'Urgent Order')+' · '+esc((o.items||[]).length)+' Position(en) · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  const status=humanStatus(o),lineHtml=(o.items||[]).map(x=>'<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(labelFor('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(labelFor('quantityShort','Menge'))+' '+esc(x.quantity)+(x.checkResult==='exception'?' · Prüfung erforderlich':'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>').join('');
+  const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(labelFor('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(labelFor('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?labelFor('expressShort','Express'):labelFor('specialShort','Sondertransport'))+'</p>':'';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?labelFor('directShort','Direktumschlag'):'Urgent Order')+' · '+esc((o.items||[]).length)+' '+esc(labelFor('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
@@ -205,7 +205,7 @@ async function submit(ev){
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
   syncType();activateLink();await refresh();
-  showView('open');render();showMessage('Anfrage '+data.order.orderNumber+' gespeichert. Bitte den Überwachungslink sichern.','ok');
+  showView('open');render();showMessage(data.order.orderNumber+' · '+labelFor('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
 }

@@ -2463,5 +2463,19 @@
   "urgentOrderV2.statusLine": "Pozycja",
   "urgentOrderV2.arrivalRef": "Referencja dostawy / śledzenie",
   "urgentOrderV2.noHolds": "Brak blokady Don't Process lub Credit Hold? *",
-  "urgentOrderV2.problemDescription": "Opis problemu *"
+  "urgentOrderV2.problemDescription": "Opis problemu *",
+  "urgentOrderV2.itemHeading": "Artykuł / pozycja",
+  "urgentOrderV2.quantityShort": "Ilość",
+  "urgentOrderV2.lineShort": "Pozycja",
+  "urgentOrderV2.arrivalShort": "Przybycie",
+  "urgentOrderV2.dispatchShort": "Wysyłka",
+  "urgentOrderV2.positions": "Pozycje",
+  "urgentOrderV2.directShort": "Przeładunek bezpośredni",
+  "urgentOrderV2.expressShort": "Ekspres",
+  "urgentOrderV2.specialShort": "Transport specjalny",
+  "urgentOrderV2.noResults": "Brak pasujących zgłoszeń w tej zakładce.",
+  "urgentOrderV2.noRequests": "Brak zgłoszeń. Najpierw utwórz nowe zgłoszenie.",
+  "urgentOrderV2.saved": "Zgłoszenie zapisano. Zachowaj link do śledzenia.",
+  "urgentOrderV2.listHint": "Zamówienia – rozwiń pozycje, aby zobaczyć szczegóły",
+  "urgentOrderV2.problemPrompt": "Opisz problem."
 }
