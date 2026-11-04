@@ -66,6 +66,9 @@ test('Zoll KI 2.0: Antwortdarstellung verwendet ausschließlich sichere DOM-Text
  assert.match(ui,/d\.createTextNode\(/);
  assert.match(ui,/rc1532-answer-list/);
  assert.match(ui,/rc1532-answer-section/);
+ assert.match(ui,/sourceAnchorId/);
+ assert.match(ui,/rc1532-citation/);
+ assert.match(ui,/rc1532-source-index/);
  assert.doesNotMatch(ui,/\.innerHTML\s*=/);
  assert.match(css,/\.rc1532-answer-section/);
  assert.match(css,/@media\s*\(max-width:\s*700px\)/);
