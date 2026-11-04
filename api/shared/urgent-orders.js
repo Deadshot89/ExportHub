@@ -56,6 +56,7 @@ function validateItems(raw,now,orderType='STANDARD'){
   if(!line&&!article)throw problem('URGENT_LINE_INVALID','Bei jeder Position muss Line oder Artikelnummer eingetragen sein.');
   const key=(line||'#')+'|'+(article||'#');if(seen.has(key))throw problem('URGENT_DUPLICATE_LINE','Eine Position wurde mehrfach eingetragen.');seen.add(key);
   const isMinibag=r&&r.minibag===true,newArticle=r&&r.newArticle===true;
+  if(newArticle&&!article)throw problem('URGENT_NEW_ITEM_ARTICLE_REQUIRED','Bei neuen Artikeln muss die Artikelnummer eingetragen werden.');
   const pickableStock=orderType==='DIRECT_OUTBOUND'?null:explicitCheck(r&&r.pickableStock,'pickable stock');
   const holdsClear=explicitCheck(r&&r.holdsClear,"Don't Process / Credit Hold");
   const checks={
