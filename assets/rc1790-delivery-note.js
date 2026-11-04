@@ -8,6 +8,8 @@
   customerNumber:'',customerOrder:'',shipmentReference:'',packageCount:'',packageType:'',
   netWeight:'',grossWeight:'',notes:''};
  var headerDraft=Object.assign({},defaults);
+ function t(key){var i=root.ExportHUBRC1790I18n;return i&&typeof i.t==='function'?i.t(key):key}
+ function fmt(key,values){return t(key).replace(/\{([a-z]+)\}/g,function(_,field){return String(values[field]||'')})}
  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]})}
  function q(s){return String(s==null?'':s).trim()}
  function host(){var h=root.document&&root.document.getElementById('rc1294AbdAnalysis');return h&&h.querySelector('[data-rc1294-invoice-panel]')}
@@ -15,9 +17,9 @@
  function panel(){return root.document&&root.document.getElementById('rc1790DeliveryNote')}
  function stateMessage(s,kind){var target=panel()&&panel().querySelector('[data-rc1790-status]');if(target){target.hidden=!s;target.textContent=s;target.setAttribute('data-kind',kind||'info')}}
  function rowHtml(p,i){
-  var fields=[['itemNumber','Artikelnummer'],['description','Beschreibung'],['quantity','Menge'],['unit','Einheit'],['orderPosition','Bestellposition']];
-  return '<tr data-row="'+i+'"><td>'+(i+1)+'</td>'+fields.map(function(f){return '<td><input aria-label="'+esc(f[1]+' Position '+(i+1))+'" data-field="'+f[0]+'" value="'+esc(p[f[0]]||'')+'" '+(f[0]==='description'?'maxlength="500"':'maxlength="100"')+' '+(f[0]==='quantity'?'inputmode="decimal"':'')+'></td>'}).join('')+
-  '<td class="rc1790-row-actions"><button type="button" class="ghost" data-rc1790-copy="'+i+'" aria-label="Position duplizieren">+</button><button type="button" class="ghost" data-rc1790-remove="'+i+'" '+(items.length===1?'disabled':'')+' aria-label="Position entfernen">−</button></td></tr>'
+  var fields=[['itemNumber','itemNumber'],['description','description'],['quantity','quantity'],['unit','unit'],['orderPosition','orderPosition']];
+  return '<tr data-row="'+i+'"><td>'+(i+1)+'</td>'+fields.map(function(f){return '<td><input aria-label="'+esc(t(f[1])+' '+t('position')+' '+(i+1))+'" data-field="'+f[0]+'" value="'+esc(p[f[0]]||'')+'" '+(f[0]==='description'?'maxlength="500"':'maxlength="100"')+' '+(f[0]==='quantity'?'inputmode="decimal"':'')+'></td>'}).join('')+
+  '<td class="rc1790-row-actions"><button type="button" class="ghost" data-rc1790-copy="'+i+'" aria-label="'+esc(t('duplicate'))+'">+</button><button type="button" class="ghost" data-rc1790-remove="'+i+'" '+(items.length===1?'disabled':'')+' aria-label="'+esc(t('remove'))+'">−</button></td></tr>'
  }
  function renderRows(){
   var tbody=panel()&&panel().querySelector('[data-rc1790-items]');if(!tbody)return;
@@ -30,11 +32,11 @@
  }
  function valid(s){
   var h=s.header;
-  if(!/^[a-zA-Z0-9][a-zA-Z0-9._/-]{2,39}$/.test(q(h.documentNumber)))return'Lieferscheinnummer oder DNC-Nummer eintragen.';
-  if(!h.issuedAt||!q(h.senderName)||!q(h.senderAddress)||!q(h.recipient)||!q(h.recipientAddress))return'Bitte Datum, Absender, Empfänger und vollständige Anschriften angeben.';
-  if(!s.items.length||s.items.some(function(p){return!q(p.description)||!(Number(q(p.quantity).replace(',','.'))>0)}))return'Jede Warenposition benötigt eine Beschreibung und eine Menge größer 0.';
+  if(!/^[a-zA-Z0-9][a-zA-Z0-9._/-]{2,39}$/.test(q(h.documentNumber)))return t('validationNumber');
+  if(!h.issuedAt||!q(h.senderName)||!q(h.senderAddress)||!q(h.recipient)||!q(h.recipientAddress))return t('validationAddresses');
+  if(!s.items.length||s.items.some(function(p){return!q(p.description)||!(Number(q(p.quantity).replace(',','.'))>0)}))return t('validationItems');
   var net=h.netWeight===''?null:Number(q(h.netWeight).replace(',','.')),gross=h.grossWeight===''?null:Number(q(h.grossWeight).replace(',','.'));
-  if((net!==null&&!Number.isFinite(net))||(gross!==null&&!Number.isFinite(gross))||(net!==null&&gross!==null&&gross<net))return'Gewichtsangaben prüfen: Brutto darf nicht kleiner als Netto sein.';
+  if((net!==null&&!Number.isFinite(net))||(gross!==null&&!Number.isFinite(gross))||(net!==null&&gross!==null&&gross<net))return t('validationWeight');
   return''
  }
  async function save(){
@@ -42,15 +44,15 @@
   var data=snapshot(),message=valid(data);
   if(message){stateMessage(message,'bad');return}
   var api=root.ExportHUBRC1549Proforma;
-  if(!api||typeof api.createDeliveryNote!=='function'){stateMessage('PDF-Funktion noch nicht geladen. Seite neu öffnen.','bad');return}
+  if(!api||typeof api.createDeliveryNote!=='function'){stateMessage(t('errorUnavailable'),'bad');return}
   busy=true;
   var btn=panel().querySelector('[data-rc1790-export]');if(btn)btn.disabled=true;
-  stateMessage('Lieferschein wird erstellt ...','info');
+  stateMessage(t('creating'),'info');
   try{
    var name=await api.createDeliveryNote(data);
-   stateMessage('PDF heruntergeladen: '+name+'. Bitte Daten vor Weitergabe prüfen.','ok');
+   stateMessage(fmt('downloaded',{name:name}),'ok');
   }catch(error){
-   stateMessage('PDF konnte nicht erstellt werden: '+(error&&error.message||'Unbekannter Fehler'),'bad');
+   stateMessage(fmt('error',{message:error&&error.message||t('unknown')}),'bad');
   }finally{busy=false;if(btn)btn.disabled=false}
  }
  function applyMode(){
@@ -78,36 +80,36 @@
   var parent=host(),invoice=manual();if(!parent||!invoice)return false;
   style();
   if(!root.document.getElementById('rc1790DocTabs')){
-   var nav=root.document.createElement('nav');nav.id='rc1790DocTabs';nav.setAttribute('aria-label','Dokumenttyp wählen');
-   nav.innerHTML='<button type="button" data-rc1790-tab="invoice">Rechnung / Proforma</button><button type="button" data-rc1790-tab="delivery">Lieferschein / DNC</button>';
+   var nav=root.document.createElement('nav');nav.id='rc1790DocTabs';nav.setAttribute('aria-label',t('docTabs'));
+   nav.innerHTML='<button type="button" data-rc1790-tab="invoice">'+esc(t('invoiceTab'))+'</button><button type="button" data-rc1790-tab="delivery">'+esc(t('deliveryTab'))+'</button>';
    parent.insertBefore(nav,invoice);
    nav.addEventListener('click',function(e){var button=e.target&&e.target.closest('[data-rc1790-tab]');if(!button)return;mode=button.getAttribute('data-rc1790-tab');applyMode()});
   }
   if(!panel()){
    var section=root.document.createElement('section');section.id='rc1790DeliveryNote';section.hidden=true;
-   section.innerHTML='<img class="rc1790-logo" alt="Essentra Components" src="/assets/essentra-company-logo.png"><h4>Lieferschein für Kunden erstellen</h4>'+
-    '<p>DNC- oder Lieferscheinnummer selbst eintragen. Kein D365-Beleg wird angelegt oder automatisch geprüft.</p>'+
-    '<div class="rc1790-head"><h5 class="rc1790-break">Dokument</h5>'+
-    label('Lieferschein-/DNC-Nummer *','documentNumber','text',false,'placeholder="DNC3019223442"')+
-    label('Ausstellungsdatum *','issuedAt','date')+
-    label('Lieferdatum','deliveryDate','date')+
-    '<h5 class="rc1790-break">Absender & Kunde</h5>'+
-    label('Absenderfirma *','senderName')+
-    label('Absenderadresse *','senderAddress','textarea',true)+
-    label('Kundennummer','customerNumber')+
-    label('Empfängerfirma *','recipient')+
-    label('Lieferanschrift *','recipientAddress','textarea',true)+
-    '<h5 class="rc1790-break">Referenzen und Packstücke</h5>'+
-    label('Kundenbestellnummer','customerOrder')+
-    label('Sendungsreferenz','shipmentReference')+
-    label('Anzahl Packstücke','packageCount','number',false,'min="0" step="1"')+
-    label('Verpackungsart','packageType')+
-    label('Nettogewicht (kg)','netWeight','number',false,'min="0" step="0.001"')+
-    label('Bruttogewicht (kg)','grossWeight','number',false,'min="0" step="0.001"')+
-    '</div><h5 class="rc1790-break">Warenpositionen</h5>'+
-    '<div class="rc1790-table"><table><thead><tr><th>Pos.</th><th>Artikel</th><th>Beschreibung *</th><th>Menge *</th><th>Einheit</th><th>Bestellpos.</th><th>Aktionen</th></tr></thead><tbody data-rc1790-items></tbody></table></div>'+
-    label('Hinweise für den Empfänger','notes','textarea')+
-    '<div class="rc1790-actions"><button type="button" class="ghost" data-rc1790-add>+ Position hinzufügen</button><button type="button" class="btn" data-rc1790-export>Essentra-Lieferschein als PDF erstellen</button></div>'+
+   section.innerHTML='<img class="rc1790-logo" alt="Essentra Components" src="/assets/essentra-company-logo.png"><h4>'+esc(t('pageTitle'))+'</h4>'+
+    '<p>'+esc(t('pageHelp'))+'</p>'+
+    '<div class="rc1790-head"><h5 class="rc1790-break">'+esc(t('sectionDocument'))+'</h5>'+
+    label(t('documentNumber'),'documentNumber','text',false,'placeholder="DNC3019223442"')+
+    label(t('date'),'issuedAt','date')+
+    label(t('deliveryDate'),'deliveryDate','date')+
+    '<h5 class="rc1790-break">'+esc(t('sectionCustomer'))+'</h5>'+
+    label(t('sender'),'senderName')+
+    label(t('senderAddress'),'senderAddress','textarea',true)+
+    label(t('customerNumber'),'customerNumber')+
+    label(t('recipient'),'recipient')+
+    label(t('recipientAddress'),'recipientAddress','textarea',true)+
+    '<h5 class="rc1790-break">'+esc(t('sectionShipping'))+'</h5>'+
+    label(t('order'),'customerOrder')+
+    label(t('reference'),'shipmentReference')+
+    label(t('packageCount'),'packageCount','number',false,'min="0" step="1"')+
+    label(t('packageType'),'packageType')+
+    label(t('netWeight'),'netWeight','number',false,'min="0" step="0.001"')+
+    label(t('grossWeight'),'grossWeight','number',false,'min="0" step="0.001"')+
+    '</div><h5 class="rc1790-break">'+esc(t('sectionItems'))+'</h5>'+
+    '<div class="rc1790-table"><table><thead><tr><th>'+esc(t('position'))+'</th><th>'+esc(t('article'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('quantity'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('orderPosition'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1790-items></tbody></table></div>'+
+    label(t('remarks'),'notes','textarea')+
+    '<div class="rc1790-actions"><button type="button" class="ghost" data-rc1790-add>'+esc(t('add'))+'</button><button type="button" class="btn" data-rc1790-export>'+esc(t('export'))+'</button></div>'+
     '<div role="status" aria-live="polite" data-rc1790-status hidden></div>';
    parent.appendChild(section);
    section.querySelectorAll('[data-rc1790-header]').forEach(function(input){input.value=headerDraft[input.getAttribute('data-rc1790-header')]||''});
