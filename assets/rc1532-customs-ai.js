@@ -127,6 +127,55 @@ async function ask(question){
  }catch(error){renderResult({ok:false,uncertainty:true,answer:q(error&&error.message)||tr('error'),sources:[]});if(status){status.hidden=true;status.textContent=''}}
  finally{busy=false;if(button)button.disabled=false;refreshContext()}
 }
+/* Der historische Tab „Zollwissen → KI fragen“ ist ein reiner Offline-Suchassistent.
+ * Nur kuratierte Incoterms-Fälle werden hier übersteuert. Keine zusätzlichen Provider-Aufrufe.
+ * Andere Fragen bleiben am bisherigen Offline-Handler. */
+function legacyIncotermsAnswer(raw){
+ var question=q(raw),lower=question.toLowerCase(),match=lower.match(/\b(exw|fca|dap|ddp)\b/),type=match&&match[1];
+ if(!type&&/\bab\s*werk\b/.test(lower))type='exw';
+ if(!type)return null;
+ var labels={
+  exw:{name:'EXW (Ab Werk)',organization:'Der Käufer organisiert und bezahlt grundsätzlich die Ausfuhrformalitäten.',cost:'Grundsätzlich Käufer, soweit nichts Abweichendes vereinbart wurde.',check:'Klären, wer die Ausfuhranmeldung veranlasst und welcher EU-ansässige Beteiligte rechtlich Ausführer sein kann.'},
+  fca:{name:'FCA (Frei Frachtführer)',organization:'Der Verkäufer organisiert und bezahlt grundsätzlich die Ausfuhrfreimachung.',cost:'Grundsätzlich Verkäufer für die Ausfuhrformalitäten; der Käufer trägt die Einfuhrabwicklung.',check:'Zulässigen EU-Ausführer und Anmelder/Vertreter sowie den benannten FCA-Lieferort prüfen.'},
+  dap:{name:'DAP (Geliefert benannter Ort)',organization:'Der Verkäufer organisiert die Ausfuhrformalitäten; der Käufer übernimmt die Einfuhrabfertigung.',cost:'Verkäufer für die Ausfuhr, Käufer für Einfuhrformalitäten und Einfuhrabgaben.',check:'Ausfuhrfreigabe, benannten Bestimmungsort und Zuständigkeit für die Einfuhr prüfen.'},
+  ddp:{name:'DDP (Geliefert verzollt)',organization:'Der Verkäufer übernimmt vertraglich sowohl Ausfuhr- als auch Einfuhrformalitäten.',cost:'Grundsätzlich Verkäufer einschließlich Einfuhrabgaben.',check:'Besonders prüfen, ob der Verkäufer im Bestimmungsland rechtlich die Einfuhrabfertigung vornehmen lassen darf.'}
+ };
+ var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu';
+ var answer=[
+  '## Kurzantwort',
+  'Bei **'+item.name+'** gilt: '+item.organization+' [['+icc+']].',
+  '',
+  '## Wer macht was?',
+  '- **Organisation und Kosten:** '+item.cost+' [['+icc+']].',
+  '- **Zollrechtlicher EU-Ausführer:** Unabhängig vom Incoterm anhand der EU-Regeln festlegen; allein der deutsche Versender ist nicht automatisch Ausführer. [['+eu+']].',
+  '- **Anmelder/Vertreter:** Die elektronische Zollanmeldung kann der zuständige Anmelder oder ein beauftragter Zollvertreter abgeben.',
+  '',
+  '## Vorgehen im Warenausgang',
+  '1. '+item.check,
+  '2. Prüfen, ob für diese Sendung eine elektronische Ausfuhranmeldung erforderlich ist.',
+  '3. Falls erforderlich: Überlassung zur Ausfuhr und zugehörige MRN/ABD vor Freigabe kontrollieren; Ausgangsnachweis später sichern.',
+  '',
+  '## Noch zu klären',
+  '- Wer ist als EU-Ausführer zulässig, wer beauftragt die Zollagentur und welche Vertragsabreden gelten?'
+ ].join('\n');
+ return{ok:true,mode:'offline-rule',answer:answer,uncertainty:true,checkedAt:'2026-11-04',
+  sources:[
+   {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
+   {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'}
+  ]}
+}
+function legacyCustomsIntercept(event){
+ var target=event&&event.target,button=target&&target.closest&&target.closest('#rc821ZollBody button[onclick="askZollAi()"]');
+ if(!button)return;
+ var area=d.getElementById('zollAiQuestion'),host=d.getElementById('zollAiAnswer'),result=legacyIncotermsAnswer(area&&area.value);
+ if(!host||!result)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ clear(host);host.classList.add('rc1532-legacy-answer');
+ host.appendChild(el('div','rc1532-legacy-notice','Offline-Schnellhilfe aus geprüften Quellen · keine Live-Zollfreigabe'));
+ var answer=el('div','rc1532-answer');renderAnswer(answer,result.answer,result.sources);host.appendChild(answer);
+ host.appendChild(el('h6','rc1532-legacy-sources-heading',tr('sources')));
+ var sources=el('div','rc1532-sources');renderSources(sources,result);host.appendChild(sources)
+}
 function show(active){var ai=d.querySelector('[data-rc1532-ai-panel]');if(ai)ai.hidden=!active;if(active)refreshContext()}
 function bindModes(host,button){
  if(button.__rc1532Bound)return;button.__rc1532Bound=true;
@@ -156,6 +205,7 @@ function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(functi
 function observe(){if(!d||!root.MutationObserver)return;var host=d.getElementById('rc626Abd')||d.body;if(!host)return;try{if(observer)observer.disconnect();observer=new root.MutationObserver(schedule);observer.observe(host,{childList:true,subtree:true})}catch(_){}}
 function remount(){schedule();observe()}
 function remountLanguage(){try{var ai=d&&d.querySelector&&d.querySelector('[data-rc1532-ai-panel]');if(ai&&ai.parentNode)ai.parentNode.removeChild(ai)}catch(_){}schedule()}
+if(d&&typeof d.addEventListener==='function')d.addEventListener('click',legacyCustomsIntercept,true);
 root.ExportHUBRC1532CustomsAI=Object.freeze({mount:mount,ask:ask,latestSnapshot:latestSnapshot});
 ensureFeatureI18n();mount();observe();
 if(typeof root.addEventListener==='function'){
