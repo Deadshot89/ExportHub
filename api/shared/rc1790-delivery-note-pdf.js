@@ -102,7 +102,9 @@ async function createDeliveryNotePdf(snapshot){
   put('LIEFERSCHEIN',RIGHT-202,HEIGHT-52,17,true,202);
   put('DELIVERY NOTE',RIGHT-152,HEIGHT-68,9,false,152,muted);
   page.drawRectangle({x:LEFT,y:HEIGHT-98,width:CONTENT,height:3,color:accent});
-  put('Lieferschein-Nr.: '+h.documentNumber,LEFT,HEIGHT-117,9,true,300);
+  const numberLines=wrap(bold,'Lieferschein-Nr.: '+h.documentNumber,9,315,3);
+  if(numberLines.length>2)fail('DELIVERY_NOTE_TEXT_OVERFLOW');
+  numberLines.forEach((line,i)=>put(line,LEFT,HEIGHT-117-i*11,9,true,315));
   put('Datum: '+h.issuedAt,RIGHT-166,HEIGHT-117,9,true,166);
   y=HEIGHT-143;
  }
