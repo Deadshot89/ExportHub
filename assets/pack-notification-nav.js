@@ -98,6 +98,12 @@
  if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV__)return;
  w.__EXPORT_HUB_URGENT_NAV__=true;
  var d=w.document;
+ function urgentOrdersDestination(){
+  var host=String(w.location&&w.location.hostname||'').toLowerCase();
+  var canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+  var productionHosts=['wonderful-forest-0f315e310.7.azurestaticapps.net','exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'];
+  return productionHosts.includes(host)?canonical+'/assets/urgent-orders.html':'/assets/urgent-orders.html';
+ }
  function ensure(){
   if(d.querySelector('[data-exporthub-urgent-nav]'))return;
   var anchor=d.querySelector('[data-pack-notifications-nav]')||d.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
@@ -106,7 +112,7 @@
   n.setAttribute('data-exporthub-urgent-nav','');n.setAttribute('aria-label','Urgent Order');n.title='Urgent Order';
   n.innerHTML='<span class="index308-nav-icon" aria-hidden="true" style="--menu-accent:#dc7226;color:#dc7226">!</span><span class="index308-nav-label">Urgent Order</span>';
   n.style.setProperty('--menu-accent','#dc7226');
-  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign('/assets/urgent-orders.html');},true);
+  n.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();w.location.assign(urgentOrdersDestination());},true);
   anchor.parentNode.insertBefore(n,anchor.nextSibling);
  }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
