@@ -220,3 +220,29 @@ test('urgent-only ExportHUB menu opens wonderful-forest while other module routi
  assert.match(menu,/w\.location\.assign\(urgentOrdersDestination\(\)\)/);
  assert.match(menu,/function openInbox\(/,'the Packmeldung module remains present');
 });
+
+
+test('old Urgent Order URLs redirect only their own page and preserve token fragments',()=>{
+ const source=script(publicHtml);
+ const begin=source.indexOf('function redirectLegacyUrgentHost(){');
+ const end=source.indexOf('\nif(redirectLegacyUrgentHost())return;',begin);
+ assert.ok(begin>=0&&end>begin,'legacy redirect helper is present');
+ const body=source.slice(begin,end);
+ const token='uro_'+'C'.repeat(43);
+ const redirect=(hostname,search='',hash='')=>{
+  let redirected='';
+  const ctx=vm.createContext({location:{hostname,search,hash,replace(url){redirected=url;}}});
+  vm.runInContext(body,ctx);
+  const active=vm.runInContext('redirectLegacyUrgentHost()',ctx);
+  return {active,redirected};
+ };
+ for(const hostname of ['exporthub360.com','www.exporthub360.de','www.exporthub360.com','exporthub360.de']){
+  const result=redirect(hostname,'','#access='+token);
+  assert.equal(result.active,true);
+  assert.equal(result.redirected,'https://wonderful-forest-0f315e310.7.azurestaticapps.net/urgent-order#access='+token);
+ }
+ for(const hostname of ['wonderful-forest-0f315e310.7.azurestaticapps.net','ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','localhost']){
+  assert.deepEqual(redirect(hostname),{active:false,redirected:''},hostname+' must not redirect');
+ }
+ assert.match(source,/if\(redirectLegacyUrgentHost\(\)\)return;/);
+});
