@@ -34,14 +34,16 @@ function validateDirectOutbound(raw){
  if(!DISPATCH_METHODS.includes(dispatchMethod))throw problem('URGENT_DISPATCH_REQUIRED','Please choose special transport or express.');
  const arrivalProvider=text(p.arrivalProvider,120);
  if(!arrivalProvider)throw problem('URGENT_ARRIVAL_PROVIDER_REQUIRED','Please enter the carrier or inbound provider.');
+ const arrivalAt=localDateTime(p.arrivalAt),plannedDispatchAt=p.plannedDispatchAt?localDateTime(p.plannedDispatchAt):null;
+ if(plannedDispatchAt&&plannedDispatchAt<arrivalAt)throw problem('URGENT_DISPATCH_BEFORE_ARRIVAL','Planned dispatch cannot be before arrival.');
  const docs=explicitCheck(p.deliveryNotePresent,'delivery note available');
  const asn=explicitCheck(p.asnWorking,'ASN functional');
  const holds=explicitCheck(p.holdsClear,"Don't Process / Credit Hold");
  const failed=(!docs||!asn||!holds),exceptionReason=text(p.exceptionReason,1000);
  if(failed&&exceptionReason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Explain any failed inbound checks (at least 8 characters).');
- return{arrivalAt:localDateTime(p.arrivalAt),arrivalTimeZone:'Europe/Berlin',arrivalMode,arrivalProvider,
+ return{arrivalAt,arrivalTimeZone:'Europe/Berlin',arrivalMode,arrivalProvider,
   arrivalReference:text(p.arrivalReference,120),dispatchMethod,
-  plannedDispatchAt:p.plannedDispatchAt?localDateTime(p.plannedDispatchAt):null,
+  plannedDispatchAt,
   checks:{deliveryNotePresent:docs,asnWorking:asn,holdsClear:holds},
   checkResult:failed?'exception':'passed',exceptionReason:failed?exceptionReason:''};
 }
