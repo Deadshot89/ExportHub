@@ -46,9 +46,10 @@ test('public reporter create/list is capability-scoped across users; only token 
   const logistics={id:'OPS-1',rights:{shipmentoverview:{edit:true}}};
   assert.equal(model.canRead(row,logistics),true);
   assert.equal(model.canRead(row,{id:'SOMEONE-ELSE'}),false);
-  model.setItemStatus(row,row.items[0].id,'Problem',logistics);
+  model.setItemStatus(row,row.items[0].id,'Problem',logistics,undefined,'Der angekündigte Lkw ist nicht angekommen.');
   const current=await publicApi.publicAction(req({action:'list',accessToken:first.accessToken}),refs);
   assert.equal(current.orders.find(x=>x.orderNumber==='SO3002').items[0].status,'Problem');
+  assert.match(current.orders.find(x=>x.orderNumber==='SO3002').items[0].problemNote,/Lkw ist nicht angekommen/);
   assert.equal(state.publicDaily.count,3,'all anonymous creates share a durable daily counter');
   state.publicDaily.count=200;
   await assert.rejects(publicApi.publicAction(req({action:'create',...required,orderNumber:'SO3006',accessToken:first.accessToken}),refs),e=>e.code==='URGENT_PUBLIC_DAILY_LIMIT'&&e.status===429);
