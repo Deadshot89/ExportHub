@@ -31,7 +31,8 @@ test('RC1499 UI release contract: grouped review is primary and original positio
 
 test('RC1499 UI release contract: mandatory formats and server safety gates remain connected',()=>{
   assert.match(runtime,/accept=["'][^"']*\.pdf[^"']*\.jpg[^"']*\.jpeg[^"']*\.png[^"']*\.xlsx[^"']*\.csv/i,'Pflichtformate fehlen im Dateiupload');
-  assert.match(analysisApi,/pdf\|xlsx\|csv\|jpg\|jpeg\|png/,'Server akzeptiert nicht alle Pflichtformate');
+  assert.match(analysisApi,/pdf\|xlsx\|csv\|txt\|tsv\|jpg\|jpeg\|png/,'Server akzeptiert nicht alle Pflichtformate inklusive D365 TXT/TSV');
+  assert.match(runtime,/accept=["'][^"']*\.txt[^"']*\.tsv/,'D365 TXT/TSV fehlen im Dateiupload');
   assert.match(analysisApi,/Microsoft Defender for Storage/,'Defender-/Quarantänepfad fehlt');
   assert.match(analysisApi,/analyzeWithOcr/,'OCR-Pfad für Scan/Bild fehlt');
 });

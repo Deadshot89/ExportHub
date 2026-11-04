@@ -70,11 +70,9 @@ test('P0: the reference file API and emitted frontend build parse',()=>{
  }
 });
 
-test('P0: deleted nested folders do not masquerade as a pagination failure',async()=>{
+test('P0: deleted nested folders must report an incomplete REF file listing',async()=>{
  const h=mock({root:{value:[{id:'removed',name:'Old',folder:{}}]}});
- const data=await h.list();
- assert.equal(data.folderMissing,false);
- assert.equal(data.files.length,0);
+ await assert.rejects(h.list(),e=>e.code==='GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE'&&e.status===503);
 });
 
 test('P0: deeper unscanned folders result in an explicit limit error instead of a false zero',async()=>{

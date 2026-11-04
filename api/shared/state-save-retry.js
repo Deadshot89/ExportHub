@@ -5,7 +5,13 @@
 const TEMPORARY_HTTP_STATUSES=new Set([408,429,500,502,503,504]);
 const TEMPORARY_NETWORK_CODES=new Set([
   'ECONNRESET','ECONNREFUSED','ETIMEDOUT','ESOCKETTIMEDOUT',
-  'EAI_AGAIN','EHOSTUNREACH','ENETUNREACH','REQUEST_SEND_ERROR'
+  'EAI_AGAIN','EHOSTUNREACH','ENETUNREACH','REQUEST_SEND_ERROR',
+  // Node fetch/Undici reports transient connection and response timeouts
+  // on error.cause.code, frequently wrapped in TypeError('fetch failed').
+  // A possibly committed PUT must only be retried by saveMerged after a
+  // fresh authoritative Azure readback and operationId/ETag check.
+  'UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_SOCKET','EPIPE'
 ]);
 
 function isTransientStorageWriteError(err) {
