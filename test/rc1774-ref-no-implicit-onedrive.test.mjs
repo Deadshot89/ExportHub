@@ -31,6 +31,13 @@ test('RC1774: REF must not use an implicit personal OneDrive user; absent destin
     await assert.rejects(ref.listFiles('ABC123'), e => e.code === 'GRAPH_NOT_CONFIGURED' && e.status === 503);
     assert.equal(networkCalls, 0, 'a missing destination must not query or mutate Graph');
 
+    // POD-only credentials must never implicitly become the REF destination.
+    process.env.EXPORTHUB_POD_DRIVE_USER = 'synthetic-pod@example.invalid';
+    assert.equal(ref.DRIVE_USER, '', 'POD user is not an authorized REF identity');
+    assert.throws(() => ref.config(), e => e.code === 'GRAPH_NOT_CONFIGURED');
+    await assert.rejects(ref.getFolder('ABC123'), e => e.code === 'GRAPH_NOT_CONFIGURED');
+    assert.equal(networkCalls, 0, 'POD-only configuration must not contact Graph for REF');
+
     process.env.EXPORTHUB_REFERENCE_DRIVE_ID = 'prod-sharepoint-library';
     process.env.EXPORTHUB_REFERENCE_FOLDER_ID = 'prod-sendungen-root';
     assert.deepEqual(ref.config(), {
@@ -63,7 +70,7 @@ test('RC1774: AV file endpoint validates environment-specific exact IDs without 
   for (const source of [shared, api]) {
     assert.doesNotMatch(source, /tobiaslimberg@essentra\.com/i,
       'no personal account belongs in a source-code fallback');
-    assert.match(source, /const DRIVE_USER=\(process\.env\.EXPORTHUB_REFERENCE_DRIVE_USER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER\|\|''\)\.trim\(\)/);
+    assert.match(source, /const DRIVE_USER=\(process\.env\.EXPORTHUB_REFERENCE_DRIVE_USER\|\|''\)\.trim\(\)/);
   }
   assert.match(api, /function graphConfig\(environment='production'\)\{const target=referenceFolder\.exactTarget\(environment\)/);
   assert.match(api, /async function graphToken\(environment='production'\)\{const c=graphConfig\(environment\)/);
