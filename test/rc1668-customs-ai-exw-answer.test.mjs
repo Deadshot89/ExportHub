@@ -77,24 +77,19 @@ test('Zoll KI 2.0: Antwortdarstellung verwendet ausschließlich sichere DOM-Text
 });
 
 
-test('Zoll KI 2.0: alte Offline-KI mit EXW-/FCA-/DAP-/DDP-Antwort ohne neue Provider-Aufrufe abgefangen',()=>{
+test('Zoll-KI: Zollwissen und ABD nutzen dieselbe API statt eines parallelen Offline-Assistenten',()=>{
  const ui=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
- assert.match(ui,/function legacyIncotermsAnswer/);
  assert.match(ui,/function legacyCustomsIntercept/);
- assert.match(ui,/zollAiQuestion/);
- assert.match(ui,/zollAiAnswer/);
- assert.match(ui,/stopImmediatePropagation/);
- assert.match(ui,/Offline-Schnellhilfe/);
- assert.match(ui,/exw:|exw\s*:/);
- assert.match(ui,/fca:|fca\s*:/);
- assert.match(ui,/dap:|dap\s*:/);
- assert.match(ui,/ddp:|ddp\s*:/);
- const offline=ui.slice(ui.indexOf('function legacyIncotermsAnswer'),ui.indexOf('function show(active)'));
- assert.doesNotMatch(offline,/fetch\s*\(/);
+ assert.match(ui,/function renderKnowledgeResult/);
+ assert.match(ui,/function hasGroundedEvidence/);
+ assert.match(ui,/return ask\(field&&field.value,'knowledge'\)/);
+ assert.match(ui,/if\(!knowledge\)\{/);
+ assert.doesNotMatch(ui,/function legacyIncotermsAnswer/);
+ assert.equal((ui.match(/root\.fetch\('\/api\/customs-ai'/g)||[]).length,1);
+ assert.match(ui,/gemeinsame KI-Implementierung/);
 });
 
-
-test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachantwort',()=>{
+test('Zoll-KI: Klick in Zollwissen fragt die zentrale API ohne ABD- oder Rechnungsdaten und zeigt Quellen',async()=>{
  const runtime=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
  function node(tag){
   let own='';
@@ -109,41 +104,53 @@ test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachan
   n.classList={add(){},contains(){return false},toggle(){}};
   return n;
  }
- const textarea={value:question},answer=node('div');
+ const title=node('h3'),intro=node('p'),button=node('button'),area=node('textarea'),answer=node('div');
+ const card={querySelector(selector){return selector==='h3'?title:selector==='p'?intro:button}};
+ area.value=question;area.closest=()=>card;
+ const calls=[];let result={
+  ok:true,mode:'ai',uncertainty:false,checkedAt:'2026-11-04',
+  answer:'## Kurzantwort\nBei EXW organisiert grundsätzlich der Käufer die Ausfuhr [[incoterms-exw-fca-export]].',
+  sources:[{id:'incoterms-exw-fca-export',title:'ICC – Incoterms',sourceName:'ICC',sourceUrl:'https://iccwbo.org/',checkedAt:'2026-11-04'}]
+ };
  let clickListener=null;
  const document={
-  getElementById(id){if(id==='zollAiQuestion')return textarea;if(id==='zollAiAnswer')return answer;return null},
+  getElementById(id){if(id==='zollAiQuestion')return area;if(id==='zollAiAnswer')return answer;return null},
+  querySelector(selector){return selector.includes('button[onclick')?button:null},
   createElement:node,
   createTextNode(value){const item=node('#text');item.textContent=value;return item},
-  addEventListener(name,listener,capture){if(name==='click'&&capture)clickListener=listener}
+  addEventListener(name,listener,capture){if(name==='click'&&capture&&!clickListener)clickListener=listener}
  };
- const window={document,addEventListener(){},ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}}};
+ const window={document,addEventListener(){},
+  ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key==='knowledgeIntro'?'Hier keine Sendungs- oder Rechnungsdaten':key}},
+  fetch:async(url,options)=>{calls.push({url,options});return {ok:true,text:async()=>JSON.stringify(result)}}
+ };
  vm.runInNewContext(runtime,{window,URL},{timeout:1000});
  assert.equal(typeof clickListener,'function');
+ assert.equal(area.maxLength,2000);
+ assert.match(intro.textContent,/keine Sendungs- oder Rechnungsdaten/);
  let prevented=false,stopped=false;
- clickListener({target:{closest(){return {}}},preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});
+ await clickListener({target:{closest(){return button}},preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});
  assert.equal(prevented,true);assert.equal(stopped,true);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].url,'/api/customs-ai');
+ const payload=JSON.parse(calls[0].options.body);
+ assert.equal(payload.question,question);
+ assert.deepEqual(Object.keys(payload),['question']);
  assert.match(answer.textContent,/EXW/);
- assert.match(answer.textContent,/Käufer organisiert/);
- assert.match(answer.textContent,/EU-Ausführer/);
  assert.match(answer.textContent,/ICC/);
- assert.match(answer.textContent,/AEAT/);
- assert.match(answer.textContent,/\[3\]/);
+ assert.match(answer.textContent,/grounded/);
  assert.doesNotMatch(answer.textContent,/Passende Wissensbereiche/);
-
- textarea.value='Was ist der Unterschied zwischen EXW und FCA?';
- clickListener({target:{closest(){return {}}},preventDefault(){},stopImmediatePropagation(){}});
- assert.match(answer.textContent,/EXW/);
- assert.match(answer.textContent,/FCA/);
- assert.match(answer.textContent,/Käufer organisiert/);
- assert.match(answer.textContent,/Verkäufer organisiert/);
+ result={ok:false,uncertainty:false,answer:'Keine API-Verbindung',sources:[{id:'incoterms-exw-fca-export',title:'ICC',sourceUrl:'https://iccwbo.org/'}]};
+ await clickListener({target:{closest(){return button}},preventDefault(){},stopImmediatePropagation(){}});
+ assert.equal(calls.length,2);
+ assert.match(answer.textContent,/uncertain/);
+ assert.match(answer.textContent,/Keine API-Verbindung/);
 });
-
 
 test('Zoll KI 2.0: geänderte Zoll-KI-Assets erhalten neue Cache-Version für TESTSERVICE und Produktion',()=>{
  const build=fs.readFileSync(new URL('../.github/rc1532/build-three-env.mjs',import.meta.url),'utf8');
  assert.match(build,/rc1532-customs-ai\.css\?v=1668/);
- assert.match(build,/rc1532-customs-ai\.js\?v=1669/);
+ assert.match(build,/rc1532-customs-ai\.js\?v=1670/);
  assert.doesNotMatch(build,/rc1532-customs-ai\.(?:css|js)\?v=153[23]/);
 });
 

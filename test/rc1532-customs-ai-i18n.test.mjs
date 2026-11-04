@@ -56,7 +56,7 @@ test('RC1532 i18n: Server-Sprachpaket deckt alle sechs Sprachen mit identischen 
 
 test('RC1532 i18n: Runtime lädt Feature-i18n statt deutscher Inline-Texte',()=>{
   const runtime=fs.readFileSync(runtimePath,'utf8');
-  assert.match(runtime,/\/assets\/i18n\/rc1532-customs-ai\.js\?v=1532/,'RC1532 Feature-Sprachpaket wird nicht geladen');
+  assert.match(runtime,/\/assets\/i18n\/rc1532-customs-ai\.js\?v=1670/,'RC1532 Feature-Sprachpaket wird nicht geladen');
   assert.match(runtime,/ExportHUBRC1532I18n/,'RC1532 Feature-Sprach-API wird nicht verwendet');
   assert.doesNotMatch(runtime,/var\s+I18N\s*=/,'Inline-i18n darf nicht im Runtime-Asset verbleiben');
   for(const literal of [

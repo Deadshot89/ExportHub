@@ -27,6 +27,7 @@ var languageFallback={
   start:'Analyse starten',
   resumeScan:'Scanprüfung fortsetzen',
   scanPendingNote:'Datei hochgeladen. Microsoft Defender prüft noch. Später „Scanprüfung fortsetzen“ wählen.',
+  scanDelayedNote:'Upload erfolgreich, aber Microsoft Defender liefert seit mehr als 2 Minuten kein Scanergebnis. IT: Scan-Ergebnis-Tags am Azure-Speicher prüfen. Datei bleibt gesperrt; Prüfung später fortsetzen.',
   groups:'HS/Ursprung-Gruppen',
   documentSingle:'Dokument',
   documentPlural:'Dokumente',
@@ -46,6 +47,7 @@ var languageFallback={
   start:'Start analysis',
   resumeScan:'Resume scan check',
   scanPendingNote:'File uploaded. Microsoft Defender is still scanning. Choose “Resume scan check” later.',
+  scanDelayedNote:'Upload succeeded, but Microsoft Defender has not returned a scan result for over 2 minutes. IT: check scan-result tags on Azure Storage. File remains blocked; resume checking later.',
   groups:'HS/origin groups',
   documentSingle:'Document',
   documentPlural:'Documents',
@@ -65,6 +67,7 @@ var languageFallback={
   start:'Rozpocznij analizę',
   resumeScan:'Wznów sprawdzanie skanu',
   scanPendingNote:'Plik przesłany. Microsoft Defender nadal skanuje. Później wybierz „Wznów sprawdzanie skanu”.',
+  scanDelayedNote:'Przesyłanie zakończone, ale Microsoft Defender od ponad 2 minut nie zwrócił wyniku skanowania. IT: sprawdź tagi wyniku skanu w usłudze Azure Storage. Plik pozostaje zablokowany; wznów sprawdzanie później.',
   groups:'Grupy HS/pochodzenie',
   documentSingle:'Dokument',
   documentPlural:'Dokumenty',
@@ -84,6 +87,7 @@ var languageFallback={
   start:'Iniciar análisis',
   resumeScan:'Reanudar comprobación',
   scanPendingNote:'Archivo cargado. Microsoft Defender sigue analizando. Selecciona «Reanudar comprobación» más tarde.',
+  scanDelayedNote:'Archivo cargado, pero Microsoft Defender no ha devuelto el resultado del análisis en más de 2 minutos. TI: compruebe las etiquetas del análisis en Azure Storage. El archivo sigue bloqueado; reanude la comprobación más tarde.',
   groups:'Grupos HS/origen',
   documentSingle:'Documento',
   documentPlural:'Documentos',
@@ -103,6 +107,7 @@ var languageFallback={
   start:'Démarrer l’analyse',
   resumeScan:'Reprendre la vérification',
   scanPendingNote:'Fichier téléversé. Microsoft Defender analyse encore. Sélectionnez « Reprendre la vérification » plus tard.',
+  scanDelayedNote:'Fichier téléversé, mais Microsoft Defender n’a pas fourni de résultat d’analyse après plus de 2 minutes. Informatique : vérifiez les balises de résultat sur Azure Storage. Le fichier reste bloqué ; reprenez la vérification plus tard.',
   groups:'Groupes SH/origine',
   documentSingle:'Document',
   documentPlural:'Documents',
@@ -122,6 +127,7 @@ var languageFallback={
   start:'Avvia analisi',
   resumeScan:'Riprendi verifica',
   scanPendingNote:'File caricato. Microsoft Defender sta ancora eseguendo la scansione. Seleziona «Riprendi verifica» più tardi.',
+  scanDelayedNote:'File caricato, ma Microsoft Defender non ha fornito un risultato dopo oltre 2 minuti. IT: verificare i tag del risultato della scansione in Azure Storage. Il file resta bloccato; riprendere la verifica più tardi.',
   groups:'Gruppi HS/origine',
   documentSingle:'Documento',
   documentPlural:'Documenti',
@@ -313,14 +319,18 @@ function renderResults(results){
  box.hidden=false
 }
 async function poll(upload,fileName){
+ var delayed=false;
  for(var i=0;i<45;i++){
   var result=await post({action:'status',uploadId:upload.id});
   if(result.data&&result.data.status==='ready')return result.data;
   if(result.data&&result.data.status==='blocked'){var blocked=new Error(q(result.data.message)||'Datei blockiert');blocked.code=q(result.data.code);throw blocked}
-  if(i===0)fileLine(fileName,tr('abd.analysis.scanning'),'scan');
+  if(result.data&&result.data.diagnosticCode==='ABD_DEFENDER_RESULT_DELAYED'){
+   delayed=true;
+   fileLine(fileName,xtr('scanDelayedNote'),'scan')
+  }else if(i===0)fileLine(fileName,tr('abd.analysis.scanning'),'scan');
   await delay(1800)
  }
- var e=new Error(tr('abd.analysis.waiting'));e.code='ABD_SCAN_PENDING';throw e
+ var e=new Error(delayed?xtr('scanDelayedNote'):tr('abd.analysis.waiting'));e.code='ABD_SCAN_PENDING';e.scanDelayed=delayed;throw e
 }
 async function analyzeFile(file){
  // RC1792: a pending Defender scan is not an upload failure; preserve its
@@ -360,7 +370,7 @@ async function start(){
     if(documents.length){documents.forEach(function(doc){results.push({ok:true,status:'ready',analysis:doc})});fileLine(files[i].name,documents.length+' getrennte Lieferscheine / '+(analysis.positions||[]).length+' Positionen','ok')}
     else{results.push(result);fileLine(files[i].name,(analysis.positions||[]).length+' Position(en)','ok')}
    }catch(e){
-    if(e&&e.code==='ABD_SCAN_PENDING')fileLine(files[i].name,xtr('scanPendingNote'),'scan');
+    if(e&&e.code==='ABD_SCAN_PENDING')fileLine(files[i].name,xtr(e.scanDelayed?'scanDelayedNote':'scanPendingNote'),'scan');
     else fileLine(files[i].name,q(e&&e.message)||tr('errors.generic'),'bad')
    }
   }

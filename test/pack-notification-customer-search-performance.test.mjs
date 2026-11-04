@@ -89,6 +89,6 @@ test('client invalidates stale searches, caches repeat terms and ships updated a
   assert.match(client,/\},140\);/,'reduced debounce should feel responsive');
   for(const path of ['../pack.html','../assets/pack.html']){
     const html=fs.readFileSync(new URL(path,import.meta.url),'utf8');
-    assert.match(html,/pack-notification\.js\?v=8/,'clients must fetch the optimized JS instead of stale cached v7');
+    assert.match(html,/src="\/assets\/pack-notification\.js\?v=9"/,'clients must fetch the mixed-type-safe optimized JS instead of stale cached v8');
   }
 });
