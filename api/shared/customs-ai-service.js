@@ -49,7 +49,8 @@ async function answerCustomsQuestion(options={}){
  const modelResult=await askModel({systemInstructions:policy.buildSystemInstructions(language),question,context:safeContext,sources,env:options.env,fetchImpl:options.fetchImpl,timeoutMs:options.timeoutMs});
  const checkedAt=latestCheckedAt(sources);
  if(!modelResult||modelResult.ok!==true){
-  return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',answer:apiI18n.tLang(language,'api.customsAi.unavailable'),sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
+  const reason=text(modelResult&&modelResult.reason,20),textKey={config:'api.customsAi.unavailableConfig',busy:'api.customsAi.unavailableBusy',timeout:'api.customsAi.unavailableTimeout'}[reason]||'api.customsAi.unavailable';
+  return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',reason:reason||'server',providerStatus:Number(modelResult&&modelResult.status)||0,answer:apiI18n.tLang(language,textKey),sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
  }
  // Nur Marker im tatsächlich angezeigten Antworttext zählen. Provider-Metadaten allein sind kein Quellenbeleg.
  const answer=text(modelResult.answer,12000),markers=Array.from(answer.matchAll(/\[\[([A-Za-z0-9._:-]{1,48})\]\]/g),match=>match[1]);
