@@ -128,13 +128,6 @@ test('urgent workspaces fill the monitor and keep every operational status in En
  assert.doesNotMatch(internalHtml,/value="(?:Open|Waved|In Progress|Problem|Loaded|Shipped|Invoiced)" data-i18n=/);
 });
 
-test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{')+'">'+code+'<\\\\/option>'));
- }
- assert.match(internalHtml,/<option value="">All statuses<\\/option>/);
- assert.match(internalHtml,/<option value="exception">Check required<\\/option>/);
- assert.doesNotMatch(internalHtml,/value="(?:Open|Waved|In Progress|Problem|Loaded|Shipped|Invoiced)" data-i18n=/);
-});
-
 test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{
  const source=script(internalHtml);
  assert.match(internalHtml,/id="listMessage" class="message" role="status"/);
