@@ -78,15 +78,18 @@ test('unknown preview hosts cannot select Urgent Order production storage',()=>{
  const preview='exporthub-pr-1193.westeurope.5.azurestaticapps.net';
  assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:preview}},''),e=>e.code==='URGENT_HOST_UNTRUSTED');
  assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:preview,origin:'https://wonderful-forest-0f315e310.7.azurestaticapps.net'}},''),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:preview,'x-forwarded-host':'wonderful-forest-0f315e310.7.azurestaticapps.net'}},'production'),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:'worker.azurewebsites.net',origin:'https://'+preview}},'production'),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:'wonderful-forest-0f315e310.7.azurestaticapps.net',origin:'https://'+preview}},'production'),e=>e.code==='URGENT_HOST_UNTRUSTED');
  assert.equal(internal.resolveStorageEnvironment({headers:{host:'wonderful-forest-0f315e310.7.azurestaticapps.net'}},''),'production');
 });
 
 test('Azure deployment isolation fails closed on unknown or contradictory hosts',()=>{
  const ref='https://exporthub360.com',testHost='sample-testservice.azurestaticapps.net';
  assert.throws(()=>internal.storage({headers:{host:'worker.azurewebsites.net',origin:'https://'+testHost}}),e=>e.code==='URGENT_HOST_UNTRUSTED','forged Origin alone cannot choose test data');
- assert.throws(()=>internal.storage({headers:{host:testHost,origin:ref}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','test host must not select production Origin');
+ assert.throws(()=>internal.storage({headers:{host:testHost,origin:ref}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','known testservice host must not select production Origin');
  assert.throws(()=>internal.storage({headers:{host:'exporthub360.com','x-forwarded-host':testHost}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','contradictory trusted hosts are rejected');
- assert.throws(()=>internal.storage({headers:{host:testHost,'x-exporthub-environment':'production'}}),e=>e.code==='ENVIRONMENT_MISMATCH'||e.code==='URGENT_ENVIRONMENT_MISMATCH','spoofed target environment is rejected');
+ assert.throws(()=>internal.storage({headers:{host:testHost,'x-exporthub-environment':'production'}}),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH','spoofed target environment is rejected');
 });
 
 
