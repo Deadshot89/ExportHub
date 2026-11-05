@@ -166,10 +166,21 @@ function syncDirty(c){
   }
 }
 
+/* Die Hauptansicht (RC405) öffnet den Kunden über customerFolderOpenId/customerFolderId, die Zusatzabschnitte
+   (Historie, Mail & Kontakte, Löschen) lesen aber zuerst currentCustomerId. Setzt die Auswahl diesen Wert nicht mit,
+   bleibt dort der vorherige Kunde stehen. Hier wird er auf den geöffneten Kunden gezogen und einmal neu gezeichnet. */
+function alignCustomerState(s){
+  if(!s||typeof s!=='object')return false;
+  var id=q(s.customerFolderOpenId||s.customerFolderId);
+  if(!id||q(s.currentCustomerId)===id)return false;
+  s.currentCustomerId=id;return true
+}
+function appState(){try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__():null}catch(_){return null}}
 function sync(){
   raf=0;
   var c=content();if(!c)return;
   var sections=present(c);if(!sections.length)return;
+  if(alignCustomerState(appState())&&typeof w.render==='function'){try{w.render()}catch(_){}return}
   d.documentElement.style.setProperty('--cf-sticky-top',stickyTop()+'px');
   numberHeadings(sections);
   ensureNav(c,sections);
@@ -346,6 +357,6 @@ function install(){
   schedule()
 }
 
-w.ExportHUBCustomerFolder=Object.freeze({version:'2',sync:sync,isDirty:function(){return dirty},changes:function(){return changedCount},guard:guard,onLeaveClick:onLeaveClick,onKey:onKey,i18n:I18N});
+w.ExportHUBCustomerFolder=Object.freeze({version:'2',sync:sync,alignCustomerState:alignCustomerState,isDirty:function(){return dirty},changes:function(){return changedCount},guard:guard,onLeaveClick:onLeaveClick,onKey:onKey,i18n:I18N});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window,document);
