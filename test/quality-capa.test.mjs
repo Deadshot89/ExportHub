@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -103,6 +103,15 @@ test('CAPA: corrupted or unsupported blob data cannot silently become an empty c
  assert.throws(()=>recordsOf({schemaVersion:1,items:[null]}),/Datenverlust/);
  assert.throws(()=>recordsOf({schemaVersion:1,items:[{id:'QM-BROKEN'}]}),/Datenverlust/);
 });
+test('CAPA: existing JSON null must never become a writable empty list',()=>{
+ const valid={schemaVersion:1,revision:1,items:[fresh()]};
+ assert.equal(validatedSnapshot({etag:'etag-one',value:valid}).length,1);
+ assert.deepEqual(validatedSnapshot({etag:null,value:{schemaVersion:1,revision:0,items:[]}}),[]);
+ assert.throws(()=>validatedSnapshot({etag:'etag-existing',value:{schemaVersion:1,revision:0,items:[]}}),/Datenverlust/);
+ assert.throws(()=>validatedSnapshot({etag:'etag-existing',value:{schemaVersion:1,items:[]}}),/Datenverlust/);
+ assert.throws(()=>validatedSnapshot({etag:null,value:{schemaVersion:1,revision:-1,items:[]}}),/Datenverlust/);
+});
+
 test('CAPA: private evidence and incident storage is never part of shared shipment state',()=>{
  const apiSource=fs.readFileSync('api/quality-capa/index.js','utf8');
  assert.match(apiSource,/quality\/capa-cases\.json/);
