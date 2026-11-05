@@ -115,3 +115,27 @@ test('P0 actual Pack shipment Open button displays HTTP failure category rather 
   assert.match(feedback.textContent,/HTTP 404/);
   assert.doesNotMatch(feedback.textContent,/blob=|fixture-token/);
 });
+
+
+test('P0 server rejects TESTSERVICE document scope on official custom production domains',()=>{
+  const source=fs.readFileSync('api/exporthub-document/index.js','utf8');
+  const marker='module.exports=async function(context,req){';
+  assert.ok(source.includes(marker),'document API handler must retain the scope guard');
+  const exposed=source.replace(marker,
+    'module.exports.environment=requestEnvironment;module.exports.handler=async function(context,req){');
+  const mod={exports:{}};
+  vm.runInNewContext(exposed,{
+    module:mod,
+    require:path=>path==='../shared/i18n'?{t:()=> 'Scope mismatch'}:{},
+    process:{env:{}}
+  });
+  const pick=(host,environment)=>mod.exports.environment({headers:{host},query:{environment}});
+  for(const host of ['www.exporthub360.de','exporthub360.de','www.exporthub360.com','exporthub360.com']){
+    assert.equal(pick(host,'production'),'production',host);
+    assert.throws(()=>pick(host,'testservice'),error=>error.code==='ENVIRONMENT_MISMATCH',host);
+  }
+  assert.equal(pick('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','testservice'),'testservice');
+  assert.throws(
+    ()=>pick('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','production'),
+    error=>error.code==='ENVIRONMENT_MISMATCH');
+});
