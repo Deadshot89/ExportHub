@@ -156,7 +156,11 @@ async function load(preferred){
 async function save(silent){if(busy)return false;if(!form.reportValidity())return false;
  setBusy(true);try{var v=value(),data=Object.assign({action:selected?'update':'create'},v);
  if(selected){data.id=selected.id;data.revision=selected.revision}
- var result=await api(data);await load(result.item.id);notice('Änderungen zentral gespeichert.');return true
+ var result=await api(data);
+ var measureChanged=selected&&['rootCause','correctiveAction','preventiveAction'].some(function(k){return String(selected[k]||'')!==String(v[k]||'')});
+ var proofReset=measureChanged&&['wirksam','unwirksam'].includes(selected.effectivenessResult)&&result.item.effectivenessResult==='offen';
+ await load(result.item.id);
+ notice(proofReset?'Maßnahme oder Ursache geändert: Die bisherige Wirksamkeitsprüfung ist ungültig. Bitte erneut prüfen und dokumentieren.':'Änderungen zentral gespeichert.');return true
  }catch(e){notice(e.message,true);return false}finally{setBusy(false)}}
 async function tips(){if(busy)return;setBusy(true);try{
  var p=await api({action:'advise',case:Object.assign({id:selected&&selected.id||''},value())});
