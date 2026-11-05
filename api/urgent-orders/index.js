@@ -62,11 +62,12 @@ function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnviron
  // Azure Functions can expose an internal worker Host instead of the public
  // site. In that case use verified, pipeline-generated deployment metadata
  // for BOTH environments; never infer production from Origin or a request header.
- // Explicitly unknown Azure SWA/PR hosts remain untrusted even with metadata.
- if(!direct&&!forwarded&&(!serverEnvironment||
-    unknownStaticWebAppHost(h.host||h.Host||'')||
+ // Explicitly unknown Azure SWA/PR hosts remain untrusted even with metadata,
+ // including spoofed forwarding headers or requests originating from previews.
+ if(unknownStaticWebAppHost(h.host||h.Host||'')||
     unknownStaticWebAppHost(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'')||
-    unknownStaticWebAppHost(h.origin||h.Origin||h.referer||h.Referer||'')))
+    unknownStaticWebAppHost(h.origin||h.Origin||h.referer||h.Referer||'')||
+    (!direct&&!forwarded&&!serverEnvironment))
   throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
  const environment=direct||forwarded||serverEnvironment;
  if(site&&site!==environment)
