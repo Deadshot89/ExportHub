@@ -78,8 +78,8 @@ test('frontend and API are dedicated, authenticated and do not automatically sen
  assert.match(html,/Problem/);
  // Browser-local reporter email suggestions are allowed without an account;
  // authentication/session tokens must still never be persisted in localStorage.
- assert.match(html,/localStorage\\.setItem\\(EMAIL_HISTORY_KEY,JSON\\.stringify\\(next\\)\\)/);
- assert.doesNotMatch(html,/localStorage\\.setItem\\([^\\n]*(?:authToken|sessionToken|accessToken|exporthub_rc301_tab_session)/i);
- assert.doesNotMatch(html,/api\\('save-profile'/);
+ assert.match(html,/localStorage\.setItem\(EMAIL_HISTORY_KEY,JSON\.stringify\(next\)\)/);
+ assert.doesNotMatch(html,/localStorage\.setItem\([^\n]*(?:authToken|sessionToken|accessToken|exporthub_rc301_tab_session)/i);
+ assert.doesNotMatch(html,/api\('save-profile'/);
  assert.doesNotMatch(api,/sendTextMail|sendMail\(/);
 });
