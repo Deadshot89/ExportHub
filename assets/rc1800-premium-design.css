@@ -149,3 +149,13 @@ html body[data-eh-theme="premium"][data-eh-theme] #nav[data-index321-menu="1"] >
 html body[data-eh-theme="premium"][data-eh-theme] #nav > [data-index308-group]{
   color:#56657a!important;font-weight:650!important;letter-spacing:.06em;
 }
+
+/* 11 ── Schnellzugriff-Buttons (Einstellungen u. a.) ───────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] #content .quick-grid>button{
+  background:var(--pc-surface)!important;color:var(--pc-title)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-button-radius)!important;
+  box-shadow:var(--pc-shadow-soft)!important;font-weight:600;text-align:left;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #content .quick-grid>button:hover{
+  background:var(--pc-primary-soft)!important;border-color:var(--pc-primary)!important;color:var(--pc-nav-active-text)!important;
+}

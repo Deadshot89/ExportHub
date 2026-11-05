@@ -35,3 +35,8 @@ Momentaufnahme vom 2026-11-01. Branch und lokale Änderungen immer mit `git stat
 1. Entscheiden, was mit den `rc1570`-Änderungen passiert.
 2. P0-PRs #1110 und #1109 prüfen.
 3. Tests auf dem Arbeitsbranch laufen lassen und hier eintragen.
+
+## Design-Prüfzweig `design/premium-redesign` (Stand 2026-11-05)
+- Basis `origin/main`, nur lokal, nicht gepusht, nicht deployt. Neue Datei `assets/rc1800-premium-design.css` (Theme `premium`, Standard), Änderung in `index.html` (Theme-Liste, Default, CSS-Link). Andere Themes unverändert.
+- Geprüft per Playwright mit Demo-Mocks (lokale Kopie von `index.html`, nicht eingecheckt): alle 27 Menüpunkte bei 1440, 768 und 390 px ohne neue JS-Fehler und ohne überlaufende Elemente.
+- Offen: Dialoge, Standalone-Seiten (`pack`, `pickup`, `task`, `customer-avis`, `location`, `pod-notfall`, `qualitaet`), Prüfung mit echtem Login im Testservice.
