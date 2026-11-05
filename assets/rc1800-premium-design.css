@@ -127,3 +127,25 @@ html body[data-eh-theme="premium"][data-eh-theme] .table-wrap,html body[data-eh-
 @media (prefers-reduced-motion:reduce){
   html body[data-eh-theme="premium"][data-eh-theme] *{transition:none!important;animation:none!important}
 }
+
+/* 9 ── Seitenleiste: Kontraste auf hellem Grund (WCAG AA) ───────────── */
+html body[data-eh-theme="premium"][data-eh-theme] #brandUserLine{color:var(--pc-muted)!important}
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar .brand{color:var(--pc-title)!important}
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar .nav>div:not([class]):not([id]),
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar #nav>div:not(:has(button)){
+  color:var(--pc-muted)!important;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;
+}
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar small{color:var(--pc-muted)!important}
+
+/* 10 ── Gruppenüberschriften & Überschriftsgewichte ────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar #nav div:not(:has(*)){
+  color:#56657a!important;font-weight:650;letter-spacing:.06em;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #content :is(h1,h2,h3,h4){font-weight:700!important;letter-spacing:-.012em}
+html body[data-eh-theme="premium"][data-eh-theme] #content h1{font-size:clamp(24px,2.2vw,30px)}
+html body[data-eh-theme="premium"][data-eh-theme] #nav.nav[data-index305-authoritative="1"] > [data-index305-group="1"]:not([hidden]),
+html body[data-eh-theme="premium"][data-eh-theme] #nav[data-index308-menu="1"] > [data-index308-group],
+html body[data-eh-theme="premium"][data-eh-theme] #nav[data-index321-menu="1"] > [data-index308-group]:not([hidden]),
+html body[data-eh-theme="premium"][data-eh-theme] #nav > [data-index308-group]{
+  color:#56657a!important;font-weight:650!important;letter-spacing:.06em;
+}
