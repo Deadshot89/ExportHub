@@ -1,10 +1,11 @@
 'use strict';
 /* ExportHUB360 – Qualitätsabweichungen und Korrekturmaßnahmen (CAPA).
- * Separate API actions, authenticated and persisted on the team state.
+ * Separate API actions, authenticated and stored outside the shared team state.
  * No external AI requests or new paid services.
  */
 const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
+const apiI18n=require('../shared/i18n');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const {isolationConfig,primaryConnection}=require('../shared/testservice-auth-isolation');
 const STATUSES=['offen','ursachenanalyse','massnahme','wirksamkeitspruefung','abgeschlossen'];
@@ -135,6 +136,6 @@ module.exports=async function(context,req){
    return {items,item};
   });
   context.res=json(200,{ok:true,item:saved,environment:env});
- }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:'Speichern derzeit nicht möglich. Bitte erneut versuchen.'})}
+ }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
 module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,STATUSES};
