@@ -140,13 +140,14 @@ jobs:
           set -euo pipefail
           rm -rf .rc1112_production_app
           mkdir -p .rc1112_production_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html .rc1112_production_app/
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html dist-rc1112/qualitaet.html .rc1112_production_app/
           cp dist-rc1112/production-version.js .rc1112_production_app/production-version.js
           cp -R assets .rc1112_production_app/assets
           cp -R dist-rc1112/assets/. .rc1112_production_app/assets/
           cp staticwebapp.config.json .rc1112_production_app/staticwebapp.config.json
           cp dist-rc1112/index.html .rc1112_production_app/index.html
           test -s .rc1112_production_app/index.html
+          test -s .rc1112_production_app/qualitaet.html
           test -s .rc1112_production_app/production-version.js
           test -s .rc1112_production_app/pack.html
           test -s .rc1112_production_app/assets/rc1016-mobile-navigation.js
