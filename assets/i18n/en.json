@@ -2525,5 +2525,6 @@
   "urgentOrderV2.explainException": "A failed check needs a reason of at least 8 characters.",
   "urgentOrderV2.networkError": "The Urgent Order service is not responding. Check your connection and retry.",
   "urgentOrderV2.emailHistoryHint": "Saved email addresses can be selected on this device, without signing in or linking an account.",
-  "urgentOrderV2.clearEmailHistory": "Delete saved emails"
+  "urgentOrderV2.clearEmailHistory": "Delete saved emails",
+  "urgentOrderV2.saveEmailOnDevice": "Save email on this device"
 }
