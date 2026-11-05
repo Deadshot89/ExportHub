@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -26,9 +26,11 @@ test('CAPA: validations and optimistic concurrency',()=>{
  assert.throws(()=>newCase({description:'Titel fehlt'},staff),/Pflicht/);
  assert.throws(()=>cleanPatch({category:'unbekannt'}),/Ungültige Auswahl/);
  assert.throws(()=>cleanPatch({dueDate:'morgen'}),/Datum/);
+ assert.throws(()=>cleanPatch({occurredOn:'2026-02-30'}),/Datum/);
  const item=fresh();assert.throws(()=>updateCase(item,{revision:2,title:'neu'},staff),/inzwischen/);
  updateCase(item,{revision:1,status:'ursachenanalyse',rootCause:'Kein Scan vor Beladung'},staff);
  assert.equal(item.status,'ursachenanalyse');assert.equal(item.revision,2);
+ assert.deepEqual(item.history.at(-1).changedFields.sort(),['rootCause','status']);
  assert.throws(()=>updateCase(item,{revision:2,status:'abgeschlossen'},staff),/nicht erlaubt/);
 });
 test('CAPA: closing is prohibited until root cause, action and effective evidence',()=>{
@@ -46,7 +48,8 @@ test('CAPA: reopening requires meaningful explanation and is logged',()=>{
  closeCase(item,{revision:1},admin);
  assert.throws(()=>reopenCase(item,{revision:2,reason:'nö'},admin),/Grund/);
  reopenCase(item,{revision:2,reason:'Wiederholung beim Kunden'},admin);
- assert.equal(item.status,'ursachenanalyse');assert.equal(item.closedAt,'');assert.equal(item.effectivenessResult,'offen');assert.equal(item.history.at(-1).action,'WIEDEREROEFFNET');
+ assert.equal(item.status,'ursachenanalyse');assert.equal(item.closedAt,'');assert.equal(item.effectivenessResult,'offen');
+ assert.equal(item.effectivenessEvidence,'');assert.equal(item.verifiedOn,'');assert.equal(item.history.at(-1).action,'WIEDEREROEFFNET');
 });
 test('CAPA: recommendations are rule based, shipment-specific and have no external dependency',()=>{
  const s=advice({title:'Palette falsch verladen',description:'Mehrfach passiert',severity:'hoch'});
@@ -54,6 +57,27 @@ test('CAPA: recommendations are rule based, shipment-specific and have no extern
  assert.ok(s.some(x=>/Wiederholungsfehler/.test(x.title)));
  assert.ok(s.some(x=>/Verantwortliche/.test(x.title)));
 });
+
+test('CAPA: related incidents show confirmed measures only when effectiveness was verified',()=>{
+ const now=new Date().toISOString(),base=fresh();
+ const prior={...fresh(),id:'QM-OLD',title:'Falsche Palette bei Verladung',category:'verladung',description:'Eine falsche Palette wurde geladen',status:'abgeschlossen',effectivenessResult:'wirksam',correctiveAction:'Scan bei Verladung',updatedAt:now};
+ const open={...prior,id:'QM-OPEN',status:'massnahme',correctiveAction:'Nur ungeprüfter Entwurf'};
+ const unrelated={...prior,id:'QM-OTHER',title:'Stromverbrauch am Standort',description:'Beleuchtung defekt',category:'umwelt',rootCause:''};
+ const hits=relatedCases(base,[base,prior,open,unrelated]);
+ assert.equal(hits.length,2);
+ assert.equal(hits[0].verifiedMeasure,'Scan bei Verladung');
+ assert.ok(hits.every(x=>x.id!=='QM-OTHER'&&x.id!==base.id));
+ assert.equal(hits.find(x=>x.id==='QM-OPEN').verifiedMeasure,'');
+});
+test('CAPA: private evidence and incident storage is never part of shared shipment state',()=>{
+ const apiSource=fs.readFileSync('api/quality-capa/index.js','utf8');
+ assert.match(apiSource,/quality\/capa-cases\.json/);
+ assert.doesNotMatch(apiSource,/team\.state\.qualityCases/);
+ assert.match(apiSource,/requireRight\(canRead/);
+ assert.match(apiSource,/requireRight\(canEdit/);
+ assert.match(apiSource,/requireRight\(canClose/);
+});
+
 test('CAPA: release bundle includes page, server API and menu link',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const menu=fs.readFileSync('assets/rc1579-menu-redesign.js','utf8');
