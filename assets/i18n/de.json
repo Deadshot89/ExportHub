@@ -2526,5 +2526,7 @@
   "urgentOrderV2.networkError": "Der Urgent-Order-Dienst antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.",
   "urgentOrderV2.emailHistoryHint": "Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.",
   "urgentOrderV2.clearEmailHistory": "Gespeicherte E-Mails löschen",
-  "urgentOrderV2.saveEmailOnDevice": "E-Mail auf diesem Gerät speichern"
+  "urgentOrderV2.saveEmailOnDevice": "E-Mail auf diesem Gerät speichern",
+  "urgentOrderV2.emailHistoryStorageFailed": "Lokale Speicherung derzeit nicht verfügbar.",
+  "urgentOrderV2.emailHistorySaved": "E-Mail-Adresse auf diesem Gerät gespeichert."
 }
