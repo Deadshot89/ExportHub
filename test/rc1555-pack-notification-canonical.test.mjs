@@ -111,7 +111,7 @@ test('mixed colli: different master packaging types are stored per piece with in
   assert.equal(res.status,201,JSON.stringify(res.body));
   const saved=f.state().packNotifications[0];
   assert.equal(saved.packageCount,3);
-  assert.deepEqual(saved.packages.map(p=>p.packagingType),['Spezialbox A','Neue Sonderverpackung','Spezialbox A']);
+  assert.deepEqual(saved.packages.map(p=>p.packageType),['Spezialbox A','Neue Sonderverpackung','Spezialbox A']);
   assert.deepEqual(saved.packages.map(p=>p.packagingTypeId),['PKG-BOX-A','PKG-NODIM','PKG-BOX-A']);
   assert.deepEqual(saved.packages.map(p=>p.height),[44,31,66]);
   assert.equal(saved.packages[1].packagingSnapshot.name,'Neue Sonderverpackung');
