@@ -38,14 +38,26 @@ function recordsOf(doc){
   throw err('STORAGE_DATA_INVALID','QM-Daten sind unvollständig oder beschädigt. Speichern gesperrt, um Datenverlust zu verhindern.',503);
  return doc.items;
 }
+function validatedSnapshot(snapshot){
+ const records=recordsOf(snapshot&&snapshot.value);
+ // The shared JSON reader treats a stored JSON null as a default value.
+ // Existing CAPA blobs must have been written with revision >= 1;
+ // never overwrite an existing null/corrupted blob as though it were new.
+ const revision=snapshot&&snapshot.value&&snapshot.value.revision;
+ if(!Number.isSafeInteger(revision)||revision<0||(snapshot.etag&&revision<1))
+  throw err('STORAGE_DATA_INVALID','QM-Daten sind unvollständig oder beschädigt. Speichern gesperrt, um Datenverlust zu verhindern.',503);
+ return records;
+}
 async function readRecords(env){
- return auth.readJson(recordsClient(env),{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
+ const snapshot=await auth.readJson(recordsClient(env),{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
+ validatedSnapshot(snapshot);
+ return snapshot;
 }
 async function mutateRecords(env,updater){
  const blob=recordsClient(env);
  for(let n=0;n<7;n++){
   const previous=await auth.readJson(blob,{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
-  const result=updater(recordsOf(previous.value).slice());
+  const result=updater(validatedSnapshot(previous).slice());
   const next={schemaVersion:1,revision:Number(previous.value.revision||0)+1,updatedAt:new Date().toISOString(),items:result.items};
   try{await auth.writeJson(blob,next,previous.etag);return result.item}
   catch(e){if(e&&[409,412].includes(e.statusCode)&&n<6)continue;throw e}
@@ -174,4 +186,4 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
-module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,STATUSES};
+module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,validatedSnapshot,STATUSES};
