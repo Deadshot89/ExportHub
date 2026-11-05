@@ -3,8 +3,9 @@
 const OLD_SOURCE="function sourceList(sh){if(!sh||!hasSignature(sh))return[];var manual=manualPodSource(sh);if(manual)return[manual];return[{url:'',name:'POD_'+safe(ref(sh))+'_Ladeliste_mit_Unterschrift.pdf',type:'application/pdf',kind:'official-signed-loadlist'}]}";
 const NEW_SOURCE=String.raw`function signedPodExpected(sh){
  if(!sh)return false;
- var api=window.ExportHUBPickupPOD;
+ var api=window.ExportHUBPickupPOD,official=window.ExportHUBRC1602OfficialPOD;
  try{if(api&&typeof api.hasSignature==='function'&&api.hasSignature(sh))return true}catch(_){}
+ try{if(official&&typeof official.originalFile==='function'&&official.originalFile(sh))return true}catch(_){}
  var inline=q([sh.driverSignature,sh.pickupDriverSignature,sh.signatureDataUrl,sh.pickupSignature].find(Boolean));
  var url=q([sh.driverSignatureUrl,sh.pickupDriverSignatureUrl,sh.pickupSignatureUrl,sh.signatureUrl].find(Boolean));
  var verified=sh.remotePickupStatusLocked===true&&sh.podServerVerified===true&&!!q(sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickedUpAt||sh.podServerVerifiedAt);
