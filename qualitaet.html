@@ -18,7 +18,7 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 .workspace{display:grid;grid-template-columns:minmax(290px,365px) minmax(0,1fr);gap:18px;align-items:start}.panel{background:var(--surface);border:1px solid var(--border);border-radius:17px;box-shadow:var(--shadow);overflow:hidden}.panel-head{padding:19px 21px;border-bottom:1px solid var(--border)}.panel-body{padding:21px}.filters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.filters input{grid-column:1/-1}.cases{max-height:680px;overflow:auto;padding:7px}.case{display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:12px;padding:14px 12px;background:transparent;color:inherit;margin:4px 0}.case:hover,.case[aria-current="true"]{background:#eef8fb;border-color:#c6e4ee}.case strong{display:block;font-size:14px;margin:4px 0;overflow-wrap:anywhere}.case small{color:var(--muted)}.badges{display:flex;gap:6px;flex-wrap:wrap}.pill{font-size:11px;border-radius:20px;padding:3px 8px;background:#e9eef6;color:#46607b;font-weight:700}.pill.high{background:#fff0e6;color:#a04a12}.pill.critical{background:#feeceb;color:#b0262f}.pill.done{background:#e7f7ed;color:#1d7853}.empty{padding:26px;color:var(--muted);text-align:center}
 .section-title{font-size:12px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:#537085;margin:24px 0 11px;padding-bottom:8px;border-bottom:1px solid var(--border)}.section-title:first-child{margin-top:0}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field.wide{grid-column:1/-1}label{font-size:13px;font-weight:750;color:#2f5064}input,select,textarea{width:100%;border:1px solid #cedbea;background:#fff;color:#18304b;border-radius:10px;padding:10px 12px;min-height:43px}textarea{min-height:78px;resize:vertical}input:disabled,select:disabled,textarea:disabled{background:#f4f6fa;color:#546579}.form-actions{position:sticky;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--border);padding:15px 21px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:5}
-.helper{font-size:12px;color:var(--muted)}.suggestions{display:none;margin:0 21px 23px;border-radius:12px;background:#f0f9fc;border:1px solid #c8e6f0;padding:18px}.suggestions.show{display:block}.tip{border-top:1px solid #c8e6f0;padding:10px 0}.tip:first-of-type{border:0}.tip b{display:block}.tip p{margin:3px 0 0;font-size:13px;color:#365464}
+.helper{font-size:12px;color:var(--muted)}.suggestions{display:none;margin:0 21px 23px;border-radius:12px;background:#f0f9fc;border:1px solid #c8e6f0;padding:18px}.suggestions.show{display:block}.tip{border-top:1px solid #c8e6f0;padding:10px 0}.tip:first-of-type{border:0}.tip b{display:block}.tip p{margin:3px 0 0;font-size:13px;color:#365464}.tip button{margin-top:9px;border:1px solid #84bccc;background:#fff;border-radius:9px;padding:6px 11px;font-size:12px;font-weight:750;color:#1a5868}.related-item{display:block;text-align:left;width:100%;padding:10px 12px;margin:6px 0;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:inherit}.related-item small{display:block;color:var(--muted)}
 .history{padding:5px 21px 21px}.history-row{border-top:1px solid var(--border);padding:11px 0;font-size:13px}.history-row span{color:var(--muted)}#notice{min-height:20px;color:#316d7b;font-size:13px;font-weight:700}#notice.error{color:#b12438}
 .locked{border:1px solid #f1d2a4;background:#fff9ec;border-radius:13px;padding:18px;margin:20px 0;color:#67481c}
 [hidden]{display:none!important}
@@ -77,7 +77,7 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 <script>
 (function(){
 'use strict';
-var endpoint='/api/quality-capa',items=[],selected=null,canEdit=false,canClose=false,dirty=false,busy=false,form=document.getElementById('caseForm');
+var endpoint='/api/quality-capa',items=[],selected=null,canEdit=false,canClose=false,dirty=false,busy=false,currentAdvice=[],form=document.getElementById('caseForm');
 var fields=['title','category','severity','occurredOn','area','reference','description','impact','immediateAction','rootCause','correctiveAction','preventiveAction','owner','dueDate','status','evidence','effectivenessResult','verifiedOn','effectivenessEvidence'];
 var statusNames={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:'Abgeschlossen'};
 function el(id){return document.getElementById(id)}
@@ -104,7 +104,7 @@ function fill(item){
  el('formTitle').textContent=item?item.title||item.id:'Neuer Fehler';
  el('formMeta').textContent=item?item.id+' · erstellt '+new Date(item.createdAt).toLocaleDateString('de-DE')+' · '+item.createdBy+' · Version '+item.revision:'Neue Abweichung mit eindeutiger Nummer erfassen';
  el('saveHint').textContent=closed?'Abgeschlossen':item?'Gespeichert':'Noch nicht gespeichert';
- dirty=false;notice('');el('suggestions').classList.remove('show');history(item);
+ dirty=false;currentAdvice=[];notice('');el('suggestions').classList.remove('show');history(item);
 }
 function history(item){el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
  el('history').innerHTML=(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
@@ -134,13 +134,35 @@ async function save(silent){if(busy)return false;if(!form.reportValidity())retur
  var result=await api(data);await load(result.item.id);notice('Änderungen zentral gespeichert.');return true
  }catch(e){notice(e.message,true);return false}finally{setBusy(false)}}
 async function tips(){if(busy)return;setBusy(true);try{
- var p=await api({action:'advise',case:value()});
- var box=el('suggestions');box.innerHTML='<h2>Verbesserungsvorschläge</h2><p class="helper">Regelbasierte Analyse – keine generative KI. Maßnahmen fachlich prüfen und selbst freigeben.</p>'+
- (p.suggestions||[]).map(function(t){return'<div class="tip"><b>'+esc(t.title)+'</b><p>'+esc(t.detail)+'</p></div>'}).join('');
- box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
+ var p=await api({action:'advise',case:Object.assign({id:selected&&selected.id||''},value())});
+ currentAdvice=p.suggestions||[];
+ var box=el('suggestions');
+ var suggestions=currentAdvice.map(function(t,i){
+  return'<div class="tip"><b>'+esc(t.title)+'</b><p>'+esc(t.detail)+'</p>'+
+  (canEdit&&(!selected||selected.status!=='abgeschlossen')?'<button type="button" data-take-tip="'+i+'">Als Maßnahme vorschlagen</button>':'')+'</div>';
+ }).join('');
+ var related=(p.relatedCases||[]).map(function(c){
+  return'<button type="button" class="related-item" data-related-id="'+esc(c.id)+'"><b>'+esc(c.title)+'</b><small>'+esc(c.id)+' · '+esc(statusNames[c.status]||c.status)+'</small>'+
+  (c.verifiedMeasure?'<small>Nachweislich wirksame Maßnahme: '+esc(c.verifiedMeasure)+'</small>':'')+'</button>';
+ }).join('');
+ box.innerHTML='<h2>Verbesserungsvorschläge</h2><p class="helper">Regelbasierte Analyse – keine generative KI. Maßnahmen fachlich prüfen und selbst freigeben.</p>'+
+ suggestions+(related?'<h2 style="margin-top:14px">Ähnliche frühere Fehler</h2><p class="helper">Ähnliche Fälle dienen zur Orientierung; die tatsächliche Ursache muss neu geprüft werden.</p>'+related:'');
+ box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'});
  }catch(e){notice(e.message,true)}finally{setBusy(false)}}
+el('suggestions').addEventListener('click',function(e){
+ var take=e.target.closest('[data-take-tip]'),related=e.target.closest('[data-related-id]');
+ if(related){var found=items.find(function(i){return i.id===related.getAttribute('data-related-id')});if(found)select(found);return}
+ if(!take||!canEdit||(selected&&selected.status==='abgeschlossen'))return;
+ var tip=currentAdvice[Number(take.getAttribute('data-take-tip'))];if(!tip)return;
+ var field=form.elements.correctiveAction,proposal='[Vorschlag – vor Umsetzung prüfen] '+tip.title+': '+tip.detail;
+ if(field.value.indexOf(proposal)!==-1){notice('Der Vorschlag steht bereits in den Maßnahmen.');return}
+ field.value=(field.value.trim()?field.value.trim()+'\n\n':'')+proposal;
+ dirty=true;el('saveHint').textContent='Vorschlag noch nicht gespeichert';
+ notice('Vorschlag in „Abstellmaßnahme“ eingefügt. Bitte prüfen und anschließend speichern.');
+ field.focus();
+});
 async function close(){if(!selected)return;if(!canClose)return;
- if(!await save(true))return;setBusy(true);
+ if(dirty&&!(await save(true)))return;setBusy(true);
  try{await api({action:'close',id:selected.id,revision:selected.revision});await load(selected.id);notice('Fall nach dokumentierter Wirksamkeitsprüfung abgeschlossen.')}
  catch(e){notice(e.message,true)}finally{setBusy(false)}
 }
