@@ -2526,5 +2526,7 @@
   "urgentOrderV2.networkError": "The Urgent Order service is not responding. Check your connection and retry.",
   "urgentOrderV2.emailHistoryHint": "Saved email addresses can be selected on this device, without signing in or linking an account.",
   "urgentOrderV2.clearEmailHistory": "Delete saved emails",
-  "urgentOrderV2.saveEmailOnDevice": "Save email on this device"
+  "urgentOrderV2.saveEmailOnDevice": "Save email on this device",
+  "urgentOrderV2.emailHistoryStorageFailed": "Local storage is currently unavailable.",
+  "urgentOrderV2.emailHistorySaved": "Email address saved on this device."
 }
