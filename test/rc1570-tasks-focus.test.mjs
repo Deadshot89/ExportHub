@@ -127,6 +127,9 @@ test('RC1570 Heute ist nach Arbeitsgruppen wie in der alten Liste gruppiert, Kar
   ],me,'2026-10-14T10:00:00');
   assert.equal(api.workGroup({title:'MRN eintragen'}),'abds');
   assert.equal(api.workGroup({area:'Pickup',title:'Abholung'}),'shipments','Pickup ist kein Pick');
+  assert.equal(api.workGroup({area:'Aufträge kontrollieren',title:'Aufträge prüfen'}),'check');
+  assert.equal(api.workGroup({area:'Zusatzaufgaben',title:'Etiketten drucken'}),'extra');
+  assert.equal(api.workGroup({title:'POD fehlt',requiresPod:true,pickedUp:true}),'pod','Fehlende POD bleibt erhalten');
   const html=api.renderHtml(api.buildModel(),new Date('2026-10-14T10:00:00'));
   const order=[...html.matchAll(/data-rc1570-group="(\w+)"/g)].map(m=>m[1]);
   assert.deepEqual(order,['shipments','pod','customer','picks','abds']);
