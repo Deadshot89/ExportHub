@@ -81,9 +81,10 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">Lieferart *<select name="delivery" required><option value="" data-i18n="urgentOrderV2.chooseOrder">Bitte wählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label>
 <label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label>
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
-<label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="email" placeholder="name@firma.com" maxlength="254" required></label>
+<label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
+<datalist id="internalUrgentEmailHistory"></datalist>
 </div>
-<div class="btn-row"><button type="button" id="saveProfile" class="btn alt small">E-Mail für mein Login speichern</button><span class="help" id="profileHint">Zuordnung erfolgt zum angemeldeten ExportHUB-Benutzer.</span></div>
+<div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <div id="lineFields"></div>
 </div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
@@ -112,6 +113,29 @@ function urgentPublicOrigin(){
  const productionHosts=new Set([productionHost,'exporthub360.com','www.exporthub360.com','exporthub360.de','www.exporthub360.de']);
  return productionHosts.has(host)?'https://'+productionHost:location.origin;
 }
+// RC1811_INTERNAL_EMAIL_HISTORY_BEGIN
+// No account binding: this history stays on this browser and is never sent
+// to a public autocomplete API. Both Urgent Order forms share the same origin.
+const EMAIL_HISTORY_KEY='exporthub360.urgent-order.reporter-emails.v1';
+function savedEmails(){
+ try{const data=JSON.parse(localStorage.getItem(EMAIL_HISTORY_KEY)||'[]');
+  return Array.isArray(data)?data.filter(v=>typeof v==='string'&&v.length<=254&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v)).slice(0,20):[];
+ }catch(_){return[];}
+}
+function renderSavedEmails(){
+ const target=$('internalUrgentEmailHistory');target.replaceChildren();
+ savedEmails().forEach(value=>{const option=document.createElement('option');option.value=value;target.appendChild(option);});
+ $('clearInternalEmailHistory').hidden=savedEmails().length===0;
+}
+function rememberEmail(value){
+ const email=String(value||'').trim();
+ if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))return false;
+ const next=[email,...savedEmails().filter(v=>v.toLowerCase()!==email.toLowerCase())].slice(0,20);
+ try{localStorage.setItem(EMAIL_HISTORY_KEY,JSON.stringify(next));}catch(_){return false;}
+ renderSavedEmails();return true;
+}
+function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
+// RC1811_INTERNAL_EMAIL_HISTORY_END
 let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open';
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
@@ -248,8 +272,8 @@ async function refresh(){
  try{
   const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
-  if(data.profile){$('csEmail').value=data.profile.email||'';$('csLanguage').value=data.profile.language||'de';$('profileHint').textContent='Gespeichert für dieses Login (Adresse noch nicht verifiziert).';}
-  else $('profileHint').textContent='E-Mail wird deinem ExportHUB-Login zugeordnet.';
+  // Email autocomplete intentionally does not use the API's legacy login profile.
+  renderSavedEmails();
   render();
  }catch(e){
   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
@@ -268,14 +292,14 @@ async function submit(ev){
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
+ try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
 async function profile(){
  if(!$('csEmail').reportValidity())return;
  $('saveProfile').disabled=true;
- try{await api('save-profile',{email:$('csEmail').value,language:$('csLanguage').value});$('profileHint').textContent='Adresse für dieses Login gespeichert (noch nicht verifiziert).';setMessage('createMessage','CS-E-Mail gespeichert.','ok');}
+ try{if(!rememberEmail($('csEmail').value))throw new Error(localeV2('emailHistoryStorageFailed','Lokale Speicherung derzeit nicht verfügbar.'));setMessage('createMessage',localeV2('emailHistorySaved','E-Mail-Adresse auf diesem Gerät gespeichert.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('saveProfile').disabled=false;}
 }
@@ -305,7 +329,7 @@ async function copyDraft(){
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
 $('newOrder').addEventListener('submit',submit);
-$('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
+$('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('clearInternalEmailHistory').addEventListener('click',forgetEmails);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 $('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
@@ -314,7 +338,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').h
 window.addEventListener('exporthub:language-changed',render);
 $('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
 $('urgentBackToHub').href=urgentPublicOrigin()+'/';
-lineField();showInternalStep(1);refresh();
+renderSavedEmails();lineField();showInternalStep(1);refresh();
 })();
 </script>
 </body>

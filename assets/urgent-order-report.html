@@ -60,7 +60,9 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-wizard-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-wizard-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-wizard-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-wizard-step="1">
 <div class="pair"><label class="field"><span data-i18n="urgentOrderV2.orderNumber">Auftragsnummer *</span><input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
 <div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
-<label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
+<label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
+<datalist id="urgentEmailHistory"></datalist>
+<div class="actions"><span class="muted" id="emailHistoryHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span><button type="button" class="btn secondary small" id="clearEmailHistory" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button></div>
 <div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
@@ -102,6 +104,34 @@ const $=id=>document.getElementById(id);
 let secret='',orders=[],tab='open',activeView='new';
 const str=v=>String(v==null?'':v);
 const esc=v=>str(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+// RC1811_EMAIL_HISTORY_BEGIN
+// Browser-local history deliberately avoids an unauthenticated global
+// email directory, account association, cookies and URL query strings.
+const EMAIL_HISTORY_KEY='exporthub360.urgent-order.reporter-emails.v1';
+function savedEmails(){
+ try{
+  const values=JSON.parse(localStorage.getItem(EMAIL_HISTORY_KEY)||'[]');
+  return Array.isArray(values)?values.filter(value=>typeof value==='string'&&value.length<=254&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value)).slice(0,20):[];
+ }catch(_){return[];}
+}
+function refreshEmailChoices(){
+ const list=$('urgentEmailHistory');list.replaceChildren();
+ savedEmails().forEach(value=>{const option=document.createElement('option');option.value=value;list.appendChild(option);});
+ $('clearEmailHistory').hidden=savedEmails().length===0;
+}
+function rememberEmail(value){
+ const email=String(value||'').trim();
+ if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))return false;
+ const values=[email,...savedEmails().filter(item=>item.toLowerCase()!==email.toLowerCase())].slice(0,20);
+ try{localStorage.setItem(EMAIL_HISTORY_KEY,JSON.stringify(values));}
+ catch(_){return false;}
+ refreshEmailChoices();return true;
+}
+function clearEmailChoices(){
+ try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}
+ refreshEmailChoices();
+}
+// RC1811_EMAIL_HISTORY_END
 function accessFromHash(){
  const m=/^(?:#)?access=(uro_[A-Za-z0-9_-]{43})$/.exec(location.hash.replace(/^#/,''));
  return m?m[1]:'';
@@ -263,6 +293,7 @@ async function submit(ev){
  $('submitOrder').disabled=true;showMessage('Anfrage wird gespeichert …','');
  try{
   const data=await api('create',p);
+  rememberEmail(p.email); // Save only after successful server confirmation.
   secret=data.accessToken;
   $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
   location.hash='access='+encodeURIComponent(secret);
@@ -288,6 +319,8 @@ for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
+$('clearEmailHistory').addEventListener('click',clearEmailChoices);
+refreshEmailChoices();
 secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
 })();
 </script>
