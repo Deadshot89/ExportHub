@@ -2523,5 +2523,7 @@
   "urgentOrderV2.retry": "Riprova",
   "urgentOrderV2.missingArticle": "Inserisci il numero della riga o dell'articolo.",
   "urgentOrderV2.explainException": "Una verifica negativa richiede una spiegazione di almeno 8 caratteri.",
-  "urgentOrderV2.networkError": "Il servizio degli ordini urgenti non risponde. Controlla la connessione e riprova."
+  "urgentOrderV2.networkError": "Il servizio degli ordini urgenti non risponde. Controlla la connessione e riprova.",
+  "urgentOrderV2.emailHistoryHint": "Gli indirizzi e-mail salvati sono selezionabili su questo dispositivo, senza accesso o collegamento a un account.",
+  "urgentOrderV2.clearEmailHistory": "Elimina le e-mail salvate"
 }
