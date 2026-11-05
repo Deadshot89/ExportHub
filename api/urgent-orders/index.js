@@ -32,14 +32,36 @@ function publicSiteEnvironment(url){
 // or X-Forwarded-Host it cannot be supplied by an anonymous browser request.
 function deploymentEnv(metadata){
  if(!metadata||!(/^[0-9a-f]{40}$/i.test(String(metadata.buildId||''))))return'';
- if(metadata.environment!=='testservice'||!metadata.visibleRelease||!metadata.technicalBuild||!metadata.builtAt)return'';
- return'testservice';
+ if(!['testservice','production'].includes(metadata.environment)||!metadata.visibleRelease||!metadata.technicalBuild||!metadata.builtAt)return'';
+ return metadata.environment;
 }
 function serverDeploymentEnvironment(){
+ // Use the same verified file/runtime sources as /api/exporthub-health.
+ // Azure's managed Functions proxy often supplies its internal worker Host
+ // rather than the browser-facing azurestaticapps.net hostname.
+ let fromFile='';
  try{
   const location=process.env.EXPORTHUB_RELEASE_METADATA_PATH?path.resolve(process.env.EXPORTHUB_RELEASE_METADATA_PATH):path.join(__dirname,'..','release-metadata.json');
-  return deploymentEnv(JSON.parse(fs.readFileSync(location,'utf8')));
- }catch(_){return'';}
+  fromFile=deploymentEnv(JSON.parse(fs.readFileSync(location,'utf8')));
+ }catch(_){}
+ const fromRuntime=deploymentEnv({
+  buildId:process.env.EXPORTHUB_DEPLOY_BUILD_ID,
+  visibleRelease:process.env.EXPORTHUB_DEPLOY_VISIBLE_RELEASE,
+  technicalBuild:process.env.EXPORTHUB_DEPLOY_TECHNICAL_BUILD,
+  builtAt:process.env.EXPORTHUB_DEPLOY_BUILT_AT,
+  environment:process.env.EXPORTHUB_DEPLOY_ENVIRONMENT
+ });
+ // Inconsistent server-side deployment identities must fail closed.
+ if(fromFile&&fromRuntime&&fromFile!==fromRuntime)return'';
+ return fromFile||fromRuntime||'';
+}
+function isAzureInternalWorkerHost(value){
+ try{
+  const raw=String(value||'').trim();
+  if(!raw)return false;
+  const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
+  return hostname.endsWith('.azurewebsites.net');
+ }catch(_){return false;}
 }
 function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnvironment()){
  const h=req&&req.headers||{};
@@ -49,9 +71,10 @@ function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnviron
  const requested=String(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||'').toLowerCase().trim();
  if(direct&&forwarded&&direct!==forwarded)
   throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The deployment host values disagree.',409);
- // Unknown Azure worker Host is acceptable ONLY if signed release metadata
- // confirms TESTSERVICE. Never infer production from an untrusted Origin.
- if(!direct&&!forwarded&&serverEnvironment!=='testservice')
+ // Accept Azure's internal Functions worker Host only when server-side
+ // release metadata unequivocally names the deployed environment.
+ // Browser Origin, Referer and X-ExportHUB-Environment never grant access.
+ if(!direct&&!forwarded&&(!serverEnvironment||!isAzureInternalWorkerHost(h.host||h.Host||'')))
   throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
  const environment=direct||forwarded||serverEnvironment;
  if(site&&site!==environment)
