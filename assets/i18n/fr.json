@@ -2526,5 +2526,7 @@
   "urgentOrderV2.networkError": "Le service des commandes urgentes ne répond pas. Vérifiez la connexion et réessayez.",
   "urgentOrderV2.emailHistoryHint": "Les adresses e-mail enregistrées peuvent être choisies sur cet appareil, sans connexion ni compte associé.",
   "urgentOrderV2.clearEmailHistory": "Effacer les adresses enregistrées",
-  "urgentOrderV2.saveEmailOnDevice": "Enregistrer l’e-mail sur cet appareil"
+  "urgentOrderV2.saveEmailOnDevice": "Enregistrer l’e-mail sur cet appareil",
+  "urgentOrderV2.emailHistoryStorageFailed": "Le stockage local est actuellement indisponible.",
+  "urgentOrderV2.emailHistorySaved": "Adresse e-mail enregistrée sur cet appareil."
 }
