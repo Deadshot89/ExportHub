@@ -48,7 +48,8 @@ test('P0 protected Pack PDF fetch on production host uses Bearer token without c
   const expected=Buffer.from('%PDF-1.7\n% Fixture only\n1 0 obj\n<<>>\nendobj\n%%EOF\n');
   const root={
     location:{hostname:'www.exporthub360.de',origin:'https://www.exporthub360.de'},
-    ExportHUBClean:{runtime:{environment:'testservice',authToken:'fixture-token'}},
+    ExportHUBClean:{runtime:{environment:'testservice',authToken:'stale-testservice-token'}},
+    sessionStorage:{getItem:()=>JSON.stringify({environment:'production',token:'fixture-production-token',user:{id:'fixture-user'}})},
     fetch:async (url,options)=>{
       requests.push({url,options});
       return{ok:true,status:200,type:'basic',url:'https://www.exporthub360.de'+url,redirected:false,
@@ -64,7 +65,17 @@ test('P0 protected Pack PDF fetch on production host uses Bearer token without c
   assert.match(requests[0].url,/^\/api\/exporthub-document\?/);
   assert.equal(requests[0].options.credentials,'omit');
   assert.equal(requests[0].options.redirect,'manual');
-  assert.equal(requests[0].options.headers.Authorization,'Bearer fixture-token');
+  assert.equal(requests[0].options.headers.Authorization,'Bearer fixture-production-token');
+});
+
+test('P0 missing production session never falls back to stale TESTSERVICE runtime token',()=>{
+  const root={
+    location:{hostname:'www.exporthub360.de',origin:'https://www.exporthub360.de'},
+    ExportHUBClean:{runtime:{environment:'testservice',authToken:'stale-testservice-token'}},
+    sessionStorage:{getItem:()=>null}
+  };
+  vm.runInNewContext(viewer,{window:root,URL,Uint8Array});
+  assert.throws(()=>root.ExportHUBDocumentBlob1059.headers(),/login required/i);
 });
 
 test('P0 actual Pack shipment Open button displays HTTP failure category rather than swallowing it',async()=>{
