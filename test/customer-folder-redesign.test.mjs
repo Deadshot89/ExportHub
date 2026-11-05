@@ -100,3 +100,17 @@ test('Kundenordner: geänderte Felder werden gezählt und markiert, Strg+S speic
   assert.match(layer,/label\.field\[data-cf-changed="1"\] :is\(input,select,textarea\)/,'Rahmen geänderter Felder muss im RC971-Layer stehen');
   assert.match(layer,/#cfLeaveDialog#cfLeaveDialog#cfLeaveDialog \.cf-leave-actions button\[data-cf-choice="save"\]/);
 });
+
+test('Kundenordner: currentCustomerId folgt dem geöffneten Kunden, sodass Zusatzabschnitte nicht den alten Kunden zeigen',()=>{
+  const win={ExportHUBI18n:null};
+  const doc={readyState:'complete',body:null,addEventListener(){},getElementById(){return null}};
+  win.window=win;win.document=doc;
+  vm.runInNewContext(js,win);
+  const api=win.ExportHUBCustomerFolder;
+  const s={customerFolderOpenId:'SE-1',customerFolderId:'SE-1',selectedCustomerId:'SE-1',currentCustomerId:'NO-7'};
+  assert.equal(api.alignCustomerState(s),true);
+  assert.equal(s.currentCustomerId,'SE-1');
+  assert.equal(api.alignCustomerState(s),false,'zweiter Aufruf darf nichts mehr ändern (keine Endlosschleife)');
+  assert.equal(api.alignCustomerState({currentCustomerId:'X'}),false,'ohne geöffneten Kunden keine Änderung');
+  assert.equal(api.alignCustomerState(null),false);
+});
