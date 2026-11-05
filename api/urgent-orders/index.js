@@ -131,7 +131,9 @@ async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
  if(action==='list'){
   const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);
-  return{orders:visibleOrders(doc,user),profile:doc.profiles[model.text(user.id)]||null,canManage:model.canManage(user),environment:refs.environment};
+  // Account-linked email profiles are deprecated; only the local browser's
+  // non-authenticated address history supplies autocomplete suggestions.
+  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
@@ -155,8 +157,9 @@ async function execute(req,user,refs){
   });
  }
  if(action==='save-profile'){
-  const address=model.email(p.email),language=model.language(p.language),key=model.text(user.id);
-  return write(refs,doc=>{doc.profiles[key]={email:address,language,updatedAt:now,verified:false};return{profile:doc.profiles[key]};});
+  // Retired: never create a new login-linked email profile, including from
+  // legacy clients. Existing historical records remain untouched.
+  throw model.problem('URGENT_PROFILE_DEPRECATED','E-Mail-Adressen werden jetzt nur auf diesem Gerät gespeichert.',410);
  }
  if(action==='update-status'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Statusänderungen sind ausschließlich für die Logistik möglich.',403);
