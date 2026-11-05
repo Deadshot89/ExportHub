@@ -10,7 +10,7 @@ function planner(html){
  const marker='function signedPodExpected(sh)',start=html.indexOf(marker),end=html.indexOf('function selection(){',start);
  assert.ok(start>=0&&end>start,'beide POD-Auswahlfunktionen müssen vorhanden sein');
  const ctx={
-  window:{ExportHUBPickupPOD:{hasSignature:sh=>sh.digital===true}},
+  window:{ExportHUBPickupPOD:{hasSignature:sh=>sh.digital===true},ExportHUBRC1602OfficialPOD:{originalFile:sh=>sh.immutableOriginal?{kind:'automatic-pod'}:null}},
   hasSignature:sh=>sh&&sh.signaturePresent!==false,
   manualPodSource:sh=>sh.manual?{kind:'manual-uploaded-pod',name:'POD_TEST.pdf',url:'/api/manual'}:null,
   ref:()=> 'TEST',safe:s=>s,
@@ -30,6 +30,7 @@ test('RC1821: digital + manual erzeugt zwei separate PDF-Jobs, manual-only erzeu
  assert.deepEqual(Array.from(api.sourceList({digital:true}),x=>x.kind),['official-signed-loadlist']);
  assert.deepEqual(Array.from(api.sourceList({signaturePresent:false,manual:true})),[]);
  assert.deepEqual(Array.from(api.sourceList({manual:true,podFiles:[{kind:'automatic-pod',url:'/api/official.pdf'}]}),x=>x.kind),['official-signed-loadlist','manual-uploaded-pod']);
+ assert.deepEqual(Array.from(api.sourceList({manual:true,immutableOriginal:true}),x=>x.kind),['official-signed-loadlist','manual-uploaded-pod']);
 });
 test('RC1821: in Produktion und TESTSERVICE nur gespeicherte Original-PDFs sichern',()=>{
  for(const env of ['index.html','TESTVERSION.html']){
