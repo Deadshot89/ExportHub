@@ -93,15 +93,39 @@ test('six-language workspaces do not reuse English placeholders for the updated 
  for(let j=2;j<langs.length;j++)for(const suffix of repaired)assert.notEqual(data[j]['urgentOrder.ui.'+suffix],data[1]['urgentOrder.ui.'+suffix],langs[j]+' untranslated previous UI label '+suffix);
 });
 
-test('public request rendering calls the actual translation helper, including dynamic status cards',()=>{
+test('public request rendering uses translations for UI copy, but not for canonical English status values',()=>{
  const source=script(publicHtml);
  assert.match(source,/function localeV2\(/);
  assert.match(source,/function statusText\(/);
  assert.match(source,/function priorityText\(/);
  assert.doesNotMatch(source,/\blabelFor\(/,'undefined translation helper must never be referenced');
- assert.match(source,/localeV2\(ids\[code\]/);
+ assert.match(source,/function statusText\(code\)\{return code==='Gemischt'/);
+ assert.doesNotMatch(source,/localeV2\(ids\[code\]/);
  assert.match(source,/localeV2\('arrivalShort'/);
  assert.match(source,/localeV2\('quantityShort'/);
+});
+
+test('urgent workspaces fill the monitor and keep every operational status in English for any UI language',()=>{
+ const statuses=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
+ for(const [page,name] of [[internalHtml,'internal'],[publicHtml,'public']]){
+  assert.match(page,/main\\{width:100%;max-width:none/,'full-width '+name+' workspace');
+  assert.doesNotMatch(page,/main\\{max-width:(?:1180|1260|1440)px/,'no later desktop width override');
+  const js=script(page);
+  const statusFn=js.split('\\n').find(line=>line.startsWith('function statusText(code){'));
+  assert.ok(statusFn,name+' status formatter must exist');
+  const context=vm.createContext({STATUS:statuses,localeV2(){throw new Error('status must not depend on selected language');}});
+  vm.runInContext(statusFn,context);
+  for(const code of statuses)assert.equal(context.statusText(code),code,name+' '+code);
+  for(const code of ['Gemischt','Mixed'])assert.equal(context.statusText(code),'Mixed');
+  assert.equal(context.statusText('invalid'),'Unknown');
+  assert.match(js,/return unique.length===1\\?unique\\[0\\]:'Mixed'|return list.length===1\\?list\\[0\\]:'Mixed'/);
+ }
+ for(const code of statuses){
+  assert.match(internalHtml,new RegExp('<option value="'+code.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g,'\\\\test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{')+'">'+code+'<\\\\/option>'));
+ }
+ assert.match(internalHtml,/<option value="">All statuses<\\/option>/);
+ assert.match(internalHtml,/<option value="exception">Check required<\\/option>/);
+ assert.doesNotMatch(internalHtml,/value="(?:Open|Waved|In Progress|Problem|Loaded|Shipped|Invoiced)" data-i18n=/);
 });
 
 test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{
