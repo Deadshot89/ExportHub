@@ -8,7 +8,7 @@
 <style>
 :root{--page:#f2f6fb;--surface:#fff;--ink:#18263e;--sub:#62728a;--line:#dce5f0;--blue:#235cc0;font:14px/1.47 system-ui,Segoe UI,Arial,sans-serif;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #79b4fa;outline-offset:2px}*[hidden]{display:none!important}
-header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)/2))}.brand{font-size:18px;font-weight:850;letter-spacing:-.02em}main{max-width:1440px;margin:auto;padding:25px clamp(14px,3vw,34px) 60px}h1{font-size:clamp(25px,3vw,36px);margin:0;letter-spacing:-.04em}h2{font-size:18px;margin:0 0 12px}p{color:var(--sub)}.intro{margin:5px 0 20px}
+header{background:#10243a;color:#fff;padding:17px clamp(16px,2vw,40px)}.brand{font-size:18px;font-weight:850;letter-spacing:-.02em}main{width:100%;max-width:none;margin:0;padding:25px clamp(16px,2vw,40px) 60px}h1{font-size:clamp(25px,3vw,36px);margin:0;letter-spacing:-.04em}h2{font-size:18px;margin:0 0 12px}p{color:var(--sub)}.intro{margin:5px 0 20px}
 .board{display:grid;grid-template-columns:minmax(340px,470px) minmax(0,1fr);gap:17px;align-items:start}.panel{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:21px;box-shadow:0 3px 20px #294a710b;min-width:0}.stack{display:grid;gap:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:5px;font-weight:720;font-size:12px;color:#36506a}.field input,.field select,.field textarea{width:100%;padding:10px;border-radius:9px;border:1px solid #b3c3d8;min-height:41px;background:var(--surface);color:var(--ink)}textarea{min-height:66px;resize:vertical}.muted{color:var(--sub);font-size:12px}.section{margin:12px 0 5px;padding-top:13px;border-top:1px solid var(--line)}.section h3{font-size:15px;margin:0 0 10px}
 .check{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:8px;align-items:center}.check label{font-size:12px;font-weight:650;color:#36506a}.check select{min-height:39px}.pill{font-weight:750;display:inline-flex;padding:4px 9px;border-radius:20px;font-size:11px;white-space:nowrap;align-items:center}
 .p-P1{background:#ffe3e4;color:#a3111c}.p-P2{background:#fff0d9;color:#8e4f0b}.p-P3{background:#e4f0ff;color:#245d9e}.p-P4{background:#edf0f6;color:#596276}
@@ -28,7 +28,7 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 @media(prefers-color-scheme:dark){.tab .request-count{background:#334761;border-color:#4e6787;color:#edf5ff}.tab[aria-selected="true"] .request-count{background:#4f92ff;border-color:#4f92ff;color:#081a31}.tab[data-has-open="true"][aria-selected="false"] .request-count{background:#68452d;border-color:#96704e;color:#ffe3bf}}
 
 /* Urgent 2.0: one workspace at a time */
-header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;padding-top:31px}h1{font-size:clamp(30px,3vw,40px)}.intro{max-width:690px;line-height:1.65}
+header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}h1{font-size:clamp(30px,3vw,40px)}.intro{max-width:690px;line-height:1.65}
 .workspace-nav{display:flex;flex-wrap:wrap;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:10px;margin:10px 0 22px;box-shadow:0 12px 36px #1b49751a}
 .workspace-nav .workspace-tab{display:inline-flex;align-items:center;gap:8px;justify-content:center;border:1px solid transparent;min-height:50px;font-weight:800;border-radius:11px;padding:10px 17px;color:var(--sub)}.workspace-nav .workspace-tab[aria-selected=true]{background:#245fc3;color:#fff;border-color:#245fc3}.workspace-nav .workspace-tab[aria-selected=true] .request-count{background:#fff;color:#1b4c95;border-color:#fff}
 .board{display:block}.board>.panel{width:100%;padding:clamp(19px,3.5vw,34px);border-radius:19px;box-shadow:0 15px 45px #1c487518}.workspace-heading{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}.workspace-heading h2{font-size:24px;margin:0 0 6px}.workspace-heading p{margin:0;font-size:13px}
@@ -204,10 +204,10 @@ function nextWizardStep(){
  }
  showMessage('','');showWizardStep(wizardStep+1);
 }
-function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
+function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
-function statusText(code){const ids={Open:'statusOpen',Waved:'statusWaved','In Progress':'statusInProgress',Problem:'statusProblem',Loaded:'statusLoaded',Shipped:'statusShipped',Invoiced:'statusInvoiced',Gemischt:'statusMixed',Mixed:'statusMixed'};const fallback={Open:'Offen',Waved:'Welle freigegeben','In Progress':'In Bearbeitung',Problem:'Problem',Loaded:'Verladen',Shipped:'Versendet',Invoiced:'Fakturiert',Gemischt:'Gemischt',Mixed:'Gemischt'};return localeV2(ids[code]||'',fallback[code]||code);}
+function statusText(code){return code==='Gemischt'||code==='Mixed'?'Mixed':STATUS.includes(code)?code:'Unknown';}
 function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
 function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function render(){
