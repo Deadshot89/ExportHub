@@ -333,13 +333,26 @@
   // RC1680 previously swallowed every exception, hiding 401/404/409 and redirects.
   function packDocumentFailureDetail(error){
     const code=q(error&&error.code),message=q(error&&error.message||error);
+    const label=(key,fallback)=>{
+      try{
+        const i18n=root.ExportHUBI18n;
+        if(i18n&&typeof i18n.t==='function'){
+          const value=q(i18n.t(key));
+          if(value&&value!==key)return value;
+        }
+      }catch(_){}
+      return fallback;
+    };
     const http=message.match(/\bHTTP\s*([1-5][0-9]{2})\b/i);
     if(http)return ' (HTTP '+http[1]+')';
-    if(code==='DOCUMENT_API_LOGIN_REDIRECT')return ' (Dokumentenserver leitet zur Anmeldung um)';
-    if(code==='DOCUMENT_NOT_PDF')return ' (Serverantwort ist keine gültige PDF)';
-    if(/login required|Sitzung fehlt|Anmeldung erforderlich/i.test(message))return ' (ExportHUB-Sitzung fehlt)';
-    if(/invalid (?:ExportHUB )?document reference|Dokumentreferenz/i.test(message))return ' (Dokumentreferenz ungültig)';
-    if(/original document is unavailable|document is not available/i.test(message))return ' (Originaldokument nicht abrufbar)';
+    if(code==='DOCUMENT_API_LOGIN_REDIRECT')return ' (DOCUMENT_API_LOGIN_REDIRECT)';
+    if(code==='DOCUMENT_NOT_PDF')return ' (DOCUMENT_NOT_PDF)';
+    if(/login required|Sitzung fehlt|Anmeldung erforderlich/i.test(message))
+      return ' ('+label('document.loginRequired','ExportHUB login required')+')';
+    if(/invalid (?:ExportHUB )?document reference|Dokumentreferenz/i.test(message))
+      return ' ('+label('document.invalidReference','Invalid ExportHUB document reference')+')';
+    if(/original document is unavailable|document is not available/i.test(message))
+      return ' ('+label('documentViewer.unavailable','Document unavailable')+')';
     return '';
   }
   function renderPendingLieferscheine(prefill){
