@@ -40,3 +40,67 @@ test('P0 Pack PDF errors show safe actionable HTTP/auth/PDF category without exp
   assert.equal(classify(new Error('Original document is unavailable')),' (Document unavailable)');
   assert.equal(classify(new Error('Authorization: Bearer SECRET rc1059/production/aa/SENSITIVE')),'');
 });
+
+
+test('P0 protected Pack PDF fetch on production host uses Bearer token without cookies and verifies PDF original bytes',async()=>{
+  const name='rc1059/production/aa/'+('a'.repeat(64));
+  const requests=[];
+  const expected=Buffer.from('%PDF-1.7\n% Fixture only\n1 0 obj\n<<>>\nendobj\n%%EOF\n');
+  const root={
+    location:{hostname:'www.exporthub360.de',origin:'https://www.exporthub360.de'},
+    ExportHUBClean:{runtime:{environment:'testservice',authToken:'fixture-token'}},
+    fetch:async (url,options)=>{
+      requests.push({url,options});
+      return{ok:true,status:200,type:'basic',url:'https://www.exporthub360.de'+url,redirected:false,
+        headers:{get:()=> 'application/pdf'},
+        blob:async()=>new Blob([expected],{type:'application/pdf'})};
+    }
+  };
+  vm.runInNewContext(viewer,{window:root,URL,Uint8Array});
+  const bytes=await root.ExportHUBDocumentBlob1059.fetchBytes({blobName:name,name:'DNC3019228203.pdf',storage:'blob'});
+  assert.deepEqual(Buffer.from(bytes),expected);
+  assert.equal(requests.length,1);
+  assert.match(requests[0].url,/environment=production$/);
+  assert.match(requests[0].url,/^\/api\/exporthub-document\?/);
+  assert.equal(requests[0].options.credentials,'omit');
+  assert.equal(requests[0].options.redirect,'manual');
+  assert.equal(requests[0].options.headers.Authorization,'Bearer fixture-token');
+});
+
+test('P0 actual Pack shipment Open button displays HTTP failure category rather than swallowing it',async()=>{
+  const code=pack.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__P0_RENDER__=renderPendingLieferscheine;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(code,pack);
+  function node(tag){
+    return{tagName:tag,children:[],attrs:{},style:{},listeners:{},parent:null,
+      setAttribute(k,v){this.attrs[k]=String(v);},
+      addEventListener(name,callback){this.listeners[name]=callback;},
+      appendChild(child){child.parent=this;this.children.push(child);return child;},
+      remove(){if(this.parent)this.parent.children=this.parent.children.filter(v=>v!==this);},
+      querySelector(selector){return selector==='#rc1680PackDeliveryFiles'
+        ?this.children.find(c=>c.id==='rc1680PackDeliveryFiles')||null:null;}
+    };
+  }
+  const section=node('section');
+  const docFile={name:'DNC3019228203.pdf',blobName:'rc1059/production/aa/'+('a'.repeat(64)),storage:'blob'};
+  const notification={id:'PN-FIXTURE',reference:'PK-FIXTURE',documents:[docFile]};
+  const state={packNotifications:[notification],shipment:{packNotificationId:'PN-FIXTURE',packNotificationRef:'PK-FIXTURE',deliveryFiles:[]}};
+  const root={
+    document:{getElementById:id=>id==='rc363BlockDocuments'?section:null,createElement:node},
+    __EXPORTHUB_GET_STATE__:()=>state,
+    addEventListener(){},
+    ExportHUBDocumentBlob1059:{async open(){throw new Error('Protected document fetch failed (HTTP 404)')}}
+  };
+  vm.runInNewContext(code,{window:root,URL,Uint8Array,Date,Intl,setTimeout,clearTimeout});
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(notification);
+  state.shipment.deliveryFiles=prefill.deliveryFiles;
+  assert.equal(root.__P0_RENDER__(prefill),true);
+  const panel=section.children[0],row=panel.children[1];
+  const open=row.children.find(c=>c.tagName==='button'&&c.textContent==='Open');
+  assert.ok(open);
+  open.listeners.click({preventDefault(){},stopPropagation(){}});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  const feedback=row.children.find(c=>c.attrs.role==='status');
+  assert.match(feedback.textContent,/HTTP 404/);
+  assert.doesNotMatch(feedback.textContent,/blob=|fixture-token/);
+});
