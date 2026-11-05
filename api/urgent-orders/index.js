@@ -63,6 +63,16 @@ function isAzureInternalWorkerHost(value){
   return hostname.endsWith('.azurewebsites.net');
  }catch(_){return false;}
 }
+// Prevent an untrusted SWA preview deployment from accessing production data,
+// even when forwarding headers or Origin imitate the official site.
+function unknownStaticWebAppHost(url){
+ try{
+  const raw=String(url||'').trim();
+  if(!raw)return false;
+  const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
+  return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
+ }catch(_){return false;}
+}
 function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnvironment()){
  const h=req&&req.headers||{};
  const direct=publicSiteEnvironment(h.host||h.Host||'');
@@ -74,7 +84,10 @@ function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnviron
  // Accept Azure's internal Functions worker Host only when server-side
  // release metadata unequivocally names the deployed environment.
  // Browser Origin, Referer and X-ExportHUB-Environment never grant access.
- if(!direct&&!forwarded&&(!serverEnvironment||!isAzureInternalWorkerHost(h.host||h.Host||'')))
+ if(unknownStaticWebAppHost(h.host||h.Host||'')||
+    unknownStaticWebAppHost(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'')||
+    unknownStaticWebAppHost(h.origin||h.Origin||h.referer||h.Referer||'')||
+    (!direct&&!forwarded&&(!serverEnvironment||!isAzureInternalWorkerHost(h.host||h.Host||''))))
   throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
  const environment=direct||forwarded||serverEnvironment;
  if(site&&site!==environment)
