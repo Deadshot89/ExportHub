@@ -58,6 +58,31 @@ test('CAPA: recommendations are rule based, shipment-specific and have no extern
  assert.ok(s.some(x=>/Verantwortliche/.test(x.title)));
 });
 
+test('CAPA: revising verified root cause or corrective measure resets proof and blocks closure',()=>{
+ const item=fresh();
+ updateCase(item,{revision:1,rootCause:'Ursache A',correctiveAction:'Scan A',effectivenessResult:'wirksam',effectivenessEvidence:'Prüfung A',verifiedOn:'2026-11-05',status:'wirksamkeitspruefung'},staff);
+ assert.equal(item.effectivenessResult,'wirksam');
+ updateCase(item,{revision:2,correctiveAction:'Scan B',effectivenessResult:'wirksam',effectivenessEvidence:'Prüfung A',verifiedOn:'2026-11-05'},staff);
+ assert.equal(item.correctiveAction,'Scan B');
+ assert.equal(item.effectivenessResult,'offen');
+ assert.equal(item.effectivenessEvidence,'');
+ assert.equal(item.verifiedOn,'');
+ assert.equal(item.status,'massnahme');
+ assert.ok(item.history.at(-1).changedFields.includes('effectivenessResult'));
+ assert.throws(()=>closeCase(item,{revision:3},admin),/Abschluss erst/);
+ updateCase(item,{revision:3,effectivenessResult:'wirksam',effectivenessEvidence:'Prüfung mit Scan B',verifiedOn:'2026-11-05',status:'wirksamkeitspruefung'},staff);
+ closeCase(item,{revision:4},admin);
+ assert.equal(item.status,'abgeschlossen');
+});
+test('CAPA: changed root cause after verification returns the case to analysis',()=>{
+ const item=fresh();
+ updateCase(item,{revision:1,rootCause:'Ursache A',correctiveAction:'Maßnahme A',effectivenessResult:'wirksam',effectivenessEvidence:'10 Fälle kontrolliert',verifiedOn:'2026-11-05',status:'wirksamkeitspruefung'},staff);
+ updateCase(item,{revision:2,rootCause:'Ursache B'},staff);
+ assert.equal(item.status,'ursachenanalyse');
+ assert.equal(item.effectivenessResult,'offen');
+ assert.equal(item.effectivenessEvidence,'');
+ assert.equal(item.verifiedOn,'');
+});
 test('CAPA: related incidents show confirmed measures only when effectiveness was verified',()=>{
  const now=new Date().toISOString(),base=fresh();
  const prior={...fresh(),id:'QM-OLD',title:'Falsche Palette bei Verladung',category:'verladung',description:'Eine falsche Palette wurde geladen',status:'abgeschlossen',effectivenessResult:'wirksam',correctiveAction:'Scan bei Verladung',updatedAt:now};
