@@ -57,6 +57,13 @@ test('public reporter create/list is capability-scoped across users; only token 
  }finally{internal.write=originals.write;internal.readDocument=originals.readDocument;}
 });
 
+test('RC1811 account-linked profile API is retired without creating a server-side email entry',async()=>{
+ await assert.rejects(
+  internal.execute(req({action:'save-profile',email:'user@example.com',language:'de'}),{id:'CS-17'},{}),
+  e=>e.code==='URGENT_PROFILE_DEPRECATED'&&e.status===410
+ );
+});
+
 test('verified Azure deployment metadata resolves internal worker Host for TESTSERVICE and PRODUCTION',()=>{
  const valid={buildId:'a'.repeat(40),environment:'testservice',visibleRelease:'RC1112',technicalBuild:'RC1112',builtAt:'2026-11-04T12:40:00Z'};
  assert.equal(internal.deploymentEnv(valid),'testservice');
