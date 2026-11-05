@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -68,6 +68,15 @@ test('CAPA: related incidents show confirmed measures only when effectiveness wa
  assert.equal(hits[0].verifiedMeasure,'Scan bei Verladung');
  assert.ok(hits.every(x=>x.id!=='QM-OTHER'&&x.id!==base.id));
  assert.equal(hits.find(x=>x.id==='QM-OPEN').verifiedMeasure,'');
+});
+test('CAPA: corrupted or unsupported blob data cannot silently become an empty case list',()=>{
+ const valid=fresh();
+ assert.deepEqual(recordsOf({schemaVersion:1,items:[valid]}),[valid]);
+ assert.deepEqual(recordsOf({schemaVersion:1,items:[]}),[]);
+ assert.throws(()=>recordsOf({schemaVersion:1,items:{}}),/Datenverlust/);
+ assert.throws(()=>recordsOf({schemaVersion:2,items:[valid]}),/Datenverlust/);
+ assert.throws(()=>recordsOf({schemaVersion:1,items:[null]}),/Datenverlust/);
+ assert.throws(()=>recordsOf({schemaVersion:1,items:[{id:'QM-BROKEN'}]}),/Datenverlust/);
 });
 test('CAPA: private evidence and incident storage is never part of shared shipment state',()=>{
  const apiSource=fs.readFileSync('api/quality-capa/index.js','utf8');
