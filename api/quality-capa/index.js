@@ -119,6 +119,14 @@ function updateCase(item,p,user){if(item.status==='abgeschlossen')throw err('CLO
   item.status=status;
  }
  const changedFields=Object.keys(patch).filter(k=>String(before[k]==null?'':before[k])!==String(item[k]==null?'':item[k]));
+ // A changed root cause or measure invalidates the previous effectiveness proof.
+ // This must happen even if a browser sends old verified values in the same update.
+ const measureRevised=['rootCause','correctiveAction','preventiveAction'].some(k=>changedFields.includes(k));
+ if(measureRevised && (before.effectivenessResult==='wirksam'||before.effectivenessResult==='unwirksam')){
+  item.effectivenessResult='offen';item.effectivenessEvidence='';item.verifiedOn='';item.verifiedBy='';
+  for(const field of ['effectivenessResult','effectivenessEvidence','verifiedOn'])if(!changedFields.includes(field))changedFields.push(field);
+  if(item.status==='wirksamkeitspruefung')item.status=changedFields.includes('rootCause')?'ursachenanalyse':'massnahme';
+ }
  if(before.status!==item.status&&!changedFields.includes('status'))changedFields.push('status');
  item.revision++;item.updatedAt=new Date().toISOString();event(item,'AKTUALISIERT',user,str(p.changeNote,300),changedFields);return item}
 function closeCase(item,p,user){
