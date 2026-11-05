@@ -505,3 +505,38 @@ test('RC1811: reporter emails persist in browser only, are searchable, and can b
  assert.equal($('clearEmailHistory').hidden,true);
  assert.ok(!['fetch(', 'save-profile', 'accessToken', 'userId', 'accountId'].some(k=>runtime.slice(begin,end).includes(k)),'local email hints expose no public server directory or login linkage');
 });
+
+
+test('RC1811: internal CS email shares account-free browser history, not saved profiles',()=>{
+ const runtime=script(internalHtml);
+ assert.match(internalHtml,/id="csEmail"[^>]+list="internalUrgentEmailHistory"/);
+ assert.match(internalHtml,/<datalist id="internalUrgentEmailHistory"><\/datalist>/);
+ assert.match(internalHtml,/id="clearInternalEmailHistory"/);
+ assert.ok(!internalHtml.includes('E-Mail für mein Login speichern'));
+ assert.ok(!runtime.includes("api('save-profile'"),'internal form must not store an account profile');
+ assert.ok(runtime.includes('rememberEmail(body.email);'),'successful creation saves local suggestion');
+ assert.ok(!runtime.includes("r.profile.email"),'email restore does not depend on login');
+ const backend=read('api/urgent-orders/index.js');
+ const createStart=backend.indexOf("if(action==='create'){");
+ const createEnd=backend.indexOf("if(action==='save-profile'){",createStart);
+ assert.ok(createStart>0&&createEnd>createStart);
+ assert.ok(!backend.slice(createStart,createEnd).includes('doc.profiles['),'order creation must not update account-linked email profile');
+ const start=runtime.indexOf('// RC1811_INTERNAL_EMAIL_HISTORY_BEGIN');
+ const end=runtime.indexOf('// RC1811_INTERNAL_EMAIL_HISTORY_END');
+ assert.ok(start>=0&&end>start);
+ const store=new Map(),els=new Map();
+ const localStorage={
+  getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,String(value)),removeItem:key=>store.delete(key)
+ };
+ function $(id){
+  if(!els.has(id))els.set(id,{hidden:false,children:[],replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);}});
+  return els.get(id);
+ }
+ const ctx=vm.createContext({localStorage,$,document:{createElement:()=>({})}});
+ vm.runInContext(runtime.slice(start,end),ctx);
+ assert.equal(ctx.rememberEmail('service@example.com'),true);
+ assert.deepEqual(Array.from(ctx.savedEmails()),['service@example.com']);
+ assert.deepEqual($('internalUrgentEmailHistory').children.map(n=>n.value),['service@example.com']);
+ ctx.forgetEmails();
+ assert.equal(store.size,0);
+});
