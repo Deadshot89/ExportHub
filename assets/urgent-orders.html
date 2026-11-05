@@ -299,7 +299,7 @@ async function submit(ev){
 async function profile(){
  if(!$('csEmail').reportValidity())return;
  $('saveProfile').disabled=true;
- try{if(!rememberEmail($('csEmail').value))throw new Error('Lokale Speicherung derzeit nicht verfügbar.');setMessage('createMessage','E-Mail-Adresse auf diesem Gerät gespeichert.','ok');}
+ try{if(!rememberEmail($('csEmail').value))throw new Error(localeV2('emailHistoryStorageFailed','Lokale Speicherung derzeit nicht verfügbar.'));setMessage('createMessage',localeV2('emailHistorySaved','E-Mail-Adresse auf diesem Gerät gespeichert.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('saveProfile').disabled=false;}
 }
