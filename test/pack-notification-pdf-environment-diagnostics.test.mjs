@@ -20,7 +20,7 @@ function detail(){
   return root.__P0_PACK_DOCUMENT_FAILURE_DETAIL__;
 }
 test('P0 production document API cannot inherit stale TESTSERVICE runtime on official production domain',()=>{
-  for(const host of ['www.exporthub360.de','exporthub360.de','www.exporthub360.com','exporthub360.com']){
+  for(const host of ['www.exporthub360.de','exporthub360.de','www.exporthub360.com','exporthub360.com','wonderful-forest-0f315e310.westeurope.6.azurestaticapps.net','wonderful-forest-0f315e310.azurestaticapps.net']){
     const helper=viewerAt(host,'testservice');
     assert.equal(helper.environment(),'production',host);
     const blob='rc1059/production/aa/'+('a'.repeat(64));
