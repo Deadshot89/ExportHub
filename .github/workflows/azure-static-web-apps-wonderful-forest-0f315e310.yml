@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'qualitaet.html'
       - 'TESTVERSION.html'
       - 'demo.html'
       - 'production-version.js'
