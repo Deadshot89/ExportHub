@@ -14,7 +14,9 @@
  function token(){
   try{
    var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},active=q(rt.authToken||rt.token||rt.sessionToken);
-   if(active)return active;
+   // Never send a token tagged for another data environment to the protected PDF API.
+   var scope=q(rt.environment||rt.dataEnvironment).toLowerCase();
+   if(active&&(!scope||scope===environment()))return active;
   }catch(_){}
   // After a TESTSERVICE state refresh the runtime token can be cleared while
   // the authenticated tab session remains valid. Do not launch Microsoft login.
