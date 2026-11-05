@@ -177,3 +177,36 @@ html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub
 html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{
   color:var(--pc-side-text)!important;font-weight:650!important;
 }
+
+/* 13 ── Login (rc1630 v2) an Premium-System angleichen ─────────────────
+   Gleicher Hintergrund, gleiche Rundungen und Steuerelement-Größen wie die Hauptapp,
+   damit Login → Hauptseite ohne Sprung in Größe und Hintergrund wirken. Nur Optik. */
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"]{
+  --eh360-ink:#111827;--eh360-muted:#5d6b7e;--eh360-line:#e3e7ee;--eh360-soft:#fafbfc;
+  --eh360-accent:#2f5fd0;--eh360-accent-ink:#244fb8;--eh360-card:#fff;--eh360-label:#2b3441;
+  --eh360-field:#fff;--eh360-field-focus:#fff;--eh360-field-line:#ccd3de;--eh360-field-hover:#aeb8c7;
+  background:#f6f7fa!important;font-family:var(--px-font);
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] .eh360-login-hero{
+  border-radius:16px;border:1px solid #1e3a6e;box-shadow:var(--pc-shadow-float);
+  background:linear-gradient(160deg,#13264d 0%,#1b3566 100%);
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] .eh360-login-hero::before{display:none}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] .eh360-login-hero .eh360-login-headline{
+  font-size:clamp(26px,2.4vw,34px)!important;font-weight:700!important;letter-spacing:-.015em;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] .login-card{
+  border-radius:16px!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] :is(.eh-login-environment button,#loginMicrosoftAccountSwitchBtn,#adminRecoveryBtn,#testserviceContinueBtn,#ehBackProduction){
+  border-radius:var(--pc-button-radius)!important;min-height:40px!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] .eh-login-environment button{min-height:56px!important}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] :is(#loginBtn,#savePassBtn){
+  min-height:40px!important;border-radius:var(--pc-button-radius)!important;font-size:14px!important;font-weight:600!important;
+  background:var(--pc-primary)!important;box-shadow:0 1px 2px rgba(16,24,40,.12)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] :is(#loginBtn,#savePassBtn):hover{background:#244fb8!important}
+html body[data-eh-theme="premium"][data-eh-theme] #login#login[data-eh360-ui="v2"] :is(input:not([type=checkbox]),select){
+  min-height:40px!important;border-radius:var(--pc-control-radius)!important;font-size:14px!important;
+}
