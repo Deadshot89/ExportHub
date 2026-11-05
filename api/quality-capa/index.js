@@ -67,6 +67,26 @@ function cleanPatch(p){const allowed={
  }
  return o;
 }
+
+function relatedCases(p,items){
+ const stop=new Set(['fehler','falsch','wurde','haben','einer','einem','einen','durch','wegen','nicht','beim','beim','wieder','erneut','fehlt','fehlte','lieferung','sendung']);
+ const words=v=>new Set((str(v,2500).toLowerCase().match(/[a-zäöüß0-9]{4,}/g)||[]).filter(w=>!stop.has(w)));
+ const own=words([p.title,p.description,p.rootCause].join(' '));
+ return (Array.isArray(items)?items:[]).filter(x=>x&&x.id!==p.id).map(x=>{
+  const similar=words([x.title,x.description,x.rootCause].join(' '));
+  let overlap=0;for(const w of own)if(similar.has(w))overlap++;
+  const sameCategory=p.category&&p.category===x.category;
+  const sameRef=p.reference&&x.reference&&str(p.reference,120).toLowerCase()===str(x.reference,120).toLowerCase();
+  const sameArea=p.area&&x.area&&str(p.area,120).toLowerCase()===str(x.area,120).toLowerCase();
+  const score=(sameCategory?2:0)+(sameRef?5:0)+(sameArea?1:0)+Math.min(overlap,5)*2;
+  return {case:x,score,overlap,sameRef};
+ }).filter(x=>x.score>=4&&(x.overlap>=1||x.sameRef)).sort((a,b)=>b.score-a.score||String(b.case.updatedAt||'').localeCompare(String(a.case.updatedAt||''))).slice(0,5).map(x=>({
+  id:x.case.id,title:str(x.case.title,180),status:x.case.status,category:x.case.category,
+  outcome:x.case.status==='abgeschlossen'&&x.case.effectivenessResult==='wirksam'?'wirksam':'noch nicht bestätigt',
+  verifiedMeasure:x.case.status==='abgeschlossen'&&x.case.effectivenessResult==='wirksam'?str(x.case.correctiveAction,500):''
+ }));
+}
+
 function advice(p){
  const text=[p.title,p.description,p.impact,p.rootCause,p.immediateAction].map(v=>str(v,4000)).join(' ').toLowerCase();
  const out=[
@@ -118,9 +138,11 @@ module.exports=async function(context,req){
   const payload=body(req);const current=await auth.validateSession(req),user=current.user;requireRight(canRead(user),'Qualitätsabweichungen');
   const action=str(payload.action||'list',30).toLowerCase(),env=auth.environmentFromRequest(req);
   if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items,environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
-  if(action==='advise'){const p=payload.id?recordsOf((await readRecords(env)).value).find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
+  if(action==='advise'){
+   const cases=recordsOf((await readRecords(env)).value);
+   const p=payload.id?cases.find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
    if(!p)throw err('NOT_FOUND','Fall nicht gefunden',404);
-   context.res=json(200,{ok:true,mode:'regelbasiert',suggestions:advice(p),notice:'Automatisierte Entscheidungshilfe – keine generative KI, keine automatische Maßnahmenfreigabe.'});return}
+   context.res=json(200,{ok:true,mode:'regelbasiert',suggestions:advice(p),relatedCases:relatedCases(p,cases),notice:'Automatisierte Entscheidungshilfe – keine generative KI, keine automatische Maßnahmenfreigabe.'});return}
   requireRight(canEdit(user),'Bearbeitung');
   if(!['create','update','close','reopen'].includes(action))throw err('INVALID_ACTION','Unbekannte Aktion');
   if((action==='close'||action==='reopen'))requireRight(canClose(user),'Abschlussfreigabe');
@@ -140,4 +162,4 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
-module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,STATUSES};
+module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,STATUSES};
