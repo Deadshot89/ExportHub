@@ -18,6 +18,17 @@ function sourceList(sh){
  if(manual)sources.push(manual);
  return sources
 }`;
+const SIGNED_ORIGINAL_LOADER=String.raw`async function savedSignedPod(sh){
+ var official=window.ExportHUBRC1602OfficialPOD;
+ if(!official)throw new Error('Original-POD-Abruf ist nicht verfügbar. Die Sicherung wurde nicht als erfolgreich markiert.');
+ var blob=null;
+ if(typeof official.storedSignedBlob==='function')blob=await official.storedSignedBlob(sh,{signedOnly:true});
+ if(!blob&&typeof official.canonicalPdf==='function')blob=await official.canonicalPdf(sh);
+ if(!blob||blob.size<1000)throw new Error('Keine gespeicherte vollständige unterschriebene Ladeliste abrufbar.');
+ var bytes=new Uint8Array(await blob.arrayBuffer());
+ if(fileFormat(bytes)!=='pdf')throw new Error('Gespeicherter Original-POD ist kein gültiges PDF.');
+ return{bytes:bytes,ext:'pdf',name:'POD_'+ref(sh)+'_Ladeliste_mit_Unterschrift.pdf'}
+}`;
 const MANIFEST_START=' var manualCount=x.jobs.filter(';
 const MANIFEST_END="\n entries.push({name:'POD_Sicherung_Protokoll.txt'";
 const NEW_MANIFEST=String.raw` var expectedCount=x.jobs.length,missingCount=expectedCount-entries.length,complete=missingCount===0&&fail.length===0;
@@ -38,6 +49,13 @@ export function patchPodDualBackup(html){
  let out=replaceExactlyOnce(html,OLD_SOURCE,NEW_SOURCE,'sourceList');
  out=replaceExactlyOnce(out,"btn.disabled=true;bar.style.width='0%';var entries=[],fail=[];","btn.disabled=true;bar.style.width='0%';var entries=[],fail=[],manualSuccess=0,signedSuccess=0;",'Download-Zähler');
  out=replaceExactlyOnce(out,"entries.push({name:src.name,data:loaded.bytes})","entries.push({name:src.name,data:loaded.bytes});manualSuccess++",'manueller PDF-Erfolg');
+ if(out.includes('var generated=await localSignedPod(sh),base=')){
+  if(!out.includes('async function savedSignedPod(sh)')){
+    out=replaceExactlyOnce(out,'async function localSignedPod(sh){',SIGNED_ORIGINAL_LOADER+'\nasync function localSignedPod(sh){','sicherer Original-POD-Loader');
+  }
+  out=replaceExactlyOnce(out,'var generated=await localSignedPod(sh),base=','var original=await savedSignedPod(sh),base=','TESTSERVICE-Original-Loader');
+  out=replaceExactlyOnce(out,"data:generated.bytes})","data:original.bytes})",'TESTSERVICE-Original-Daten');
+ }
  out=replaceExactlyOnce(out,"entries.push({name:safe(podDate(sh)+'_'+base)+'.pdf',data:original.bytes})","entries.push({name:safe(podDate(sh)+'_'+base)+'.pdf',data:original.bytes});signedSuccess++",'signierter PDF-Erfolg');
  const start=out.indexOf(MANIFEST_START),end=out.indexOf(MANIFEST_END,start);
  if(start<0||end<start||out.indexOf(MANIFEST_START,start+1)>=0)throw new Error('RC1821: Manifest-Anker fehlt oder ist mehrfach vorhanden');
