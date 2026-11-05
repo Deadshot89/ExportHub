@@ -319,3 +319,175 @@ html[data-eh-design="neon"] .tpv2-reminders li{background:#10233a;color:#e5eef8}
   body.tpv2-print-carrier .tpv2-carrier-print-sheet th:nth-child(2){width:18%!important}
   body.tpv2-print-carrier .tpv2-carrier-print-sheet th:nth-child(3){width:18%!important}
 }
+/* Premium V2-Aufgabenkarten – nur Bildschirm, Druck- und Kalenderkompaktansicht unberührt */
+@media screen{
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card{
+    position:relative;
+    isolation:isolate;
+    min-height:218px;
+    padding:21px 22px 19px;
+    overflow:hidden;
+    border-radius:20px;
+    border-color:var(--tpv2-border);
+    background:linear-gradient(145deg,color-mix(in srgb,var(--tpv2-primary) 5%,transparent),transparent 70%),var(--tpv2-surface);
+    box-shadow:0 4px 10px rgba(15,23,42,.035),0 17px 34px rgba(15,23,42,.075);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:4px;
+    background:var(--tpv2-primary);
+    border-radius:20px 0 0 20px;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card[data-priority="P1"]::before{
+    background:#d97706;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card[data-priority="P0"]::before,
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-overdue::before{
+    background:#dc2626;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-abd-exception::before{
+    background:#d97706;
+  }
+  /* Überfällige Aufgaben behalten ihr bestehendes rotes Warnsignal. */
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-overdue{
+    border:2px solid var(--tpv2-danger);
+    background:color-mix(in srgb,var(--tpv2-danger-soft) 38%,var(--tpv2-surface));
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--tpv2-danger) 12%,transparent);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card:not(.is-overdue):not(.is-abd-exception):hover{
+    transform:translateY(-2px);
+    border-color:color-mix(in srgb,var(--tpv2-primary) 50%,var(--tpv2-border));
+    box-shadow:0 8px 19px rgba(15,23,42,.055),0 25px 46px rgba(15,23,42,.105);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card:focus-within{
+    outline:3px solid color-mix(in srgb,var(--tpv2-primary) 60%,white);
+    outline-offset:3px;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card h3{
+    margin:15px 0 8px;
+    font-size:clamp(17px,1.5vw,21px);
+    font-weight:825;
+    letter-spacing:-.026em;
+    line-height:1.28;
+    color:var(--tpv2-text);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-customer{
+    min-height:1.4em;
+    font-size:13px;
+    line-height:1.45;
+    color:var(--tpv2-muted);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-customer:empty{
+    min-height:0;
+    display:none;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-card-head{
+    min-height:28px;
+    gap:8px;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-priority,
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-badge{
+    padding:5px 10px;
+    border-radius:9px;
+    border:1px solid color-mix(in srgb,var(--tpv2-primary) 28%,var(--tpv2-border));
+    font-size:11px;
+    letter-spacing:.015em;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card[data-priority="P1"] .tpv2-priority{
+    background:var(--tpv2-warning-soft);
+    color:var(--tpv2-warning);
+    border-color:color-mix(in srgb,var(--tpv2-warning) 28%,var(--tpv2-border));
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card[data-priority="P0"] .tpv2-priority,
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-overdue{
+    border-color:color-mix(in srgb,var(--tpv2-danger) 35%,var(--tpv2-border));
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-meta{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:7px;
+    margin:16px 0;
+    padding:11px 0 0;
+    border-top:1px solid var(--tpv2-border);
+    font-size:12px;
+    line-height:1.4;
+    font-variant-numeric:tabular-nums;
+    color:var(--tpv2-muted);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-meta > span{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-task-meta > span:first-child::before{
+    content:"";
+    flex:0 0 8px;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--tpv2-primary);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card[data-status="done"] .tpv2-task-meta > span:first-child::before{
+    background:var(--tpv2-success);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-overdue .tpv2-task-meta > span:first-child::before{
+    background:var(--tpv2-danger);
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-button[data-action="open"]{
+    align-self:flex-start;
+    margin-top:auto;
+    min-height:42px;
+    padding:9px 16px;
+    border-radius:11px;
+    border-color:color-mix(in srgb,var(--tpv2-primary) 23%,var(--tpv2-border));
+    font-size:13px;
+    font-weight:800;
+    transition:background .18s ease,border-color .18s ease;
+  }
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-button[data-action="open"]:hover{
+    background:var(--tpv2-primary-soft);
+    border-color:var(--tpv2-primary);
+  }
+  .tpv2-task-list[data-view="compact"] > .tpv2-task-card{
+    min-height:0;
+    padding:14px 16px;
+    border-radius:15px;
+  }
+  .tpv2-task-list[data-view="compact"] > .tpv2-task-card h3{
+    margin:9px 0 5px;
+    font-size:16px;
+  }
+  .tpv2-task-list[data-view="compact"] > .tpv2-task-card .tpv2-task-meta{
+    margin:9px 0;
+    padding-top:9px;
+  }
+  html[data-eh-design="neon"] :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card{
+    box-shadow:0 8px 28px rgba(0,0,0,.22);
+  }
+  html[data-eh-design="neon"] :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-button[data-action="open"]:hover{
+    color:#dbeafe;
+  }
+  @media(max-width:760px){
+    :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card{
+      min-height:0;
+      padding:18px 18px 16px;
+    }
+    :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card .tpv2-button[data-action="open"]{
+      align-self:stretch;
+      min-height:46px;
+    }
+  }
+  @media(prefers-reduced-motion:reduce){
+    :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card{
+      transition:none;
+    }
+    :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card:not(.is-overdue):not(.is-abd-exception):hover{
+      transform:none;
+    }
+  }
+}
