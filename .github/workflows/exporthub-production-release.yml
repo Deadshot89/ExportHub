@@ -258,6 +258,14 @@ jobs:
           echo "RC1553: PRODUCTION deployment identity stimmt nicht mit RELEASE_SHA=$RELEASE_SHA ueberein." >&2
           exit 1
 
+      # Read-only check: detects URGENT_HOST_UNTRUSTED and unavailable storage.
+      # Sends no customer details and creates no orders.
+      - name: RC1810 Urgent Order PRODUCTION API Live-Gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1810-urgent-public-api-live.mjs production "$RELEASE_SHA"
+
       - name: RC1787 ABD-Datei-Upload API Routing PRODUCTION prüfen
         shell: bash
         run: |
