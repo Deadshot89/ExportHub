@@ -2523,5 +2523,7 @@
   "urgentOrderV2.retry": "Erneut versuchen",
   "urgentOrderV2.missingArticle": "Bitte eine Line- oder Artikelnummer angeben.",
   "urgentOrderV2.explainException": "Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.",
-  "urgentOrderV2.networkError": "Der Urgent-Order-Dienst antwortet nicht. Bitte Verbindung prüfen und erneut versuchen."
+  "urgentOrderV2.networkError": "Der Urgent-Order-Dienst antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.",
+  "urgentOrderV2.emailHistoryHint": "Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.",
+  "urgentOrderV2.clearEmailHistory": "Gespeicherte E-Mails löschen"
 }
