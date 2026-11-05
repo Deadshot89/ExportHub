@@ -494,14 +494,14 @@ test('RC1811: reporter emails persist in browser only, are searchable, and can b
  assert.deepEqual(Array.from(ctx.savedEmails()),['other@company.com','PERSON@company.com'],'duplicates removed case insensitively');
  assert.deepEqual($('urgentEmailHistory').children.map(x=>x.value),['other@company.com','PERSON@company.com']);
  assert.equal(ctx.rememberEmail('not an email'),false);
- assert.equal(ctx.rememberEmail('person@example.com\\r\\nHeader: spoof'),false);
+ assert.equal(ctx.rememberEmail('person@example.com\r\nHeader: spoof'),false);
  assert.equal(ctx.savedEmails().length,2,'invalid inputs are not saved');
  for(let i=0;i<25;i++)ctx.rememberEmail('person'+i+'@company.com');
  assert.equal(ctx.savedEmails().length,20,'history is limited to twenty addresses');
- assert.match(runtime,/const data=await api\\('create',p\\);\\s*rememberEmail\\(p.email\\)/,'email is saved only after confirmed create response');
+ assert.ok(runtime.includes("const data=await api('create',p);\n  rememberEmail(p.email);"),'email is saved only after confirmed create response');
  ctx.clearEmailChoices();
  assert.equal(storage.size,0,'deleting saved addresses does not affect orders');
  assert.deepEqual($('urgentEmailHistory').children,[]);
  assert.equal($('clearEmailHistory').hidden,true);
- assert.doesNotMatch(runtime.slice(begin,end),/fetch\\(|save-profile|accessToken|userId|accountId/,'local email hints expose no public server directory or login linkage');
+ assert.ok(!['fetch(', 'save-profile', 'accessToken', 'userId', 'accountId'].some(k=>runtime.slice(begin,end).includes(k)),'local email hints expose no public server directory or login linkage');
 });
