@@ -5,6 +5,8 @@
  */
 const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
+const {BlobServiceClient}=require('@azure/storage-blob');
+const {isolationConfig,primaryConnection}=require('../shared/testservice-auth-isolation');
 const STATUSES=['offen','ursachenanalyse','massnahme','wirksamkeitspruefung','abgeschlossen'];
 const CATEGORIES=['versand','verladung','dokumente','zoll','kunde','qualitaet','umwelt','arbeitsschutz','sonstiges'];
 const SEVERITIES=['niedrig','mittel','hoch','kritisch'];
@@ -20,7 +22,31 @@ function canClose(user){const r=rights(user);return auth.isAdmin(user)||r.admin=
 function requireRight(valid,kind){if(!valid)throw err('FORBIDDEN','Keine Berechtigung für '+kind,403)}
 function date(v){const s=str(v,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T00:00:00Z'))?s:''}
 function actor(u){return str(u&&(u.name||u.user||u.username||u.login),120)||'Benutzer'}
-function casesOf(team){const state=team&&team.state||{};return Array.isArray(state.qualityCases)?state.qualityCases:[]}
+/* CAPA records do not belong in shared team.state: that state is readable by unrelated
+ * ExportHUB functions. Use a private, environment-separated Blob guarded by this API. */
+function recordsClient(environment){
+ const isolated=isolationConfig(),test=environment==='testservice';
+ const connection=test&&isolated.enabled?isolated.connectionString:primaryConnection(process.env);
+ if(!connection)throw err('STORAGE_NOT_CONFIGURED','Qualitätsspeicher nicht konfiguriert',503);
+ const container=test&&isolated.enabled?isolated.container:auth.TEAM_CONTAINER;
+ const path=(test?'testservice/':'')+'quality/capa-cases.json';
+ return BlobServiceClient.fromConnectionString(connection).getContainerClient(container).getBlockBlobClient(path);
+}
+function recordsOf(doc){return Array.isArray(doc&&doc.items)?doc.items:[]}
+async function readRecords(env){
+ return auth.readJson(recordsClient(env),{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
+}
+async function mutateRecords(env,updater){
+ const blob=recordsClient(env);
+ for(let n=0;n<7;n++){
+  const previous=await auth.readJson(blob,{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
+  const result=updater(recordsOf(previous.value).slice());
+  const next={schemaVersion:1,revision:Number(previous.value.revision||0)+1,updatedAt:new Date().toISOString(),items:result.items};
+  try{await auth.writeJson(blob,next,previous.etag);return result.item}
+  catch(e){if(e&&e.statusCode===412&&n<6)continue;throw e}
+ }
+ throw err('CONCURRENT_UPDATE','Gleichzeitige Änderung. Bitte neu laden.',409);
+}
 function cleanPatch(p){const allowed={
  title:180,description:4000,area:120,reference:120,impact:1500,immediateAction:2000,
  rootCause:2000,correctiveAction:2000,preventiveAction:2000,owner:120,
@@ -88,16 +114,15 @@ module.exports=async function(context,req){
  try{
   const payload=body(req);const current=await auth.validateSession(req),user=current.user;requireRight(canRead(user),'Qualitätsabweichungen');
   const action=str(payload.action||'list',30).toLowerCase(),env=auth.environmentFromRequest(req);
-  if(action==='list'){const items=casesOf(current.team).map(x=>Object.assign({},x));context.res=json(200,{ok:true,items,environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
-  if(action==='advise'){const p=payload.id?casesOf(current.team).find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
+  if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items,environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
+  if(action==='advise'){const p=payload.id?recordsOf((await readRecords(env)).value).find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
    if(!p)throw err('NOT_FOUND','Fall nicht gefunden',404);
    context.res=json(200,{ok:true,mode:'regelbasiert',suggestions:advice(p),notice:'Automatisierte Entscheidungshilfe – keine generative KI, keine automatische Maßnahmenfreigabe.'});return}
   requireRight(canEdit(user),'Bearbeitung');
   if(!['create','update','close','reopen'].includes(action))throw err('INVALID_ACTION','Unbekannte Aktion');
   if((action==='close'||action==='reopen'))requireRight(canClose(user),'Abschlussfreigabe');
-  const saved=await auth.mutateTeamForEnvironment(env,team=>{
-   team.state=team.state&&typeof team.state==='object'?team.state:{};
-   const items=casesOf(team).slice();let item;
+  const saved=await mutateRecords(env,items=>{
+   let item;
    if(action==='create'){if(items.length>=MAX_CASES)throw err('LIMIT','Maximale Fallzahl erreicht; Archivierung prüfen',409);item=newCase(payload,user);items.unshift(item)}
    else{
     const id=str(payload.id,50),idx=items.findIndex(x=>x.id===id);if(idx<0)throw err('NOT_FOUND','Fall nicht gefunden',404);
@@ -107,10 +132,9 @@ module.exports=async function(context,req){
     if(action==='reopen')reopenCase(item,payload,user);
     items[idx]=item;
    }
-   team.state.qualityCases=items;auth.addAudit(team,'QUALITY_CAPA_'+action.toUpperCase(),actor(user),{caseId:item.id,revision:item.revision,status:item.status,category:item.category});
-   return item;
+   return {items,item};
   });
-  context.res=json(200,{ok:true,item:saved.result,environment:env});
+  context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:'Speichern derzeit nicht möglich. Bitte erneut versuchen.'})}
 };
 module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,STATUSES};
