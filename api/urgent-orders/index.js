@@ -27,19 +27,29 @@ function publicSiteEnvironment(url){
  }catch(_){}
  return'';
 }
-// Release metadata is produced by the deployment pipeline, stored on the
-// Azure Functions filesystem, and verified by exporthub-health. Unlike Origin
-// or X-Forwarded-Host it cannot be supplied by an anonymous browser request.
+// Release metadata is produced by the deployment pipeline on the Azure
+// Functions filesystem. Unlike Origin / X-Forwarded-Host, it cannot be set
+// by a browser request. The release pipeline emits BOTH environment values.
 function deploymentEnv(metadata){
  if(!metadata||!(/^[0-9a-f]{40}$/i.test(String(metadata.buildId||''))))return'';
- if(metadata.environment!=='testservice'||!metadata.visibleRelease||!metadata.technicalBuild||!metadata.builtAt)return'';
- return'testservice';
+ if(!['production','testservice'].includes(metadata.environment)||!metadata.visibleRelease||!metadata.technicalBuild||!metadata.builtAt)return'';
+ return metadata.environment;
 }
 function serverDeploymentEnvironment(){
  try{
   const location=process.env.EXPORTHUB_RELEASE_METADATA_PATH?path.resolve(process.env.EXPORTHUB_RELEASE_METADATA_PATH):path.join(__dirname,'..','release-metadata.json');
   return deploymentEnv(JSON.parse(fs.readFileSync(location,'utf8')));
  }catch(_){return'';}
+}
+// Preview URLs are never permitted to inherit a production storage identity.
+// This also blocks a PR preview whose Origin spoofs the official production URL.
+function unknownStaticWebAppHost(url){
+ try{
+  const raw=String(url||'').trim();
+  if(!raw)return false;
+  const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
+  return host.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
+ }catch(_){return false;}
 }
 function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnvironment()){
  const h=req&&req.headers||{};
@@ -49,9 +59,14 @@ function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnviron
  const requested=String(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||'').toLowerCase().trim();
  if(direct&&forwarded&&direct!==forwarded)
   throw model.problem('URGENT_ENVIRONMENT_MISMATCH','The deployment host values disagree.',409);
- // Unknown Azure worker Host is acceptable ONLY if signed release metadata
- // confirms TESTSERVICE. Never infer production from an untrusted Origin.
- if(!direct&&!forwarded&&serverEnvironment!=='testservice')
+ // Azure Functions can expose an internal worker Host instead of the public
+ // site. In that case use verified, pipeline-generated deployment metadata
+ // for BOTH environments; never infer production from Origin or a request header.
+ // Explicitly unknown Azure SWA/PR hosts remain untrusted even with metadata.
+ if(!direct&&!forwarded&&(!serverEnvironment||
+    unknownStaticWebAppHost(h.host||h.Host||'')||
+    unknownStaticWebAppHost(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||'')||
+    unknownStaticWebAppHost(h.origin||h.Origin||h.referer||h.Referer||'')))
   throw model.problem('URGENT_HOST_UNTRUSTED','The deployment host could not be verified; urgent order storage is blocked.',503);
  const environment=direct||forwarded||serverEnvironment;
  if(site&&site!==environment)
