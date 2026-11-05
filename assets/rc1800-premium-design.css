@@ -159,3 +159,21 @@ html body[data-eh-theme="premium"][data-eh-theme] #content .quick-grid>button{
 html body[data-eh-theme="premium"][data-eh-theme] #content .quick-grid>button:hover{
   background:var(--pc-primary-soft)!important;border-color:var(--pc-primary)!important;color:var(--pc-nav-active-text)!important;
 }
+
+/* 12 ── Urgent Order: Icon-Kachel und Beschriftung wie die übrigen Menüpunkte ──
+   Das Menü-Skript setzt für dunkle Seitenleisten helle Farben; im hellen Premium-Theme
+   waren Icon und Text dadurch unsichtbar. Nur Optik, keine Logik/Position. */
+html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]{
+  color:var(--pc-side-text)!important;font-size:14px!important;font-weight:650!important;background:transparent!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]:hover{
+  background:var(--pc-nav-hover)!important;color:var(--pc-side-text)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design] .index308-nav-icon{
+  background:color-mix(in srgb,var(--menu-accent,#dc7226) 12%,#fff)!important;
+  border:1px solid color-mix(in srgb,var(--menu-accent,#dc7226) 38%,#fff)!important;
+  color:var(--menu-accent,#dc7226)!important;border-radius:14px!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] #nav.nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{
+  color:var(--pc-side-text)!important;font-weight:650!important;
+}
