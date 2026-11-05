@@ -4,14 +4,22 @@
  function tr(key,vars,fallback){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var v=w.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
  function environment(){
   var host=q(w.location&&w.location.hostname).toLowerCase();
+  // Official production hosts take precedence over a stale TESTSERVICE runtime.
+  // The protected document endpoint checks the host and rejects a wrong scope.
+  if(['www.exporthub360.de','exporthub360.de','www.exporthub360.com','exporthub360.com'].indexOf(host)>=0)return'production';
   if(/-testservice\./.test(host))return'testservice';
+  // SWA production aliases, including the legacy wonderful-forest host, must
+  // never inherit a TESTSERVICE scope from a previously loaded browser state.
+  if(/\.azurestaticapps\.net$/.test(host))return'production';
   try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},e=q(rt.environment||rt.dataEnvironment).toLowerCase();if(e==='testservice')return'testservice'}catch(_){}
   return'production';
  }
  function token(){
   try{
    var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},active=q(rt.authToken||rt.token||rt.sessionToken);
-   if(active)return active;
+   // Never send a token tagged for another data environment to the protected PDF API.
+   var scope=q(rt.environment||rt.dataEnvironment).toLowerCase();
+   if(active&&(!scope||scope===environment()))return active;
   }catch(_){}
   // After a TESTSERVICE state refresh the runtime token can be cleared while
   // the authenticated tab session remains valid. Do not launch Microsoft login.
