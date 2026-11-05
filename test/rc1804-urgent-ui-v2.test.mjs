@@ -108,20 +108,27 @@ test('public request rendering uses translations for UI copy, but not for canoni
 test('urgent workspaces fill the monitor and keep every operational status in English for any UI language',()=>{
  const statuses=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
  for(const [page,name] of [[internalHtml,'internal'],[publicHtml,'public']]){
-  assert.match(page,/main\\{width:100%;max-width:none/,'full-width '+name+' workspace');
-  assert.doesNotMatch(page,/main\\{max-width:(?:1180|1260|1440)px/,'no later desktop width override');
+  assert.ok(page.includes('main{width:100%;max-width:none'),'full-width '+name+' workspace');
+  for(const width of ['1180','1260','1440'])assert.ok(!page.includes('main{max-width:'+width+'px'),'no later desktop width override');
   const js=script(page);
-  const statusFn=js.split('\\n').find(line=>line.startsWith('function statusText(code){'));
+  const statusFn=js.split('\n').find(line=>line.startsWith('function statusText(code){'));
   assert.ok(statusFn,name+' status formatter must exist');
   const context=vm.createContext({STATUS:statuses,localeV2(){throw new Error('status must not depend on selected language');}});
   vm.runInContext(statusFn,context);
   for(const code of statuses)assert.equal(context.statusText(code),code,name+' '+code);
   for(const code of ['Gemischt','Mixed'])assert.equal(context.statusText(code),'Mixed');
   assert.equal(context.statusText('invalid'),'Unknown');
-  assert.match(js,/return unique.length===1\\?unique\\[0\\]:'Mixed'|return list.length===1\\?list\\[0\\]:'Mixed'/);
+  assert.ok(js.includes(":'Mixed'"),name+' must use a canonical mixed status');
  }
  for(const code of statuses){
-  assert.match(internalHtml,new RegExp('<option value="'+code.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g,'\\\\test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{')+'">'+code+'<\\\\/option>'));
+  assert.ok(internalHtml.includes('<option value="'+code+'">'+code+'</option>'),'English filter '+code);
+ }
+ assert.ok(internalHtml.includes('<option value="">All statuses</option>'));
+ assert.ok(internalHtml.includes('<option value="exception">Check required</option>'));
+ assert.doesNotMatch(internalHtml,/value="(?:Open|Waved|In Progress|Problem|Loaded|Shipped|Invoiced)" data-i18n=/);
+});
+
+test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{')+'">'+code+'<\\\\/option>'));
  }
  assert.match(internalHtml,/<option value="">All statuses<\\/option>/);
  assert.match(internalHtml,/<option value="exception">Check required<\\/option>/);
