@@ -10787,6 +10787,7 @@ html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-
 <script id="exporthub-rc1037-lieferavis-timing-diagnostics" defer src="/assets/rc1037-lieferavis-timing-diagnostics.js?v=1038"></script>
 <script id="exporthub-rc1049-abd-avis-policy" defer src="/assets/rc1049-abd-avis-policy.js?v=1050"></script>
 <script id="exporthub-rc1065-registration-cc" defer src="/assets/rc1065-registration-cc.js?v=1093"></script>
+<link rel="stylesheet" href="assets/rc1800-premium-design.css?v=1800">
 </head>
 <body>
 <script id="exporthub-rc973-autogrow-long-text">
@@ -25199,6 +25200,7 @@ window.ExportHUBPODBackup=Object.freeze({version:VERSION,open:open,close:close,f
 if(window.__EXPORTHUB_RC430_THEME__)return;
 window.__EXPORTHUB_RC430_THEME__=true;
 var THEMES=[
+ ['premium','Premium'],
  ['boardroom-elite','Space Optik'],
  ['glass-workspace','Glass Optik'],
  ['neon-flow','Neon Optik'],
@@ -25214,7 +25216,7 @@ function userName(){
  return !value||/nicht angemeldet/i.test(value)?'':value;
 }
 function key(user){return'exporthub-theme-choice::'+slug(user)}
-function read(user){try{return valid(localStorage.getItem(key(user))||localStorage.getItem('exporthub-theme-choice:last')||'current')}catch(_){return'current'}}
+function read(user){try{return valid(localStorage.getItem(key(user))||localStorage.getItem('exporthub-theme-choice:last')||'premium')}catch(_){return'premium'}}
 function save(user,theme){try{localStorage.setItem(key(user),theme);localStorage.setItem('exporthub-theme-choice:last',theme)}catch(_){}return theme}
 function apply(theme,persist){
  theme=valid(theme);

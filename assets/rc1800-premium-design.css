@@ -1,0 +1,129 @@
+/*
+ * ExportHUB360 – Premium-Designsystem (Theme "premium")
+ * Reine Optik: keine Logik, keine Daten, keine Texte.
+ * Aktiv nur mit body[data-eh-theme="premium"]; andere Themes bleiben unverändert.
+ * Ebenen: 1 Tokens, 2 Grundlayout, 3 Navigation, 4 Karten/KPI, 5 Tabellen,
+ *         6 Formulare/Buttons, 7 Dialoge/Hinweise, 8 Fokus/Responsive/Reduced Motion.
+ */
+
+/* 1 ── Tokens ─────────────────────────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme]{
+  /* Farben */
+  --pc-primary:#2f5fd0;--pc-primary-2:#4a78e0;--pc-primary-soft:#eaf0fd;--pc-focus:#2f5fd0;--pc-on-primary:#fff;
+  --pc-page:#f6f7fa;--pc-page-accent:#f6f7fa;
+  --pc-surface:#fff;--pc-surface-2:#fafbfc;--pc-surface-3:#f1f3f7;--pc-field:#fff;
+  --pc-line:#e3e7ee;--pc-line-strong:#ccd3de;
+  --pc-text:#2b3441;--pc-title:#111827;--pc-muted:#5d6b7e;
+  --pc-side:#fff;--pc-side-2:#f6f7fa;--pc-side-text:#1f2937;--pc-side-muted:#6b7789;
+  --pc-nav-hover:#f1f3f7;--pc-nav-active:#eaf0fd;--pc-nav-active-text:#244fb8;
+  --pc-success:#1f8a5b;--pc-warning:#a96a0b;--pc-danger:#c0392b;--pc-info:#2f5fd0;
+  --pc-body-bg:#f6f7fa;--pc-side-bg:#fff;--pc-card-bg:#fff;--pc-top-bg:rgba(255,255,255,.94);
+  --pc-button-bg:#2f5fd0;--menu-accent:#2f5fd0;
+  /* Rundungen */
+  --pc-card-radius:12px;--pc-control-radius:8px;--pc-button-radius:8px;--pc-nav-radius:8px;
+  /* Schatten */
+  --pc-shadow-soft:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04);
+  --pc-shadow-float:0 8px 24px rgba(16,24,40,.10),0 2px 6px rgba(16,24,40,.06);
+  /* Premium-eigene Tokens */
+  --px-font:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --px-space-1:4px;--px-space-2:8px;--px-space-3:12px;--px-space-4:16px;--px-space-5:24px;
+  --px-ease:cubic-bezier(.2,.7,.2,1);--px-fast:120ms;--px-base:180ms;
+  --px-ok-bg:#e8f6ee;--px-warn-bg:#fdf3e1;--px-bad-bg:#fdeceb;--px-info-bg:#eaf0fd;
+}
+
+/* 2 ── Grundlayout & Typografie ──────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme]{
+  font-family:var(--px-font);font-size:14px;line-height:1.5;color:var(--pc-text);
+  background:var(--pc-body-bg)!important;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(button,input,select,textarea){font-family:inherit}
+html body[data-eh-theme="premium"][data-eh-theme] :is(h1,h2,h3,.page-head h1,.page-head h2){color:var(--pc-title);letter-spacing:-.01em;font-weight:650}
+html body[data-eh-theme="premium"][data-eh-theme] .page-head{border-bottom:1px solid var(--pc-line)!important;padding-bottom:12px!important}
+html body[data-eh-theme="premium"][data-eh-theme] .page-head:after{display:none!important}
+html body[data-eh-theme="premium"][data-eh-theme] #content:before{background:none!important}
+html body[data-eh-theme="premium"][data-eh-theme] .topbar{
+  background:var(--pc-top-bg)!important;border:1px solid var(--pc-line)!important;
+  border-radius:var(--pc-card-radius)!important;box-shadow:var(--pc-shadow-soft)!important;
+  backdrop-filter:saturate(1.4) blur(8px);
+}
+
+/* 3 ── Navigation ────────────────────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] .sidebar{
+  background:var(--pc-side-bg)!important;border-right:1px solid var(--pc-line)!important;box-shadow:none!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] .nav button{
+  border-radius:var(--pc-nav-radius)!important;color:var(--pc-side-text);font-weight:550;
+  transition:background var(--px-fast) var(--px-ease),color var(--px-fast) var(--px-ease);
+}
+html body[data-eh-theme="premium"][data-eh-theme] .nav button:hover{background:var(--pc-nav-hover)!important}
+html body[data-eh-theme="premium"][data-eh-theme] .nav button.active{
+  background:var(--pc-nav-active)!important;color:var(--pc-nav-active-text)!important;
+  box-shadow:inset 3px 0 0 var(--pc-primary)!important;
+}
+
+/* 4 ── Karten & KPI ──────────────────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] :is(.card,.metric,.folder-section,.rc205-widget,.rc205-quick-card,.rc524-panel,.rc543-section,.rc776-card,.rc776-metric){
+  background:var(--pc-card-bg)!important;border:1px solid var(--pc-line)!important;
+  border-radius:var(--pc-card-radius)!important;box-shadow:var(--pc-shadow-soft)!important;
+  transition:box-shadow var(--px-base) var(--px-ease),border-color var(--px-base) var(--px-ease);
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.card,.metric,.rc205-quick-card):hover{
+  border-color:var(--pc-line-strong)!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] .metric{font-variant-numeric:tabular-nums}
+
+/* 5 ── Tabellen ──────────────────────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+html body[data-eh-theme="premium"][data-eh-theme] th{
+  background:var(--pc-surface-2);color:var(--pc-muted);font-size:11.5px;font-weight:650;
+  letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--pc-line-strong);
+}
+html body[data-eh-theme="premium"][data-eh-theme] td{border-bottom:1px solid var(--pc-line)}
+html body[data-eh-theme="premium"][data-eh-theme] tbody tr{transition:background var(--px-fast) var(--px-ease)}
+html body[data-eh-theme="premium"][data-eh-theme] tbody tr:hover td{background:var(--pc-surface-3)}
+
+/* 6 ── Formulare & Buttons ───────────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] :is(input:not([type=checkbox]):not([type=radio]),select,textarea){
+  background:var(--pc-field)!important;color:var(--pc-text)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-control-radius)!important;
+  transition:border-color var(--px-fast) var(--px-ease),box-shadow var(--px-fast) var(--px-ease);
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(input,select,textarea):hover{border-color:#aeb8c7!important}
+html body[data-eh-theme="premium"][data-eh-theme] :is(input,select,textarea)::placeholder{color:#7a8798}
+html body[data-eh-theme="premium"][data-eh-theme] :is(input[type=checkbox],input[type=radio]){accent-color:var(--pc-primary)}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.btn,.btn-primary,button.primary){
+  background:var(--pc-primary)!important;color:var(--pc-on-primary)!important;border:1px solid var(--pc-primary)!important;
+  border-radius:var(--pc-button-radius)!important;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.12)!important;
+  transition:background var(--px-fast) var(--px-ease),transform var(--px-fast) var(--px-ease);
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.btn,.btn-primary,button.primary):hover{background:#244fb8!important}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.btn,.btn-primary,button.primary):active{transform:translateY(1px)}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.ghost,button.ghost,.btn.ghost){
+  background:var(--pc-surface)!important;color:var(--pc-text)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-button-radius)!important;
+  box-shadow:none!important;font-weight:550;
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.ghost,button.ghost):hover{background:var(--pc-surface-3)!important}
+html body[data-eh-theme="premium"][data-eh-theme] :is(button,input,select,textarea):disabled{opacity:.55;cursor:not-allowed}
+
+/* 7 ── Dialoge, Hinweise, Status ─────────────────────────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] :is(dialog,.modal,.rc-modal,[role=dialog]){
+  border:1px solid var(--pc-line)!important;border-radius:14px!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(.badge,.pill,.chip,.tag,.status){border-radius:999px;font-weight:600}
+
+/* 8 ── Fokus (WCAG 2.2), Responsive, Reduced Motion ──────────────────── */
+html body[data-eh-theme="premium"][data-eh-theme] :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--pc-focus)!important;outline-offset:2px!important;
+  box-shadow:0 0 0 4px rgba(47,95,208,.18)!important;
+}
+html body[data-eh-theme="premium"][data-eh-theme] :is(button,.btn,.ghost,input,select){min-height:36px}
+html body[data-eh-theme="premium"][data-eh-theme] .table-wrap,html body[data-eh-theme="premium"][data-eh-theme] .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:760px){
+  html body[data-eh-theme="premium"][data-eh-theme] :is(button,.btn,.ghost,input,select){min-height:44px}
+  html body[data-eh-theme="premium"][data-eh-theme]{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  html body[data-eh-theme="premium"][data-eh-theme] *{transition:none!important;animation:none!important}
+}
