@@ -150,8 +150,8 @@ async function execute(req,user,refs){
    const previous=doc.orders.find(x=>x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
    doc.orders.push(created);
-   doc.profiles[model.text(user.id)]={email:created.email,language:created.language,updatedAt:now,verified:false};
-   return{order:created,profile:doc.profiles[model.text(user.id)],environment:refs.environment};
+   // Email history is browser-local; do not link the email to the login profile.
+   return{order:created,environment:refs.environment};
   });
  }
  if(action==='save-profile'){
