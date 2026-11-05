@@ -79,7 +79,7 @@ jobs:
           set -euo pipefail
           rm -rf .rc1112_testservice_app
           mkdir -p .rc1112_testservice_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html .rc1112_testservice_app/
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/qualitaet.html .rc1112_testservice_app/
           cp dist-rc1112/production-version.js .rc1112_testservice_app/production-version.js
           cp -R assets .rc1112_testservice_app/assets
           cp -R dist-rc1112/assets/. .rc1112_testservice_app/assets/
@@ -87,6 +87,7 @@ jobs:
           cp dist-rc1112/TESTVERSION.html .rc1112_testservice_app/index.html
           cp dist-rc1112/TESTVERSION.html .rc1112_testservice_app/TESTVERSION.html
           cp dist-rc1112/demo.html .rc1112_testservice_app/demo.html
+          test -s .rc1112_testservice_app/qualitaet.html
           test -s .rc1112_testservice_app/assets/rc1017-multi-truck.js
           test -s .rc1112_testservice_app/assets/rc1018-mail-language-standard.js
           test -s .rc1112_testservice_app/assets/rc1018-public-language.js

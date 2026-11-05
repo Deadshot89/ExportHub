@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>Fehler & Verbesserungen · ExportHUB360</title>
+<style>
+:root{font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#18283b;background:#f3f6fb;color-scheme:light;--surface:#fff;--border:#dce5f0;--muted:#62738a;--accent:#0c7189;--soft:#eaf7fa;--shadow:0 12px 40px rgba(18,43,72,.07)}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+:focus-visible{outline:3px solid #0a88ba;outline-offset:3px}header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}
+.top{max-width:1500px;margin:auto;min-height:74px;display:flex;align-items:center;gap:18px;padding:12px 26px}.mark{height:40px;width:40px;background:#0c7189;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:900;letter-spacing:-.1em}.brand{font-weight:800;font-size:18px;color:#152d43}.tagline{color:var(--muted);font-size:12px}.back{margin-left:auto;text-decoration:none;border:1px solid var(--border);border-radius:11px;padding:10px 15px;color:#244156;background:#fff;font-weight:700}
+main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px,2.8vw,34px);line-height:1.17;letter-spacing:-.035em;margin:0 0 5px}h2{font-size:20px;margin:0}p{margin:4px 0 10px;color:var(--muted)}.titlebar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:23px}
+.primary{background:#08778f;border:1px solid #08778f;color:white;border-radius:11px;padding:11px 17px;font-weight:750}.primary:hover{background:#076278}.subtle{background:#fff;border:1px solid var(--border);border-radius:11px;padding:11px 15px;color:#24465a;font-weight:700}.danger{color:#ad3d3a;border-color:#eab4b0}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 20px}.metric{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:18px 20px;box-shadow:var(--shadow)}.metric strong{font-size:28px;display:block;letter-spacing:-.045em;line-height:1.1}.metric span{color:var(--muted);font-weight:650;font-size:13px}
+.workspace{display:grid;grid-template-columns:minmax(290px,365px) minmax(0,1fr);gap:18px;align-items:start}.panel{background:var(--surface);border:1px solid var(--border);border-radius:17px;box-shadow:var(--shadow);overflow:hidden}.panel-head{padding:19px 21px;border-bottom:1px solid var(--border)}.panel-body{padding:21px}.filters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.filters input{grid-column:1/-1}.cases{max-height:680px;overflow:auto;padding:7px}.case{display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:12px;padding:14px 12px;background:transparent;color:inherit;margin:4px 0}.case:hover,.case[aria-current="true"]{background:#eef8fb;border-color:#c6e4ee}.case strong{display:block;font-size:14px;margin:4px 0;overflow-wrap:anywhere}.case small{color:var(--muted)}.badges{display:flex;gap:6px;flex-wrap:wrap}.pill{font-size:11px;border-radius:20px;padding:3px 8px;background:#e9eef6;color:#46607b;font-weight:700}.pill.high{background:#fff0e6;color:#a04a12}.pill.critical{background:#feeceb;color:#b0262f}.pill.done{background:#e7f7ed;color:#1d7853}.empty{padding:26px;color:var(--muted);text-align:center}
+.section-title{font-size:12px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:#537085;margin:24px 0 11px;padding-bottom:8px;border-bottom:1px solid var(--border)}.section-title:first-child{margin-top:0}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field.wide{grid-column:1/-1}label{font-size:13px;font-weight:750;color:#2f5064}input,select,textarea{width:100%;border:1px solid #cedbea;background:#fff;color:#18304b;border-radius:10px;padding:10px 12px;min-height:43px}textarea{min-height:78px;resize:vertical}input:disabled,select:disabled,textarea:disabled{background:#f4f6fa;color:#546579}.form-actions{position:sticky;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--border);padding:15px 21px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:5}
+.helper{font-size:12px;color:var(--muted)}.suggestions{display:none;margin:0 21px 23px;border-radius:12px;background:#f0f9fc;border:1px solid #c8e6f0;padding:18px}.suggestions.show{display:block}.tip{border-top:1px solid #c8e6f0;padding:10px 0}.tip:first-of-type{border:0}.tip b{display:block}.tip p{margin:3px 0 0;font-size:13px;color:#365464}.tip button{margin-top:9px;border:1px solid #84bccc;background:#fff;border-radius:9px;padding:6px 11px;font-size:12px;font-weight:750;color:#1a5868}.related-item{display:block;text-align:left;width:100%;padding:10px 12px;margin:6px 0;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:inherit}.related-item small{display:block;color:var(--muted)}
+.history{padding:5px 21px 21px}.history-row{border-top:1px solid var(--border);padding:11px 0;font-size:13px}.history-row span{color:var(--muted)}#notice{min-height:20px;color:#316d7b;font-size:13px;font-weight:700}#notice.error{color:#b12438}
+.locked{border:1px solid #f1d2a4;background:#fff9ec;border-radius:13px;padding:18px;margin:20px 0;color:#67481c}
+[hidden]{display:none!important}
+@media(max-width:960px){.workspace{grid-template-columns:1fr}.cases{max-height:340px}.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:610px){main{padding:18px 12px 60px}.top{padding:10px 12px}.tagline{display:none}.metrics{gap:8px}.metric{padding:14px}.metric strong{font-size:25px}.panel-head,.panel-body{padding:15px}.fields{grid-template-columns:1fr}.field.wide{grid-column:auto}.form-actions{padding:12px 15px}.back{font-size:12px;padding:8px 10px}}
+@media(prefers-color-scheme:dark){:root{color:#e6eef7;background:#111c2c;--surface:#1b293b;--border:#33465c;--muted:#a8b9cd;--soft:#1c3645;--shadow:none;color-scheme:dark}header{background:rgba(27,41,59,.97)}.brand,.back,label{color:#e5eef8}.back,.subtle,input,select,textarea{background:#22364b;color:#e5eef8;border-color:#40566e}.case{color:#e5eef8}.case:hover,.case[aria-current="true"]{background:#194052;border-color:#276b80}.pill{background:#2f4459;color:#cddde8}.pill.done{background:#164d40;color:#a4e2c2}.pill.high{background:#58361d;color:#ffca9f}.pill.critical{background:#632d32;color:#ffd0d3}.section-title{color:#acc7d3}.form-actions{background:rgba(27,41,59,.98)}.suggestions{background:#183748;border-color:#2d5c70}.tip{border-color:#2d5c70}.tip p{color:#c5d7e1}.locked{background:#503d1c;color:#ffdfaa;border-color:#886631}input:disabled,select:disabled,textarea:disabled{background:#172638;color:#a8b9cd}}
+#printReport{display:none}
+@media print{header,.metrics,#caseList,.filters,.form-actions,.suggestions,.top-actions{display:none!important}.workspace{display:block}.panel{border:0;box-shadow:none}.panel:first-child{display:none}.panel-head{padding:0 0 15px}.panel-body{padding:0}.fields{gap:9px}input,textarea,select{border:0;background:transparent;min-height:0;padding:2px;font-size:12px;resize:none}textarea{height:auto}.section-title{margin:12px 0 7px}body{background:white;color:black}}
+
+@media print{
+ @page{size:A4;margin:14mm 13mm}
+ html,body{background:#fff!important;color:#111!important}
+ main{max-width:none;padding:0;margin:0}
+ #app,.titlebar{display:none!important}
+ #printReport{display:block!important;font:10.5pt/1.42 Arial,Helvetica,sans-serif;color:#151e27}
+ #printReport .pr-top{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #08778f;padding:0 0 9mm;margin-bottom:6mm;gap:12mm}
+ #printReport .pr-top b{font-size:17pt;display:block}
+ #printReport .pr-top small{font-size:9pt;color:#445064}
+ #printReport .pr-headline{font-size:16pt;font-weight:750;margin-bottom:4mm}
+ #printReport .pr-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2mm 5mm;margin-bottom:6mm}
+ #printReport .pr-meta div{border-bottom:1px solid #d3dce4;padding:1.5mm 0}
+ #printReport .pr-label{display:block;font-weight:700;color:#415163;font-size:8pt}
+ #printReport .pr-section{font-weight:750;font-size:11pt;background:#e6f1f5;color:#1d4e61;padding:2.5mm 3mm;margin:6mm 0 3mm;break-after:avoid}
+ #printReport .pr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3mm 7mm}
+ #printReport .pr-field{min-width:0;border-bottom:1px solid #e4e9ee;padding:2mm 0;break-inside:avoid}
+ #printReport .pr-field.wide{grid-column:1/-1}
+ #printReport .pr-value{white-space:pre-wrap;overflow-wrap:anywhere}
+ #printReport .pr-note{font-size:8pt;color:#5a6473;margin:4mm 0;border-top:1px solid #d3dce4;padding-top:3mm}
+ #printReport .pr-history{padding:2.5mm 0;border-bottom:1px solid #e2e8ee;break-inside:avoid}
+ #printReport .pr-history small{font-size:8pt;color:#566275}
+}
+</style>
+</head>
+<body>
+<header><div class="top"><div class="mark" aria-hidden="true">EH</div><div><div class="brand">ExportHUB360</div><div class="tagline">Qualitätsmanagement · Fehler & Verbesserungen</div></div><a class="back" href="/">← Zur Hauptseite</a></div></header>
+<main>
+<div class="titlebar"><div><h1>Fehler & Verbesserungen</h1><p>Abweichungen erfassen, Ursachen beheben und Wirksamkeit nachweisen.</p></div><div class="top-actions"><button id="newBtn" class="primary" type="button">+ Fehler dokumentieren</button> <button id="printBtn" class="subtle" type="button">Fall drucken</button></div></div>
+<div id="access" class="locked" hidden></div>
+<div id="app" hidden>
+<section class="metrics" aria-label="Fallübersicht"><div class="metric"><strong id="countOpen">0</strong><span>Offene Fälle</span></div><div class="metric"><strong id="countDue">0</strong><span>Überfällige Maßnahmen</span></div><div class="metric"><strong id="countVerify">0</strong><span>Wirksamkeit prüfen</span></div><div class="metric"><strong id="countClosed">0</strong><span>Abgeschlossen</span></div></section>
+<div class="workspace">
+<aside class="panel" aria-label="Erfasste Abweichungen"><div class="panel-head"><h2>Fehlerprotokoll</h2><div class="filters"><input id="search" type="search" placeholder="Suche: Fehler, REF, Ursache …" aria-label="Fehler suchen"><select id="filterStatus" aria-label="Status filtern"><option value="">Alle Status</option><option value="offen">Offen</option><option value="ursachenanalyse">Ursachenanalyse</option><option value="massnahme">Maßnahme</option><option value="wirksamkeitspruefung">Wirksamkeit prüfen</option><option value="abgeschlossen">Abgeschlossen</option></select><select id="filterCategory" aria-label="Kategorie filtern"><option value="">Alle Bereiche</option><option value="versand">Versand</option><option value="verladung">Verladung</option><option value="dokumente">Dokumente</option><option value="zoll">Zoll</option><option value="kunde">Kunde</option><option value="qualitaet">Qualität</option><option value="umwelt">Umwelt</option><option value="arbeitsschutz">Arbeitsschutz</option><option value="sonstiges">Sonstiges</option></select></div></div><div id="caseList" class="cases" role="list"></div></aside>
+<article class="panel" aria-label="Fall bearbeiten">
+<div class="panel-head"><h2 id="formTitle">Neuer Fehler</h2><p id="formMeta" class="helper">Jeder Fehler erhält eine eindeutige Nummer und einen Änderungsverlauf.</p><div id="notice" role="status" aria-live="polite"></div></div>
+<form id="caseForm" class="panel-body">
+<div class="section-title">01 · Was ist passiert?</div>
+<div class="fields">
+<div class="field wide"><label for="title">Fehlertitel *</label><input id="title" name="title" maxlength="180" required placeholder="z. B. Falsche Palette für Sendung bereitgestellt"></div>
+<div class="field"><label for="category">Kategorie</label><select name="category" id="category"><option value="versand">Versand</option><option value="verladung">Verladung</option><option value="dokumente">Dokumente</option><option value="zoll">Zoll</option><option value="kunde">Kundenkommunikation</option><option value="qualitaet">Qualität</option><option value="umwelt">Umwelt</option><option value="arbeitsschutz">Arbeitsschutz</option><option value="sonstiges">Sonstiges</option></select></div>
+<div class="field"><label for="severity">Schweregrad</label><select id="severity" name="severity"><option value="niedrig">Niedrig</option><option value="mittel">Mittel</option><option value="hoch">Hoch</option><option value="kritisch">Kritisch</option></select></div>
+<div class="field"><label for="occurredOn">Fehlerdatum</label><input id="occurredOn" name="occurredOn" type="date"></div>
+<div class="field"><label for="area">Arbeitsbereich</label><input id="area" name="area" maxlength="120" placeholder="z. B. Warenausgang"></div>
+<div class="field wide"><label for="reference">Sendungsreferenz / Bezug</label><input id="reference" name="reference" maxlength="120" placeholder="Optional: REF, Auftrag, Versandnummer"></div>
+<div class="field wide"><label for="description">Was genau ist passiert? *</label><textarea id="description" name="description" required maxlength="4000" placeholder="Beschreibe den tatsächlichen Ablauf in einfachen Worten."></textarea></div>
+<div class="field wide"><label for="impact">Welche Folgen hatte der Fehler?</label><textarea id="impact" name="impact" maxlength="1500" placeholder="Kunde, Kosten, Nacharbeit, Umwelt oder Sicherheit"></textarea></div>
+<div class="field wide"><label for="immediateAction">Was wurde sofort unternommen?</label><textarea id="immediateAction" name="immediateAction" maxlength="2000" placeholder="z. B. Verladung gestoppt, Spedition angerufen"></textarea></div>
+</div>
+<div class="section-title">02 · Ursache und dauerhafte Lösung</div>
+<div class="fields">
+<div class="field wide"><label for="rootCause">Was war die tatsächliche Ursache?</label><textarea id="rootCause" name="rootCause" maxlength="2000" placeholder="5 Warum: Warum konnte der Fehler entstehen?"></textarea></div>
+<div class="field wide"><label for="correctiveAction">Abstellmaßnahme</label><textarea id="correctiveAction" name="correctiveAction" maxlength="2000" placeholder="Konkrete Änderung, die den Fehler künftig verhindert"></textarea></div>
+<div class="field wide"><label for="preventiveAction">Vorbeugende Verbesserung / SOP</label><textarea id="preventiveAction" name="preventiveAction" maxlength="2000" placeholder="Prüfschritt, Schulung, SOP oder Systemanpassung"></textarea></div>
+<div class="field"><label for="owner">Verantwortlich</label><input id="owner" name="owner" maxlength="120" placeholder="Name oder Team"></div>
+<div class="field"><label for="dueDate">Frist</label><input id="dueDate" name="dueDate" type="date"></div>
+<div class="field"><label for="status">Bearbeitungsstand</label><select id="status" name="status"><option value="offen">Offen</option><option value="ursachenanalyse">Ursachenanalyse</option><option value="massnahme">Maßnahme wird umgesetzt</option><option value="wirksamkeitspruefung">Wirksamkeit prüfen</option><option value="abgeschlossen" disabled>Abgeschlossen (nur mit Prüfung)</option></select></div>
+<div class="field wide"><label for="evidence">Nachweis / Dokumentreferenz</label><textarea id="evidence" name="evidence" maxlength="2000" placeholder="z. B. Prüfprotokoll, Foto-/Dateiname oder Referenzordner"></textarea></div>
+</div>
+<div class="section-title">03 · War die Maßnahme erfolgreich?</div>
+<div class="fields">
+<div class="field"><label for="effectivenessResult">Bewertung</label><select id="effectivenessResult" name="effectivenessResult"><option value="">Noch nicht geprüft</option><option value="offen">Prüfung offen</option><option value="wirksam">Wirksam</option><option value="unwirksam">Nicht wirksam</option></select></div>
+<div class="field"><label for="verifiedOn">Prüfdatum</label><input id="verifiedOn" name="verifiedOn" type="date"></div>
+<div class="field wide"><label for="effectivenessEvidence">Wie wurde die Wirkung nachgewiesen?</label><textarea id="effectivenessEvidence" name="effectivenessEvidence" maxlength="2000" placeholder="z. B. zehn weitere Verladungen ohne gleiche Abweichung geprüft"></textarea></div>
+</div>
+</form>
+<div class="form-actions"><button id="saveBtn" class="primary" type="button">Fall speichern</button><button id="tipsBtn" class="subtle" type="button">Verbesserungsvorschläge</button><button id="closeBtn" class="subtle" type="button" hidden>Wirksamkeit bestätigen & schließen</button><button id="reopenBtn" class="subtle danger" type="button" hidden>Wieder öffnen</button><span id="saveHint" class="helper">Nicht gespeichert</span></div>
+<div id="suggestions" class="suggestions" role="region" aria-label="Verbesserungsvorschläge" aria-live="polite"></div>
+<div id="historyBlock" hidden><div class="section-title" style="margin-left:21px;margin-right:21px">Änderungsverlauf</div><div id="history" class="history"></div></div>
+</article></div></div>
+<section id="printReport" aria-label="Druckbericht Qualitätsabweichung"></section>
+</main>
+<script>
+(function(){
+'use strict';
+var endpoint='/api/quality-capa',items=[],selected=null,canEdit=false,canClose=false,dirty=false,busy=false,currentAdvice=[],form=document.getElementById('caseForm');
+var fields=['title','category','severity','occurredOn','area','reference','description','impact','immediateAction','rootCause','correctiveAction','preventiveAction','owner','dueDate','status','evidence','effectivenessResult','verifiedOn','effectivenessEvidence'];
+var statusNames={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:'Abgeschlossen'};
+function el(id){return document.getElementById(id)}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function dateToday(){return new Date().toLocaleDateString('sv-SE')}
+function token(){try{var a=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');if(a.token)return String(a.token)}catch(_){}
+ try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime;return String(r&&r.authToken||'')}catch(_){return''}}
+async function api(data){
+ var headers={'Content-Type':'application/json','Accept':'application/json'},tk=token();if(tk){headers['X-ExportHUB-Token']=tk;headers.Authorization='Bearer '+tk}
+ var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify(data)});
+ if(r.type==='opaqueredirect'||r.redirected)throw Error('Die Sitzung wurde umgeleitet. Bitte in ExportHUB360 erneut anmelden.');
+ var mime=r.headers.get('content-type')||'';if(!mime.includes('application/json'))throw Error('Keine gültige API-Antwort. Bitte Sitzung prüfen.');
+ var j=await r.json();if(!r.ok||j.ok===false)throw Error(j.message||('HTTP '+r.status));return j
+}
+function notice(s,error){el('notice').textContent=s||'';el('notice').className=error?'error':''}
+function setBusy(v){busy=v;['saveBtn','tipsBtn','closeBtn','reopenBtn','newBtn'].forEach(function(x){el(x).disabled=v})}
+function value(){var o={};fields.forEach(function(f){o[f]=form.elements[f].value});return o}
+function fill(item){
+ fields.forEach(function(f){form.elements[f].value=(item&&item[f])||''});
+ if(!item){form.elements.category.value='versand';form.elements.severity.value='mittel';form.elements.status.value='offen';form.elements.occurredOn.value=dateToday()}
+ var closed=item&&item.status==='abgeschlossen',readonly=!canEdit||closed;
+ fields.forEach(function(f){form.elements[f].disabled=readonly});
+ el('saveBtn').hidden=readonly;el('closeBtn').hidden=readonly||!canClose||!item;el('reopenBtn').hidden=!canClose||!closed;
+ el('formTitle').textContent=item?item.title||item.id:'Neuer Fehler';
+ el('formMeta').textContent=item?item.id+' · erstellt '+new Date(item.createdAt).toLocaleDateString('de-DE')+' · '+item.createdBy+' · Version '+item.revision:'Neue Abweichung mit eindeutiger Nummer erfassen';
+ el('saveHint').textContent=closed?'Abgeschlossen':item?'Gespeichert':'Noch nicht gespeichert';
+ dirty=false;currentAdvice=[];notice('');el('suggestions').classList.remove('show');history(item);
+}
+function history(item){el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
+ el('history').innerHTML=(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
+function list(){
+ el('countOpen').textContent=items.filter(function(x){return x.status!=='abgeschlossen'}).length;
+ el('countClosed').textContent=items.filter(function(x){return x.status==='abgeschlossen'}).length;
+ el('countVerify').textContent=items.filter(function(x){return x.status==='wirksamkeitspruefung'}).length;
+ el('countDue').textContent=items.filter(function(x){return x.dueDate&&x.dueDate<dateToday()&&x.status!=='abgeschlossen'}).length;
+ var needle=el('search').value.trim().toLowerCase(),st=el('filterStatus').value,cat=el('filterCategory').value;
+ var visible=items.filter(function(x){return(!st||x.status===st)&&(!cat||x.category===cat)&&(!needle||[x.id,x.title,x.description,x.reference,x.area,x.rootCause].join(' ').toLowerCase().includes(needle))});
+ el('caseList').innerHTML=visible.length?visible.map(function(x){
+  var severity=x.severity==='kritisch'?'critical':x.severity==='hoch'?'high':'',done=x.status==='abgeschlossen'?'done':'';
+  return'<button type="button" class="case" role="listitem" data-id="'+esc(x.id)+'" aria-current="'+(selected&&selected.id===x.id?'true':'false')+'"><div class="badges"><span class="pill '+done+'">'+esc(statusNames[x.status]||x.status)+'</span><span class="pill '+severity+'">'+esc(x.severity)+'</span></div><strong>'+esc(x.title)+'</strong><small>'+esc(x.id)+' · '+esc(x.reference||x.area||x.category)+'</small></button>'
+ }).join(''):'<div class="empty">Keine passenden Fehlerfälle vorhanden.</div>'
+}
+function select(item){if(dirty&&!confirm('Nicht gespeicherte Änderungen verwerfen?'))return;selected=item;fill(item);list()}
+async function load(preferred){
+ var response=await api({action:'list'});items=response.items||[];canEdit=response.canEdit===true;canClose=response.canClose===true;el('app').hidden=false;el('access').hidden=true;
+ var next=preferred?items.find(function(x){return x.id===preferred}):null;
+ if(!next&&selected&&selected.id)next=items.find(function(x){return x.id===selected.id});
+ if(!next&&!selected)next=items[0]||null;
+ selected=next||null;fill(selected);list();el('newBtn').hidden=!canEdit
+}
+async function save(silent){if(busy)return false;if(!form.reportValidity())return false;
+ setBusy(true);try{var v=value(),data=Object.assign({action:selected?'update':'create'},v);
+ if(selected){data.id=selected.id;data.revision=selected.revision}
+ var result=await api(data);
+ var measureChanged=selected&&['rootCause','correctiveAction','preventiveAction'].some(function(k){return String(selected[k]||'')!==String(v[k]||'')});
+ var proofReset=measureChanged&&['wirksam','unwirksam'].includes(selected.effectivenessResult)&&result.item.effectivenessResult==='offen';
+ await load(result.item.id);
+ notice(proofReset?'Maßnahme oder Ursache geändert: Die bisherige Wirksamkeitsprüfung ist ungültig. Bitte erneut prüfen und dokumentieren.':'Änderungen zentral gespeichert.');return true
+ }catch(e){notice(e.message,true);return false}finally{setBusy(false)}}
+async function tips(){if(busy)return;setBusy(true);try{
+ var p=await api({action:'advise',case:Object.assign({id:selected&&selected.id||''},value())});
+ currentAdvice=p.suggestions||[];
+ var box=el('suggestions');
+ var suggestions=currentAdvice.map(function(t,i){
+  return'<div class="tip"><b>'+esc(t.title)+'</b><p>'+esc(t.detail)+'</p>'+
+  (canEdit&&(!selected||selected.status!=='abgeschlossen')?'<button type="button" data-take-tip="'+i+'">Als Maßnahme vorschlagen</button>':'')+'</div>';
+ }).join('');
+ var related=(p.relatedCases||[]).map(function(c){
+  return'<button type="button" class="related-item" data-related-id="'+esc(c.id)+'"><b>'+esc(c.title)+'</b><small>'+esc(c.id)+' · '+esc(statusNames[c.status]||c.status)+'</small>'+
+  (c.verifiedMeasure?'<small>Nachweislich wirksame Maßnahme: '+esc(c.verifiedMeasure)+'</small>':'')+'</button>';
+ }).join('');
+ box.innerHTML='<h2>Verbesserungsvorschläge</h2><p class="helper">Regelbasierte Analyse – keine generative KI. Maßnahmen fachlich prüfen und selbst freigeben.</p>'+
+ suggestions+(related?'<h2 style="margin-top:14px">Ähnliche frühere Fehler</h2><p class="helper">Ähnliche Fälle dienen zur Orientierung; die tatsächliche Ursache muss neu geprüft werden.</p>'+related:'');
+ box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }catch(e){notice(e.message,true)}finally{setBusy(false)}}
+el('suggestions').addEventListener('click',function(e){
+ var take=e.target.closest('[data-take-tip]'),related=e.target.closest('[data-related-id]');
+ if(related){var found=items.find(function(i){return i.id===related.getAttribute('data-related-id')});if(found)select(found);return}
+ if(!take||!canEdit||(selected&&selected.status==='abgeschlossen'))return;
+ var tip=currentAdvice[Number(take.getAttribute('data-take-tip'))];if(!tip)return;
+ var field=form.elements.correctiveAction,proposal='[Vorschlag – vor Umsetzung prüfen] '+tip.title+': '+tip.detail;
+ if(field.value.indexOf(proposal)!==-1){notice('Der Vorschlag steht bereits in den Maßnahmen.');return}
+ field.value=(field.value.trim()?field.value.trim()+'\n\n':'')+proposal;
+ dirty=true;el('saveHint').textContent='Vorschlag noch nicht gespeichert';
+ notice('Vorschlag in „Abstellmaßnahme“ eingefügt. Bitte prüfen und anschließend speichern.');
+ field.focus();
+});
+async function close(){if(!selected)return;if(!canClose)return;
+ if(dirty&&!(await save(true)))return;setBusy(true);
+ try{await api({action:'close',id:selected.id,revision:selected.revision});await load(selected.id);notice('Fall nach dokumentierter Wirksamkeitsprüfung abgeschlossen.')}
+ catch(e){notice(e.message,true)}finally{setBusy(false)}
+}
+async function reopen(){if(!selected||!canClose)return;var reason=prompt('Warum soll der abgeschlossene Fehlerfall wieder geöffnet werden?');if(reason===null)return;
+ setBusy(true);try{await api({action:'reopen',id:selected.id,revision:selected.revision,reason:reason});await load(selected.id);notice('Fall wieder geöffnet.')}
+ catch(e){notice(e.message,true)}finally{setBusy(false)}}
+form.addEventListener('input',function(){dirty=true;el('saveHint').textContent='Änderungen nicht gespeichert'});
+el('caseList').addEventListener('click',function(e){var node=e.target.closest('[data-id]');if(node)select(items.find(function(x){return x.id===node.getAttribute('data-id')})||null)});
+['search','filterStatus','filterCategory'].forEach(function(k){el(k).addEventListener('input',list)});
+el('newBtn').addEventListener('click',function(){select(null)});
+el('saveBtn').addEventListener('click',function(){save(false)});
+el('tipsBtn').addEventListener('click',tips);
+el('closeBtn').addEventListener('click',close);
+el('reopenBtn').addEventListener('click',reopen);
+
+function renderPrintReport(){
+ var v=value(),name={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:'Abgeschlossen'};
+ var groups=[
+ ['01 · Fehler und unmittelbare Folgen',[
+  ['Fehlerdatum',v.occurredOn],['Kategorie',v.category],['Schweregrad',v.severity],['Arbeitsbereich',v.area],
+  ['Sendungsreferenz / Bezug',v.reference],['Fehlerbeschreibung',v.description,true],
+  ['Auswirkungen',v.impact,true],['Sofortmaßnahme',v.immediateAction,true]]],
+ ['02 · Ursachenanalyse und Abstellmaßnahmen',[
+  ['Festgestellte Ursache',v.rootCause,true],['Abstellmaßnahme',v.correctiveAction,true],
+  ['Vorbeugende Verbesserung / SOP',v.preventiveAction,true],['Verantwortlich',v.owner],
+  ['Frist',v.dueDate],['Nachweise / Dokumentreferenz',v.evidence,true]]],
+ ['03 · Wirksamkeitsprüfung und Abschluss',[
+  ['Wirksamkeit',v.effectivenessResult],['Prüfdatum',v.verifiedOn],
+  ['Wie wurde die Wirksamkeit nachgewiesen?',v.effectivenessEvidence,true],
+  ['Freigegeben durch',selected&&selected.verifiedBy],['Abschlusszeitpunkt',selected&&selected.closedAt]]]
+ ];
+ function valueHtml(v){return esc(String(v||'—'))}
+ function rows(fields){return'<div class="pr-grid">'+fields.map(function(f){return'<div class="pr-field'+(f[2]?' wide':'')+'"><span class="pr-label">'+esc(f[0])+'</span><div class="pr-value">'+valueHtml(f[1])+'</div></div>'}).join('')+'</div>'}
+ var history=selected&&Array.isArray(selected.history)?selected.history.slice().reverse():[];
+ var meta=[['Fallnummer',selected&&selected.id||'ENTWURF'],['Status',name[v.status]||v.status||'Offen'],
+ ['Erstellt am',selected&&selected.createdAt?new Date(selected.createdAt).toLocaleDateString('de-DE'):'Nicht gespeichert'],
+ ['Gemeldet durch',selected&&selected.createdBy||'—'],['Revision',selected&&selected.revision||'—'],
+ ['Bericht erstellt am',new Date().toLocaleString('de-DE')]];
+ el('printReport').innerHTML='<div class="pr-top"><div><b>ExportHUB360</b><small>Qualitätsmanagement · Fehler & Verbesserungen</small></div><div><strong>ABWEICHUNGSBERICHT</strong><small style="display:block">'+(dirty||!selected?'ENTWURF – NICHT ALS FREIGEGEBEN VERWENDEN':'Gespeicherter Fallstand')+'</small></div></div>'+
+ '<div class="pr-headline">'+valueHtml(v.title||'Fehler ohne Titel')+'</div>'+
+ '<div class="pr-meta">'+meta.map(function(m){return'<div><span class="pr-label">'+esc(m[0])+'</span>'+valueHtml(m[1])+'</div>'}).join('')+'</div>'+
+ groups.map(function(g){return'<div class="pr-section">'+esc(g[0])+'</div>'+rows(g[1])}).join('')+
+ '<div class="pr-section">04 · Nachvollziehbarer Änderungsverlauf</div>'+
+ (history.length?history.map(function(h){return'<div class="pr-history"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<small> · '+esc(new Date(h.at).toLocaleString('de-DE'))+'</small><div>'+esc(h.notes||'')+'</div>'+(h.changedFields&&h.changedFields.length?'<small>Geänderte Felder: '+esc(h.changedFields.join(', '))+'</small>':'')+'</div>'}).join(''):'<div>Noch kein Änderungsverlauf vorhanden.</div>')+
+ '<div class="pr-note">Dokumentierter ExportHUB360-Fallstand. Die Wirksamkeit ist nur bestätigt, wenn der Status abgeschlossen ist und die verantwortliche Person die Prüfung freigegeben hat.</div>';
+}
+
+el('printBtn').addEventListener('click',function(){renderPrintReport();window.print()});
+window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
+load().catch(function(e){el('access').hidden=false;el('access').textContent='Kein Zugriff auf das Qualitätsprotokoll: '+e.message+' Bitte in ExportHUB360 anmelden und die SOP-Berechtigung prüfen.';el('app').hidden=true;el('newBtn').hidden=true});
+})();
+</script>
+</body></html>

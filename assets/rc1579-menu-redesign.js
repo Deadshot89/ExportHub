@@ -52,6 +52,7 @@ var ICONS={
 ICONS.customers=ICONS.customerfolder;
 ICONS.selfcorrect='<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>';
 ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
+ICONS.quality=ICONS.inspections;
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -60,7 +61,7 @@ var SECTIONS=[
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
  {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
- {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','ideas']},
+ {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','quality','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
  {key:'admin',accent:'#64748b',views:['rights','teamfile','packaging','settings','privacy','it','diagnostics','release','update']}
 ];
@@ -105,7 +106,7 @@ function css(){
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
-function itemSel(v){if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
+function itemSel(v){if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
 function ensureStyle(){if(d.getElementById(STYLE_ID))return;var st=d.createElement('style');st.id=STYLE_ID;st.textContent=css();(d.head||d.documentElement).appendChild(st)}
 
 function header(s){
@@ -155,6 +156,31 @@ function copyLook(proxy,activeRef){
  if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing','opacity'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p),'important')})}
  if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));proxy.style.setProperty('--rc1579-proxy-icon-fg',glyph.getPropertyValue('background-color'))}
  proxy.__rc1579Look=key;
+}
+
+
+// Separate QM function; no second in-app view or duplicated website state.
+// Visibility follows the existing SOP right; API enforces the same right independently.
+function qualityAllowed(){
+ var u=currentUser();if(!u)return false;
+ var r=u.rights&&u.rights.sop||{},role=q(u.role||u.rolle).toLowerCase();
+ return u.globalAdmin===true||u.isGlobalAdmin===true||['admin','administrator','global admin','globaler administrator'].indexOf(role)>=0||
+ r.read===true||r.visible===true||['view','edit','admin'].indexOf(q(r.level).toLowerCase())>=0;
+}
+function ensureQualityLink(){
+ var proxy=nav.querySelector(':scope>[data-rc1579-proxy="quality"]');
+ if(!proxy){
+  proxy=d.createElement('button');proxy.type='button';proxy.className='rc1579-proxy';
+  proxy.setAttribute('data-rc1579-proxy','quality');
+  proxy.innerHTML='<span class="index308-nav-icon" aria-hidden="true"></span><span class="index308-nav-label"></span>';
+  proxy.addEventListener('click',function(e){e.preventDefault();w.location.assign('/qualitaet.html')});
+  nav.appendChild(proxy);
+ }
+ var label=t('quality');
+ setText(proxy.querySelector('.index308-nav-label'),label);
+ setAttr(proxy,'title',label);setAttr(proxy,'aria-label',label);
+ proxy.hidden=!qualityAllowed();copyLook(proxy);
+ return proxy;
 }
 
 // IT: ein Menüpunkt für Fehlerdiagnose, Release-Center und Update
@@ -227,7 +253,7 @@ function sync(){
  try{
   ensureStyle();watch();
   if(!open)open=readOpen();
-  ensureProxy();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
+  ensureProxy();ensureQualityLink();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
   if(activeSection&&!FLAT[activeSection]&&activeSection!==lastActiveSection&&open.indexOf(activeSection)<0){open.push(activeSection);writeOpen()}
   lastActiveSection=activeSection;
   SECTIONS.forEach(function(s){

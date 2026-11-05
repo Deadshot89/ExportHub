@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'qualitaet.html'
       - 'TESTVERSION.html'
       - 'demo.html'
       - 'production-version.js'
@@ -113,7 +114,7 @@ jobs:
           set -euo pipefail
           rm -rf .rc1112_testservice_app
           mkdir -p .rc1112_testservice_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html .rc1112_testservice_app/
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html dist-rc1112/qualitaet.html .rc1112_testservice_app/
           cp dist-rc1112/production-version.js .rc1112_testservice_app/production-version.js
           cp -R assets .rc1112_testservice_app/assets
           cp -R dist-rc1112/assets/. .rc1112_testservice_app/assets/
@@ -122,6 +123,7 @@ jobs:
           cp dist-rc1112/TESTVERSION.html .rc1112_testservice_app/TESTVERSION.html
           cp dist-rc1112/demo.html .rc1112_testservice_app/demo.html
           test -s .rc1112_testservice_app/index.html
+          test -s .rc1112_testservice_app/qualitaet.html
           test -s .rc1112_testservice_app/pack.html
           test -s .rc1112_testservice_app/assets/pack-notification-internal.js
           test -s .rc1112_testservice_app/assets/pack-notification-nav.js
@@ -150,6 +152,7 @@ jobs:
           node --test test/rc1124-browser-release-gate.test.mjs test/rc1190-print-browser-gate.test.mjs test/rc1193-visible-release-version.test.mjs
           npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs e2e/specs/avis-reminder-outlook.spec.mjs
           npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
+          npx playwright test e2e/specs/quality-capa.spec.mjs --project=mobile-small --project=laptop
           EXPORTHUB_E2E_ENTRY=/index.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
           EXPORTHUB_E2E_ENTRY=/TESTVERSION.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
 

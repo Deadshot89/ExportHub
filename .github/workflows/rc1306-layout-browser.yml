@@ -13,6 +13,8 @@ on:
       - 'assets/i18n/**'
       - 'e2e/specs/rc1306-layout-redesign.spec.mjs'
       - 'e2e/specs/rc1371-dashboard-personalization.spec.mjs'
+      - 'e2e/specs/quality-capa.spec.mjs'
+      - 'qualitaet.html'
       - '.github/rc1112/**'
       - '.github/workflows/rc1306-layout-browser.yml'
   workflow_dispatch:
@@ -51,6 +53,13 @@ jobs:
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
+
+      - name: Verify Quality CAPA forms and A4 print on mobile and laptop
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/quality-capa.spec.mjs --project=mobile-small --project=laptop
 
       - name: Upload browser artifacts
         if: failure()
