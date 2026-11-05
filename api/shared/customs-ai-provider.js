@@ -77,7 +77,7 @@ function citationIds(answer,sources){
  return out
 }
 // Ursache für Administratoren und passende Nutzertexte: config = Zugang/Modell abgelehnt, busy = Kontingent/Rate-Limit.
-function reasonForStatus(status){
+function failureReasonOf(status){
  if(status===401||status===403||status===404)return'config';
  if(status===429)return'busy';
  if(status===408)return'timeout';
@@ -110,7 +110,7 @@ async function askCustomsModel(options={}){
   const response=await fetchImpl(config.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':`Bearer ${config.apiKey}`},body:JSON.stringify(body),signal:controller.signal});
   if(!response||response.ok!==true){
    const status=Number(response&&response.status)||0;
-   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,reason:reasonForStatus(status),modelInfo:{provider:config.provider,model:config.model}})
+   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,reason:failureReasonOf(status),modelInfo:{provider:config.provider,model:config.model}})
   }
   const payload=await response.json();
   const answer=extractAnswer(payload);
