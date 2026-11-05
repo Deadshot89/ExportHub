@@ -2523,5 +2523,7 @@
   "urgentOrderV2.retry": "Reintentar",
   "urgentOrderV2.missingArticle": "Introduce el número de línea o artículo.",
   "urgentOrderV2.explainException": "Una verificación negativa requiere una explicación de al menos 8 caracteres.",
-  "urgentOrderV2.networkError": "El servicio de pedidos urgentes no responde. Comprueba la conexión e inténtalo de nuevo."
+  "urgentOrderV2.networkError": "El servicio de pedidos urgentes no responde. Comprueba la conexión e inténtalo de nuevo.",
+  "urgentOrderV2.emailHistoryHint": "Las direcciones de correo guardadas se pueden elegir en este dispositivo, sin iniciar sesión ni vincular una cuenta.",
+  "urgentOrderV2.clearEmailHistory": "Borrar correos guardados"
 }
