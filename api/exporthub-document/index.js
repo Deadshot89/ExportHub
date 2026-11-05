@@ -12,7 +12,10 @@ function error(code,message,status=400){const e=new Error(message);e.code=code;e
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
 function requestEnvironment(req){
  const h=req&&req.headers||{},host=lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||h['X-Original-Host']||h.host||h.Host||''),query=lower(req&&req.query&&req.query.environment||'');
- const hostTest=/-testservice\./i.test(host),hostAzure=/\.azurestaticapps\.net(?:[:/]|$)/i.test(host),hostProd=hostAzure&&!hostTest;
+ const hostTest=/-testservice\./i.test(host),hostAzure=/\.azurestaticapps\.net(?:[:/]|$)/i.test(host);
+ // Custom production domains are authoritative too: never let a query string
+ // select TESTSERVICE from the production website's protected document API.
+ const hostProd=(hostAzure&&!hostTest)||/^(?:www\.)?exporthub360\.(?:de|com)(?::\d+)?$/i.test(host);
  if(query&&query!=='production'&&query!=='testservice')throw error('ENVIRONMENT_INVALID',apiI18n.t(req,'api.common.environmentInvalid'),400);
  if(hostTest){if(query&&query!=='testservice')throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.document.environmentMismatchTest'),409);return'testservice'}
  if(hostProd){if(query&&query!=='production')throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.document.environmentMismatchProduction'),409);return'production'}

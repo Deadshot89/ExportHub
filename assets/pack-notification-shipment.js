@@ -329,6 +329,32 @@
   // RC1680: Pack PDFs in deliveryFiles are not useful to the operator until
   // the shipment creation form exposes an actual authenticated open/download
   // action. Never render another Pack owner's private attachments.
+  // Keep server errors visible without exposing the document path or session token.
+  // RC1680 previously swallowed every exception, hiding 401/404/409 and redirects.
+  function packDocumentFailureDetail(error){
+    const code=q(error&&error.code),message=q(error&&error.message||error);
+    const label=(key,fallback)=>{
+      try{
+        const i18n=root.ExportHUBI18n;
+        if(i18n&&typeof i18n.t==='function'){
+          const value=q(i18n.t(key));
+          if(value&&value!==key)return value;
+        }
+      }catch(_){}
+      return fallback;
+    };
+    const http=message.match(/\bHTTP\s*([1-5][0-9]{2})\b/i);
+    if(http)return ' (HTTP '+http[1]+')';
+    if(code==='DOCUMENT_API_LOGIN_REDIRECT')return ' (DOCUMENT_API_LOGIN_REDIRECT)';
+    if(code==='DOCUMENT_NOT_PDF')return ' (DOCUMENT_NOT_PDF)';
+    if(/login required|Sitzung fehlt|Anmeldung erforderlich/i.test(message))
+      return ' ('+label('document.loginRequired','ExportHUB login required')+')';
+    if(/invalid (?:ExportHUB )?document reference|Dokumentreferenz/i.test(message))
+      return ' ('+label('document.invalidReference','Invalid ExportHUB document reference')+')';
+    if(/original document is unavailable|document is not available/i.test(message))
+      return ' ('+label('documentViewer.unavailable','Document unavailable')+')';
+    return '';
+  }
   function renderPendingLieferscheine(prefill){
     const doc=root.document;
     if(!doc||typeof doc.getElementById!=='function'||typeof doc.createElement!=='function')return false;
@@ -376,7 +402,7 @@
           const opened=await reader.open(chosen,{name:q(chosen.name),download});
           if(opened===false)throw Error('Original document download failed');
           feedback.textContent='';
-        }catch(_){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.');}
+        }catch(error){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.')+packDocumentFailureDetail(error);}
       };
       for(const [labelKey,fallback,download] of [
         ['documentViewer.open','Open',false],['documentViewer.download','Download',true]
