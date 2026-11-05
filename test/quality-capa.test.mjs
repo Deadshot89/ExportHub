@@ -112,6 +112,17 @@ test('CAPA: private evidence and incident storage is never part of shared shipme
  assert.match(apiSource,/requireRight\(canClose/);
 });
 
+test('CAPA: release packages include the QM page in every permitted environment',()=>{
+ const main=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const prod=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
+ const exception=fs.readFileSync('.github/workflows/exporthub-testservice.yml','utf8');
+ for(const [flow,target] of [[main,'.rc1112_testservice_app'],[prod,'.rc1112_production_app'],[exception,'.rc1112_testservice_app']]){
+  assert.match(flow,new RegExp('cp dist-rc1112/pickup\\.html[^\\n]*dist-rc1112/qualitaet\\.html '+target.replaceAll('.','\\.')+'/'));
+  assert.ok(flow.includes('test -s '+target+'/qualitaet.html'),'QM page must be verified in release package');
+ }
+ assert.ok(main.includes("      - 'qualitaet.html'"),'QM page-only change must trigger Main verification');
+});
+
 test('CAPA: release bundle includes page, server API and menu link',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const menu=fs.readFileSync('assets/rc1579-menu-redesign.js','utf8');
