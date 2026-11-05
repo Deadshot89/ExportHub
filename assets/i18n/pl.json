@@ -2525,5 +2525,6 @@
   "urgentOrderV2.explainException": "Negatywna kontrola wymaga uzasadnienia co najmniej 8 znaków.",
   "urgentOrderV2.networkError": "Usługa pilnych zamówień nie odpowiada. Sprawdź połączenie i spróbuj ponownie.",
   "urgentOrderV2.emailHistoryHint": "Zapisane adresy e-mail można wybrać na tym urządzeniu, bez logowania i powiązania z kontem.",
-  "urgentOrderV2.clearEmailHistory": "Usuń zapisane adresy e-mail"
+  "urgentOrderV2.clearEmailHistory": "Usuń zapisane adresy e-mail",
+  "urgentOrderV2.saveEmailOnDevice": "Zapisz e-mail na tym urządzeniu"
 }
