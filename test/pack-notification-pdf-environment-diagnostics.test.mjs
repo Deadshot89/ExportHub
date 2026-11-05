@@ -139,3 +139,31 @@ test('P0 server rejects TESTSERVICE document scope on official custom production
     ()=>pick('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','production'),
     error=>error.code==='ENVIRONMENT_MISMATCH');
 });
+
+
+test('P0 two separate DNC originals with identical size survive Packmeldung to saved shipment handoff',()=>{
+  const firstHash='a'.repeat(64),secondHash='b'.repeat(64);
+  const originals=[
+    {name:'DNC3019228203.pdf',storage:'blob',blobName:'rc1059/production/aa/'+firstHash,
+      sha256:firstHash,mimeType:'application/pdf',size:178*1024},
+    {name:'DNC3019228210.pdf',storage:'blob',blobName:'rc1059/production/bb/'+secondHash,
+      sha256:secondHash,mimeType:'application/pdf',size:178*1024}
+  ];
+  const notification={id:'PN-TWO-DNC',reference:'PK-TWO-DNC',documents:originals,packageCount:2,totalWeight:100};
+  const shipment={id:'saved-fixture',ref:'ABC123',deliveryFiles:[]};
+  const state={packNotifications:[notification],shipments:[shipment],tasks:[]};
+  const root={__EXPORTHUB_GET_STATE__:()=>state,addEventListener(){}};
+  vm.runInNewContext(pack,{window:root,URL,Uint8Array,Date,Intl,setTimeout,clearTimeout});
+  const api=root.ExportHUBPackShipment;
+  const prefill=api.shipmentPrefill(notification);
+  assert.equal(prefill.deliveryFiles.length,2);
+  assert.equal(api.linkShipment(state,notification,shipment,'2026-11-05T12:00:00.000Z'),true);
+  assert.equal(shipment.deliveryFiles.length,2);
+  assert.deepEqual(Array.from(shipment.deliveryFiles,f=>f.name),originals.map(f=>f.name));
+  assert.deepEqual(Array.from(shipment.deliveryFiles,f=>f.blobName),originals.map(f=>f.blobName));
+  assert.ok(shipment.deliveryFiles.every(f=>f.customerAvisVisible===true&&f.customerVisible===true));
+  // An unrelated PDF with the same byte size must never be deduplicated by size.
+  assert.notEqual(shipment.deliveryFiles[0].blobName,shipment.deliveryFiles[1].blobName);
+  api.linkShipment(state,notification,shipment,'2026-11-05T12:01:00.000Z');
+  assert.equal(shipment.deliveryFiles.length,2,'replayed handoff must not duplicate or drop DNC originals');
+});
