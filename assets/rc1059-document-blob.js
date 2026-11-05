@@ -4,6 +4,9 @@
  function tr(key,vars,fallback){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var v=w.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
  function environment(){
   var host=q(w.location&&w.location.hostname).toLowerCase();
+  // Official production hosts take precedence over a stale TESTSERVICE runtime.
+  // The protected document endpoint checks the host and rejects a wrong scope.
+  if(['www.exporthub360.de','exporthub360.de','www.exporthub360.com','exporthub360.com'].indexOf(host)>=0)return'production';
   if(/-testservice\./.test(host))return'testservice';
   try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},e=q(rt.environment||rt.dataEnvironment).toLowerCase();if(e==='testservice')return'testservice'}catch(_){}
   return'production';
