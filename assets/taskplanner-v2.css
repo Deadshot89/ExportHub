@@ -351,6 +351,12 @@ html[data-eh-design="neon"] .tpv2-reminders li{background:#10233a;color:#e5eef8}
   :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-abd-exception::before{
     background:#d97706;
   }
+  /* Überfällige Aufgaben behalten ihr bestehendes rotes Warnsignal. */
+  :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card.is-overdue{
+    border:2px solid var(--tpv2-danger);
+    background:color-mix(in srgb,var(--tpv2-danger-soft) 38%,var(--tpv2-surface));
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--tpv2-danger) 12%,transparent);
+  }
   :is(.tpv2-task-list,.tpv2-overdue-grid,.tpv2-unplanned-grid) > .tpv2-task-card:not(.is-overdue):not(.is-abd-exception):hover{
     transform:translateY(-2px);
     border-color:color-mix(in srgb,var(--tpv2-primary) 50%,var(--tpv2-border));
