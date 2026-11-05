@@ -176,7 +176,7 @@ function ensureQualityLink(){
   proxy.addEventListener('click',function(e){e.preventDefault();w.location.assign('/qualitaet.html')});
   nav.appendChild(proxy);
  }
- var label='Fehler & Verbesserungen';
+ var label=t('quality');
  setText(proxy.querySelector('.index308-nav-label'),label);
  setAttr(proxy,'title',label);setAttr(proxy,'aria-label',label);
  proxy.hidden=!qualityAllowed();copyLook(proxy);
