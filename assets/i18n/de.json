@@ -2525,5 +2525,6 @@
   "urgentOrderV2.explainException": "Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.",
   "urgentOrderV2.networkError": "Der Urgent-Order-Dienst antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.",
   "urgentOrderV2.emailHistoryHint": "Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.",
-  "urgentOrderV2.clearEmailHistory": "Gespeicherte E-Mails löschen"
+  "urgentOrderV2.clearEmailHistory": "Gespeicherte E-Mails löschen",
+  "urgentOrderV2.saveEmailOnDevice": "E-Mail auf diesem Gerät speichern"
 }
