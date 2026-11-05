@@ -62,7 +62,7 @@ test('CAPA: related incidents show confirmed measures only when effectiveness wa
  const now=new Date().toISOString(),base=fresh();
  const prior={...fresh(),id:'QM-OLD',title:'Falsche Palette bei Verladung',category:'verladung',description:'Eine falsche Palette wurde geladen',status:'abgeschlossen',effectivenessResult:'wirksam',correctiveAction:'Scan bei Verladung',updatedAt:now};
  const open={...prior,id:'QM-OPEN',status:'massnahme',correctiveAction:'Nur ungeprüfter Entwurf'};
- const unrelated={...prior,id:'QM-OTHER',title:'Stromverbrauch am Standort',description:'Beleuchtung defekt',category:'umwelt',rootCause:''};
+ const unrelated={...prior,id:'QM-OTHER',title:'Stromverbrauch am Standort',description:'Beleuchtung defekt',category:'umwelt',reference:'REF-OTHER-02',rootCause:''};
  const hits=relatedCases(base,[base,prior,open,unrelated]);
  assert.equal(hits.length,2);
  assert.equal(hits[0].verifiedMeasure,'Scan bei Verladung');
