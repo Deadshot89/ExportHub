@@ -23,7 +23,10 @@ test('RC1755: opening the public Packtisch session marks a metadata-only write, 
 
 test('RC1755: only initial session creation bypasses costly historical document externalization',()=>{
  const code=fs.readFileSync('api/pack-notification/index.js','utf8');
- assert.ok(code.includes("result.skipDocumentExternalization===true?{state:result.state}:await require('../shared/document-blob-store').externalizeDocumentCollections"),'session must skip historical documents entirely');
+ assert.ok(code.includes("result.skipDocumentExternalization===true?{state:result.state}:await externalizePackMutationDocuments(result,currentState,environment)"),'session must skip historical documents entirely');
+ assert.match(code,/async function externalizePackMutationDocuments\(/,'draft and submit use the scoped externalization helper');
+ assert.match(code,/packDocumentScope:\{root:'packDrafts',id:saved\.draft\.id\}/,'draft save must externalize only its updated draft');
+ assert.match(code,/packDocumentScope:\{root:'packNotifications',id:submitted\.notification\.id\}/,'submit must externalize only its new notification');
  assert.match(code,/return\{state:created\.state,session:created\.session,station,skipDocumentExternalization:true\}/);
  assert.match(code,/const result=await mutateState\(environment,state=>\{const station=packStore\.validateStationToken\(state,token\);validateSessionForStation/,'draft-save still uses normal persistence');
 });
