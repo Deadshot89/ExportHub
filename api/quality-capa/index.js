@@ -33,7 +33,11 @@ function recordsClient(environment){
  const path=(test?'testservice/':'')+'quality/capa-cases.json';
  return BlobServiceClient.fromConnectionString(connection).getContainerClient(container).getBlockBlobClient(path);
 }
-function recordsOf(doc){return Array.isArray(doc&&doc.items)?doc.items:[]}
+function recordsOf(doc){
+ if(!doc||doc.schemaVersion!==1||!Array.isArray(doc.items)||!doc.items.every(item=>item&&typeof item.id==='string'&&item.id.startsWith('QM-')&&Number.isInteger(item.revision)&&item.revision>=1&&Array.isArray(item.history)))
+  throw err('STORAGE_DATA_INVALID','QM-Daten sind unvollständig oder beschädigt. Speichern gesperrt, um Datenverlust zu verhindern.',503);
+ return doc.items;
+}
 async function readRecords(env){
  return auth.readJson(recordsClient(env),{schemaVersion:1,revision:0,items:[]},{missingBlobOnly:true});
 }
@@ -162,4 +166,4 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
-module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,STATUSES};
+module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,STATUSES};
