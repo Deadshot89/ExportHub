@@ -195,6 +195,16 @@ async function listFiles(reference,environment='production'){
  }
  return files;
 }
+// Liest den Inhalt einer Datei, deren ID zuvor aus listFiles() stammt (Avis-Download).
+async function readFile(itemId,environment='production'){
+ const id=text(itemId);if(!id)throw error('REFERENCE_FILE_ID_INVALID','Dateikennung fehlt.',400);
+ const target=exactTarget(environment);
+ const base=target?exactBase(target)+'/items/':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/';
+ const res=await graph(base+encodeURIComponent(id)+'/content',{redirect:'follow'},environment);
+ if(res.status===404)throw error('REFERENCE_FILE_NOT_FOUND','Die Datei ist nicht mehr verfügbar.',404);
+ if(!res.ok)throw error('GRAPH_REFERENCE_FILE_READ_FAILED','Die Datei konnte nicht gelesen werden.',res.status>=500?502:res.status);
+ return{buffer:Buffer.from(await res.arrayBuffer()),mimeType:text(res.headers.get('content-type'))};
+}
 // Used by the photo writer before the first Azure write. No network request.
 function assertTargetForEnvironment(environment){exactTarget(environment);return true}
-module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,exactTarget,getFolder,ensureFolder,upload,listFiles,config,assertTargetForEnvironment};
+module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,exactTarget,getFolder,ensureFolder,upload,listFiles,readFile,config,assertTargetForEnvironment};
