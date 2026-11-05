@@ -33,10 +33,10 @@ test('P0 TESTSERVICE documents retain isolated TESTSERVICE scope',()=>{
 test('P0 Pack PDF errors show safe actionable HTTP/auth/PDF category without exposing token or blob path',()=>{
   const classify=detail();
   assert.equal(classify(new Error('Lieferschein konnte nicht geladen werden (HTTP 404)')),' (HTTP 404)');
-  assert.equal(classify({code:'DOCUMENT_API_LOGIN_REDIRECT',message:'redirect'}),' (Dokumentenserver leitet zur Anmeldung um)');
-  assert.equal(classify({code:'DOCUMENT_NOT_PDF',message:'invalid signature'}),' (Serverantwort ist keine gültige PDF)');
-  assert.equal(classify(new Error('ExportHUB login required.')),' (ExportHUB-Sitzung fehlt)');
-  assert.equal(classify(new Error('Invalid ExportHUB document reference')),' (Dokumentreferenz ungültig)');
-  assert.equal(classify(new Error('Original document is unavailable')),' (Originaldokument nicht abrufbar)');
+  assert.equal(classify({code:'DOCUMENT_API_LOGIN_REDIRECT',message:'redirect'}),' (DOCUMENT_API_LOGIN_REDIRECT)');
+  assert.equal(classify({code:'DOCUMENT_NOT_PDF',message:'invalid signature'}),' (DOCUMENT_NOT_PDF)');
+  assert.equal(classify(new Error('ExportHUB login required.')),' (ExportHUB login required)');
+  assert.equal(classify(new Error('Invalid ExportHUB document reference')),' (Invalid ExportHUB document reference)');
+  assert.equal(classify(new Error('Original document is unavailable')),' (Document unavailable)');
   assert.equal(classify(new Error('Authorization: Bearer SECRET rc1059/production/aa/SENSITIVE')),'');
 });
