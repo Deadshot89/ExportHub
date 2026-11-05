@@ -109,8 +109,8 @@ async function askCustomsModel(options={}){
  try{
   const response=await fetchImpl(config.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':`Bearer ${config.apiKey}`},body:JSON.stringify(body),signal:controller.signal});
   if(!response||response.ok!==true){
-   const status=Number(response&&response.status)||0;
-   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,reason:reasonForStatus(status),modelInfo:{provider:config.provider,model:config.model}})
+   const status=Number(response&&response.status)||0,reason=reasonForStatus(status);
+   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,reason,modelInfo:{provider:config.provider,model:config.model}})
   }
   const payload=await response.json();
   const answer=extractAnswer(payload);
