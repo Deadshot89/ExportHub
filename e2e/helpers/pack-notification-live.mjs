@@ -59,8 +59,10 @@ async function createPackNotification(page,token,suffix='A'){
   },{timeout:30_000});
   await saveDraft.click();
   const saveResponse=await saveResponsePromise;
-  expect(saveResponse.ok(),`draft-save HTTP ${saveResponse.status()}`).toBeTruthy();
-  const savePayload=await saveResponse.json();
+  const savePayload=await saveResponse.json().catch(()=>null);
+  // Diagnostic only: never expose provider messages, document bytes, or tokens.
+  const safeErrorCode=String(savePayload?.code||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80);
+  expect(saveResponse.ok(),`draft-save HTTP ${saveResponse.status()} code ${safeErrorCode||'UNKNOWN'}`).toBeTruthy();
   expect(savePayload?.ok).toBe(true);
   expect(savePayload?.draft?.id).toBeTruthy();
   await expect(page.locator('#packHome')).toBeVisible({timeout:20_000});
