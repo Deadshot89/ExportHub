@@ -62,7 +62,7 @@ const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/asset
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
-const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
+const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1800"><\/script>';
 const RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="/assets/rc1800-premium-design.css?v=1801">';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
@@ -162,7 +162,7 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_STYLE_TAG,'exporthub-rc1304-theme-style');
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
-  if(!html.includes('rc1304-theme-switcher.js?v=1305'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  if(!html.includes('rc1304-theme-switcher.js?v=1800'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
   return html;
 }
 
