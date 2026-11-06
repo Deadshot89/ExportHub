@@ -129,3 +129,51 @@ test('shipment editor recovers all Pack PDF entries only from matching saved REF
   assert.match(fixture.elements.get('packAvisDocumentPanel').innerHTML,/<strong>2\/3<\/strong>/);
   assert.equal(fixture.writes.length,2,'only changed selection causes one render');
 });
+
+test('AVIS withdrawal synchronizes only matching Pack owner and shipment REF, not recycled IDs',()=>{
+  const note=threeNotes()[0];
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  const primary={id:'recycled-id',ref:'NEFF01',packNotificationId:'pn-neff',packNotificationRef:'PK-NEFF',deliveryFiles:[copy(note)]};
+  const alias={id:'recycled-id',ref:'NEFF01',packNotificationId:'pn-neff',packNotificationRef:'PK-NEFF',deliveryFiles:[copy(note)]};
+  const foreignRef={id:'recycled-id',ref:'OTHER1',packNotificationId:'pn-neff',packNotificationRef:'PK-NEFF',deliveryFiles:[copy(note)]};
+  const foreignOwner={id:'recycled-id',ref:'NEFF01',packNotificationId:'pn-other',packNotificationRef:'PK-OTHER',
+    deliveryFiles:[{...copy(note),packNotificationId:'pn-other'}]};
+  const state={shipments:[primary,foreignRef,foreignOwner],savedShipments:[alias],shipment:primary};
+  const api=load();
+  const changes=api.setVisibilityAcrossCopies(state,primary,note.id,false,'2026-11-06T12:30:00Z');
+  assert.equal(changes.length,2,'both real aliases updated once');
+  assert.equal(primary.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(alias.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(foreignRef.deliveryFiles[0].customerAvisVisible,true,'recycled ID with a different REF must not be changed');
+  assert.equal(foreignOwner.deliveryFiles[0].customerAvisVisible,true,'another Pack owner must not be changed');
+  api.restoreVisibility(changes);
+  assert.equal(primary.deliveryFiles[0].customerAvisVisible,true);
+  assert.equal(alias.deliveryFiles[0].customerAvisVisible,true);
+  assert.equal(primary.deliveryFiles[0].customerAvisVisibilitySource,undefined);
+});
+
+test('AVIS visibility save failure does not claim success and restores earlier values',async()=>{
+  const note=threeNotes()[0];
+  const primary={id:'sh-neff',ref:'NEFF01',packNotificationId:'pn-neff',deliveryFiles:[note]};
+  let handler;
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>({shipment:primary,shipments:[primary]}),
+    ExportHUBClean:{queueSave:()=>true,flushSave:()=>false},
+    ExportHUBPackI18n:{t:key=>key==='pack.internal.saveFailed'?'Änderung konnte nicht gespeichert werden.':key},
+    alert(message){this.lastAlert=message;},
+    document:{
+      body:{getAttribute(){return'shipment';}},
+      getElementById(id){return id==='packAvisDocumentPanel'?{contains:()=>true}:null;},
+      addEventListener(type,cb){if(type==='change')handler=cb;}
+    }
+  };
+  load(root);
+  assert.equal(typeof handler,'function');
+  await handler({target:{closest(selector){
+    if(selector==='[data-pack-avis-doc]')return{getAttribute:()=>note.id,checked:false};
+    return null;
+  }}});
+  assert.equal(note.customerAvisVisible,true,'failed writes must never leave a misleading visibility state');
+  assert.equal(note.customerVisible,true);
+  assert.match(root.lastAlert,/nicht gespeichert/);
+});
