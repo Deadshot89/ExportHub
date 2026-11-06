@@ -13,6 +13,11 @@
   var GLASS='glass';
   var NEON='neon';
   var VALUES=[CLASSIC,MODERN,GLASS,NEON];
+  // RC1800 Premium: fünfte Auswahl. Technisch Klassisch als Basis (data-eh-design="classic"),
+  // darüber das Premium-Designsystem über data-eh-skin="premium". Andere Designs bleiben unverändert.
+  var PREMIUM='premium';
+  var CHOICES=VALUES.concat([PREMIUM]);
+  var SKIN_ATTR='data-eh-skin';
   var refreshTimer=0;
   var RC1532_COMPLETION_STYLE_ID='exporthub-rc1532-theme-completion';
   var RC1532_COMPLETION_CSS=String.raw`
@@ -416,7 +421,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
 
   function normalize(value){
     value=String(value||'').toLowerCase().trim();
-    return VALUES.indexOf(value)>=0?value:CLASSIC;
+    return CHOICES.indexOf(value)>=0?value:CLASSIC;
   }
 
   function read(){
@@ -428,11 +433,21 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     try{localStorage.setItem(STORAGE_KEY,value)}catch(_){}
   }
 
-  function setRoot(value){
-    value=normalize(value);
+  function baseDesign(value){return value===PREMIUM?CLASSIC:value}
+  function setSkin(node,skin){
+    if(!node)return;
+    if(skin){if(node.getAttribute(SKIN_ATTR)!==skin)node.setAttribute(SKIN_ATTR,skin)}
+    else if(node.hasAttribute(SKIN_ATTR))node.removeAttribute(SKIN_ATTR);
+  }
+  function setRoot(choice){
+    choice=normalize(choice);
+    var value=baseDesign(choice);
+    var skin=choice===PREMIUM?PREMIUM:'';
     if(document.documentElement.getAttribute('data-eh-design')!==value)document.documentElement.setAttribute('data-eh-design',value);
     if(document.body&&document.body.getAttribute('data-eh-design')!==value)document.body.setAttribute('data-eh-design',value);
-    return value;
+    setSkin(document.documentElement,skin);
+    setSkin(document.body,skin);
+    return choice;
   }
 
   function protectVersionBadge(){
@@ -465,17 +480,19 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
   function options(select,value){
     if(!select)return;
     var ready=select.dataset.rc1304==='1'&&
-      select.options&&select.options.length===4&&
+      select.options&&select.options.length===5&&
       select.options[0].value===CLASSIC&&
       select.options[1].value===MODERN&&
       select.options[2].value===GLASS&&
-      select.options[3].value===NEON;
+      select.options[3].value===NEON&&
+      select.options[4].value===PREMIUM;
     if(!ready){
       select.innerHTML=
         '<option value="'+CLASSIC+'"></option>'+ 
         '<option value="'+MODERN+'"></option>'+ 
         '<option value="'+GLASS+'"></option>'+ 
-        '<option value="'+NEON+'"></option>';
+        '<option value="'+NEON+'"></option>'+ 
+        '<option value="'+PREMIUM+'"></option>';
       select.dataset.rc446='1';
       select.dataset.rc1304='1';
     }
@@ -483,6 +500,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     setText(select.options[1],tr('theme.modernBusiness'));
     setText(select.options[2],tr('theme.glass'));
     setText(select.options[3],tr('theme.neonNight'));
+    setText(select.options[4],tr('theme.premium'));
     if(select.value!==value)select.value=value;
     select.setAttribute('aria-label',tr('theme.select'));
     // also on every language change: the title set before the language pack loaded would otherwise stay the raw key
@@ -588,7 +606,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     ensureLogin(value);
     syncControls(value);
     try{
-      window.dispatchEvent(new CustomEvent('exporthub:designchange',{detail:{design:value}}));
+      window.dispatchEvent(new CustomEvent('exporthub:designchange',{detail:{design:baseDesign(value),skin:value===PREMIUM?PREMIUM:''}}));
     }catch(_){}
     return value;
   }
@@ -654,10 +672,14 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
       Object.freeze({id:CLASSIC,labelKey:'theme.classic'}),
       Object.freeze({id:MODERN,labelKey:'theme.modernBusiness'}),
       Object.freeze({id:GLASS,labelKey:'theme.glass'}),
-      Object.freeze({id:NEON,labelKey:'theme.neonNight'})
+      Object.freeze({id:NEON,labelKey:'theme.neonNight'}),
+      Object.freeze({id:PREMIUM,labelKey:'theme.premium'})
     ]),
     apply:function(value){return apply(value,true)},
-    current:function(){return normalize(document.documentElement.getAttribute('data-eh-design')||read())},
+    current:function(){
+      if(document.documentElement.getAttribute(SKIN_ATTR)===PREMIUM)return PREMIUM;
+      return normalize(document.documentElement.getAttribute('data-eh-design')||read());
+    },
     refresh:refresh
   });
 })();

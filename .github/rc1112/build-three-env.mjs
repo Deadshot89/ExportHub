@@ -63,6 +63,7 @@ const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
+const RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="/assets/rc1800-premium-design.css?v=1801">';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
@@ -162,6 +163,14 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
   if(!html.includes('rc1304-theme-switcher.js?v=1305'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  return html;
+}
+
+// RC1800: Premium-Design als fünfte Auswahl im Design-Umschalter. Das CSS greift nur bei
+// html/body[data-eh-skin="premium"]; zuletzt im <head>, damit es über den übrigen Design-Ebenen liegt.
+function patchRc1800PremiumDesign(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1800_PREMIUM_STYLE_TAG,'exporthub-rc1800-premium-design');
+  if(!html.includes('rc1800-premium-design.css?v=1801'))throw new Error(file+': RC1800 Premium-CSS fehlt');
   return html;
 }
 
@@ -1615,6 +1624,7 @@ function patchHtml(file){
   html=patchRc1624AbdUploadCrossCollection(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
+  html=patchRc1800PremiumDesign(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1048',cache:'1048',loginReturn:'([^']*)'\}\);/,
@@ -1819,6 +1829,8 @@ for(const rel of [
   'assets/exporthub360-favicon.svg',
   'assets/rc1304-theme-switcher.css',
   'assets/rc1304-theme-switcher.js',
+  'assets/rc1800-premium-design.css', // RC1800: Premium-Design (Auswahl im Design-Umschalter)
+  'assets/rc1800-premium-standalone.css',
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',
