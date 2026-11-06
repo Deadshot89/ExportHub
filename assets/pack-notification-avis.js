@@ -23,10 +23,16 @@
     const bodyView=q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase();
     // The detail page has a canonical shipment ID. Never use a stale editor
     // draft (or the first Pack record from a different shipment) in its place.
-    if(bodyView==='shipmentview'&&viewId){
-      const found=stored.filter(sh=>viewId&&matchesId(sh)&&q(sh.packNotificationId));
-      if(!found.length)return null;
-      return found.reduce((best,sh)=>packDocuments(sh).length>packDocuments(best).length?sh:best);
+    if(bodyView==='shipmentview'){
+      // The detail view requires a concrete identity. Recycled editor IDs
+      // can refer to several unrelated REFs, so prefer an exact REF match
+      // and suppress the document panel if only an ambiguous ID remains.
+      if(!viewId)return null;
+      const byRef=stored.filter(sh=>shipmentRef(sh)===viewId&&q(sh.packNotificationId));
+      const byId=byRef.length?byRef:stored.filter(sh=>matchesId(sh)&&q(sh.packNotificationId));
+      const refs=new Set(byId.map(shipmentRef).filter(Boolean));
+      if(!byId.length||refs.size>1)return null;
+      return byId.reduce((best,sh)=>packDocuments(sh).length>packDocuments(best).length?sh:best);
     }
     const candidate=s.shipment||s.currentShipment||s.selectedShipment;
     if(candidate&&q(candidate.packNotificationId)){
