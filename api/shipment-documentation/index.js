@@ -20,7 +20,7 @@ function normalizeFields(input){
  const out={};
  for(const [key,max] of Object.entries(FIELDS))out[key]=txt(input[key],max);
  if(out.dispatchDate&&!/^\d{4}-\d{2}-\d{2}$/.test(out.dispatchDate))throw problem('INVALID_DATE','Datum ist ungueltig.');
- if(out.dispatchDate&&!Number.isFinite(Date.parse(out.dispatchDate+'T12:00:00Z')))throw problem('INVALID_DATE','Datum ist ungueltig.');
+ if(out.dispatchDate){const date=new Date(out.dispatchDate+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==out.dispatchDate)throw problem('INVALID_DATE','Datum ist ungueltig.');}
  if(out.colli&&(!/^\d+$/.test(out.colli)||Number(out.colli)>100000))throw problem('INVALID_COLLI','Colli muss eine ganze Zahl sein.');
  if(out.weightKg&&(!/^\d+(?:[.,]\d{1,3})?$/.test(out.weightKg)||Number(out.weightKg.replace(',','.'))>100000000))throw problem('INVALID_WEIGHT','Gewicht ist ungueltig.');
  out.weightKg=out.weightKg.replace(',','.');
@@ -34,8 +34,6 @@ function clientFor(env){
  const conn=isolated?cfg.connectionString:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
  if(!conn)throw problem('STORAGE_NOT_CONFIGURED','Speicher ist nicht erreichbar.',503);
  const container=isolated?cfg.container:auth.TEAM_CONTAINER;
- const name=(env==='testservice'?'testservice/':'')+'shipment-documentation/'+reference(env._ref||'ABC123')+'.json';
- // Actual REF is passed below, no client-wide mutable state.
  return{service:BlobServiceClient.fromConnectionString(conn),container,prefix:env==='testservice'?'testservice/shipment-documentation/':'shipment-documentation/'};
 }
 function blobFor(env,ref){
