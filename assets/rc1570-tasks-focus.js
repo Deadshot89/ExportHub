@@ -400,6 +400,7 @@ function applyForm(task,v,isNew){
   task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
+  task._syncUpdatedAt=now;task._syncDeviceId='manual-task-editor';
   return task
 }
 async function saveForm(form){
@@ -414,7 +415,7 @@ async function saveForm(form){
   if(!v.title){showError(t('required'));return false}
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
-  var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries;
+  var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
   // Stage changes separately: failed server writes must not replace the live task list.
   var draft=Object.assign({},s,{
     tasks:arr(s.tasks).map(function(x){return x&&typeof x==='object'?Object.assign({},x):x}),
@@ -430,14 +431,22 @@ async function saveForm(form){
       if(!v.area)v.area=t('manualArea');if(!v.owner)v.owner=q(currentUser().name||currentUser().displayName||currentUser().user);
       draft.tasks.push(task);
     }
+    var prior=isNew?null:arr(originalTasks).find(function(x){return taskId(x)===tv.id});
     applyForm(task,v,isNew);
+    if(isNew||statusOf(prior)!==v.status){
+      var now=task.updatedAt,user=q(currentUser().name||currentUser().user)||'Benutzer';
+      var key='id:'+taskId(task).toLowerCase().replace(/\s+/g,' ').replace(/[^a-z0-9äöüß|:_-]+/gi,'');
+      draft.taskStatusLedger=Object.assign({},s.taskStatusLedger||{});
+      task.statusUpdatedAt=now;
+      draft.taskStatusLedger[key]={status:v.status==='done'?'erledigt':'offen',done:v.status==='done',doneAt:v.status==='done'?now:'',doneBy:v.status==='done'?user:'',updatedAt:now};
+    }
     if(v.weekly)syncWeeklySeries(draft,task,v);
     else if(q(task.seriesId).indexOf('rc1570-series:')===0){
       retireSeriesDays(draft,q(task.seriesId),[]);
       draft.taskSeries=arr(draft.taskSeries).filter(function(x){return q(x&&x.id)!==q(task.seriesId)});
       task.seriesId='';task.weekdays=[];task.isTemplate=false;task.recurrence='';
     }
-    s.tasks=draft.tasks;s.taskSeries=draft.taskSeries;
+    s.tasks=draft.tasks;s.taskSeries=draft.taskSeries;s.taskStatusLedger=draft.taskStatusLedger;
     await persist(isNew?'RC1570 task created':'RC1570 task saved',taskId(task));
     tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
     lastHtml='';lastView='';renderTaskView(true);
@@ -445,7 +454,7 @@ async function saveForm(form){
     if(shown&&shown.scrollIntoView)try{shown.scrollIntoView({block:'start'})}catch(_){}
     return true
   }catch(err){
-    s.tasks=originalTasks;s.taskSeries=originalSeries;
+    s.tasks=originalTasks;s.taskSeries=originalSeries;s.taskStatusLedger=originalLedger;
     showError(t('saveFailed'));
     try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('saveFailed'),'bad')}catch(_){}
     try{console.error('RC1570 task form save rejected',err)}catch(_){}
