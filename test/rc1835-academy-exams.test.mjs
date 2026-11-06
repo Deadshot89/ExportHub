@@ -13,6 +13,11 @@ test('RC1835 assets are wired to all generated app entrypoints',()=>{
   assert.match(build,/rc1835-academy-exams\.css\?v=1835/);
   assert.match(build,/rc1835-academy-exams\.js\?v=1835/);
   assert.match(build,/data-rc1835-catalog-body/);
+  assert.match(build,/view==='academy'/);
+  assert.match(build,/view==='inspections'/);
+  assert.match(build,/!u.activeAttempt/);
+  assert.match(build,/fastViewMax=4/);
+  assert.match(build,/!fastCacheable\(view\)/);
   assert.match(build,/region\.innerHTML!==body/);
   assert.match(styles,/#rc626Inspections \.ihk-cards/);
   assert.match(styles,/#content \.rc299-layout/);
