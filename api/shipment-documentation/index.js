@@ -77,7 +77,7 @@ function assertShipmentAccess(user,team,ref,method){
  if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))throw problem('DOCUMENTATION_FORBIDDEN','Keine Berechtigung fuer die Sendungsdokumentation.',403);
  if(method==='POST'&&!rights.canEditAny(user,['shipment','documents']))throw problem('DOCUMENTATION_READ_ONLY','Keine Berechtigung zum Aendern der Sendungsdokumentation.',403);
  const state=team&&team.state&&typeof team.state==='object'?team.state:{};
- if(!shipments.shipmentCopies(state,ref).length)throw problem('SHIPMENT_NOT_FOUND','Diese Sendungsreferenz existiert nicht im zentralen ExportHUB-Sendungsbestand.',404);
+ if(!shipments.allShipments(state).some(sh=>['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'].some(k=>txt(sh&&sh[k],40).toUpperCase()===ref)))throw problem('SHIPMENT_NOT_FOUND','Diese Sendungsreferenz existiert nicht im zentralen ExportHUB-Sendungsbestand.',404);
 }
 async function handle(req){
  const {env,username,user,team}=await userEnvironment(req);
