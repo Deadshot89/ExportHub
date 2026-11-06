@@ -138,17 +138,20 @@ test('AVIS withdrawal synchronizes only matching Pack owner and shipment REF, no
   const foreignRef={id:'recycled-id',ref:'OTHER1',packNotificationId:'pn-neff',packNotificationRef:'PK-NEFF',deliveryFiles:[copy(note)]};
   const foreignOwner={id:'recycled-id',ref:'NEFF01',packNotificationId:'pn-other',packNotificationRef:'PK-OTHER',
     deliveryFiles:[{...copy(note),packNotificationId:'pn-other'}]};
-  const state={shipments:[primary,foreignRef,foreignOwner],savedShipments:[alias],shipment:primary};
+  const archive={id:'recycled-id',ref:'NEFF01',packNotificationId:'pn-neff',packNotificationRef:'PK-NEFF',deliveryFiles:[copy(note)]};
+  const state={shipments:[primary,foreignRef,foreignOwner],savedShipments:[alias],salesSharedShipments:[archive],shipment:primary};
   const api=load();
   const changes=api.setVisibilityAcrossCopies(state,primary,note.id,false,'2026-11-06T12:30:00Z');
-  assert.equal(changes.length,2,'both real aliases updated once');
+  assert.equal(changes.length,3,'all customer-AVIS visible aliases updated once');
   assert.equal(primary.deliveryFiles[0].customerAvisVisible,false);
   assert.equal(alias.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(archive.deliveryFiles[0].customerAvisVisible,false);
   assert.equal(foreignRef.deliveryFiles[0].customerAvisVisible,true,'recycled ID with a different REF must not be changed');
   assert.equal(foreignOwner.deliveryFiles[0].customerAvisVisible,true,'another Pack owner must not be changed');
   api.restoreVisibility(changes);
   assert.equal(primary.deliveryFiles[0].customerAvisVisible,true);
   assert.equal(alias.deliveryFiles[0].customerAvisVisible,true);
+  assert.equal(archive.deliveryFiles[0].customerAvisVisible,true);
   assert.equal(primary.deliveryFiles[0].customerAvisVisibilitySource,undefined);
 });
 
