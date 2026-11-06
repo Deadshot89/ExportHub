@@ -81,7 +81,7 @@ async function handle(req){
  if(!Number.isInteger(expected)||expected!==existing.record.revision)throw problem('CONFLICT','Neu laden: Die Dokumentation wurde von jemand anderem geaendert.',409);
  const action=txt(input.action,32),now=new Date().toISOString();
  const rec=existing.record;
- let previousFields=null;
+ let previousFields=null,statusChange=null;
  if(action==='save'){
   previousFields=Object.assign({},rec.fields||{});
   rec.fields=normalizeFields(input.fields);
@@ -97,9 +97,11 @@ async function handle(req){
   if(!STATES.has(state))throw problem('INVALID_STATUS','Ungueltiger Beschwerdestatus.');
   const item=rec.complaints.find(x=>x.id===id);
   if(!item)throw problem('COMPLAINT_NOT_FOUND','Beschwerde nicht gefunden.',404);
+  statusChange={complaintId:id,before:item.state,after:state};
   item.state=state;item.changedAt=now;item.changedBy=username;
  }else throw problem('ACTION_INVALID','Unbekannte Aktion.');
  const event={date:now,user:username,action,revision:rec.revision+1};
+ if(statusChange)event.statusChange=statusChange;
  if(previousFields){
   event.changes={};
   for(const key of Object.keys(FIELDS))if(String(previousFields[key]||'')!==String(rec.fields[key]||''))
