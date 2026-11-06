@@ -47,3 +47,18 @@ test('Only authorized logistics staff can save or confirm; recipient cannot be s
  assert.throws(()=>model.confirmMailSent(record,mail.id,outsider),e=>e.code==='URGENT_FORBIDDEN');
  assert.throws(()=>model.confirmMailSent(record,'unknown',manager),e=>e.code==='URGENT_MAIL_NOT_FOUND');
 });
+
+test('Urgent Order mailto flow saves the current editor text before opening the mail application',()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const html=fs.readFileSync(path.resolve('assets/urgent-orders.html'),'utf8');
+ const start=html.indexOf('async function mailto()');
+ const end=html.indexOf('async function copyDraft()',start);
+ assert.ok(start>0&&end>start);
+ const handler=html.slice(start,end);
+ assert.match(handler,/const to=\$\('mailTo'\)\.value,sub=\$\('mailSubject'\)\.value,body=\$\('mailBody'\)\.value/);
+ assert.match(handler,/await api\('record-mail-handoff',[\s\S]*?subject:sub,body/);
+ assert.ok(handler.indexOf("await api('record-mail-handoff'")<handler.indexOf('window.location.href=uri'),'server-side save must finish before opening the mail program');
+ assert.match(handler,/catch\(e\)/,'failed save must be handled without opening Outlook');
+ assert.match(html,/data-confirm-mail/,'audit history must expose explicit sent confirmation');
+});
