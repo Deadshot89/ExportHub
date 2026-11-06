@@ -20,13 +20,13 @@ function normalizeFields(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw problem('FIELDS_REQUIRED','Sendungsdaten fehlen.');
  const out={};
  for(const [key,max] of Object.entries(FIELDS))out[key]=txt(input[key],max);
- if(out.dispatchDate&&!/^\d{4}-\d{2}-\d{2}$/.test(out.dispatchDate))throw problem('INVALID_DATE','Datum ist ungueltig.');
- if(out.dispatchDate){const date=new Date(out.dispatchDate+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==out.dispatchDate)throw problem('INVALID_DATE','Datum ist ungueltig.');}
+ if(out.dispatchDate&&!validDate(out.dispatchDate))throw problem('INVALID_DATE','Datum ist ungueltig.');
  if(out.colli&&(!/^\d+$/.test(out.colli)||Number(out.colli)>100000))throw problem('INVALID_COLLI','Colli muss eine ganze Zahl sein.');
  if(out.weightKg&&(!/^\d+(?:[.,]\d{1,3})?$/.test(out.weightKg)||Number(out.weightKg.replace(',','.'))>100000000))throw problem('INVALID_WEIGHT','Gewicht ist ungueltig.');
  out.weightKg=out.weightKg.replace(',','.');
  return out;
 }
+function validDate(value){const d=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const dt=new Date(d+'T12:00:00Z');return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===d}
 function complaintText(input){const value=txt(input,2000);if(!value)throw problem('COMPLAINT_REQUIRED','Bitte die Kundenbeschwerde erfassen.');return value}
 function recordBlank(ref){return{version:1,reference:ref,revision:0,fields:null,complaints:[],history:[],createdAt:null,updatedAt:null,updatedBy:''}}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}}
@@ -81,12 +81,16 @@ async function handle(req){
  if(!Number.isInteger(expected)||expected!==existing.record.revision)throw problem('CONFLICT','Neu laden: Die Dokumentation wurde von jemand anderem geaendert.',409);
  const action=txt(input.action,32),now=new Date().toISOString();
  const rec=existing.record;
+ let previousFields=null;
  if(action==='save'){
+  previousFields=Object.assign({},rec.fields||{});
   rec.fields=normalizeFields(input.fields);
  }else if(action==='complaint'){
   if(!rec.fields)throw problem('SAVE_FIRST','Bitte erst den Versandnachweis speichern.');
   if(rec.complaints.length>=200)throw problem('COMPLAINT_LIMIT','Die maximale Anzahl Beschwerden ist erreicht.',413);
-  rec.complaints.push({id:crypto.randomUUID(),date:now,reportedDate:txt(input.reportedDate,10)||now.slice(0,10),
+  const reportedDate=txt(input.reportedDate,10)||now.slice(0,10);
+  if(!validDate(reportedDate))throw problem('INVALID_COMPLAINT_DATE','Beschwerdedatum ist ungueltig.');
+  rec.complaints.push({id:crypto.randomUUID(),date:now,reportedDate,
    text:complaintText(input.text),state:'offen',createdBy:username,changedAt:now,changedBy:username});
  }else if(action==='complaint-status'){
   const id=txt(input.complaintId,80),state=txt(input.state,32);
@@ -96,8 +100,13 @@ async function handle(req){
   item.state=state;item.changedAt=now;item.changedBy=username;
  }else throw problem('ACTION_INVALID','Unbekannte Aktion.');
  const event={date:now,user:username,action,revision:rec.revision+1};
+ if(previousFields){
+  event.changes={};
+  for(const key of Object.keys(FIELDS))if(String(previousFields[key]||'')!==String(rec.fields[key]||''))
+   event.changes[key]={before:previousFields[key]||'',after:rec.fields[key]||''};
+ }
+ if(rec.history.length>=1000)throw problem('HISTORY_LIMIT','Versionshistorie voll; bitte archivieren, bevor neue Aenderungen erfolgen.',413);
  rec.history.push(event);
- if(rec.history.length>200)rec.history=rec.history.slice(-200);
  if(!rec.createdAt)rec.createdAt=now;
  rec.updatedAt=now;rec.updatedBy=username;rec.revision++;
  await write(blob,rec,existing.etag);
