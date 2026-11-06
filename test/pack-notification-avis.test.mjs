@@ -70,7 +70,7 @@ test('Pack AVIS never falls back to global content and follows a replaced shipme
   shell=first;
   assert.equal(api.renderPanel(),true);
   assert.equal(panel.parentNode,first);
-  assert.match(panel.innerHTML,/DNC3019228460\\.pdf/);
+  assert.ok(panel.innerHTML.includes('DNC3019228460.pdf'));
   const next={appendChild(node){node.parentNode=this;}};
   shell=next;
   assert.equal(api.renderPanel(),true,'a layout replacement should move the existing panel');
