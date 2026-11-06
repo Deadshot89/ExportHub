@@ -154,11 +154,13 @@
   var urgent=target.closest('[data-exporthub-urgent-nav]');
   var quality=urgent?null:target.closest('[data-rc1579-proxy="quality"]');
   var entry=urgent||quality;
-  if(!entry||entry.hidden||entry.getAttribute&&entry.getAttribute('aria-hidden')==='true')return;
-  if(!d.getElementById('content'))return;
+  if(!entry||!d.getElementById('content'))return;
   e.preventDefault();
   if(typeof e.stopImmediatePropagation==='function')e.stopImmediatePropagation();
   else if(typeof e.stopPropagation==='function')e.stopPropagation();
+  // A hidden QM entry must neither open the module nor fall through to an
+  // obsolete page-navigation listener on the reused element.
+  if(entry.hidden||entry.getAttribute&&entry.getAttribute('aria-hidden')==='true')return;
   open(urgent?'urgentorders':'quality');
  },true);
  w.ExportHUBEmbeddedModules=Object.freeze({open:open});
