@@ -11,6 +11,14 @@
     const id=q(s.activeShipmentId||s.currentShipmentId||s.selectedShipmentId||s.editingShipmentId),ref=q(candidate&&(candidate.ref||candidate.reference));
     return arr(s.shipments).concat(arr(s.savedShipments)).find(sh=>q(sh&&sh.packNotificationId)&&(id&&[q(sh.id),q(sh.shipmentId),q(sh.ref),q(sh.reference)].includes(id)||ref&&[q(sh.ref),q(sh.reference)].includes(ref)))||candidate||null;
   }
+  function shipmentViewActive(state,doc){
+    // A selected shipment can remain in shared state after the user navigates away.
+    // The visible router view wins over stale shipment state.
+    const body=doc&&doc.body,bodyView=q(body&&body.getAttribute&&(body.getAttribute('data-exporthub-view')||body.getAttribute('data-current-view'))).toLowerCase();
+    const stateView=q(state&&(state.view||state.currentView||state.activeView||state.page)).toLowerCase();
+    const view=bodyView||stateView;
+    return view==='shipment'||view==='shipmentview';
+  }
   function packDocuments(shipment){return arr(shipment&&shipment.deliveryFiles).filter(doc=>q(doc&&doc.source)==='pack_notification'||q(doc&&doc.packNotificationId));}
   function documentKey(doc){return q(doc&&(doc.id||doc.fileId||doc.blobName||doc.name));}
   function setVisibility(shipment,key,visible,at){
@@ -22,10 +30,18 @@
   function esc(value){return q(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function renderPanel(){
     const doc=root.document;if(!doc||!doc.getElementById)return false;const state=sharedState(),shipment=activeShipment(state),existing=doc.getElementById('packAvisDocumentPanel');
-    if(!shipment||!q(shipment.packNotificationId)){if(existing)existing.remove();return false;}
-    const docs=packDocuments(shipment),host=doc.getElementById('rc363BlockDocuments')||doc.getElementById('rc363FixedShipmentLayout')||doc.getElementById('content');if(!host)return false;
-    let panel=existing;if(!panel){panel=doc.createElement('section');panel.id='packAvisDocumentPanel';panel.className='pack-avis-panel';host.appendChild(panel);}
-    panel.innerHTML=`<div class="pack-avis-head"><div><span>${esc(tr('pack.title'))}</span><h3>${esc(tr('pack.avis.title'))}</h3><p>${esc(tr('pack.avis.help'))}</p></div><strong>${publicPackDocuments(shipment).length}/${docs.length}</strong></div><div class="pack-avis-list">${docs.length?docs.map(doc=>{const key=documentKey(doc),visible=doc.customerAvisVisible===true;return`<label class="pack-avis-row"><span><b>${esc(doc.name||doc.fileName||tr('pack.avis.deliveryNote'))}</b><small>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.internalOnly'))}</small></span><input type="checkbox" data-pack-avis-doc="${esc(key)}" ${visible?'checked':''}><em>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.release'))}</em></label>`;}).join(''):`<p>${esc(tr('pack.avis.empty'))}</p>`}</div>`;
+    if(!shipmentViewActive(state,doc)||!shipment||!q(shipment.packNotificationId)){if(existing)existing.remove();return false;}
+    // Never fall back to the global #content: that would inject AVIS controls into
+    // Academy, inspections, dashboard and other non-shipment views.
+    const host=doc.getElementById('rc363BlockDocuments')||doc.getElementById('rc363FixedShipmentLayout')||doc.getElementById('rc573ShipmentShell')||(doc.querySelector&&doc.querySelector('[data-exporthub-rendered-view="shipment"]'));
+    if(!host){if(existing)existing.remove();return false;}
+    const docs=packDocuments(shipment);
+    let panel=existing;if(!panel){panel=doc.createElement('section');panel.id='packAvisDocumentPanel';panel.className='pack-avis-panel';}
+    if(panel.parentNode!==host)host.appendChild(panel);
+    const markup=`<div class="pack-avis-head"><div><span>${esc(tr('pack.title'))}</span><h3>${esc(tr('pack.avis.title'))}</h3><p>${esc(tr('pack.avis.help'))}</p></div><strong>${publicPackDocuments(shipment).length}/${docs.length}</strong></div><div class="pack-avis-list">${docs.length?docs.map(doc=>{const key=documentKey(doc),visible=doc.customerAvisVisible===true;return`<label class="pack-avis-row"><span><b>${esc(doc.name||doc.fileName||tr('pack.avis.deliveryNote'))}</b><small>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.internalOnly'))}</small></span><input type="checkbox" data-pack-avis-doc="${esc(key)}" ${visible?'checked':''}><em>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.release'))}</em></label>`;}).join(''):`<p>${esc(tr('pack.avis.empty'))}</p>`}</div>`;
+    // The document-wide observer observes our own mutations too. Avoid
+    // rewriting identical markup and recursively scheduling renders.
+    if(panel.__packAvisRenderedMarkup!==markup){panel.innerHTML=markup;panel.__packAvisRenderedMarkup=markup;}
     return true;
   }
   async function onChange(event){const input=event.target&&event.target.closest&&event.target.closest('[data-pack-avis-doc]');if(!input)return;const shipment=activeShipment(sharedState());if(!shipment)return;if(setVisibility(shipment,input.getAttribute('data-pack-avis-doc'),input.checked,new Date().toISOString())){await persist();renderPanel();}}
