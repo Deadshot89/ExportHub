@@ -12,6 +12,9 @@ function tr(key){
 function el(tag,klass,value){var x=d.createElement(tag);if(klass)x.className=klass;if(value!=null)x.textContent=value;return x}
 function sh(){var s=w.__EXPORTHUB_RC776_VIEW_SHIPMENT__;return s&&typeof s==='object'?s:null}
 function refOf(v){return q(v&&(v.ref||v.reference||v.shipmentRef)).toUpperCase()}
+function isCurrent(box,ref){return activeRef===ref&&activeCard===box&&!!box&&box.isConnected}
+function safeCustomer(v){var c=v&&(v.customerName||v.customerDisplayName||v.customer||v.customerId);return q(c&&typeof c==='object'?(c.name||c.companyName||c.displayName||c.account||''):c)}
+function filenameForProof(f,type,index){var original=q(f.name),ext=(original.match(/\.[^.]+$/)||[''])[0],base=original.slice(0,Math.max(0,original.length-ext.length)).slice(0,85);var uniq=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,11)+'_'+index;return(type==='photo'?'Versandfoto_':'')+base+'__'+uniq+ext;}
 function headers(){var r=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},token=q(r.authToken),h={'Content-Type':'application/json','Accept':'application/json'};if(token){h.Authorization='Bearer '+token;h['X-ExportHUB-Token']=token;h['X-ExportHUB-Session']=token}return h}
 async function api(method,ref,payload){
  var path='/api/shipment-documentation'+(method==='GET'?'?reference='+encodeURIComponent(ref):'');
@@ -95,7 +98,7 @@ function snapshot(shipment,ref){
  var weight=Number(shipment&&(shipment.totalWeight||shipment.grossWeight||shipment.weightKg||shipment.weight))||0;
  if(!weight&&rows.length)weight=rows.reduce(function(total,r){return total+(Number(r.weight||r.grossWeight)||0)},0);
  return{reference:ref,shipmentNumber:q(shipment&&(shipment.shipmentNumber||shipment.carrierShipmentNumber||shipment.consignmentNumber)),
- customer:q(shipment&&(shipment.customerName||shipment.customer||shipment.customerDisplayName||shipment.customerId)),
+ customer:safeCustomer(shipment),
  dispatchDate:'',colli:count?String(count):'',weightKg:weight?String(weight):'',
  packaging:rows.map(function(r){return q(r.type||r.packaging)}).filter(Boolean).filter(function(s,i,a){return a.indexOf(s)===i}).join(', '),
  shippingMethod:q(shipment&&(shipment.shippingMethod||shipment.transportMode||shipment.serviceName)),
@@ -113,7 +116,7 @@ function values(box){
  box.querySelectorAll('[data-proof-field]').forEach(function(input){var key=input.getAttribute('data-proof-field');if(key!=='reference'&&key!=='complaintDate'&&key!=='complaintText')out[key]=q(input.value)});
  return out;
 }
-function setBusy(box,on){busy=!!on;box.querySelectorAll('button,input[type=file]').forEach(function(btn){btn.disabled=!!on})}
+function setBusy(box,on){if(activeCard!==box)return;busy=!!on;box.querySelectorAll('button,input[type=file]').forEach(function(btn){btn.disabled=!!on})}
 function annotate(box){
  var badge=box.querySelector('[data-proof-badge]');if(!badge)return;
  if(!activeRecord||!activeRecord.revision){badge.textContent=tr('notSaved');return}
@@ -136,6 +139,7 @@ async function saveRecord(box,ref){
  setBusy(box,true);status(box,'Speichere Versandnachweis …');
  try{
   var d=await api('POST',ref,{action:'save',expectedRevision:expectedRevision,fields:fields});
+  if(!isCurrent(box,ref))return;
   activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('saved'),'ok');
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
 }
@@ -154,6 +158,7 @@ function renderComplaints(box,ref){
    if(busy)return;setBusy(box,true);
    try{
     var d=await api('POST',ref,{action:'complaint-status',expectedRevision:activeRecord.revision,complaintId:c.id,state:states.value});
+    if(!isCurrent(box,ref))return;
     activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('statusSaved'),'ok');
    }catch(e){status(box,q(e.message),'error');states.value=c.state}finally{setBusy(box,false)}
   });
@@ -168,6 +173,7 @@ async function addComplaint(box,ref){
  setBusy(box,true);
  try{
   var d=await api('POST',ref,{action:'complaint',expectedRevision:activeRecord.revision,text:textInput.value,reportedDate:date.value});
+  if(!isCurrent(box,ref))return;
   activeRecord=d.record;textInput.value='';annotate(box);renderComplaints(box,ref);
   status(box,tr('complaintSaved'),'ok');
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
@@ -179,16 +185,19 @@ async function uploadFiles(box,ref,input,type){
  if(!runtime||typeof runtime.upload!=='function'){status(box,tr('uploadUnavailable'),'error',true);return}
  setBusy(box,true);var ok=0,errors=[];
  for(var i=0;i<files.length;i++){
+  if(!isCurrent(box,ref))break;
   var f=files[i],ext=q(f.name).toLowerCase();
   if(!(/\.(jpe?g|png)$/.test(ext))&&(type==='photo'||!(/\.pdf$/.test(ext)))){errors.push(f.name+tr('wrongType'));continue}
   if(f.size>15*1024*1024){errors.push(f.name+tr('max15'));continue}
   try{
-   var prepared=type==='photo'?new File([f],'Versandfoto_'+f.name,{type:f.type}):f;
+   var prepared=new File([f],filenameForProof(f,type,i),{type:f.type});
    await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');ok++;
+   if(!isCurrent(box,ref))break;
   }catch(e){errors.push(f.name+': '+q(e.message))}
   status(box,tr('uploadedProgress')+ok+' / '+files.length+(errors.length?' · '+errors.join('; '):''),errors.length?'error':'ok',true);
  }
  setBusy(box,false);
+ if(!isCurrent(box,ref))return;
  if(ok){status(box,ok+tr('filesSaved')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
   try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:true}}))}catch(_){}
   if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.refreshReferenceFiles==='function')w.ExportHUBShipmentView.refreshReferenceFiles();
@@ -230,7 +239,7 @@ function ensure(){
  if(!host||!/^[A-Z0-9]{6}$/.test(ref)){if(activeCard&&activeCard.isConnected)activeCard.remove();activeCard=null;activeRef='';return}
  if(activeRef===ref&&activeCard&&activeCard.isConnected&&activeCard.previousElementSibling===host)return;
  if(activeCard&&activeCard.isConnected)activeCard.remove();
- activeRef=ref;activeRecord=null;
+ activeRef=ref;activeRecord=null;busy=false;
  activeCard=build(ref);
  host.insertAdjacentElement('afterend',activeCard);
  fill(activeCard,snapshot(shipment,ref));
