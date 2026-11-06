@@ -4,6 +4,7 @@
 const crypto=require('crypto');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 
 const FIELDS={
@@ -108,7 +109,7 @@ module.exports=async function(context,req){
   if(!['GET','POST'].includes(req.method)){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   context.res=await handle(req);
  }catch(e){
-  context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:'Sendungsdokumentation konnte nicht geladen oder gespeichert werden.'});
+  context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.serverError')});
  }
 };
 module.exports.reference=reference;
