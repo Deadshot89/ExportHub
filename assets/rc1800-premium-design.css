@@ -1,0 +1,289 @@
+/*
+ * ExportHUB360 – Premium-Designsystem (Theme "premium")
+ * Reine Optik: keine Logik, keine Daten, keine Texte.
+ * Aktiv nur mit html/body[data-eh-skin="premium"] (Auswahl „Premium“ im Design-Umschalter RC1304,
+ * technisch Klassisch als Basis). Andere Designs bleiben unverändert.
+ * Ebenen: 1 Tokens, 2 Grundlayout, 3 Navigation, 4 Karten/KPI, 5 Tabellen,
+ *         6 Formulare/Buttons, 7 Dialoge/Hinweise, 8 Fokus/Responsive/Reduced Motion.
+ */
+
+/* 1 ── Tokens ─────────────────────────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  /* Farben */
+  --pc-primary:#2f5fd0;--pc-primary-2:#4a78e0;--pc-primary-soft:#eaf0fd;--pc-focus:#2f5fd0;--pc-on-primary:#fff;
+  --pc-page:#f6f7fa;--pc-page-accent:#f6f7fa;
+  --pc-surface:#fff;--pc-surface-2:#fafbfc;--pc-surface-3:#f1f3f7;--pc-field:#fff;
+  --pc-line:#e3e7ee;--pc-line-strong:#ccd3de;
+  --pc-text:#2b3441;--pc-title:#111827;--pc-muted:#5d6b7e;
+  --pc-side:#fff;--pc-side-2:#f6f7fa;--pc-side-text:#1f2937;--pc-side-muted:#6b7789;
+  --pc-nav-hover:#f1f3f7;--pc-nav-active:#eaf0fd;--pc-nav-active-text:#244fb8;
+  --pc-success:#1f8a5b;--pc-warning:#a96a0b;--pc-danger:#c0392b;--pc-info:#2f5fd0;
+  --pc-body-bg:#f6f7fa;--pc-side-bg:#fff;--pc-card-bg:#fff;--pc-top-bg:rgba(255,255,255,.94);
+  --pc-button-bg:#2f5fd0;--menu-accent:#2f5fd0;
+  /* Rundungen */
+  --pc-card-radius:12px;--pc-control-radius:8px;--pc-button-radius:8px;--pc-nav-radius:8px;
+  /* Schatten */
+  --pc-shadow-soft:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04);
+  --pc-shadow-float:0 8px 24px rgba(16,24,40,.10),0 2px 6px rgba(16,24,40,.06);
+  /* Premium-eigene Tokens */
+  --px-font:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --px-space-1:4px;--px-space-2:8px;--px-space-3:12px;--px-space-4:16px;--px-space-5:24px;
+  --px-ease:cubic-bezier(.2,.7,.2,1);--px-fast:120ms;--px-base:180ms;
+  --px-ok-bg:#e8f6ee;--px-warn-bg:#fdf3e1;--px-bad-bg:#fdeceb;--px-info-bg:#eaf0fd;
+}
+
+/* 2 ── Grundlayout & Typografie ──────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  font-family:var(--px-font);font-size:14px;line-height:1.5;color:var(--pc-text);
+  background:var(--pc-body-bg)!important;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(button,input,select,textarea){font-family:inherit}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(h1,h2,h3,.page-head h1,.page-head h2){color:var(--pc-title);letter-spacing:-.01em;font-weight:650}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .page-head{border-bottom:1px solid var(--pc-line)!important;padding-bottom:12px!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .page-head:after{display:none!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content:before{background:none!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .topbar{
+  background:var(--pc-top-bg)!important;border:1px solid var(--pc-line)!important;
+  border-radius:var(--pc-card-radius)!important;box-shadow:var(--pc-shadow-soft)!important;
+  backdrop-filter:saturate(1.4) blur(8px);
+}
+
+/* 3 ── Navigation ────────────────────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar{
+  background:var(--pc-side-bg)!important;border-right:1px solid var(--pc-line)!important;box-shadow:none!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .nav button{
+  border-radius:var(--pc-nav-radius)!important;color:var(--pc-side-text);font-weight:550;
+  transition:background var(--px-fast) var(--px-ease),color var(--px-fast) var(--px-ease);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .nav button:hover{background:var(--pc-nav-hover)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .nav button.active{
+  background:var(--pc-nav-active)!important;color:var(--pc-nav-active-text)!important;
+  box-shadow:inset 3px 0 0 var(--pc-primary)!important;
+}
+
+/* 4 ── Karten & KPI ──────────────────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.card,.metric,.folder-section,.rc205-widget,.rc205-quick-card,.rc524-panel,.rc543-section,.rc776-card,.rc776-metric){
+  background:var(--pc-card-bg)!important;border:1px solid var(--pc-line)!important;
+  border-radius:var(--pc-card-radius)!important;box-shadow:var(--pc-shadow-soft)!important;
+  transition:box-shadow var(--px-base) var(--px-ease),border-color var(--px-base) var(--px-ease);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.card,.metric,.rc205-quick-card):hover{
+  border-color:var(--pc-line-strong)!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .metric{font-variant-numeric:tabular-nums}
+
+/* 5 ── Tabellen ──────────────────────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] th{
+  background:var(--pc-surface-2);color:var(--pc-muted);font-size:11.5px;font-weight:650;
+  letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--pc-line-strong);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] td{border-bottom:1px solid var(--pc-line)}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] tbody tr{transition:background var(--px-fast) var(--px-ease)}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] tbody tr:hover td{background:var(--pc-surface-3)}
+
+/* 6 ── Formulare & Buttons ───────────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(input:not([type=checkbox]):not([type=radio]),select,textarea){
+  background:var(--pc-field)!important;color:var(--pc-text)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-control-radius)!important;
+  transition:border-color var(--px-fast) var(--px-ease),box-shadow var(--px-fast) var(--px-ease);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(input,select,textarea):hover{border-color:#aeb8c7!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(input,select,textarea)::placeholder{color:#7a8798}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(input[type=checkbox],input[type=radio]){accent-color:var(--pc-primary)}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.btn,.btn-primary,button.primary){
+  background:var(--pc-primary)!important;color:var(--pc-on-primary)!important;border:1px solid var(--pc-primary)!important;
+  border-radius:var(--pc-button-radius)!important;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.12)!important;
+  transition:background var(--px-fast) var(--px-ease),transform var(--px-fast) var(--px-ease);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.btn,.btn-primary,button.primary):hover{background:#244fb8!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.btn,.btn-primary,button.primary):active{transform:translateY(1px)}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.ghost,button.ghost,.btn.ghost){
+  background:var(--pc-surface)!important;color:var(--pc-text)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-button-radius)!important;
+  box-shadow:none!important;font-weight:550;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.ghost,button.ghost):hover{background:var(--pc-surface-3)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(button,input,select,textarea):disabled{opacity:.55;cursor:not-allowed}
+
+/* 7 ── Dialoge, Hinweise, Status ─────────────────────────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(dialog,.modal,.rc-modal,[role=dialog]){
+  border:1px solid var(--pc-line)!important;border-radius:14px!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(.badge,.pill,.chip,.tag,.status){border-radius:999px;font-weight:600}
+
+/* 8 ── Fokus (WCAG 2.2), Responsive, Reduced Motion ──────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--pc-focus)!important;outline-offset:2px!important;
+  box-shadow:0 0 0 4px rgba(47,95,208,.18)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(button,.btn,.ghost,input,select){min-height:36px}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .table-wrap,html[data-eh-skin="premium"] body[data-eh-skin="premium"] .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:760px){
+  html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(button,.btn,.ghost,input,select){min-height:44px}
+  html[data-eh-skin="premium"] body[data-eh-skin="premium"]{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  html[data-eh-skin="premium"] body[data-eh-skin="premium"] *{transition:none!important;animation:none!important}
+}
+
+/* 9 ── Seitenleiste: Kontraste auf hellem Grund (WCAG AA) ───────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #brandUserLine{color:var(--pc-muted)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar .brand{color:var(--pc-title)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar .nav>div:not([class]):not([id]),
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar #nav>div:not(:has(button)){
+  color:var(--pc-muted)!important;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar small{color:var(--pc-muted)!important}
+
+/* 10 ── Gruppenüberschriften & Überschriftsgewichte ────────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] .sidebar #nav div:not(:has(*)){
+  color:#56657a!important;font-weight:650;letter-spacing:.06em;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content :is(h1,h2,h3,h4){font-weight:700!important;letter-spacing:-.012em}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content h1{font-size:clamp(24px,2.2vw,30px)}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav[data-index305-authoritative="1"] > [data-index305-group="1"]:not([hidden]),
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav[data-index308-menu="1"] > [data-index308-group],
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav[data-index321-menu="1"] > [data-index308-group]:not([hidden]),
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav > [data-index308-group]{
+  color:#56657a!important;font-weight:650!important;letter-spacing:.06em;
+}
+
+/* 11 ── Schnellzugriff-Buttons (Einstellungen u. a.) ───────────────── */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content .quick-grid>button{
+  background:var(--pc-surface)!important;color:var(--pc-title)!important;
+  border:1px solid var(--pc-line-strong)!important;border-radius:var(--pc-button-radius)!important;
+  box-shadow:var(--pc-shadow-soft)!important;font-weight:600;text-align:left;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content .quick-grid>button:hover{
+  background:var(--pc-primary-soft)!important;border-color:var(--pc-primary)!important;color:var(--pc-nav-active-text)!important;
+}
+
+/* 12 ── Urgent Order: Icon-Kachel und Beschriftung wie die übrigen Menüpunkte ──
+   Das Menü-Skript setzt für dunkle Seitenleisten helle Farben; im hellen Premium-Theme
+   waren Icon und Text dadurch unsichtbar. Nur Optik, keine Logik/Position. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]{
+  color:var(--pc-side-text)!important;font-size:14px!important;font-weight:650!important;background:transparent!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]:hover{
+  background:var(--pc-nav-hover)!important;color:var(--pc-side-text)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design] .index308-nav-icon{
+  background:color-mix(in srgb,var(--menu-accent,#dc7226) 12%,#fff)!important;
+  border:1px solid color-mix(in srgb,var(--menu-accent,#dc7226) 38%,#fff)!important;
+  color:var(--menu-accent,#dc7226)!important;border-radius:14px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{
+  color:var(--pc-side-text)!important;font-weight:650!important;
+}
+
+/* 13 ── Login (rc1630 v2) an Premium-System angleichen ─────────────────
+   Gleicher Hintergrund, gleiche Rundungen und Steuerelement-Größen wie die Hauptapp,
+   damit Login → Hauptseite ohne Sprung in Größe und Hintergrund wirken. Nur Optik. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"]{
+  --eh360-ink:#111827;--eh360-muted:#5d6b7e;--eh360-line:#e3e7ee;--eh360-soft:#fafbfc;
+  --eh360-accent:#2f5fd0;--eh360-accent-ink:#244fb8;--eh360-card:#fff;--eh360-label:#2b3441;
+  --eh360-field:#fff;--eh360-field-focus:#fff;--eh360-field-line:#ccd3de;--eh360-field-hover:#aeb8c7;
+  background:#f6f7fa!important;font-family:var(--px-font);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] .eh360-login-hero{
+  border-radius:16px;border:1px solid #1e3a6e;box-shadow:var(--pc-shadow-float);
+  background:linear-gradient(160deg,#13264d 0%,#1b3566 100%);
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] .eh360-login-hero::before{display:none}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] .eh360-login-hero .eh360-login-headline{
+  font-size:clamp(26px,2.4vw,34px)!important;font-weight:700!important;letter-spacing:-.015em;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] .login-card{
+  border-radius:16px!important;box-shadow:var(--pc-shadow-float)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] :is(.eh-login-environment button,#loginMicrosoftAccountSwitchBtn,#adminRecoveryBtn,#testserviceContinueBtn,#ehBackProduction){
+  border-radius:var(--pc-button-radius)!important;min-height:40px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] .eh-login-environment button{min-height:56px!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] :is(#loginBtn,#savePassBtn){
+  min-height:40px!important;border-radius:var(--pc-button-radius)!important;font-size:14px!important;font-weight:600!important;
+  background:var(--pc-primary)!important;box-shadow:0 1px 2px rgba(16,24,40,.12)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] :is(#loginBtn,#savePassBtn):hover{background:#244fb8!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] :is(input:not([type=checkbox]),select){
+  min-height:40px!important;border-radius:var(--pc-control-radius)!important;font-size:14px!important;
+}
+
+/* 14 ── Stufe 2: deutlich eigener Look gegen den gebauten Stand ─────────
+   Spätere Ebenen (RC1558 Dashboard, RC1579 Menü) überdecken Stufe 1 fast
+   vollständig. Diese Regeln setzen deshalb bewusst höhere Spezifität
+   (#nav#nav#nav, #rc1558Overview) und !important. Nur Optik. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  --pc-primary:#4f46e5;--pc-primary-2:#6366f1;--pc-primary-soft:#eef2ff;--pc-focus:#4f46e5;
+  --pc-nav-active-text:#fff;--pc-button-bg:#4f46e5;--menu-accent:#4f46e5;--pc-info:#4f46e5;
+  --pc-body-bg:#f3f4f7;--pc-page:#f3f4f7;--pc-page-accent:#f3f4f7;--px-info-bg:#eef2ff;
+  --px-side:#0f172a;--px-side-line:#1e293b;--px-side-text:#cbd5e1;--px-side-muted:#7c8aa0;--px-side-hover:rgba(255,255,255,.06);
+  --rc1558-primary:#4f46e5;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(body,button,input,select,textarea){font-family:var(--px-font)!important}
+
+/* Seitenleiste dunkel */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar{
+  background:var(--px-side)!important;color:var(--px-side-text)!important;border-right:1px solid var(--px-side-line)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar :is(.brand,.brand *,#brandUserLine,small){color:#f8fafc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar #brandUserLine{color:var(--px-side-muted)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar hr,
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar .brand{border-color:var(--px-side-line)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]){
+  background:transparent!important;color:var(--px-side-text)!important;border-color:transparent!important;box-shadow:none!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]):hover{
+  background:var(--px-side-hover)!important;color:#fff!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"]){
+  background:rgba(99,102,241,.22)!important;color:#fff!important;box-shadow:inset 3px 0 0 #818cf8!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon{
+  background:transparent!important;background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;color:#94a3b8!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon::before{background-color:currentColor!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"],:hover) .index308-nav-icon{color:#a5b4fc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>[data-exporthub-urgent-nav]{color:#fdba74!important;background:transparent!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>[data-exporthub-urgent-nav] *{color:inherit!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section{
+  color:var(--px-side-muted)!important;font-size:11px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section:hover{background:var(--px-side-hover)!important;color:#e2e8f0!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-icon{
+  color:#94a3b8!important;background:transparent!important;border-color:transparent!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section[data-rc1579-current] .rc1579-section-icon{color:#a5b4fc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-count{background:rgba(255,255,255,.08)!important;color:#cbd5e1!important;opacity:1!important}
+
+/* Kopfleiste flach */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] header.topbar.topbar{
+  background:#fff!important;border:1px solid #e5e7eb!important;box-shadow:none!important;backdrop-filter:none!important;
+}
+
+/* Dashboard-Kopf hell statt blauem Band */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top{
+  background:#fff!important;border:1px solid #e5e7eb!important;box-shadow:0 1px 2px rgba(15,23,42,.04)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-greeting{color:#0f172a!important;font-size:20px!important;font-weight:700!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-date{color:#64748b!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-updated{color:#4338ca!important;background:#eef2ff!important;border-color:#c7d2fe!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-edit{
+  color:#fff!important;background:#4f46e5!important;border-color:#4f46e5!important;border-radius:8px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-edit:hover{background:#4338ca!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi{
+  background:#f8fafc!important;border:1px solid #e5e7eb!important;box-shadow:none!important;border-radius:12px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi:hover{border-color:#a5b4fc!important;box-shadow:0 0 0 3px #eef2ff!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi:focus-visible{outline:3px solid #4f46e5!important}
+
+/* Panels flach mit feiner Linie, Akzent Indigo */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-panel{
+  border:1px solid #e5e7eb!important;box-shadow:none!important;border-radius:14px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content a:not([class*="btn"]){color:#4f46e5}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]) :not(.index308-nav-icon){color:inherit!important}

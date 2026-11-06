@@ -24,7 +24,7 @@ function loadEndpoint(){
     },
     addAudit(){}
   };
-  const graphMail={async sendTextMail(){return{attempts:1}}};
+  const graphMail={async sendHtmlMail(){return{attempts:1}}};
   const original=Module._load;
   Module._load=function(request,parent,isMain){
     if(request==='../shared/auth-store')return auth;

@@ -42,7 +42,7 @@ test('RC1270: Graph-Auth-Probe klassifiziert sicher ohne Token oder Secret in de
  assert.match(graph,/async function verifyAuthentication\(\)/);
  assert.match(graph,/code:'GRAPH_AUTH_FAILED'/);
  assert.match(graph,/audienceOk/);
- assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,permissionRequirement,sendTextMail\}/);
+ assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,permissionRequirement,sendTextMail,sendHtmlMail\}/);
  const probeBlock=graph.slice(graph.indexOf('async function verifyAuthentication'),graph.indexOf('function transient'));
  assert.doesNotMatch(probeBlock,/\btoken\s*:/,'Auth-Probe darf kein Token-Feld zurückgeben');
  assert.doesNotMatch(probeBlock,/clientSecret[: ,]/,'Auth-Probe darf kein Secret zurückgeben');
@@ -96,7 +96,7 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
  assert.match(api,/AVIS_RECIPIENT_EXCLUDED/);
  const recipientCheck=api.indexOf("if(avisRecipientExcluded(to))");
  const urlCheck=api.indexOf("const url=safeAvisUrl");
- const sendCheck=api.indexOf("graphMail.sendTextMail");
+ const sendCheck=api.indexOf("graphMail.sendHtmlMail");
  assert.ok(recipientCheck>=0&&urlCheck>recipientCheck,'Empfängersperre muss vor Avis-URL-Verarbeitung greifen');
  assert.ok(sendCheck>recipientCheck,'Empfängersperre muss vor Graph-Versand greifen');
  assert.match(api,/status\|\|e\.statusCode\|\|500/);
@@ -107,7 +107,7 @@ test('RC1436: AVIS-Mail behält Despatch als Absender und verwendet ausschließl
  assert.match(api,/DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra\.com'/);
  assert.match(api,/function configuredAvisMailSender\(\)\{return text\(process\.env\.EXPORTHUB_AVIS_MAIL_SENDER\|\|DEFAULT_AVIS_MAIL_SENDER\)\}/);
  assert.match(api,/const sender=configuredAvisMailSender\(\),cc=ccRecipients\(current\.team,shipment,to,sender\)/);
- assert.match(api,/graphMail\.sendTextMail\(\{to,subject:sub,body:content,sender,cc\}\)/);
+ assert.match(api,/graphMail\.sendHtmlMail\(\{to,subject:sub,body:htmlContent,sender,cc\}\)/);
  assert.doesNotMatch(api,/function configuredMailSender\(\)\{return text\(process\.env\.EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER\)\}/);
  assert.doesNotMatch(api,/FIXED_CC=/);
  const ccBlock=api.slice(api.indexOf('function ccRecipients'),api.indexOf('function pickupDate'));
