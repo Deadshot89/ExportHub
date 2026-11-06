@@ -243,7 +243,7 @@ function mailColumnMarkup(order){
   :pending&&sent?localeV2('mailColumnPartial','Partially confirmed')
   :pending?localeV2('mailColumnPending','Not confirmed')
   :localeV2('mailColumnSent','Yes · confirmed');
- const className=pending?'pending':'sent';
+ const className=!records.length?'':pending?'pending':'sent';
  const counts=records.length?'<span class="sub">'+escapeHtml(sent+' '+localeV2('mailCountConfirmed','confirmed')+' · '+pending+' '+localeV2('mailCountOpen','unconfirmed'))+'</span>':'';
  const byKind=['problem','shipping'].map(kind=>{
   const mails=records.filter(x=>x.kind===kind);
