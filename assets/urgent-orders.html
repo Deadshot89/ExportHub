@@ -19,6 +19,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 .help{margin:8px 0 0;font-size:12px;color:var(--muted)}.alert{padding:11px 13px;border:1px solid #e8ba8e;background:#fff8ec;color:#82430a;border-radius:10px;margin:0 0 16px}.message{margin-top:10px;font-weight:600;min-height:22px}.message[data-kind="error"]{color:var(--red)}.message[data-kind="ok"]{color:var(--green)}
 .line-card{border:1px solid var(--line);border-radius:12px;padding:13px;margin:12px 0;background:#f8fafd}.line-card .head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:11px}.checks{display:grid;gap:8px;margin-top:12px}.checks label{font-size:12px;font-weight:650;color:#344961}.checks .check-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,145px);gap:8px;align-items:center}.check-row select{min-width:0}
 .inline-check{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700}.inline-check input{width:18px;min-height:18px;height:18px}.filters{display:grid;grid-template-columns:minmax(130px,1fr) repeat(3,minmax(105px,145px));gap:8px;margin:2px 0 14px}.list-head,.order-summary{display:grid;grid-template-columns:minmax(185px,1.4fr) minmax(140px,1fr) minmax(95px,.65fr) minmax(110px,.75fr) minmax(180px,1.15fr) minmax(220px,1.4fr);gap:10px;align-items:center}.list-head{color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;padding:0 12px 8px}.order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff}.order[open]{border-color:#a5bfde}.order-summary{list-style:none;padding:14px 12px;cursor:pointer}.order-summary::-webkit-details-marker{display:none}.order-summary:hover{background:#f8faff}.so{font-weight:800;display:flex;align-items:center;gap:7px}.so:before{content:"▸";color:var(--blue);font-size:14px}.order[open] .so:before{content:"▾"}.sub{display:block;color:var(--muted);font-size:11px;font-weight:500}.tag{display:inline-flex;justify-content:center;padding:3px 9px;border-radius:50px;font-weight:800;font-size:11px;white-space:normal;text-align:center;max-width:100%}.tag[data-priority="P1"]{background:#fee1e3;color:#a3121e}.tag[data-priority="P2"]{background:#ffead0;color:#925008}.tag[data-priority="P3"]{background:#e3efff;color:#1d5ca4}.tag[data-priority="P4"]{background:#edf0f4;color:#4c5a6e}.status{font-weight:750;font-size:12px}.order-summary>span{min-width:0}.order-summary .order-email{overflow-wrap:anywhere}.order-buttons{display:flex;flex-wrap:wrap;gap:5px}.order-detail{border-top:1px solid var(--line);padding:12px;background:#f8fafd;overflow-x:auto}.lines-table{border-collapse:collapse;width:100%;font-size:12px;min-width:610px}.lines-table th{text-align:left;color:var(--muted);font-size:11px}.lines-table td,.lines-table th{padding:9px 8px;border-bottom:1px solid var(--line)}.lines-table tr:last-child td{border:0}.lines-table select{width:135px;min-height:33px;padding:5px 8px}.flag{font-weight:750;color:#a3470f}.ok{color:var(--green);font-weight:700}.empty{padding:35px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}.hintbar{margin-bottom:12px;font-size:12px;color:var(--muted)}
+.mail-history{margin-top:15px;border-top:1px solid var(--line);padding-top:12px}.mail-history h3{margin:0 0 9px;font-size:15px}.mail-entry{margin:7px 0;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}.mail-entry>summary{padding:10px 12px;cursor:pointer;font-weight:700;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.mail-entry-content{padding:12px;border-top:1px solid var(--line)}.mail-entry pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px;font:inherit;max-height:300px;overflow:auto}.mail-chip{font-size:11px;border-radius:999px;background:#fff0d5;color:#815006;padding:3px 9px}.mail-chip.sent{background:#dcf5e8;color:#125b37}.mail-meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.mail-entry .btn{margin-top:10px}@media(prefers-color-scheme:dark){.mail-chip{background:#493921;color:#ffe2aa}.mail-chip.sent{background:#244c3b;color:#a4f0c5}}
 .overlay[hidden]{display:none}.overlay{position:fixed;inset:0;background:#12263ecc;z-index:50;display:grid;place-items:center;padding:15px}.modal{background:var(--card);border-radius:18px;padding:22px;max-width:660px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 24px 65px #0004}.modal .field{margin-top:12px}.modal .field textarea{min-height:130px}.modal .field textarea.mailbody{min-height:210px}.modal .toprow{display:flex;justify-content:space-between;align-items:center;gap:10px}
 @media(max-width:1110px){.layout{grid-template-columns:1fr}.panel{padding:17px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:761px) and (max-width:1150px){.list-head{display:none}.order-summary{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.85fr)}.order-summary>.order-email{grid-column:1/3}.order-summary>.order-buttons{grid-column:3;grid-row:2}}@media(max-width:760px){.filters{grid-template-columns:1fr 1fr}.list-head{display:none}.order-summary{grid-template-columns:1fr 76px 90px;gap:8px}.order-summary>.order-email{grid-column:1/3}.order-summary>.order-buttons{grid-column:1/-1}.stats{gap:8px}.stat{padding:12px}.stat b{font-size:22px}}
@@ -100,7 +101,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </section>
 </div>
 </main>
-<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help">Es wird ein Entwurf vorbereitet. Der tatsächliche Versand erfolgt erst in deinem E-Mail-Programm.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField">Problembeschreibung *<textarea id="mailIssue" placeholder="Was ist das Problem?"></textarea></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
+<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help">Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField">Problembeschreibung *<textarea id="mailIssue" placeholder="Was ist das Problem?"></textarea></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
 <script>
 (function(){
 'use strict';
@@ -229,7 +230,26 @@ function localizedLoginRequired(){
 }
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
 function showView(view){activeView=view;currentTab=view==='closed'?'closed':'open';$('internalCreatePanel').hidden=view!=='new';$('internalListPanel').hidden=view==='new';for(const [id,key] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
+function mailUi(de,en){try{return window.ExportHUBI18n&&window.ExportHUBI18n.language()==='en'?en:de;}catch(_){return de;}}
+function mailDate(iso){if(!iso)return'';const value=new Date(iso);return Number.isNaN(value.getTime())?txt(iso):value.toLocaleString(mailUi('de-DE','en-GB'),{dateStyle:'short',timeStyle:'short'});}
 function priorityText(code){const fallback=({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code;try{const i=window.ExportHUBI18n,v=i&&i.t('urgentOrderV2.'+code,null,i.language());return v&&v!=='urgentOrderV2.'+code?v:fallback;}catch(_){return fallback;}}
+function mailHistoryMarkup(order){
+ const records=Array.isArray(order.mailHistory)?order.mailHistory.slice().reverse():[];
+ if(!records.length)return '<section class="mail-history"><h3>'+escapeHtml(mailUi('E-Mail-Verlauf','Email history'))+'</h3><p class="help">'+escapeHtml(mailUi('Noch keine E-Mails aus ExportHUB360 vorbereitet.','No emails prepared from ExportHUB360 yet.'))+'</p></section>';
+ const rows=records.map(m=>{
+  const sent=m.status==='sent_confirmed';
+  const kind=m.kind==='shipping'?mailUi('Versandbestätigung','Shipping confirmation'):mailUi('Problemmeldung','Problem notification');
+  const state=sent?mailUi('Versand manuell bestätigt','Manually confirmed as sent'):mailUi('Mailprogramm angefordert','Mail program requested');
+  const creator=m.createdBy&&m.createdBy.name||m.createdBy&&m.createdBy.id||'–';
+  const confirmed=m.sentConfirmedBy&&m.sentConfirmedBy.name||m.sentConfirmedBy&&m.sentConfirmedBy.id||'–';
+  return '<details class="mail-entry"><summary><span>'+escapeHtml(kind)+'</span><span class="mail-chip '+(sent?'sent':'')+'">'+escapeHtml(state)+'</span><span class="mail-meta">'+escapeHtml(creator)+' · '+escapeHtml(mailDate(m.createdAt))+'</span></summary>'+
+   '<div class="mail-entry-content"><p class="mail-meta">'+escapeHtml(mailUi('An','To'))+': '+escapeHtml(m.to)+' · '+escapeHtml(mailUi('Sprache','Language'))+': '+escapeHtml(m.language||'de')+'</p>'+
+   '<p><strong>'+escapeHtml(mailUi('Betreff','Subject'))+':</strong> '+escapeHtml(m.subject)+'</p><pre>'+escapeHtml(m.body)+'</pre>'+
+   (sent?'<p class="mail-meta">'+escapeHtml(mailUi('Versand bestätigt durch','Sent confirmed by'))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(mailUi('Tatsächlichen Versand bestätigen','Confirm actual sending'))+'</button>':'')+
+   '</div></details>';
+ }).join('');
+ return '<section class="mail-history"><h3>'+escapeHtml(mailUi('E-Mail-Verlauf','Email history'))+' · '+records.length+'</h3>'+rows+'</section>';
+}
 function render(){
  showView(activeView);
  renderStats();const n=orders.filter(isClosedOrder).length;$('internalOpenCount').textContent=orders.length-n;$('internalClosedCount').textContent=n;$('internalOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+(orders.length-n));$('internalClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+n);$('internalOpen').dataset.hasOpen=orders.length>n?'true':'false';$('internalOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');$('internalClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');const selected=filtered();$('listHint').textContent=selected.length+' / '+orders.length+' · '+localeV2('listHint','Aufträge – Positionen öffnen für Details');
@@ -254,8 +274,21 @@ function render(){
      freightData.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):''
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml((order.items||[]).length)+' '+escapeHtml(localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span><span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+'</div>';
+  const recorded=(order.mailHistory||[]);
+  const lastMail=recorded.length?recorded[recorded.length-1]:null;
+  const mailSummary=lastMail?'<span class="sub">'+escapeHtml(mailUi('Letzte E-Mail','Latest email'))+': '+escapeHtml(lastMail.status==='sent_confirmed'?mailUi('Versand bestätigt','Sent confirmed'):mailUi('Mailprogramm angefordert','Mail program requested'))+'</span>':'';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml((order.items||[]).length)+' '+escapeHtml(localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span>'+mailSummary+'</span><span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+mailHistoryMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
+  details.querySelectorAll('[data-confirm-mail]').forEach(button=>button.addEventListener('click',async()=>{
+   if(!window.confirm(mailUi('Wurde diese E-Mail wirklich im E-Mail-Programm gesendet? Die Bestätigung wird mit deinem Benutzernamen gespeichert.','Was this email actually sent in your mail application? Your account will be recorded.')))return;
+   button.disabled=true;
+   try{
+    const result=await api('confirm-mail-sent',{id:order.id,mailId:button.dataset.confirmMail});
+    const index=orders.findIndex(x=>x.id===order.id);if(index>=0)orders[index]=result.order;
+    render();const expanded=[...$('orders').querySelectorAll('details.order')].find(x=>x.querySelector('.so')?.textContent.includes(order.orderNumber));if(expanded)expanded.open=true;
+    setMessage('listMessage',mailUi('Versandbestätigung gespeichert.','Sent confirmation recorded.'),'ok');
+   }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
+  }));
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
    const previous=(order.items||[]).find(x=>x.id===select.dataset.item)?.status;
    const note=select.value==='Problem'?(window.prompt(localeV2('problemPrompt','Bitte das Problem beschreiben.'))||'').trim():'';
@@ -317,11 +350,23 @@ async function generateDraft(){
   $('mailTo').value=r.draft.to;$('mailSubject').value=r.draft.subject;$('mailBody').value=r.draft.body;setMessage('mailMessage','Entwurf ist bereit.','ok');
  }catch(e){$('mailSubject').value='';$('mailBody').value='';setMessage('mailMessage',e.message,'error');}
 }
-function mailto(){
+async function mailto(){
+ // Save the CURRENT editor values, not the originally generated template and
+ // never an unobservable later change inside Outlook.
  const to=$('mailTo').value,sub=$('mailSubject').value,body=$('mailBody').value;
- if(!to||!sub||!body){setMessage('mailMessage','Bitte zuerst eine E-Mail-Vorlage erzeugen.','error');return;}
- window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
- setMessage('mailMessage','Entwurf an das E-Mail-Programm übergeben. Bitte dort Versand kontrollieren.','ok');
+ if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',mailUi('Bitte zuerst einen E-Mail-Text erstellen.','Please create an email first.'),'error');return;}
+ const button=$('openMailer');if(button.disabled)return;button.disabled=true;
+ try{
+  setMessage('mailMessage',mailUi('Speichere den E-Mail-Text im Auftrag …','Saving the email text to the order …'),'');
+  const result=await api('record-mail-handoff',{id:modalOrder,kind:modalKind,to,subject:sub,body,language:$('mailLanguage').value});
+  const index=orders.findIndex(x=>x.id===modalOrder);if(index>=0)orders[index]=result.order;
+  render();
+  const uri='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
+  window.location.href=uri;
+  setMessage('mailMessage',mailUi('E-Mail-Text gespeichert. Bitte nach dem Versand in der Auftragshistorie bestätigen.','Email text saved. Confirm sending in the order history afterward.'),'ok');
+ }catch(e){
+  setMessage('mailMessage',mailUi('E-Mail nicht geöffnet: ','Email not opened: ')+e.message,'error');
+ }finally{button.disabled=false;}
 }
 async function copyDraft(){
  const v='An: '+$('mailTo').value+'\nBetreff: '+$('mailSubject').value+'\n\n'+$('mailBody').value;
