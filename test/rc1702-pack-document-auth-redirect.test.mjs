@@ -118,9 +118,14 @@ test('RC1705: existing Packmeldung PDF without storage metadata still downloads 
  const {api,calls,clicks}=viewer({session:{token:'EXISTING',user:{id:'u-1'},environment:'testservice'},reply});
  assert.equal(api.isBlobDocument(raw),true);
  assert.equal(await api.open(raw,{name:raw.name,download:true}),true);
- assert.equal(calls.length,1);
- assert.equal(calls[0].options.headers.Authorization,'Bearer EXISTING');
- assert.equal(calls[0].options.redirect,'manual');
+ // RC1803: the viewer first asks for a signed ticket URL. This legacy API
+ // answers without a ticket, so the authenticated Blob transport is used.
+ const ticket=calls.filter(c=>/&action=ticket/.test(c.url)),pdf=calls.filter(c=>!/&action=ticket/.test(c.url));
+ assert.equal(ticket.length,1);
+ assert.equal(ticket[0].options.headers.Authorization,'Bearer EXISTING');
+ assert.equal(pdf.length,1);
+ assert.equal(pdf[0].options.headers.Authorization,'Bearer EXISTING');
+ assert.equal(pdf[0].options.redirect,'manual');
  assert.deepEqual(clicks.map(x=>x.download),['Lieferschein-alt.pdf']);
  assert.ok(clicks[0].href.startsWith('blob:'),'download must use fetched PDF bytes, not an unauthenticated API URL');
 });

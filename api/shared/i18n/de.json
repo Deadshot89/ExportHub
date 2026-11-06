@@ -220,6 +220,8 @@
   "api.document.referenceInvalid": "Dokumentreferenz ist ungültig.",
   "api.document.environmentMismatch": "Das Dokument gehört zu einer anderen ExportHUB-Datenumgebung.",
   "api.document.loadFailed": "Dokument konnte nicht geladen werden.",
+  "api.document.ticketInvalid": "Der Download-Link für das Dokument ist ungültig.",
+  "api.document.ticketExpired": "Der Download-Link ist abgelaufen. Bitte das Dokument erneut öffnen.",
   "api.readiness.environmentRequired": "Umgebung fehlt.",
   "api.readiness.testProductionMismatch": "TESTSERVICE darf keine Produktionsbereitschaft bestätigen.",
   "api.readiness.productionTestMismatch": "Produktion darf keine TESTSERVICE-Bereitschaft bestätigen.",
