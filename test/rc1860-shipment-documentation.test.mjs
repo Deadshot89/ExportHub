@@ -88,3 +88,74 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.equal(azure.bindings[0].type,'httpTrigger');
  assert.deepEqual(azure.bindings[0].methods,['get','post','options']);
 });
+
+
+test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit Azure-Readback',async t=>{
+ const {Readable}=await import('node:stream');
+ const {BlobServiceClient}=require('@azure/storage-blob');
+ const auth=require('../api/shared/auth-store.js');
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ const previousIso=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ t.after(()=>{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+  if(previousIso===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+  else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=previousIso;
+ });
+ const stored=new Map(),paths=[],user={role:'Export',name:'Lagerteam',rights:{shipment:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'},team:{state:{shipments:[{ref:'ABC123'}]}}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:()=>({
+   getBlockBlobClient:(key)=>{
+    paths.push(key);
+    return{
+     async download(){
+      const saved=stored.get(key);
+      if(!saved){const e=new Error('Missing');e.statusCode=404;throw e}
+      return{etag:saved.etag,readableStreamBody:Readable.from([saved.data])};
+     },
+     async uploadData(bytes,options){
+      const current=stored.get(key),conditions=options&&options.conditions||{};
+      if((conditions.ifNoneMatch==='*'&&current)||(conditions.ifMatch&&(!current||current.etag!==conditions.ifMatch))){
+       const e=new Error('Conflict');e.statusCode=412;throw e;
+      }
+      const data=Buffer.from(bytes),etag='"etag'+(current?current.rev+1:1)+'"';
+      stored.set(key,{data,etag,rev:current?current.rev+1:1});
+      return{etag};
+     }
+    };
+   }
+  })
+ }));
+ async function call(method,input){
+  const req={method,query:method==='GET'?input:undefined,body:method==='POST'?input:undefined,headers:{}};
+  const ctx={};
+  await doc(ctx,req);
+  return{status:ctx.res.status,data:JSON.parse(ctx.res.body)};
+ }
+ const first=await call('GET',{reference:'ABC123'});
+ assert.equal(first.status,200);
+ assert.equal(first.data.record.revision,0);
+ const saved=await call('POST',{reference:'ABC123',action:'save',expectedRevision:0,fields:{
+  shipmentNumber:'SHP-2026',customer:'Musterkunde',dispatchDate:'2026-11-06',colli:'5',weightKg:'120.5',
+  packaging:'Palette',contents:'5 Kartons',loadSecuring:'Stretchfolie'
+ }});
+ assert.equal(saved.status,200);
+ assert.equal(saved.data.record.revision,1);
+ assert.equal(saved.data.record.fields.packaging,'Palette');
+ const readAgain=await call('GET',{reference:'ABC123'});
+ assert.equal(readAgain.data.record.fields.contents,'5 Kartons');
+ assert.equal(readAgain.data.record.history[0].changes.customer.after,'Musterkunde');
+ const complaint=await call('POST',{reference:'ABC123',action:'complaint',expectedRevision:1,reportedDate:'2026-11-06',text:'Karton beschaedigt'});
+ assert.equal(complaint.status,200);
+ assert.equal(complaint.data.record.complaints.length,1);
+ assert.equal(complaint.data.record.complaints[0].state,'offen');
+ const stale=await call('POST',{reference:'ABC123',action:'save',expectedRevision:0,fields:{contents:'Ueberschreiben'}});
+ assert.equal(stale.status,409);
+ assert.equal((await call('GET',{reference:'ABC123'})).data.record.fields.contents,'5 Kartons');
+ assert.deepEqual([...new Set(paths)],['shipment-documentation/ABC123.json']);
+});
