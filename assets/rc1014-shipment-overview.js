@@ -630,6 +630,8 @@
     enhanceShipmentConfig,
     enhanceManualPickupBooking,
     enhanceShipmentDetailedView,
+    viewShipment,
+    manualPickupIdentity,
     manualPickupMeta,
     writeContainerConfig
   });
