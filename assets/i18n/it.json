@@ -2559,4 +2559,6 @@
   "urgentOrderV2.mailCountConfirmed": "confermate",
   "urgentOrderV2.mailCountOpen": "in attesa",
   "urgentOrderV2.mailHistoryButton": "Visualizza cronologia"
+,
+  "urgentOrderV2.mailColumnPartial": "Parzialmente confermato"
 }
