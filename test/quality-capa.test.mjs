@@ -135,12 +135,15 @@ test('CAPA: release packages include the QM page in every permitted environment'
 test('CAPA: release bundle includes page, server API and menu link',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const menu=fs.readFileSync('assets/rc1579-menu-redesign.js','utf8');
+ const embeddedNav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
  const page=fs.readFileSync('qualitaet.html','utf8');
  const fn=JSON.parse(fs.readFileSync('api/quality-capa/function.json','utf8'));
  assert.match(build,/fs\.copyFileSync\(qualityPage,path\.join\(OUT,'qualitaet\.html'\)\)/);
  assert.match(build,/quality-capa/);
  assert.match(menu,/ensureQualityLink\(\)/);
- assert.match(menu,/\/qualitaet\.html/);
+ assert.match(menu,/ExportHUBEmbeddedModules\.open\('quality'\)/,'QM menu must open inside ExportHUB360');
+ assert.match(embeddedNav,/quality:\{path:'\/qualitaet\.html\?embedded=1'/,'QM page must be loaded from same-origin module allowlist');
+ assert.doesNotMatch(menu,/location\.assign\(['"]\/qualitaet\.html/,'QM menu must not redirect the browser');
  assert.match(page,/\/api\/quality-capa/);
  assert.equal(fn.bindings[0].route,'quality-capa');
 });

@@ -225,26 +225,15 @@ test('canonical tracking link preserves real capability token when activated and
 });
 
 
-test('urgent-only ExportHUB menu opens wonderful-forest while other module routing stays untouched',()=>{
+test('Urgent Order opens in the ExportHUB workspace without browser navigation',()=>{
  const menu=read('assets/pack-notification-nav.js');
- const start=menu.indexOf(' function urgentOrdersDestination(){');
- const end=menu.indexOf('\n function ensure(){',start);
- assert.ok(start>=0&&end>start,'urgent-only destination helper is present');
- const helper=menu.slice(start,end);
- const destination=hostname=>{
-  const ctx=vm.createContext({w:{location:{hostname}}});
-  vm.runInContext(helper,ctx);
-  return ctx.urgentOrdersDestination();
- };
- const canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net/assets/urgent-orders.html';
- for(const hostname of ['wonderful-forest-0f315e310.7.azurestaticapps.net','exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'])
-  assert.equal(destination(hostname),canonical);
- assert.equal(destination('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'),'/assets/urgent-orders.html');
- assert.equal(destination('localhost'),'/assets/urgent-orders.html');
- assert.match(menu,/w\.location\.assign\(urgentOrdersDestination\(\)\)/);
- assert.match(menu,/function openInbox\(/,'the Packmeldung module remains present');
+ assert.match(menu,/ExportHUBEmbeddedModules\.open\('urgentorders'\)/);
+ assert.match(menu,/\/assets\/urgent-orders\.html\?embedded=1/);
+ assert.match(menu,/\/qualitaet\.html\?embedded=1/);
+ assert.match(menu,/host\.replaceChildren\(section\)/);
+ assert.doesNotMatch(menu,/w\.location\.assign\(urgentOrdersDestination\(\)\)/);
+ assert.match(menu,/function openInbox\(/,'native Packmeldungen module remains intact');
 });
-
 
 test('old Urgent Order URLs redirect only their own page and preserve token fragments',()=>{
  const source=script(publicHtml);
@@ -278,7 +267,7 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  const end=menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count',start);
  assert.ok(start>=0&&end>start,'dedicated navigation module must exist');
  const source=menu.slice(start,end);
- const handlers={},timers=[],navigation=[];
+ const handlers={},timers=[],navigation=[],embedded=[];
  const node=(name,attrs={})=>{
   const n={tagName:name,attributes:{...attrs},children:[],parentNode:null,className:'',innerHTML:'',style:{setProperty(){}},setAttribute(k,v){this.attributes[k]=v;},
    getAttribute(k){return this.attributes[k]??null;},addEventListener(k,f){this['on'+k]=f;},
@@ -319,6 +308,7 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  };
  const win={
   document:doc,location:{hostname:'exporthub360.de',assign(url){navigation.push(url);}},
+  ExportHUBEmbeddedModules:{open(view){embedded.push(view);return true;}},
   addEventListener(name,fn){handlers[name]=fn;},setInterval(fn){timers.push(fn);}
  };
  vm.runInNewContext(source,{window:win,globalThis:win});
@@ -337,7 +327,8 @@ test('urgent sidebar entry keeps native styling and stays below Packmeldungen af
  assert.match(urgentStyles,/@media\(max-width:760px\)/,'mobile layout must be responsive');
  assert.match(urgentStyles,/width:auto!important;flex:0 0 auto!important/,'urgent button must not fill mobile navigation width');
  urgent.onclick({preventDefault(){},stopImmediatePropagation(){}});
- assert.equal(navigation[0],'https://wonderful-forest-0f315e310.7.azurestaticapps.net/assets/urgent-orders.html');
+ assert.deepEqual(embedded,['urgentorders']);
+ assert.deepEqual(navigation,[],'Urgent Order must not leave the ExportHUB page');
  // Simulate a sidebar redraw: the old button appears ahead of Dashboard again.
  nav.insertBefore(urgent,dashboard);
  handlers['exporthub:rendered']();
