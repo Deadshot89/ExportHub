@@ -29,6 +29,7 @@ for(const file of ['index.html','TESTVERSION.html']){
   assert.equal(create({...stored}),null,'unchanged rows need no forced restoration');
   assert.equal(create({...stored},true)?.[0]?.count,2,'dirty rows are preserved');
   assert.equal(create({...stored,count:0})?.[0]?.count,0,'invalid edit still reaches normal save validation');
+  assert.equal(create({...stored,count:3},false,null),null,'fresh shipment continues through the original save path');
  });
 }
 
