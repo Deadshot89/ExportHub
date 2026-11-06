@@ -45,6 +45,8 @@ test('P0 planned appointment: reused technical ID cannot select arbitrary custom
  assert.equal(runtime.viewShipment(state),null,'duplicate technical IDs are ambiguous');
  state.shipmentViewRef='DANFOSS';
  assert.equal(runtime.viewShipment(state).reference,'DANFOSS');
+ state.shipmentViewId='NEFF01';
+ assert.equal(runtime.viewShipment(state),null,'conflicting view ID/reference must not open Neff');
 });
 
 test('P0 manual appointment API: Danfoss request never updates Neff with same technical ID',()=>{
