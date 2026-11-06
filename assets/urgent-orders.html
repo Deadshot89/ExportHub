@@ -237,11 +237,26 @@ function mailColumnMarkup(order){
  const records=Array.isArray(order.mailHistory)?order.mailHistory:[];
  const sent=records.filter(x=>x.status==='sent_confirmed').length;
  const pending=records.length-sent;
- const label=sent?localeV2('mailColumnSent','Yes · confirmed'):pending?localeV2('mailColumnPending','Not confirmed'):localeV2('mailColumnNone','No email');
- const className=sent?'sent':pending?'pending':'';
+ // A confirmed shipping email must never hide a still-unconfirmed problem email,
+ // or vice versa. Only show "Yes" when every recorded email is confirmed.
+ const label=!records.length?localeV2('mailColumnNone','No email')
+  :pending&&sent?localeV2('mailColumnPartial','Partially confirmed')
+  :pending?localeV2('mailColumnPending','Not confirmed')
+  :localeV2('mailColumnSent','Yes · confirmed');
+ const className=pending?'pending':'sent';
  const counts=records.length?'<span class="sub">'+escapeHtml(sent+' '+localeV2('mailCountConfirmed','confirmed')+' · '+pending+' '+localeV2('mailCountOpen','unconfirmed'))+'</span>':'';
+ const byKind=['problem','shipping'].map(kind=>{
+  const mails=records.filter(x=>x.kind===kind);
+  if(!mails.length)return '';
+  const complete=mails.filter(x=>x.status==='sent_confirmed').length;
+  const name=localeV2(kind==='problem'?'mailKindProblem':'mailKindShipping',kind==='problem'?'Problem notification':'Shipping confirmation');
+  const state=complete===mails.length?localeV2('mailColumnSent','Yes · confirmed')
+   :complete?localeV2('mailColumnPartial','Partially confirmed')
+   :localeV2('mailColumnPending','Not confirmed');
+  return '<span class="sub">'+escapeHtml(name+': '+state+' ('+complete+'/'+mails.length+')')+'</span>';
+ }).join('');
  const openHistory=records.length?'<button type="button" class="btn alt small" data-open-mail-history aria-label="'+escapeHtml(localeV2('mailHistoryButton','View history')+' · '+order.orderNumber)+'">'+escapeHtml(localeV2('mailHistoryButton','View history')+' ('+records.length+')')+'</button>':'';
- return '<span class="order-mail-state"><span class="order-mail-badge '+className+'">'+escapeHtml(label)+'</span>'+counts+openHistory+'</span>';
+ return '<span class="order-mail-state"><span class="order-mail-badge '+className+'">'+escapeHtml(label)+'</span>'+counts+byKind+openHistory+'</span>';
 }
 function mailHistoryMarkup(order){
  const records=Array.isArray(order.mailHistory)?order.mailHistory.slice().reverse():[];
