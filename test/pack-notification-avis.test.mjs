@@ -36,6 +36,51 @@ test('publicPackDocuments returns only explicitly released pack documents',()=>{
   assert.deepEqual(api.publicPackDocuments(sh).map(x=>x.id),['d2']);
 });
 
+
+test('Pack AVIS never falls back to global content and follows a replaced shipment shell',()=>{
+  const shared={shipmentViewId:'NEFF01',shipments:[{
+    id:'sh-neff',ref:'NEFF01',packNotificationId:'pn-neff',deliveryFiles:threeNotes()
+  }]};
+  let view='shipmentview',shell=null,panel=null,contentWrites=0;
+  const content={appendChild(){contentWrites++;}};
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>shared,
+    ExportHUBPackI18n:{t:key=>key},
+    document:{
+      body:{getAttribute:key=>key==='data-exporthub-view'?view:null},
+      getElementById(id){
+        if(id==='content')return content;
+        if(id==='rc573ShipmentShell')return shell;
+        if(id==='packAvisDocumentPanel')return panel&&panel.parentNode?panel:null;
+        return null;
+      },
+      querySelector:()=>null,
+      createElement(){
+        panel={id:'',className:'',parentNode:null,innerHTML:'',
+          remove(){this.parentNode=null;}};
+        return panel;
+      },
+      addEventListener(){}
+    }
+  };
+  const api=load(root);
+  assert.equal(api.renderPanel(),false,'no shipment host means no document panel');
+  assert.equal(contentWrites,0,'global content must not receive the panel');
+  const first={appendChild(node){node.parentNode=this;}};
+  shell=first;
+  assert.equal(api.renderPanel(),true);
+  assert.equal(panel.parentNode,first);
+  assert.match(panel.innerHTML,/DNC3019228460\\.pdf/);
+  const next={appendChild(node){node.parentNode=this;}};
+  shell=next;
+  assert.equal(api.renderPanel(),true,'a layout replacement should move the existing panel');
+  assert.equal(panel.parentNode,next);
+  view='inspections';
+  assert.equal(api.renderPanel(),false);
+  assert.equal(panel.parentNode,null,'leaving shipment view removes AVIS controls');
+  assert.equal(contentWrites,0);
+});
+
 test('AVIS adapter renders a shipment panel only for pack-linked shipments and localizes visibility actions',()=>{
   const source=fs.readFileSync('assets/pack-notification-avis.js','utf8');
   assert.match(source,/renderPanel/);
