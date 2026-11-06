@@ -87,11 +87,24 @@ async function writeTeam(blob,team,etag){
 
 function identityValues(shipment){
   if(!obj(shipment))return[];
-  return['id','shipmentId','uuid','ref','reference','shipmentRef','referenceNumber','referenceNo'].map(key=>text(shipment[key])).filter(Boolean);
+  return['id','shipmentId','uuid'].map(key=>text(shipment[key])).filter(Boolean);
+}
+function referenceValues(shipment){
+  if(!obj(shipment))return[];
+  return['ref','reference','shipmentRef','referenceNumber','referenceNo'].map(key=>upper(shipment[key])).filter(Boolean);
 }
 function sameShipment(shipment,id,reference){
-  const wantedId=text(id),wantedRef=upper(reference),ids=identityValues(shipment),refs=ids.map(upper);
-  return!!((wantedId&&ids.includes(wantedId))||(wantedRef&&refs.includes(wantedRef)));
+  const wantedId=text(id),wantedRef=upper(reference);
+  const ids=identityValues(shipment),refs=referenceValues(shipment);
+  // A technical ID can be reused or stale; ID OR REF must never authorize
+  // writing the pickup onto a different customer shipment.
+  if(wantedRef){
+    if(refs.length&&!refs.includes(wantedRef))return false;
+    if(!refs.length&&(!wantedId||!ids.includes(wantedId)||upper(wantedId)!==wantedRef))return false;
+    if(wantedId&&ids.length&&!ids.includes(wantedId)&&upper(wantedId)!==wantedRef)return false;
+    return true;
+  }
+  return !!(wantedId&&(ids.includes(wantedId)||(!ids.length&&refs.includes(upper(wantedId)))));
 }
 function shipmentCopies(state,id,reference){
   const result=[];
@@ -241,6 +254,11 @@ async function confirmManualPickup(environment,id,reference,payload,user){
     if(!obj(team.state))team.state=state;
     const copies=shipmentCopies(state,id,reference);
     if(!copies.length)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
+    // If the client only supplied a reference, never confirm two distinct
+    // physical shipments with duplicate REF values in one request.
+    const uniqueIds=new Set(copies.map(shipment=>identityValues(shipment)[0]).filter(Boolean));
+    if(uniqueIds.size>1&&(!id||upper(id)===upper(reference)))
+      throw auth.error('SHIPMENT_AMBIGUOUS','Sendungszuordnung ist nicht eindeutig. Abholung wurde nicht gespeichert.',409);
     // Only a genuinely new pickup needs the gate. Correcting existing pickup
     // evidence never erases or rewrites a previously recorded physical event.
     const previouslyPicked=copies.some(hasRecordedPickupEvidence);

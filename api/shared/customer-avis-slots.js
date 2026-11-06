@@ -59,7 +59,9 @@ function isExcluded(sh, exclude){
   const ref = text(sh && (sh.reference || sh.ref || sh.shipmentRef || sh.referenceNumber || sh.shipmentNumber || sh.customerAvisShipmentNumber || sh.avisShipmentNumber)).toUpperCase();
   const excludeId = text(exclude.subjectId || exclude.shipmentId || exclude.id);
   const excludeRef = text(exclude.reference || exclude.ref).toUpperCase();
-  return Boolean((excludeId && sid && excludeId === sid) || (excludeRef && ref && excludeRef === ref));
+  // Reused technical IDs must not exclude a different customer's shipment.
+  if(excludeRef && ref) return ref === excludeRef && (!excludeId || !sid || sid === excludeId || excludeId.toUpperCase() === excludeRef);
+  return Boolean(excludeId && sid && excludeId === sid);
 }
 
 function intervalsForDate(shipments, date, exclude){
