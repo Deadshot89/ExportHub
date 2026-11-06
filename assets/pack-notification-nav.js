@@ -145,6 +145,24 @@
   try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}
   return true;
  }
+ // Capture at document level so existing/reused menu buttons cannot keep stale
+ // redirect handlers after a sidebar rebuild or an in-place application update.
+ // A listener on newly created buttons alone does not cover reused nodes.
+ if(typeof d.addEventListener==='function')d.addEventListener('click',function(e){
+  var target=e&&e.target;
+  if(!target||typeof target.closest!=='function')return;
+  var urgent=target.closest('[data-exporthub-urgent-nav]');
+  var quality=urgent?null:target.closest('[data-rc1579-proxy="quality"]');
+  var entry=urgent||quality;
+  if(!entry||!d.getElementById('content'))return;
+  e.preventDefault();
+  if(typeof e.stopImmediatePropagation==='function')e.stopImmediatePropagation();
+  else if(typeof e.stopPropagation==='function')e.stopPropagation();
+  // A hidden QM entry must neither open the module nor fall through to an
+  // obsolete page-navigation listener on the reused element.
+  if(entry.hidden||entry.getAttribute&&entry.getAttribute('aria-hidden')==='true')return;
+  open(urgent?'urgentorders':'quality');
+ },true);
  w.ExportHUBEmbeddedModules=Object.freeze({open:open});
 })(typeof window!=='undefined'?window:globalThis);
 
