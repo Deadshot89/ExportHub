@@ -74,7 +74,12 @@ module.exports=async function(context,req){
   // before the environment check so a forged ticket learns nothing else.
   if(ticketValue)ticket=readTicket(req,ticketValue);
   else await auth.validateSession(req);
-  const environment=requestEnvironment(req),blobName=ticket?ticket.blobName:text(query.blob);
+  // A ticket URL is a plain navigation without the ?environment= hint the app
+  // sends. Behind Azure the function may not see the public host, so the signed
+  // ticket environment stands in for the missing hint. A public host still wins:
+  // a TESTSERVICE ticket never opens on production and vice versa.
+  const envReq=ticket&&!text(query.environment)?Object.assign({},req,{query:Object.assign({},query,{environment:ticket.environment})}):req;
+  const environment=requestEnvironment(envReq),blobName=ticket?ticket.blobName:text(query.blob);
   if(!validBlobName(blobName))throw error('DOCUMENT_BLOB_INVALID',apiI18n.t(req,'api.document.referenceInvalid'),400);
   if(blobEnvironment(blobName)!==environment||(ticket&&ticket.environment!==environment))throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.document.environmentMismatch'),409);
   const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED',apiI18n.t(req,'api.common.storageNotConfigured'),503);
