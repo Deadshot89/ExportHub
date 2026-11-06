@@ -159,3 +159,38 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  assert.equal((await call('GET',{reference:'ABC123'})).data.record.fields.contents,'5 Kartons');
  assert.deepEqual([...new Set(paths)],['shipment-documentation/ABC123.json']);
 });
+
+test('TESTSERVICE kann keine Produktionssendung als eigene Dokumentation freigeben',async t=>{
+ const {BlobServiceClient}=require('@azure/storage-blob');
+ const auth=require('../api/shared/auth-store.js');
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ const previousIso=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ t.after(()=>{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+  if(previousIso===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+  else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=previousIso;
+ });
+ const user={role:'Export',rights:{shipment:{read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'testservice'},team:{state:{shipments:[{ref:'ABC123'}]}}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'testservice');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(auth,'clientsForEnvironment',async()=>({team:{}}));
+ t.mock.method(auth,'readJson',async()=>({value:{state:{shipments:[{ref:'XYZ987'}]}}}));
+ let requestedPath='';
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:()=>({getBlockBlobClient:(path)=>{
+   requestedPath=path;
+   return{async download(){const e=new Error('Not found');e.statusCode=404;throw e}};
+  }})
+ }));
+ async function get(reference){
+  const ctx={};await doc(ctx,{method:'GET',query:{reference},headers:{}});
+  return{status:ctx.res.status,data:JSON.parse(ctx.res.body)};
+ }
+ assert.equal((await get('ABC123')).status,404);
+ assert.equal((await get('XYZ987')).status,200);
+ assert.equal(requestedPath,'testservice/shipment-documentation/XYZ987.json');
+});
