@@ -2551,4 +2551,12 @@
   "urgentOrderV2.mailSaved": "Email text saved. Confirm sending in the order history afterward.",
   "urgentOrderV2.mailOpenFailed": "Email not opened: ",
   "urgentOrderV2.mailIntro": "Opening your mail application first saves the recipient, subject, and exact text from ExportHUB360 to the Urgent Order. Sending must then be confirmed separately."
+,
+  "urgentOrderV2.mailColumnTitle": "E-mail wysłany",
+  "urgentOrderV2.mailColumnSent": "Tak · potwierdzono ręcznie",
+  "urgentOrderV2.mailColumnPending": "Niepotwierdzone",
+  "urgentOrderV2.mailColumnNone": "Brak e-maila",
+  "urgentOrderV2.mailCountConfirmed": "potwierdzone",
+  "urgentOrderV2.mailCountOpen": "oczekujące",
+  "urgentOrderV2.mailHistoryButton": "Zobacz historię"
 }
