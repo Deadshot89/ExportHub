@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot,verifyChain,reportCase,addReportNote,withIntegrity}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -150,4 +150,61 @@ test('CAPA: release bundle includes page, server API and menu link',()=>{
 test('CAPA: unauthenticated calls never return cases',async()=>{
  const ctx={};await api(ctx,{method:'POST',headers:{},body:{action:'list'}});
  assert.equal(ctx.res.status,401);assert.equal(JSON.parse(ctx.res.body).ok,false);
+});
+
+test('CAPA: history is hash-chained, never truncated, and tampering is detected',()=>{
+ const item=fresh();
+ for(let i=0;i<40;i++)updateCase(item,{revision:item.revision,description:'Beschreibung '+i},staff);
+ assert.equal(item.history.length,41,'Verlauf wird nicht mehr gekürzt');
+ assert.deepEqual(item.history.map(e=>e.seq),Array.from({length:41},(_,i)=>i+1));
+ assert.equal(item.history[0].prevHash,'GENESIS');
+ assert.equal(item.history[1].prevHash,item.history[0].hash);
+ assert.deepEqual(verifyChain(item.history),{ok:true,brokenAt:0,legacy:0});
+ const edited=JSON.parse(JSON.stringify(item.history));edited[5].actor='Fremder';
+ assert.equal(verifyChain(edited).ok,false);assert.equal(verifyChain(edited).brokenAt,6);
+ const removed=JSON.parse(JSON.stringify(item.history));removed.splice(10,1);
+ assert.equal(verifyChain(removed).ok,false);
+ const reordered=JSON.parse(JSON.stringify(item.history));[reordered[3],reordered[4]]=[reordered[4],reordered[3]];
+ assert.equal(verifyChain(reordered).ok,false);
+});
+test('CAPA: existing history without hashes is accepted as legacy prefix and extended with a chain',()=>{
+ const item=fresh();item.history=[{at:'2026-10-01T10:00:00.000Z',action:'ANGELEGT',actor:'Alt',notes:'',changedFields:[]},{at:'2026-10-02T10:00:00.000Z',action:'AKTUALISIERT',actor:'Alt',notes:'',changedFields:['title']}];
+ updateCase(item,{revision:1,title:'Neu'},staff);
+ assert.equal(item.history.length,3);assert.equal(item.history[2].prevHash,'LEGACY');
+ assert.deepEqual(verifyChain(item.history),{ok:true,brokenAt:0,legacy:2});
+ const bad=JSON.parse(JSON.stringify(item.history));bad.splice(1,0,{at:'x',action:'X',actor:'Y',notes:'',changedFields:[]});
+ assert.equal(verifyChain(bad).ok,false,'unverkettete Einträge nach verketteten sind nicht zulässig');
+});
+test('CAPA: a case with broken history cannot be modified until reviewed',()=>{
+ const item=fresh();item.history[0].actor='Manipuliert';
+ assert.throws(()=>updateCase(item,{revision:1,title:'x'},staff),/Verlauf/);
+ assert.throws(()=>closeCase(item,{revision:1},admin),/Verlauf/);
+ assert.equal(withIntegrity(item).historyIntegrity.ok,false);
+});
+test('CAPA: every authenticated employee can report, but only report-level fields are accepted',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter',rights:{sop:{level:'none'}}};
+ assert.equal(canRead(plain),false);
+ const item=reportCase({title:'Falsche Ware',description:'Falsche Ware geladen',category:'verladung',rootCause:'erfunden',correctiveAction:'x',status:'abgeschlossen',effectivenessResult:'wirksam',owner:'Chef'},plain,[]);
+ assert.equal(item.status,'offen');assert.equal(item.rootCause,'');assert.equal(item.correctiveAction,'');
+ assert.equal(item.effectivenessResult,'');assert.equal(item.owner,'');
+ assert.equal(item.createdBy,'Lager');assert.equal(item.createdByUser,'lager1');
+ assert.equal(item.history[0].action,'GEMELDET');
+});
+test('CAPA: reporting is limited per user and per day',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter'};
+ const items=[];
+ for(let i=0;i<20;i++)items.unshift(reportCase({title:'F'+i,description:'B'},plain,items));
+ assert.throws(()=>reportCase({title:'Zu viel',description:'B'},plain,items),/Meldungen/);
+ const other={name:'Anderer',user:'andere',role:'Mitarbeiter'};
+ assert.ok(reportCase({title:'Ok',description:'B'},other,items));
+});
+test('CAPA: reporters may only add a note to their own still-open report',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter'};
+ const item=reportCase({title:'Falsche Ware',description:'B'},plain,[]);
+ addReportNote(item,{note:'Es war Palette 3'},plain);
+ assert.equal(item.history.at(-1).action,'ERGAENZT');assert.equal(item.history.at(-1).notes,'Es war Palette 3');
+ assert.throws(()=>addReportNote(item,{note:'x'},{name:'Fremd',user:'fremd'}),/eigene/);
+ assert.throws(()=>addReportNote(item,{note:''},plain),/Ergänzung/);
+ item.status='ursachenanalyse';
+ assert.throws(()=>addReportNote(item,{note:'spät'},plain),/offen/);
 });

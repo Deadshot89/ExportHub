@@ -22,6 +22,7 @@ function canEdit(user){const r=rights(user);return auth.isAdmin(user)||r.edit===
 function canClose(user){const r=rights(user);return auth.isAdmin(user)||r.admin===true||r.functionAdmin===true||str(r.level,12)==='admin'}
 function requireRight(valid,kind){if(!valid)throw err('FORBIDDEN','Keine Berechtigung für '+kind,403)}
 function date(v){const s=str(v,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return'';const d=new Date(s+'T00:00:00.000Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?s:''}
+function userKey(u){return str(u&&(u.user||u.login||u.username||u.name),120).toLowerCase()}
 function actor(u){return str(u&&(u.name||u.user||u.username||u.login),120)||'Benutzer'}
 /* CAPA records do not belong in shared team.state: that state is readable by unrelated
  * ExportHUB functions. Use a private, environment-separated Blob guarded by this API. */
@@ -117,11 +118,34 @@ function advice(p){
  if(p.severity==='kritisch'||p.severity==='hoch')out.unshift({priority:'sofort',title:'Verantwortliche sofort informieren',detail:'Bei erheblicher Kunden-, Sicherheits- oder Umweltwirkung die zuständige Führungskraft einbeziehen und die Eskalation festhalten.'});
  return out.slice(0,7);
 }
-function event(caseItem,action,user,notes,changedFields){caseItem.history=Array.isArray(caseItem.history)?caseItem.history:[];caseItem.history.push({at:new Date().toISOString(),action,actor:actor(user),notes:str(notes,300),changedFields:Array.isArray(changedFields)?changedFields.slice(0,32):[]});caseItem.history=caseItem.history.slice(-150)}
+/* Manipulationssicherer Verlauf: jeder Eintrag trägt seq, prevHash und hash (SHA-256 über den Inhalt und den Vorgänger).
+ * Alt-Einträge ohne Hash bleiben als Präfix zulässig (prevHash des ersten verketteten Eintrags = 'LEGACY'). */
+const MAX_HISTORY=500;
+function eventHash(e){return crypto.createHash('sha256').update(JSON.stringify([e.seq,e.at,e.action,e.actor,e.notes,e.changedFields,e.prevHash])).digest('hex')}
+function verifyChain(history){
+ const list=Array.isArray(history)?history:[];let legacy=0;
+ while(legacy<list.length&&!list[legacy].hash)legacy++;
+ let prev=legacy?'LEGACY':'GENESIS';
+ for(let i=legacy;i<list.length;i++){
+  const e=list[i];
+  if(!e||e.seq!==i+1||e.prevHash!==prev||e.hash!==eventHash(e))return{ok:false,brokenAt:i+1,legacy};
+  prev=e.hash;
+ }
+ return{ok:true,brokenAt:0,legacy};
+}
+function requireIntactHistory(item){if(!verifyChain(item.history).ok)throw err('HISTORY_BROKEN','Der Verlauf dieses Falls ist nicht integer. Änderungen sind gesperrt, bis die Leitung den Fall geprüft hat.',409)}
+function withIntegrity(item){return Object.assign({},item,{historyIntegrity:verifyChain(item.history)})}
+function event(caseItem,action,user,notes,changedFields){
+ caseItem.history=Array.isArray(caseItem.history)?caseItem.history:[];
+ if(caseItem.history.length>=MAX_HISTORY)throw err('HISTORY_LIMIT','Der Verlauf dieses Falls hat die Höchstzahl erreicht. Bitte einen Folgefall anlegen.',409);
+ const last=caseItem.history[caseItem.history.length-1];
+ const e={seq:caseItem.history.length+1,at:new Date().toISOString(),action,actor:actor(user),notes:str(notes,300),changedFields:Array.isArray(changedFields)?changedFields.slice(0,32):[],prevHash:last&&last.hash?last.hash:(last?'LEGACY':'GENESIS')};
+ e.hash=eventHash(e);caseItem.history.push(e)
+}
 function newCase(data,user){const patch=cleanPatch(data);if(!patch.title||!patch.description)throw err('REQUIRED','Titel und Fehlerbeschreibung sind Pflicht');const now=new Date().toISOString();
- const item=Object.assign({id:'QM-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase(),revision:1,createdAt:now,updatedAt:now,createdBy:actor(user),status:'offen',category:'sonstiges',severity:'mittel',occurredOn:now.slice(0,10),title:'',description:'',area:'',reference:'',impact:'',immediateAction:'',rootCause:'',correctiveAction:'',preventiveAction:'',owner:'',dueDate:'',evidence:'',effectivenessResult:'',effectivenessEvidence:'',verifiedOn:'',verifiedBy:'',closedAt:'',history:[]},patch);
+ const item=Object.assign({id:'QM-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase(),revision:1,createdAt:now,updatedAt:now,createdBy:actor(user),createdByUser:userKey(user),status:'offen',category:'sonstiges',severity:'mittel',occurredOn:now.slice(0,10),title:'',description:'',area:'',reference:'',impact:'',immediateAction:'',rootCause:'',correctiveAction:'',preventiveAction:'',owner:'',dueDate:'',evidence:'',effectivenessResult:'',effectivenessEvidence:'',verifiedOn:'',verifiedBy:'',closedAt:'',history:[]},patch);
  event(item,'ANGELEGT',user,'Abweichung erfasst');return item}
-function updateCase(item,p,user){if(item.status==='abgeschlossen')throw err('CLOSED','Abgeschlossenen Fall zuerst wieder öffnen',409);
+function updateCase(item,p,user){requireIntactHistory(item);if(item.status==='abgeschlossen')throw err('CLOSED','Abgeschlossenen Fall zuerst wieder öffnen',409);
  if(Number(p.revision)!==Number(item.revision))throw err('CONFLICT','Der Fall wurde inzwischen verändert. Bitte neu laden.',409);
  const patch=cleanPatch(p),before=Object.assign({},item);Object.assign(item,patch);
  if(!item.title||!item.description)throw err('REQUIRED','Titel und Fehlerbeschreibung sind Pflicht');
@@ -142,6 +166,7 @@ function updateCase(item,p,user){if(item.status==='abgeschlossen')throw err('CLO
  if(before.status!==item.status&&!changedFields.includes('status'))changedFields.push('status');
  item.revision++;item.updatedAt=new Date().toISOString();event(item,'AKTUALISIERT',user,str(p.changeNote,300),changedFields);return item}
 function closeCase(item,p,user){
+ requireIntactHistory(item);
  if(item.status==='abgeschlossen')throw err('CLOSED','Fall bereits abgeschlossen',409);
  if(Number(p.revision)!==Number(item.revision))throw err('CONFLICT','Fall wurde zwischenzeitlich geändert',409);
  if(!str(item.rootCause)||!str(item.correctiveAction)||!str(item.effectivenessEvidence)||item.effectivenessResult!=='wirksam'||!date(item.verifiedOn)||item.verifiedOn>new Date().toISOString().slice(0,10))
@@ -150,18 +175,48 @@ function closeCase(item,p,user){
  event(item,'ABGESCHLOSSEN',user,'Wirksamkeit bestätigt');return item
 }
 function reopenCase(item,p,user){
+ requireIntactHistory(item);
  if(item.status!=='abgeschlossen')throw err('STATUS','Nur abgeschlossene Fälle können erneut geöffnet werden',409);
  const reason=str(p.reason,500);if(reason.length<8)throw err('REASON','Bitte einen nachvollziehbaren Grund für das Wiederöffnen angeben');
  if(Number(p.revision)!==Number(item.revision))throw err('CONFLICT','Fall wurde zwischenzeitlich geändert',409);
  item.status='ursachenanalyse';item.closedAt='';item.effectivenessResult='offen';item.effectivenessEvidence='';item.verifiedOn='';item.verifiedBy='';item.updatedAt=new Date().toISOString();item.revision++;event(item,'WIEDEREROEFFNET',user,reason);return item
 }
+/* Meldung für jeden angemeldeten Mitarbeiter: nur Meldefelder, Status immer 'offen', höchstens 20 Meldungen je Benutzer und 24 h. */
+const REPORT_FIELDS=['title','description','category','severity','occurredOn','area','reference','impact','immediateAction'];
+const MAX_REPORTS_PER_DAY=20;
+function reportCase(data,user,items){
+ const key=userKey(user),since=Date.now()-24*3600*1000;
+ const recent=(Array.isArray(items)?items:[]).filter(x=>x&&x.createdByUser===key&&Date.parse(x.createdAt)>=since).length;
+ if(recent>=MAX_REPORTS_PER_DAY)throw err('REPORT_LIMIT','Zu viele Meldungen in 24 Stunden. Bitte die Leitung ansprechen.',429);
+ const picked={};for(const k of REPORT_FIELDS)if(data&&Object.prototype.hasOwnProperty.call(data,k))picked[k]=data[k];
+ const item=newCase(picked,user);
+ item.history=[];event(item,'GEMELDET',user,'Abweichung gemeldet');
+ return item
+}
+function addReportNote(item,p,user){
+ if(!item.createdByUser||item.createdByUser!==userKey(user))throw err('FORBIDDEN','Ergänzungen sind nur zur eigenen Meldung möglich',403);
+ if(item.status!=='offen')throw err('STATUS','Die Meldung ist nicht mehr offen, sondern in Bearbeitung, und nur noch durch die Leitung änderbar',409);
+ const note=str(p&&p.note,300);if(!note)throw err('REQUIRED','Bitte eine Ergänzung eingeben');
+ requireIntactHistory(item);
+ event(item,'ERGAENZT',user,note);item.revision++;item.updatedAt=new Date().toISOString();return item
+}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD',message:'Nur POST erlaubt'});return}
  try{
-  const payload=body(req);const current=await auth.validateSession(req),user=current.user;requireRight(canRead(user),'Qualitätsabweichungen');
+  const payload=body(req);const current=await auth.validateSession(req),user=current.user;
   const action=str(payload.action||'list',30).toLowerCase(),env=auth.environmentFromRequest(req);
-  if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items,environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
+  if(action==='report'||action==='report-note'){
+   const saved=await mutateRecords(env,items=>{
+    let item;
+    if(action==='report'){if(items.length>=MAX_CASES)throw err('LIMIT','Maximale Fallzahl erreicht; Archivierung prüfen',409);item=reportCase(payload,user,items);items.unshift(item)}
+    else{const idx=items.findIndex(x=>x.id===str(payload.id,50));if(idx<0)throw err('NOT_FOUND','Fall nicht gefunden',404);item=JSON.parse(JSON.stringify(items[idx]));addReportNote(item,payload,user);items[idx]=item}
+    return {items,item};
+   });
+   // Melder ohne Leserecht erhalten nur die Fallnummer zurück, keine fremden Daten.
+   context.res=json(200,{ok:true,id:saved.id,environment:env});return}
+  requireRight(canRead(user),'Qualitätsabweichungen');
+  if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items:items.map(withIntegrity),environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);
    const p=payload.id?cases.find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
@@ -186,4 +241,4 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
-module.exports._test={canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,validatedSnapshot,STATUSES};
+module.exports._test={verifyChain,reportCase,addReportNote,withIntegrity,canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,validatedSnapshot,STATUSES};

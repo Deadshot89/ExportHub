@@ -132,8 +132,9 @@ function fill(item){
  el('saveHint').textContent=closed?'Abgeschlossen':item?'Gespeichert':'Noch nicht gespeichert';
  dirty=false;currentAdvice=[];notice('');el('suggestions').classList.remove('show');history(item);
 }
+function integrityRow(item){var i=item&&item.historyIntegrity;if(!i)return'';return i.ok?'<div class="history-row"><span>Verlauf geprüft: lückenlos verkettet'+(i.legacy?' (die ersten '+i.legacy+' Einträge stammen aus der Zeit vor der Verkettung)':'')+'.</span></div>':'<div class="history-row" style="color:#b12438"><b>Verlauf nicht integer</b> ab Eintrag '+esc(String(i.brokenAt))+'. Der Fall ist für Änderungen gesperrt und muss von der Leitung geprüft werden.</div>'}
 function history(item){el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
- el('history').innerHTML=(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
+ el('history').innerHTML=integrityRow(item)+(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
 function list(){
  el('countOpen').textContent=items.filter(function(x){return x.status!=='abgeschlossen'}).length;
  el('countClosed').textContent=items.filter(function(x){return x.status==='abgeschlossen'}).length;
