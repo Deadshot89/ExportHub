@@ -1,0 +1,30 @@
+name: RC1713 apply Colli resave patch
+on:
+  push:
+    branches:
+      - fix/shipment-colli-resave-20261106
+    paths:
+      - '.github/workflows/rc1713-apply-colli-resave.yml'
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Apply guarded RC1713 patch to original HTML files
+        run: node scripts/rc1713-apply-colli-resave.mjs
+      - name: Run focused regression test
+        run: node --test test/rc1713-shipment-colli-resave.test.mjs
+      - name: Commit patch to the fix branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html TESTVERSION.html
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(shipment): preserve edited Colli quantity when re-saving [skip ci]"
+            git push origin HEAD:fix/shipment-colli-resave-20261106
+          fi
