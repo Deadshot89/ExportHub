@@ -38,6 +38,29 @@ test('Kundenbeschwerden sind revisioniert und nur mit Login erreichbar',()=>{
  assert.match(api,/testservice\/shipment-documentation/);
  assert.match(api,/Content-Type.*application\/json/);
 });
+test('Nur Benutzer mit Sendungs- oder Dokumentrechten dürfen Belege öffnen oder verändern',()=>{
+ const sh={state:{shipments:[{ref:'ABC123',customerName:'Fiktiv'}]}};
+ const editor={role:'Export',rights:{shipment:{level:'edit',read:true,edit:true}}};
+ const viewer={role:'Export',rights:{shipmentoverview:{level:'view',read:true,edit:false}}};
+ const stranger={role:'Export',rights:{shipment:{level:'none'}}};
+ assert.doesNotThrow(()=>doc.assertShipmentAccess(editor,sh,'ABC123','GET'));
+ assert.doesNotThrow(()=>doc.assertShipmentAccess(editor,sh,'ABC123','POST'));
+ assert.doesNotThrow(()=>doc.assertShipmentAccess(viewer,sh,'ABC123','GET'));
+ assert.throws(()=>doc.assertShipmentAccess(viewer,sh,'ABC123','POST'),e=>e.code==='DOCUMENTATION_READ_ONLY'&&e.status===403);
+ assert.throws(()=>doc.assertShipmentAccess(stranger,sh,'ABC123','GET'),e=>e.code==='DOCUMENTATION_FORBIDDEN'&&e.status===403);
+ assert.throws(()=>doc.assertShipmentAccess(editor,sh,'ZZ9999','POST'),e=>e.code==='SHIPMENT_NOT_FOUND'&&e.status===404);
+ assert.throws(()=>doc.assertShipmentAccess(editor,{state:{}},'ABC123','GET'),e=>e.code==='SHIPMENT_NOT_FOUND'&&e.status===404);
+});
+test('Archivierte Sendungen bleiben fuer die Versanddokumentation erreichbar',()=>{
+ const team={state:{archivedShipments:[{reference:'ABC123'}]}};
+ const user={role:'Export',rights:{shipment:{read:true,edit:true}}};
+ assert.doesNotThrow(()=>doc.assertShipmentAccess(user,team,'ABC123','POST'));
+});
+test('Kalenderdaten werden auch bei Formalfehlern abgelehnt',()=>{
+ assert.throws(()=>doc.normalizeFields({dispatchDate:'2026-02-30'}),e=>e.code==='INVALID_DATE');
+ assert.throws(()=>doc.normalizeFields({dispatchDate:'2026-11-32'}),e=>e.code==='INVALID_DATE');
+});
+
 test('Fotos und Lieferscheine werden im bestehenden REF-Ordner gesichert und Lieferscheine umbenannt',()=>{
  const image=b64([0xff,0xd8,0xff,0xe0,0x00]);
  const photo=refFiles.documentUploadFile('ABC123',{kind:'sonstiges',fileName:'Versandfoto_Karton.jpg',data:image},new Date('2026-11-06T13:30:00Z'));
