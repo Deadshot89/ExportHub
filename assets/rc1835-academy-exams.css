@@ -1,0 +1,69 @@
+/* RC1835 – scoped Academy / Prüfungszentrum polish. No data or exam rules changed. */
+#content:has(.rc299-layout),#content:has(#rc626Inspections){min-width:0}
+#rc626Inspections.ihk-center{max-width:1660px;padding:0 6px 32px;margin:auto}
+#rc626Inspections .rc626-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:26px 30px;margin:0 0 18px;border:1px solid #d9e7f4;border-radius:24px;background:linear-gradient(115deg,#eff7ff 0%,#f6fbff 58%,#eefbf6 100%);box-shadow:0 10px 32px rgba(22,54,96,.045)}
+#rc626Inspections .rc626-head h2{font-size:clamp(1.55rem,2.1vw,2.25rem);font-weight:850;letter-spacing:-.025em;margin:8px 0;color:#102a45}
+#rc626Inspections .rc626-head p{max-width:960px;font-size:.95rem;line-height:1.55;color:#4b6075;margin:0}
+#rc626Inspections .ihk-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px;margin:12px 0 20px;background:#f0f5fa;border:1px solid #e0e9f2;border-radius:16px}
+#rc626Inspections .ihk-tabs button{border:1px solid transparent;border-radius:11px;padding:11px 16px;min-height:42px;background:transparent;color:#40546e;font-size:.9rem;font-weight:750;transition:background-color .15s,border-color .15s,box-shadow .15s}
+#rc626Inspections .ihk-tabs button.active{background:#fff;color:#0a57a7;border-color:#bed8f1;box-shadow:0 3px 10px rgba(15,54,94,.075)}
+#rc626Inspections .ihk-tabs button:hover:not(.active){background:#fff;color:#164f8d}
+#rc626Inspections .ihk-metrics{gap:12px;margin:12px 0 16px}
+#rc626Inspections .ihk-metrics>div{background:#fff;border:1px solid #dde8f2;border-radius:17px;padding:16px 18px;box-shadow:0 5px 16px rgba(15,23,42,.035)}
+#rc626Inspections .ihk-metrics strong{font-size:1.55rem;letter-spacing:-.02em;color:#123d64}
+#rc626Inspections .ihk-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#rc626Inspections .ihk-exam-card{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:235px;padding:20px 22px;border:1px solid #dce7f1;border-radius:20px;background:#fff;box-shadow:0 5px 19px rgba(15,40,80,.045);transition:transform .15s,border-color .15s,box-shadow .15s}
+#rc626Inspections .ihk-exam-card:hover{border-color:#8dbde9;box-shadow:0 10px 24px rgba(22,84,142,.09);transform:translateY(-1px)}
+#rc626Inspections .ihk-card-head{align-items:start;gap:10px}
+#rc626Inspections .ihk-card-head h3{font-size:1.08rem;font-weight:850;line-height:1.32;letter-spacing:-.012em;color:#132e4a;margin:8px 0 0}
+#rc626Inspections .ihk-exam-card>p{color:#526579;line-height:1.48;font-size:.875rem;margin:1px 0 0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+#rc626Inspections .ihk-card-meta{display:flex;flex-wrap:wrap;gap:7px;margin:0}
+#rc626Inspections .ihk-card-meta>span{display:inline-flex;align-items:center;gap:3px;background:#f3f7fb;color:#445e78;border:1px solid #e2eaf2;border-radius:7px;padding:5px 8px;font-size:.73rem;font-weight:700;line-height:1.2}
+#rc626Inspections .ihk-exam-card .toolbar{margin-top:auto;padding-top:8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#rc626Inspections .ihk-exam-card .btn{background:#096cbb;color:white;border-radius:10px;padding:10px 16px;min-height:42px;font-weight:750;box-shadow:none}
+#rc626Inspections .ihk-exam-card .btn:hover{background:#075893}
+#rc626Inspections .ihk-exam-card .ghost{min-height:42px;border-radius:10px;font-weight:750}
+#rc626Inspections .ihk-take-layout{gap:20px}
+#rc626Inspections .ihk-question{border:1px solid #dce8f2;box-shadow:0 6px 24px rgba(20,56,90,.06)}
+#rc626Inspections .ihk-side-card{border-radius:20px}
+#rc626Inspections .ihk-jump{min-height:40px}
+#rc626Inspections :is(button,input,select,textarea):focus-visible,#content :is(.rc299-layout,.rc299-professions,.rc299-year,.rc299-tabs) button:focus-visible{outline:3px solid #0c8ee9!important;outline-offset:2px}
+/* Academy – focus on the chosen learning area, not an oversized card wall. */
+#content .rc299-hero{padding:18px 20px!important;border-radius:17px!important;margin:12px 0 18px!important;background:#eaf6ff!important;border:1px solid #c9e3fa!important;color:#173f62}
+#content .rc299-professions{gap:12px;margin:14px 0 16px}
+#content .rc299-professions button{padding:17px 18px;border-radius:18px;background:#fff;border-color:#d6e4ef;transition:border-color .15s,background-color .15s,box-shadow .15s}
+#content .rc299-professions button.active{background:linear-gradient(135deg,#e9f4ff,#f2fbff);border-color:#5eabe9;box-shadow:inset 0 0 0 1px #c3e5ff}
+#content .rc299-professions button b{font-size:.99rem;line-height:1.4}
+#content .rc299-professions button span{font-weight:550;font-size:.79rem}
+#content .rc299-year{gap:12px;margin:14px 0}
+#content .rc299-year button{padding:15px 16px;border-color:#d9e7f1;background:#fff}
+#content .rc299-year button.active{border-color:#67ade5;background:#eaf5ff}
+#content .rc299-tabs{padding:6px;gap:6px;border-radius:16px;background:#f0f5fa;border:1px solid #e0e9f2}
+#content .rc299-tabs button{padding:11px 15px;min-height:42px;border-radius:10px;border-color:transparent;background:transparent;color:#42617b}
+#content .rc299-tabs button.active{background:#fff;color:#0758a0;border:1px solid #bddaf3;box-shadow:0 3px 12px rgba(15,54,94,.065)}
+#content .rc299-layout{grid-template-columns:minmax(270px,320px) minmax(0,1fr);align-items:start;gap:18px;margin-top:14px}
+#content .rc299-layout>.card{min-width:0;border:1px solid #dce7f1;border-radius:21px;background:#fff;padding:20px;box-shadow:0 6px 22px rgba(15,40,80,.045)}
+#content .rc299-layout>.card h3{font-size:1.1rem;font-weight:850;color:#16314c;margin:0 0 12px}
+#content .rc299-area-list{display:grid;gap:7px;max-height:min(70vh,800px);overflow:auto;overscroll-behavior:contain;padding:2px 4px 4px 2px;scrollbar-gutter:stable}
+#content .rc299-area-list button{border:1px solid #e0e9f1;background:#fff;border-radius:12px;padding:11px 12px;color:#183952;line-height:1.4;transition:background-color .15s,border-color .15s}
+#content .rc299-area-list button:hover{background:#f5faff;border-color:#9dcbf2}
+#content .rc299-area-list button.active{background:#ecf6ff;border-color:#67ade5;box-shadow:inset 3px 0 0 #1c7bc3}
+#content .rc299-area-list button>b{font-size:.89rem}
+#content .rc299-small{font-size:.73rem;line-height:1.4;font-weight:500}
+#content .rc299-badge{font-size:.67rem;padding:4px 7px;border-radius:6px;margin:5px 4px 0 0}
+#content .rc299-question{margin-top:10px;padding:22px;border:1px solid #c8e0f5;border-radius:19px;box-shadow:none}
+#content .rc299-question h2{font-size:1.2rem;line-height:1.4}
+#content .rc299-option{border-radius:12px;padding:14px 16px;font-size:.89rem;line-height:1.45}
+#content .rc299-progress{height:9px}
+#content .rc299-layout>.card:last-child .rc299-nav button{min-height:40px}
+@media(max-width:1220px){#rc626Inspections .ihk-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:840px){#rc626Inspections .ihk-cards{grid-template-columns:1fr}#content .rc299-layout{grid-template-columns:1fr}#content .rc299-area-list{max-height:300px}#rc626Inspections .rc626-head{padding:20px}}
+@media(max-width:600px){#rc626Inspections .rc626-head{border-radius:16px;padding:16px}#rc626Inspections .ihk-cards{gap:10px}#rc626Inspections .ihk-exam-card{padding:17px;min-height:0}#rc626Inspections .ihk-tabs,#content .rc299-tabs{display:flex;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}#rc626Inspections .ihk-tabs button,#content .rc299-tabs button{white-space:nowrap;flex:0 0 auto}#content .rc299-professions,#content .rc299-year{grid-template-columns:1fr}#content .rc299-layout>.card{padding:14px}#content .rc299-question{padding:15px}}
+@media(prefers-reduced-motion:reduce){#rc626Inspections .ihk-exam-card,#content .rc299-area-list button,#content .rc299-professions button{transition:none!important;transform:none!important}}
+html[data-eh-theme="dark"] #rc626Inspections .rc626-head,html[data-theme="dark"] #rc626Inspections .rc626-head{background:#142b40;border-color:#314c63}
+html[data-eh-theme="dark"] #rc626Inspections .rc626-head h2,html[data-theme="dark"] #rc626Inspections .rc626-head h2{color:#f4f8fc}
+html[data-eh-theme="dark"] #rc626Inspections .rc626-head p,html[data-theme="dark"] #rc626Inspections .rc626-head p{color:#bfcede}
+html[data-eh-theme="dark"] #rc626Inspections :is(.ihk-exam-card,.ihk-metrics>div,.ihk-tabs button.active),html[data-eh-theme="dark"] #content :is(.rc299-layout>.card,.rc299-professions button,.rc299-year button){background:#193047;border-color:#35516a;color:#eef6ff}
+html[data-eh-theme="dark"] #rc626Inspections .ihk-card-head h3,html[data-eh-theme="dark"] #content .rc299-layout>.card h3{color:#f2f8fe}
+html[data-eh-theme="dark"] #rc626Inspections :is(.ihk-card-meta>span,.ihk-tabs),html[data-eh-theme="dark"] #content :is(.rc299-tabs,.rc299-area-list button){background:#213b53;border-color:#3c5a73;color:#dfecfa}
+html[data-eh-theme="dark"] #content .rc299-area-list button.active{background:#17446a;border-color:#5bb4ff;color:#fff}
