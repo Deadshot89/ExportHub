@@ -148,8 +148,7 @@
     try{
       if(!await persist()){
         restoreVisibility(changes);
-        const msg=tr('pack.internal.saveFailed');
-        if(typeof root.alert==='function')root.alert(msg==='pack.internal.saveFailed'?'Die AVIS-Freigabe konnte nicht gespeichert werden.':msg);
+        if(typeof root.alert==='function')root.alert(tr('pack.internal.saveFailed'));
       }
     }finally{savingVisibility=false;renderPanel();}
   }
