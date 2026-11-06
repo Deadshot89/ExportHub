@@ -302,3 +302,17 @@ test('RC1811: detail status action confirms server flush and rolls back on failu
   assert.equal(store.tasks[0].status,'done');
   assert.equal(store.taskStatusLedger['id:s'].done,true);
 });
+
+
+test('RC1811: edited task has a fresh sync timestamp so server merge cannot prefer old data',async()=>{
+  const{api,store}=editorHarness([{id:'m',title:'Vorher',owner:'Tobias',status:'open',
+    updatedAt:'2026-11-01T10:00:00.000Z',_syncUpdatedAt:'2026-11-01T10:00:00.000Z'}],()=>true);
+  api.editTask('m');
+  assert.equal(await api._saveForm(editorForm({status:'done'})),true);
+  const task=store.tasks[0];
+  assert.equal(task.status,'done');
+  assert.equal(task.title,'Neue Beschreibung');
+  assert.equal(task._syncUpdatedAt,task.updatedAt);
+  assert.equal(task.statusUpdatedAt,task.updatedAt);
+  assert.equal(store.taskStatusLedger['id:m'].done,true);
+});
