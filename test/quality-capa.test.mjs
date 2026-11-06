@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot,verifyChain,reportCase,addReportNote,withIntegrity}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot,verifyChain,reportCase,addReportNote,withIntegrity,parseAttachment,addAttachment,canAttach,verifyAttachmentBytes}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -207,4 +207,53 @@ test('CAPA: reporters may only add a note to their own still-open report',()=>{
  assert.throws(()=>addReportNote(item,{note:''},plain),/Ergänzung/);
  item.status='ursachenanalyse';
  assert.throws(()=>addReportNote(item,{note:'spät'},plain),/offen/);
+});
+
+const PDF=Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF');
+const PNG=Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),Buffer.alloc(16)]);
+const JPG=Buffer.from([0xff,0xd8,0xff,0xe0,0,0,0,0]);
+const upload=(name,buf)=>({fileName:name,data:buf.toString('base64')});
+test('CAPA attachments: only PDF/JPG/PNG with matching content are accepted',()=>{
+ assert.equal(parseAttachment(upload('Foto 1.PNG',PNG)).mime,'image/png');
+ assert.equal(parseAttachment(upload('scan.jpeg',JPG)).mime,'image/jpeg');
+ const pdf=parseAttachment(upload('Beleg.pdf',PDF));
+ assert.equal(pdf.mime,'application/pdf');assert.equal(pdf.size,PDF.length);
+ assert.match(pdf.sha256,/^[0-9a-f]{64}$/);
+ assert.throws(()=>parseAttachment(upload('virus.exe',PDF)),/PDF, JPG oder PNG/);
+ assert.throws(()=>parseAttachment(upload('fake.pdf',PNG)),/inhalt/i);
+ assert.throws(()=>parseAttachment(upload('leer.pdf',Buffer.alloc(0))),/leer|ungültig/i);
+ assert.throws(()=>parseAttachment({fileName:'a.pdf',data:'***'}),/ungültig/i);
+ assert.throws(()=>parseAttachment(upload('gross.pdf',Buffer.concat([PDF,Buffer.alloc(15*1024*1024)]))),/15 MB/);
+});
+test('CAPA attachments: file names are sanitised, id and blob path are server-owned',()=>{
+ const a=parseAttachment(upload('..\\..\\evil/name?.pdf',PDF));
+ assert.doesNotMatch(a.name,/[\/?:*"<>|]/);
+ assert.match(a.id,/^[0-9a-f]{16}$/);
+ const item=fresh();addAttachment(item,a,staff);
+ assert.match(item.attachments[0].blobPath,new RegExp('^quality/attachments/'+item.id+'/'+a.sha256+'\\.pdf$'));
+ assert.equal(item.history.at(-1).action,'ANHANG');assert.equal(item.attachments[0].uploadedBy,'Warenausgang');
+ assert.equal(item.revision,2);
+});
+test('CAPA attachments: duplicates are idempotent, limit is 10, closed or broken cases refuse',()=>{
+ const item=fresh();const a=parseAttachment(upload('a.pdf',PDF));
+ addAttachment(item,a,staff);const rev=item.revision;
+ assert.equal(addAttachment(item,a,staff).attachments.length,1);assert.equal(item.revision,rev,'Duplikat ändert nichts');
+ for(let i=0;i<9;i++)addAttachment(item,parseAttachment(upload('f'+i+'.pdf',Buffer.concat([PDF,Buffer.from(String(i))]))),staff);
+ assert.equal(item.attachments.length,10);
+ assert.throws(()=>addAttachment(item,parseAttachment(upload('elf.pdf',Buffer.concat([PDF,Buffer.from('elf')]))),staff),/10 Anhänge/);
+ const closed=fresh();closed.status='abgeschlossen';
+ assert.throws(()=>addAttachment(closed,a,staff),/abgeschlossen|öffnen/);
+ const broken=fresh();broken.history[0].actor='X';
+ assert.throws(()=>addAttachment(broken,a,staff),/Verlauf/);
+});
+test('CAPA attachments: who may attach and download integrity',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter',rights:{sop:{level:'none'}}};
+ const own=reportCase({title:'T',description:'B'},plain,[]);
+ assert.equal(canAttach(own,plain),true,'Melder an eigener offener Meldung');
+ assert.equal(canAttach(own,{name:'Fremd',user:'fremd'}),false);
+ assert.equal(canAttach(own,staff),true,'Bearbeiter');
+ own.status='ursachenanalyse';assert.equal(canAttach(own,plain),false);
+ const a=parseAttachment(upload('a.pdf',PDF));
+ assert.equal(verifyAttachmentBytes(a,PDF),true);
+ assert.equal(verifyAttachmentBytes(a,Buffer.concat([PDF,Buffer.from('x')])),false);
 });
