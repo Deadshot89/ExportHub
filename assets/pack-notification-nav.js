@@ -92,6 +92,62 @@
 })(typeof window!=='undefined'?window:globalThis);
 
 
+
+/* Internal modules remain in ExportHUB360's working area instead of navigating the browser away.
+   Only the two explicitly allowlisted SAME-ORIGIN pages can be embedded. Packmeldungen already
+   renders natively via renderPackInbox and must stay untouched. */
+(function(w){
+ 'use strict';
+ if(!w||!w.document||w.ExportHUBEmbeddedModules)return;
+ var d=w.document;
+ var MODULES={
+  urgentorders:{path:'/assets/urgent-orders.html?embedded=1',title:'Urgent Order',pathname:'/assets/urgent-orders.html'},
+  quality:{path:'/qualitaet.html?embedded=1',title:'Fehler & Verbesserungen',pathname:'/qualitaet.html'}
+ };
+ function open(view){
+  var cfg=MODULES[view],host=d.getElementById('content');
+  if(!cfg||!host)return false;
+  var section=d.createElement('section');
+  section.className='exporthub-embedded-module';
+  section.setAttribute('data-exporthub-embedded',view);
+  var frame=d.createElement('iframe');
+  frame.className='exporthub-embedded-frame';
+  frame.title=cfg.title;
+  frame.src=cfg.path;
+  frame.setAttribute('referrerpolicy','same-origin');
+  frame.setAttribute('loading','eager');
+  frame.addEventListener('load',function(){
+   // Standalone pages have their own back-to-home links. In the embedded
+   // workspace the permanent ExportHUB sidebar is already the navigation.
+   try{
+    var inner=frame.contentDocument;
+    if(!inner||!frame.contentWindow||frame.contentWindow.location.pathname!==cfg.pathname)return;
+    var style=inner.createElement('style');
+    style.textContent='header.top,body>header{display:none!important}main{padding-top:16px!important}';
+    (inner.head||inner.documentElement).appendChild(style);
+   }catch(_){}
+  });
+  section.appendChild(frame);
+  host.replaceChildren(section);
+  d.body&&d.body.setAttribute('data-exporthub-view',view);
+  var style=d.getElementById('exporthub-embedded-module-style');
+  if(!style){
+   style=d.createElement('style');style.id='exporthub-embedded-module-style';
+   style.textContent='.exporthub-embedded-module{width:100%;min-width:0}.exporthub-embedded-frame{display:block;width:100%;height:max(680px,calc(100dvh - 170px));min-height:680px;border:0;border-radius:14px;background:#fff}#nav [data-exporthub-urgent-nav][aria-current="page"],#nav [data-rc1579-proxy="quality"][aria-current="page"]{box-shadow:inset 3px 0 0 #2563eb!important;background:rgba(37,99,235,.12)!important}@media(max-width:760px){.exporthub-embedded-frame{height:max(620px,calc(100dvh - 125px));min-height:620px;border-radius:9px}}';
+   (d.head||d.documentElement).appendChild(style);
+  }
+  ['[data-exporthub-urgent-nav]','[data-rc1579-proxy="quality"]'].forEach(function(selector){
+   var node=d.querySelector(selector);if(!node)return;
+   var active=(view==='urgentorders'&&selector==='[data-exporthub-urgent-nav]')||
+              (view==='quality'&&selector==='[data-rc1579-proxy="quality"]');
+   if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
+  });
+  try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}
+  return true;
+ }
+ w.ExportHUBEmbeddedModules=Object.freeze({open:open});
+})(typeof window!=='undefined'?window:globalThis);
+
 /* Urgent Order: sidebar add-on immediately below Packmeldungen, never above Dashboard.
    Do not alter the normal ExportHUB navigation, Packmeldungen or any other domain. */
 (function(w){
@@ -134,7 +190,7 @@
    node.setAttribute('data-urgent-nav-design','2');
    node.addEventListener('click',function(e){
     e.preventDefault();e.stopImmediatePropagation();
-    w.location.assign(urgentOrdersDestination());
+    w.ExportHUBEmbeddedModules.open('urgentorders');
    },true);
   }else if(!node.getAttribute||node.getAttribute('data-urgent-nav-design')!=='2'){
    // Upgrade old menu buttons in place; retain the live counter node and its state.
