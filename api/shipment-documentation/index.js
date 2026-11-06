@@ -21,7 +21,11 @@ function reference(v){const x=txt(v,30).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(x
 function normalizeFields(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw problem('FIELDS_REQUIRED','Sendungsdaten fehlen.');
  const out={};
- for(const [key,max] of Object.entries(FIELDS))out[key]=txt(input[key],max);
+ for(const [key,max] of Object.entries(FIELDS)){
+  const value=String(input[key]==null?'':input[key]).trim();
+  if(value.length>max)throw problem('FIELD_TOO_LONG','Eingabefeld '+key+' ist zu lang.',413);
+  out[key]=value;
+ }
  if(out.dispatchDate&&!validDate(out.dispatchDate))throw problem('INVALID_DATE','Datum ist ungueltig.');
  if(out.colli&&(!/^\d+$/.test(out.colli)||Number(out.colli)>100000))throw problem('INVALID_COLLI','Colli muss eine ganze Zahl sein.');
  if(out.weightKg&&(!/^\d+(?:[.,]\d{1,3})?$/.test(out.weightKg)||Number(out.weightKg.replace(',','.'))>100000000))throw problem('INVALID_WEIGHT','Gewicht ist ungueltig.');
@@ -29,7 +33,7 @@ function normalizeFields(input){
  return out;
 }
 function validDate(value){const d=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const dt=new Date(d+'T12:00:00Z');return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===d}
-function complaintText(input){const value=txt(input,2000);if(!value)throw problem('COMPLAINT_REQUIRED','Bitte die Kundenbeschwerde erfassen.');return value}
+function complaintText(input){const value=String(input==null?'':input).trim();if(value.length>2000)throw problem('COMPLAINT_TOO_LONG','Die Beschwerde ist zu lang.',413);if(!value)throw problem('COMPLAINT_REQUIRED','Bitte die Kundenbeschwerde erfassen.');return value}
 function recordBlank(ref){return{version:1,reference:ref,revision:0,fields:null,complaints:[],history:[],createdAt:null,updatedAt:null,updatedBy:''}}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}}
 function clientFor(env){
@@ -69,8 +73,12 @@ async function write(blob,record,etag){
  const data=Buffer.from(JSON.stringify(record),'utf8');
  if(data.length>256*1024)throw problem('DOCUMENT_LIMIT','Zu viele Eintraege in dieser Sendungsdokumentation.',413);
  try{
-  await blob.uploadData(data,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},
+  const saved=await blob.uploadData(data,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},
    conditions:etag?{ifMatch:etag}:{ifNoneMatch:'*'}});
+  if(!saved||!saved.etag)throw problem('WRITE_NOT_VERIFIED','Azure hat die Speicherung nicht verbindlich bestaetigt.',503);
+  const proof=await read(blob,record.reference);
+  if(!proof.etag||proof.record.revision!==record.revision||JSON.stringify(proof.record)!==data.toString('utf8'))
+   throw problem('WRITE_READBACK_MISMATCH','Der Versandnachweis konnte nach dem Speichern nicht vollstaendig verifiziert werden.',503);
  }catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw problem('CONFLICT','Die Dokumentation wurde zwischenzeitlich geaendert. Bitte neu laden.',409);throw e}
 }
 function assertShipmentAccess(user,team,ref,method){
