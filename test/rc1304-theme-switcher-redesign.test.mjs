@@ -6,7 +6,7 @@ const runtime=fs.readFileSync('assets/rc1304-theme-switcher.js','utf8');
 const css=fs.readFileSync('assets/rc1304-theme-switcher.css','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
-test('RC1304: Switcher exposes four base designs plus Premium (RC1800) and persists the choice',()=>{
+test('RC1304: Switcher exposes four base designs plus Premium (RC1800) and Neu (RC1820) and persists the choice',()=>{
   assert.match(runtime,/var CLASSIC='classic'/);
   assert.match(runtime,/var MODERN='modern'/);
   assert.match(runtime,/var GLASS='glass'/);
@@ -17,9 +17,11 @@ test('RC1304: Switcher exposes four base designs plus Premium (RC1800) and persi
   assert.match(runtime,/theme\.glass/);
   assert.match(runtime,/theme\.neonNight/);
   assert.match(runtime,/var PREMIUM='premium'/);
-  assert.match(runtime,/CHOICES=VALUES\.concat\(\[PREMIUM\]\)/);
+  assert.match(runtime,/var NEU='neu'/);
+  assert.match(runtime,/CHOICES=VALUES\.concat\(\[PREMIUM,NEU\]\)/);
+  assert.match(runtime,/theme\.neu/);
   assert.match(runtime,/theme\.premium/);
-  assert.match(runtime,/options\.length===5/);
+  assert.match(runtime,/options\.length===6/);
   assert.match(runtime,/localStorage\.getItem\(STORAGE_KEY\)/);
   assert.match(runtime,/localStorage\.setItem\(STORAGE_KEY,value\)/);
   assert.match(runtime,/data-eh-design/);
@@ -117,7 +119,7 @@ test('RC1304: three redesigns are distinct while classic remains untouched',()=>
 
 test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
   assert.match(builder,/rc1304-theme-switcher\.css\?v=1306/);
-  assert.match(builder,/rc1304-theme-switcher\.js\?v=1800/);
+  assert.match(builder,/rc1304-theme-switcher\.js\?v=1820/);
   assert.match(builder,/patchRc1304ThemeRedesign/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.css'/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.js'/);
