@@ -238,15 +238,28 @@ function patchRc1835LearningUi(html,file){
   const cacheNew="function fastCacheable(view){view=canonical(view);if(view==='inspections'){var u=state().ihkExamUi||{};return (u.tab||'catalog')==='catalog'&&!u.activeAttempt}return view==='academy'||view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
   const cacheMaxOld="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;";
   const cacheMaxNew="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=4,fastViewRestoreTimer=0;";
-  const cacheFreshOld="if(canonical(entry.rendered||'')!==view)return false;\n if(Date.now()-Number(entry.savedAt||0)>120000)return false;";
-  const cacheFreshNew="if(canonical(entry.rendered||'')!==view)return false;\n if(view==='inspections'&&!fastCacheable(view))return false;\n if(Date.now()-Number(entry.savedAt||0)>120000)return false;";
-  if(html.includes(cacheOld)&&html.includes(cacheMaxOld)&&html.includes(cacheFreshOld)){
-    for(const [oldText,newText] of [[cacheOld,cacheNew],[cacheMaxOld,cacheMaxNew],[cacheFreshOld,cacheFreshNew]]){
-      if(html.split(oldText).length!==2)throw new Error(file+': RC1835 View-Cache-Anker mehrdeutig');
-      html=html.replace(oldText,newText);
-    }
+  const cacheFreshAnchor="if(canonical(entry.rendered||'')!==view)return false;";
+  const cacheFreshInsert="if(view==='inspections'&&!fastCacheable(view))return false;";
+  // Some earlier build patches reformat the subsequent generation check, so
+  // each stable anchor is applied independently rather than requiring an exact
+  // multi-line match. This also avoids false build failures on valid snapshots.
+  if(html.includes(cacheOld)){
+    if(html.split(cacheOld).length!==2)throw new Error(file+': RC1835 Cache-Router mehrfach');
+    html=html.replace(cacheOld,cacheNew);
   }else if(file!=='demo.html'&&!html.includes(cacheNew)){
-    throw new Error(file+': RC1835 Lernansichten-Cache fehlt');
+    throw new Error(file+': RC1835 Cache-Router fehlt');
+  }
+  if(html.includes(cacheMaxOld)){
+    if(html.split(cacheMaxOld).length!==2)throw new Error(file+': RC1835 Cache-Limit mehrfach');
+    html=html.replace(cacheMaxOld,cacheMaxNew);
+  }else if(file!=='demo.html'&&!html.includes(cacheMaxNew)){
+    throw new Error(file+': RC1835 Cache-Limit fehlt');
+  }
+  if(html.includes(cacheFreshAnchor)&&!html.includes(cacheFreshInsert)){
+    if(html.split(cacheFreshAnchor).length!==2)throw new Error(file+': RC1835 Cache-Frische-Anker mehrfach');
+    html=html.replace(cacheFreshAnchor,cacheFreshAnchor+'\\n '+cacheFreshInsert);
+  }else if(file!=='demo.html'&&!html.includes(cacheFreshInsert)){
+    throw new Error(file+': RC1835 Cache-Frische-Prüfung fehlt');
   }
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_STYLE_TAG,'exporthub-rc1835-academy-exams-style');
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_SCRIPT_TAG,'exporthub-rc1835-academy-exams-script');
