@@ -104,6 +104,7 @@
   "api.autofix.githubTokenMissing": "GitHub-Autofix-Token ist serverseitig noch nicht eingerichtet.",
   "api.autofix.disabledReason": "Automatische Fehlerbehebung ist derzeit bewusst deaktiviert. Es wird kein externer KI-Auftrag gestartet.",
   "api.autofix.diagnosticIdRequired": "Diagnose-ID fehlt.",
+  "api.autofix.unlikelyFit": "Das sieht nicht nach einem Code-Fehler aus (kurzer Ausfall, Verbindung oder Anmeldung). Die KI würde vermutlich nichts finden, deshalb wurde nichts gesendet.",
   "api.autofix.alreadyRunning": "Für diesen Fehler läuft bereits eine automatische Behebung.",
   "api.state.environmentInvalid": "Unbekannte ExportHUB-Datenumgebung.",
   "api.state.productionNoTestData": "Die Produktionsseite darf keine Testservice-Daten anfordern.",

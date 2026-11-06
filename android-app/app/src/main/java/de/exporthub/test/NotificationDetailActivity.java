@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.regex.Pattern;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -182,22 +183,49 @@ public final class NotificationDetailActivity extends Activity {
         techText.setTextIsSelectable(true);
         tech.addView(techText, margins(0, 4, 0, 0));
 
-        if (autofixTicket.startsWith("ehaf1.") && !"demo".equals(environment)) addAutofixButton(root);
+        if (autofixTicket.startsWith("ehaf1.") && !"demo".equals(environment)) addAutofixButton(root, technical);
     }
 
     // 2026-10-30 (Tobias): send this error to the KI right from the phone, without a login. The website put a
     // signed single-use ticket into the notification; the server checks it and starts the usual autofix (PR only).
-    private void addAutofixButton(LinearLayout root) {
+    // 2026-11-06 (Tobias): say before sending whether the KI can help at all. Outages, connection, login and rate limits
+    // are no code bugs; the KI finds nothing there and still uses up the plan. Same split as the server (phoneFit).
+    private static final Pattern FIT_UNLIKELY = Pattern.compile("HTTP (401|403|429|502|503|504) |failed to fetch|networkerror|load failed|timeout|demo_state|^Netzwerkfehler|^Langsamer API-Aufruf", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
+    private static final Pattern FIT_GOOD = Pattern.compile("(Type|Reference|Syntax|Range)Error|is not a function|is not defined|cannot read propert|HTTP 5\\d\\d ", Pattern.CASE_INSENSITIVE);
+
+    static String autofixFit(String technical) {
+        String m = technical == null ? "" : technical;
+        if (FIT_UNLIKELY.matcher(m).find()) return "unlikely";
+        if (FIT_GOOD.matcher(m).find()) return "good";
+        return "maybe";
+    }
+
+    private void addAutofixButton(LinearLayout root, String technical) {
+        final String fit = autofixFit(technical);
+        final boolean unlikely = "unlikely".equals(fit);
+        LinearLayout box = card();
+        box.setBackground(rounded(unlikely ? 0xFFFEF2F2 : "good".equals(fit) ? 0xFFF0FDF4 : 0xFFFFFBEB, COLOR_BORDER));
+        root.addView(box, margins(0, 12, 0, 0));
+        box.addView(text("Lohnt sich die KI?", 12f, COLOR_MUTED, true));
+        final String verdict = unlikely
+                ? "Eher nicht: Das ist meist ein kurzer Ausfall, ein Verbindungs- oder Anmeldeproblem, kein Fehler im Code. Die KI findet dann meist nichts und verbraucht trotzdem Nutzung. Erst beobachten, ob es wiederkommt."
+                : "good".equals(fit)
+                ? "Ja, gute Chance: Das sieht nach einem Fehler im Programmcode aus, den die KI finden und beheben kann."
+                : "Vielleicht: Ob ein Code-Fehler dahintersteckt, ist aus der Meldung nicht klar. Die KI kann auch ohne Ergebnis abbrechen.";
+        box.addView(text(verdict, 14f, unlikely ? COLOR_RED : COLOR_BODY, false), margins(0, 4, 0, 0));
+
         Button send = new Button(this);
-        send.setText("An KI senden");
-        styleButton(send, true);
+        send.setText(unlikely ? "Trotzdem an KI senden" : "An KI senden");
+        styleButton(send, !unlikely);
         TextView status = text("Die KI sucht die Ursache, testet eine Korrektur und legt einen Pull Request an. Nichts geht direkt live.",
                 12f, COLOR_MUTED, false);
         send.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("An KI senden?")
-                .setMessage("Diese Fehlermeldung wird an die KI-Fehlerbehebung gesendet.")
+                .setTitle(unlikely ? "Trotzdem an KI senden?" : "An KI senden?")
+                .setMessage(unlikely
+                        ? "Das verbraucht KI-Nutzung, obwohl sie hier vermutlich nichts beheben kann."
+                        : "Diese Fehlermeldung wird an die KI-Fehlerbehebung gesendet.")
                 .setNegativeButton("Abbrechen", null)
-                .setPositiveButton("Senden", (d, w) -> sendToAutofix(send, status))
+                .setPositiveButton(unlikely ? "Trotzdem senden" : "Senden", (d, w) -> sendToAutofix(send, status, unlikely))
                 .show());
         LinearLayout.LayoutParams p = matchWrap();
         p.topMargin = dp(12);
@@ -205,7 +233,7 @@ public final class NotificationDetailActivity extends Activity {
         root.addView(status, margins(4, 6, 4, 0));
     }
 
-    private void sendToAutofix(Button send, TextView status) {
+    private void sendToAutofix(Button send, TextView status, boolean force) {
         send.setEnabled(false);
         status.setText("Wird gesendet …");
         final String ticket = autofixTicket;
@@ -218,6 +246,7 @@ public final class NotificationDetailActivity extends Activity {
                 payload.put("action", "request-phone");
                 payload.put("environment", env);
                 payload.put("ticket", ticket);
+                if (force) payload.put("force", true);
                 byte[] raw = payload.toString().getBytes(StandardCharsets.UTF_8);
                 HttpURLConnection c = (HttpURLConnection) new URL(EnvironmentActivity.apiBase(env) + "/api/diagnostic-autofix").openConnection();
                 c.setRequestMethod("POST");

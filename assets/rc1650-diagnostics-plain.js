@@ -90,10 +90,14 @@ function urgencyOf(kind,total,users,level){
   default:return'low';
  }
 }
+// 2026-11-06 (Tobias): say before sending whether the AI can help at all, so outages and login or connection
+// problems do not burn AI usage. good = looks like a code bug, unlikely = operations/transient, maybe = unclear.
+var FIT={code:'good',server:'good',unavailable:'unlikely',network:'unlikely',auth:'unlikely',ratelimit:'unlikely',slow:'unlikely',demo:'unlikely',hint:'unlikely'};
+function aiFit(kind){return FIT[kind]||'maybe'}
 function explain(g){
  g=g||{};
  var c=classify(g),users=Array.isArray(g.users)?g.users.length:Number(g.users)||0,urgency=urgencyOf(c.kind,g.total,users,low(g.level)),thing=c.thing?t('thing_'+c.thing):'';
- return{kind:c.kind,thing:c.thing,status:c.status||0,urgency:urgency,title:t(c.kind+'_t',{thing:thing}),what:t(c.kind+'_w'),todo:t(c.kind+'_d')};
+ return{kind:c.kind,thing:c.thing,status:c.status||0,urgency:urgency,fit:aiFit(c.kind),title:t(c.kind+'_t',{thing:thing}),what:t(c.kind+'_w'),todo:t(c.kind+'_d')};
 }
 function group(rows){
  var map=Object.create(null),out=[];
@@ -157,6 +161,7 @@ function style(){
   '.rc1650-explain p{margin:0;font-size:13px;line-height:1.45;color:var(--pc-text,#0f172a)}',
   '.rc1650-explain .rc1650-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center}',
   '.rc1650-explain .rc1650-actions small{color:var(--pc-muted,#64748b);flex:1 1 280px}',
+  '.rc1650-explain .rc1650-fit{grid-column:1/-1;border-left-width:4px}.rc1650-fit[data-rc1650-fit="good"]{border-left-color:#16a34a}.rc1650-fit[data-rc1650-fit="maybe"]{border-left-color:#d97706}.rc1650-fit[data-rc1650-fit="unlikely"]{border-left-color:#dc2626}',
   // the RC871 row rules (details summary as grid, themed h3/h4) also hit the nested elements; keep them plain
   '#content .rc871-diag-event .rc1650-tech{margin-top:4px;border:0;background:transparent;box-shadow:none}',
   '#content .rc871-diag-event .rc1650-tech>summary{display:list-item!important;grid-template-columns:none!important;cursor:pointer;font-size:12px;font-weight:800;color:var(--pc-muted,#64748b);padding:4px 0!important;list-style:disclosure-closed inside}',
@@ -197,7 +202,7 @@ function renderSummary(){
  var html='<span class="rc1650-light" aria-hidden="true"></span><div><h3>'+esc(t('summaryTitle'))+'</h3><p class="rc1650-state">'+esc(stateSentence(s))+'</p>'+
   '<div class="rc1650-counts">'+['high','watch','low'].map(function(u){return chip(u).replace('</span>',': '+s.counts[u]+'</span>')}).join('')+'</div>'+
   '<p class="rc1650-legend">'+esc(t('legend'))+'</p></div>'+
-  (s.top.length?'<div class="rc1650-first"><b>'+esc(t('firstLook'))+'</b><ol>'+s.top.map(function(i){return '<li>'+chip(i.info.urgency)+'<span class="rc1650-first-title">'+esc(i.info.title)+'</span><small>×'+i.group.total+'</small><button type="button" class="ghost" data-rc1650-show="'+esc(i.group.key)+'" data-rc1650-message="'+esc(i.group.message)+'">'+esc(t('show'))+'</button>'+(i.info.kind!=='manual'&&selfCorrect()?'<button type="button" class="btn" data-rc1650-ai-top="'+esc(i.group.key)+'" data-rc1650-message="'+esc(i.group.message)+'"'+(aiNote().kind==='off'?' disabled':'')+'>'+esc(t('aiFix'))+'</button><small class="rc1650-first-status" data-rc1650-ai-status></small>':'')+'</li>'}).join('')+'</ol></div>':'');
+  (s.top.length?'<div class="rc1650-first"><b>'+esc(t('firstLook'))+'</b><ol>'+s.top.map(function(i){return '<li>'+chip(i.info.urgency)+'<span class="rc1650-first-title">'+esc(i.info.title)+'</span><small>×'+i.group.total+'</small><button type="button" class="ghost" data-rc1650-show="'+esc(i.group.key)+'" data-rc1650-message="'+esc(i.group.message)+'">'+esc(t('show'))+'</button>'+(i.info.kind!=='manual'&&selfCorrect()?'<button type="button" class="'+(i.info.fit==='unlikely'?'ghost':'btn')+'" data-rc1650-ai-top="'+esc(i.group.key)+'" data-rc1650-message="'+esc(i.group.message)+'" title="'+esc(t('fit_'+i.info.fit))+'"'+(aiNote().kind==='off'?' disabled':'')+'>'+esc(i.info.fit==='unlikely'?t('aiFix')+' ('+t('aiSkip')+')':t('aiFix'))+'</button><small class="rc1650-first-status" data-rc1650-ai-status></small>':'')+'</li>'}).join('')+'</ol></div>':'');
  var box=d().getElementById(SUMMARY_ID);
  if(!box){box=d().createElement('section');box.id=SUMMARY_ID;box.className='card';box.setAttribute('data-i18n-ignore','1');head.insertAdjacentElement('afterend',box)}
  else if(box.previousElementSibling!==head)head.insertAdjacentElement('afterend',box);
@@ -304,7 +309,7 @@ function explainDetails(el){
  var g=data.group,info=data.info,areas=g.areas.map(areaName),often=[t('often',{count:g.total,last:fmt(g.last)})];
  if(g.users.length)often.push(t('oftenUsers',{users:list(g.users,4)}));
  if(areas.length)often.push(t('oftenAreas',{areas:list(areas,4)}));
- var note=aiNote(),off=note.kind==='off',ai=info.kind!=='manual'&&info.urgency!=='low'&&selfCorrect()?'<div class="rc1650-actions"><button type="button" class="btn" data-rc1650-ai="1"'+(off?' disabled':'')+'>'+esc(t('aiFix'))+'</button><small data-rc1650-ai-status>'+esc(off?note.text:t('aiFixHint'))+'</small></div>':'';
+ var note=aiNote(),off=note.kind==='off',ai=info.kind!=='manual'&&info.urgency!=='low'&&selfCorrect()?'<section class="rc1650-fit" data-rc1650-fit="'+esc(info.fit)+'"><h4>'+esc(t('fitTitle'))+'</h4><p>'+esc(t('fit_'+info.fit))+'</p></section><div class="rc1650-actions"><button type="button" class="'+(info.fit==='unlikely'?'ghost':'btn')+'" data-rc1650-ai="1"'+(off?' disabled':'')+'>'+esc(t('aiFix'))+'</button><small data-rc1650-ai-status>'+esc(off?note.text:t('aiFixHint'))+'</small></div>':'';
  var box=d().createElement('div');box.className='rc1650-explain';box.setAttribute('data-i18n-ignore','1');
  box.innerHTML='<section><h4>'+esc(t('what'))+'</h4><p>'+esc(info.what)+'</p></section><section><h4>'+esc(t('todo'))+'</h4><p>'+esc(info.todo)+'</p></section><section><h4>'+esc(t('howOften'))+'</h4><p>'+often.map(esc).join('<br>')+'</p></section>'+ai;
  // technical facts and JSON of RC871 stay available, folded under "Technische Details"
@@ -316,7 +321,7 @@ function sampleDetails(g){try{var rows=records().filter(function(x){return signa
 // "An KI senden" on a message: straight to the autofix, no extra dialog
 function startAi(el,btn){
  var sc=selfCorrect(),data=el&&el.__rc1650;if(!sc||!data||btn.disabled)return;
- if(!w.confirm(t('sendConfirm')))return;
+ var fit=data.info.fit||'maybe';if(!w.confirm(t('fit_'+fit)+'\n\n'+t(fit==='unlikely'?'sendConfirmUnlikely':'sendConfirm')))return;
  var g=data.group,areas=g.areas.map(areaName),note=(btn.parentNode&&btn.parentNode.querySelector('[data-rc1650-ai-status]'))||el.querySelector('[data-rc1650-ai-status]'),details=sampleDetails(g);
  var description=t('aiDescription',{title:data.info.title,message:g.message,count:g.total,areas:list(areas,6)||'–'})+(details?'\n\n'+details:'');
  btn.disabled=true;if(note)note.textContent=t('reportSending');
@@ -376,5 +381,5 @@ function install(){
  schedule();
 }
 
-return Object.freeze({version:VERSION,classify:classify,explain:explain,urgencyOf:urgencyOf,thingOf:thingOf,group:group,summarize:summarize,signature:signature,jobState:jobState,prUrl:prUrl,install:install,refresh:function(){schedule()}});
+return Object.freeze({version:VERSION,classify:classify,explain:explain,aiFit:aiFit,urgencyOf:urgencyOf,thingOf:thingOf,group:group,summarize:summarize,signature:signature,jobState:jobState,prUrl:prUrl,install:install,refresh:function(){schedule()}});
 });

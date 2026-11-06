@@ -4,6 +4,7 @@
 if(!root||root.ExportHUBDiagnosticsPlain1650I18n)return;
 var I18N={
  de:{
+  fitTitle:'Lohnt sich die KI?',fit_good:'Ja, gute Chance: Das sieht nach einem Fehler im Programmcode aus, den die KI finden und beheben kann.',fit_maybe:'Vielleicht: Ob ein Code-Fehler dahintersteckt, ist aus der Meldung nicht klar. Die KI kann auch ohne Ergebnis abbrechen.',fit_unlikely:'Eher nicht: Das ist meist ein kurzer Ausfall, ein Verbindungs- oder Anmeldeproblem, kein Fehler im Code. Die KI findet dann meist nichts und verbraucht trotzdem Nutzung. Erst beobachten, ob es wiederkommt.',sendConfirmUnlikely:'Trotzdem an die KI senden? Das verbraucht KI-Nutzung, obwohl sie hier vermutlich nichts beheben kann.',aiSkip:'Nicht empfohlen',
   aiFix:'An KI senden',aiFixHint:'Die KI bekommt diese Meldung mit allen technischen Angaben, sucht die Ursache und legt einen getesteten Pull Request an. Nichts geht direkt live.',
   sendConfirm:'Diese Meldung an die KI senden? Sie sucht die Ursache und legt einen getesteten Pull Request an. Nichts geht direkt live.',
   reportOpen:'Fehler melden',reportTitle:'Fehler melden: direkt an die KI',
@@ -87,6 +88,7 @@ var I18N={
   unknown_d:'Wenn Benutzer ein Problem melden, eine KI-Korrektur anstoßen.'
  },
  en:{
+  fitTitle:'Is the AI worth it?',fit_good:'Yes, good chance: this looks like a bug in the program code that the AI can find and fix.',fit_maybe:'Maybe: the message does not show whether a code bug is behind it. The AI may stop without a result.',fit_unlikely:'Probably not: this is usually a brief outage, a connection or login problem, not a bug in the code. The AI usually finds nothing and still uses up usage. First watch whether it comes back.',sendConfirmUnlikely:'Send to the AI anyway? This uses AI usage although it probably cannot fix anything here.',aiSkip:'Not recommended',
   aiFix:'Send to AI',aiFixHint:'The AI gets this message with all technical details, looks for the cause and creates a tested pull request. Nothing goes live directly.',
   sendConfirm:'Send this message to the AI? It looks for the cause and creates a tested pull request. Nothing goes live directly.',
   reportOpen:'Report a bug',reportTitle:'Report a bug: straight to the AI',
@@ -170,6 +172,7 @@ var I18N={
   unknown_d:'If users report a problem, start an AI fix.'
  },
  pl:{
+  fitTitle:'Czy AI ma sens?',fit_good:'Tak, duża szansa: to wygląda na błąd w kodzie programu, który AI może znaleźć i naprawić.',fit_maybe:'Być może: z komunikatu nie wynika, czy stoi za tym błąd w kodzie. AI może zakończyć bez wyniku.',fit_unlikely:'Raczej nie: to zwykle krótka awaria, problem z połączeniem lub logowaniem, a nie błąd w kodzie. AI zwykle nic nie znajduje, a mimo to zużywa limit. Najpierw obserwuj, czy się powtórzy.',sendConfirmUnlikely:'Mimo to wysłać do AI? To zużywa limit AI, choć prawdopodobnie nic tu nie naprawi.',aiSkip:'Niezalecane',
   aiFix:'Wyślij do AI',aiFixHint:'AI otrzymuje ten komunikat ze wszystkimi szczegółami technicznymi, szuka przyczyny i tworzy przetestowany pull request. Nic nie trafia od razu na produkcję.',
   sendConfirm:'Wysłać ten komunikat do AI? Szuka przyczyny i tworzy przetestowany pull request. Nic nie trafia od razu na produkcję.',
   reportOpen:'Zgłoś błąd',reportTitle:'Zgłoś błąd: prosto do AI',
@@ -253,6 +256,7 @@ var I18N={
   unknown_d:'Jeśli użytkownicy zgłaszają problem, uruchom poprawkę AI.'
  },
  es:{
+  fitTitle:'¿Merece la pena la IA?',fit_good:'Sí, buena probabilidad: parece un error en el código del programa que la IA puede encontrar y corregir.',fit_maybe:'Quizá: el mensaje no muestra si hay un error de código detrás. La IA puede terminar sin resultado.',fit_unlikely:'Probablemente no: suele ser una caída breve o un problema de conexión o de inicio de sesión, no un error del código. La IA no suele encontrar nada y aun así consume uso. Primero observa si se repite.',sendConfirmUnlikely:'¿Enviar a la IA de todos modos? Consume uso de IA aunque probablemente no pueda corregir nada aquí.',aiSkip:'No recomendado',
   aiFix:'Enviar a la IA',aiFixHint:'La IA recibe este mensaje con todos los detalles técnicos, busca la causa y crea un pull request probado. Nada se publica directamente.',
   sendConfirm:'¿Enviar este mensaje a la IA? Busca la causa y crea un pull request probado. Nada se publica directamente.',
   reportOpen:'Informar de un error',reportTitle:'Informar de un error: directo a la IA',
@@ -336,6 +340,7 @@ var I18N={
   unknown_d:'Si los usuarios informan de un problema, inicia una corrección con IA.'
  },
  fr:{
+  fitTitle:'L’IA vaut-elle la peine ?',fit_good:'Oui, bonne chance : cela ressemble à une erreur dans le code que l’IA peut trouver et corriger.',fit_maybe:'Peut-être : le message ne montre pas si une erreur de code en est la cause. L’IA peut s’arrêter sans résultat.',fit_unlikely:'Plutôt non : il s’agit généralement d’une brève panne, d’un problème de connexion ou d’identification, pas d’une erreur de code. L’IA ne trouve en général rien et consomme quand même de l’usage. Observer d’abord si cela se reproduit.',sendConfirmUnlikely:'Envoyer quand même à l’IA ? Cela consomme de l’usage IA alors qu’elle ne pourra probablement rien corriger ici.',aiSkip:'Non recommandé',
   aiFix:'Envoyer à l’IA',aiFixHint:'L’IA reçoit ce message avec tous les détails techniques, cherche la cause et crée une pull request testée. Rien n’est mis en ligne directement.',
   sendConfirm:'Envoyer ce message à l’IA ? Elle cherche la cause et crée une pull request testée. Rien n’est mis en ligne directement.',
   reportOpen:'Signaler un bug',reportTitle:'Signaler un bug : directement à l’IA',
@@ -419,6 +424,7 @@ var I18N={
   unknown_d:'Si des utilisateurs signalent un problème, lancer une correction IA.'
  },
  it:{
+  fitTitle:'Conviene usare l’IA?',fit_good:'Sì, buone probabilità: sembra un errore nel codice del programma che l’IA può trovare e correggere.',fit_maybe:'Forse: dal messaggio non è chiaro se dietro ci sia un errore di codice. L’IA potrebbe interrompersi senza risultato.',fit_unlikely:'Probabilmente no: di solito è un breve disservizio o un problema di connessione o di accesso, non un errore nel codice. L’IA di solito non trova nulla e consuma comunque utilizzo. Prima osserva se si ripete.',sendConfirmUnlikely:'Inviare comunque all’IA? Consuma utilizzo IA anche se probabilmente qui non può correggere nulla.',aiSkip:'Non consigliato',
   aiFix:'Invia all’IA',aiFixHint:'L’IA riceve questo messaggio con tutti i dettagli tecnici, cerca la causa e crea una pull request testata. Niente va online direttamente.',
   sendConfirm:'Inviare questo messaggio all’IA? Cerca la causa e crea una pull request testata. Niente va online direttamente.',
   reportOpen:'Segnala un errore',reportTitle:'Segnala un errore: direttamente all’IA',
