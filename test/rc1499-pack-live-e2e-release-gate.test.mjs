@@ -191,8 +191,12 @@ test('P0: required TESTSERVICE Packmeldung live gate opens a real preview tab as
   const download=helper.indexOf("const packDownloadButton=page.locator('#packNotificationDetail [data-pack-doc-download]')");
   assert.ok(preview>=0&&popup>preview&&blob>popup&&download>blob,
     'Packmeldung must preview the original PDF via the real user button before checking Download');
-  assert.match(helper,/toMatch\(\/\^blob:\/\)/,
-    'preview must navigate to the verified PDF Blob, never to Azure Microsoft login');
+  assert.match(helper,/toMatch\(\/\^\(blob:\|https\?:\\\/\\\/\[\^\/\]\+\\\/api\\\/exporthub-document\\\?ticket=edt1\\\.\)\/\)/,
+    'preview must navigate to the verified PDF Blob or a signed document ticket, never to Azure Microsoft login');
+  assert.match(helper,/ticketResponse\.status\(\)\)\.toBe\(200\)/,
+    'a ticket preview must be fetched and answered with 200');
+  assert.match(helper,/\(await ticketResponse\.body\(\)\)\.subarray\(0,5\)\.toString\('latin1'\)\)\.toBe\('%PDF-'\)/,
+    'a ticket preview must deliver real PDF bytes, not a login page');
   assert.match(helper,/await packPreview\.close\(\)/,
     'preview tab must be closed before continuing the shipment handoff');
 });

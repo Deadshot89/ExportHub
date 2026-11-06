@@ -25,7 +25,8 @@ test('RC1499 selects full Chromium only for its PDF flow and closes it after suc
 
 test('RC1499 original preview, byte, authentication and download gates remain intact',()=>{
   const helper=fs.readFileSync(new URL('../e2e/helpers/pack-notification-live.mjs',import.meta.url),'utf8');
-  assert.match(helper,/await expect\.poll\(\(\)=>packPreview\.url\(\),\{timeout:25_000\}\)\.toMatch\(\/\^blob:\/\)/);
+  assert.match(helper,/await expect\.poll\(\(\)=>packPreview\.url\(\),\{timeout:25_000\}\)\.toMatch\(\/\^\(blob:\|https\?:/);
+  assert.match(helper,/\(await ticketResponse\.body\(\)\)\.subarray\(0,5\)\.toString\('latin1'\)\)\.toBe\('%PDF-'\)/);
   assert.match(helper,/viewer\.fetchBytes\(file\)/);
   assert.match(helper,/expect\(originalPdf\.signature\)\.toBe\('%PDF-'\)/);
   assert.match(helper,/expect\(packDownloadBytes\.subarray\(0,5\)\.toString\('latin1'\)\)\.toBe\('%PDF-'\)/);
