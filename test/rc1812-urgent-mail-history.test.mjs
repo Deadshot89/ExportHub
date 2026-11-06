@@ -39,6 +39,9 @@ test('Only authorized logistics staff can save or confirm; recipient cannot be s
  assert.throws(()=>model.recordMailHandoff(record,{...args,to:'thirdparty@example.org'},manager),e=>e.code==='URGENT_MAIL_RECIPIENT_MISMATCH');
  assert.throws(()=>model.recordMailHandoff(record,{...args,subject:'Bad\r\nBcc: evil@example.org'},manager),e=>e.code==='URGENT_MAIL_SUBJECT_INVALID');
  assert.throws(()=>model.recordMailHandoff(record,{...args,body:' '},manager),e=>e.code==='URGENT_MAIL_BODY_INVALID');
+ const unshipped=order();unshipped.items[0].status='Open';
+ assert.throws(()=>model.recordMailHandoff(unshipped,args,manager),e=>e.code==='URGENT_NOT_SHIPPED','shipping confirmations require all items shipped');
+ assert.equal(unshipped.mailHistory,undefined);
  assert.equal(record.mailHistory,undefined,'failed validations must not create history');
  const mail=model.recordMailHandoff(record,args,manager);
  assert.throws(()=>model.confirmMailSent(record,mail.id,outsider),e=>e.code==='URGENT_FORBIDDEN');
