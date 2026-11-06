@@ -21,7 +21,7 @@ test('RC1800: Premium-CSS hÃ¤ngt am Design-Umschalter (data-eh-skin), nicht am Ã
 });
 
 test('RC1800: Builder bindet Premium-CSS in Produktion, TESTSERVICE und Demo ein; Alt-Theme bleibt "current"',()=>{
-  assert.match(builder,/RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="\/assets\/rc1800-premium-design\.css\?v=1801">'/);
+  assert.match(builder,/RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="\/assets\/rc1800-premium-design\.css\?v=1802">'/);
   assert.match(builder,/html=patchRc1602OfficialPod\(html,file\);\n  html=patchRc1800PremiumDesign\(html,file\);/);
   assert.match(builder,/'assets\/rc1800-premium-design\.css'/);
   assert.doesNotMatch(index,/\['premium','Premium'\]/);

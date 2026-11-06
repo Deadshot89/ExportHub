@@ -211,3 +211,79 @@ html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh36
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #login#login[data-eh360-ui="v2"] :is(input:not([type=checkbox]),select){
   min-height:40px!important;border-radius:var(--pc-control-radius)!important;font-size:14px!important;
 }
+
+/* 14 ── Stufe 2: deutlich eigener Look gegen den gebauten Stand ─────────
+   Spätere Ebenen (RC1558 Dashboard, RC1579 Menü) überdecken Stufe 1 fast
+   vollständig. Diese Regeln setzen deshalb bewusst höhere Spezifität
+   (#nav#nav#nav, #rc1558Overview) und !important. Nur Optik. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  --pc-primary:#4f46e5;--pc-primary-2:#6366f1;--pc-primary-soft:#eef2ff;--pc-focus:#4f46e5;
+  --pc-nav-active-text:#fff;--pc-button-bg:#4f46e5;--menu-accent:#4f46e5;--pc-info:#4f46e5;
+  --pc-body-bg:#f3f4f7;--pc-page:#f3f4f7;--pc-page-accent:#f3f4f7;--px-info-bg:#eef2ff;
+  --px-side:#0f172a;--px-side-line:#1e293b;--px-side-text:#cbd5e1;--px-side-muted:#7c8aa0;--px-side-hover:rgba(255,255,255,.06);
+  --rc1558-primary:#4f46e5;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] :is(body,button,input,select,textarea){font-family:var(--px-font)!important}
+
+/* Seitenleiste dunkel */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar{
+  background:var(--px-side)!important;color:var(--px-side-text)!important;border-right:1px solid var(--px-side-line)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar :is(.brand,.brand *,#brandUserLine,small){color:#f8fafc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar #brandUserLine{color:var(--px-side-muted)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar hr,
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] aside.sidebar.sidebar .brand{border-color:var(--px-side-line)!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]){
+  background:transparent!important;color:var(--px-side-text)!important;border-color:transparent!important;box-shadow:none!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]):hover{
+  background:var(--px-side-hover)!important;color:#fff!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"]){
+  background:rgba(99,102,241,.22)!important;color:#fff!important;box-shadow:inset 3px 0 0 #818cf8!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon{
+  background:transparent!important;background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;color:#94a3b8!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon::before{background-color:currentColor!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"],:hover) .index308-nav-icon{color:#a5b4fc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>[data-exporthub-urgent-nav]{color:#fdba74!important;background:transparent!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>[data-exporthub-urgent-nav] *{color:inherit!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section{
+  color:var(--px-side-muted)!important;font-size:11px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section:hover{background:var(--px-side-hover)!important;color:#e2e8f0!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-icon{
+  color:#94a3b8!important;background:transparent!important;border-color:transparent!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section[data-rc1579-current] .rc1579-section-icon{color:#a5b4fc!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-count{background:rgba(255,255,255,.08)!important;color:#cbd5e1!important;opacity:1!important}
+
+/* Kopfleiste flach */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] header.topbar.topbar{
+  background:#fff!important;border:1px solid #e5e7eb!important;box-shadow:none!important;backdrop-filter:none!important;
+}
+
+/* Dashboard-Kopf hell statt blauem Band */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top{
+  background:#fff!important;border:1px solid #e5e7eb!important;box-shadow:0 1px 2px rgba(15,23,42,.04)!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-greeting{color:#0f172a!important;font-size:20px!important;font-weight:700!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-date{color:#64748b!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-updated{color:#4338ca!important;background:#eef2ff!important;border-color:#c7d2fe!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-edit{
+  color:#fff!important;background:#4f46e5!important;border-color:#4f46e5!important;border-radius:8px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-edit:hover{background:#4338ca!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi{
+  background:#f8fafc!important;border:1px solid #e5e7eb!important;box-shadow:none!important;border-radius:12px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi:hover{border-color:#a5b4fc!important;box-shadow:0 0 0 3px #eef2ff!important}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-top .rc1558-kpi:focus-visible{outline:3px solid #4f46e5!important}
+
+/* Panels flach mit feiner Linie, Akzent Indigo */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #rc1558Overview .rc1558-panel{
+  border:1px solid #e5e7eb!important;box-shadow:none!important;border-radius:14px!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content a:not([class*="btn"]){color:#4f46e5}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]) :not(.index308-nav-icon){color:inherit!important}
