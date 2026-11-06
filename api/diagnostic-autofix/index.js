@@ -284,13 +284,21 @@ function phoneTicketDescription(payload){
  const category=lower(payload.category).slice(0,40),level=lower(payload.level).slice(0,20),at=text(payload.at).slice(0,40),count=Math.max(1,Math.min(1e6,Number(payload.count)||1));
  return {area,message,category,level,at,count};
 }
+// 2026-11-06 (Tobias): outages, connection, login and rate limits are no code bugs; the AI finds nothing there and
+// still uses up the Claude plan. Same split as the website (assets/rc1650-diagnostics-plain.js aiFit).
+function phoneFit(d){
+ const m=text(d&&d.message),category=lower(d&&d.category);
+ if(/HTTP (?:401|403|429|502|503|504) /.test(m)||/failed to fetch|networkerror|load failed|timeout|demo_state/i.test(m)||/^(?:Netzwerkfehler|Langsamer API-Aufruf)/.test(m))return'unlikely';
+ if(category==='javascript'||category==='promise'||/(?:Type|Reference|Syntax|Range)Error|is not a function|is not defined|cannot read propert|HTTP 5\d\d /i.test(m))return'good';
+ return'maybe';
+}
 async function phoneTicket(req,payload,env){
  const admin=await validateGlobalAdmin(req,payload,env);
  if(!autofixEnabled())throw error('AUTOFIX_DISABLED','api.autofix.disabledReason',409);
  const d=phoneTicketDescription(payload);if(d.message.length<3)throw error('AUTOFIX_DESCRIPTION_TOO_SHORT','Die Fehlermeldung fehlt.',400);
  const body={purpose:'exporthub-autofix-phone',v:1,env,uid:text(admin.id),av:Number(admin.authVersion||0),exp:Date.now()+PHONE_TICKET_TTL_MS,n:crypto.randomBytes(9).toString('base64url'),d};
  const raw=Buffer.from(JSON.stringify(body),'utf8').toString('base64url');
- return {ok:true,ticket:'ehaf1.'+raw+'.'+crypto.createHmac('sha256',phoneTicketKey()).update(raw).digest('base64url'),expiresAt:new Date(body.exp).toISOString(),environment:env};
+ return {ok:true,ticket:'ehaf1.'+raw+'.'+crypto.createHmac('sha256',phoneTicketKey()).update(raw).digest('base64url'),expiresAt:new Date(body.exp).toISOString(),environment:env,fit:phoneFit(d)};
 }
 function verifyPhoneTicket(value,env){
  const parts=text(value).split('.');if(parts.length!==3||parts[0]!=='ehaf1')return null;
@@ -302,6 +310,7 @@ function verifyPhoneTicket(value,env){
 async function requestFromPhone(req,payload,env){
  const t=verifyPhoneTicket(payload.ticket,env);if(!t)throw error('AUTOFIX_TICKET_INVALID','Diese Benachrichtigung kann nicht mehr an die KI gesendet werden (abgelaufen oder ungültig).',401);
  if(!autofixEnabled())throw error('AUTOFIX_DISABLED','api.autofix.disabledReason',409);
+ if(phoneFit(t.d)==='unlikely'&&payload.force!==true)throw error('AUTOFIX_UNLIKELY','api.autofix.unlikelyFit',409);
  const read=await readJson(teamBlob(env),{state:{}},false),doc=read.value||{},users=Array.isArray(doc.users)?doc.users:Array.isArray(doc.state&&doc.state.users)?doc.state.users:[];
  const admin=users.find(u=>text(u&&u.id)===text(t.uid));
  if(!admin||!isActive(admin)||!isAdmin(admin)||Number(admin.authVersion||0)!==Number(t.av||0))throw error('GLOBAL_ADMIN_REQUIRED','api.autofix.adminRequired',403);

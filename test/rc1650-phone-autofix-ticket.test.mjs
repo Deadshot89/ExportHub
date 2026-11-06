@@ -45,6 +45,7 @@ test('Handy-Ticket: nur angemeldete Admins bekommen eins, einlösen geht ohne Lo
  assert.equal(minted.status,200,JSON.stringify(minted.body));
  assert.match(minted.body.ticket,/^ehaf1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
  assert.equal(h.dispatched.length,0,'Ticket erzeugen startet noch nichts');
+ assert.equal(minted.body.fit,'good','TypeError ist ein Code-Fehler');
 
  const sent=await h.call({action:'request-phone',ticket:minted.body.ticket});
  assert.equal(sent.status,200,JSON.stringify(sent.body));
@@ -91,9 +92,38 @@ test('Handy-Ticket: Website legt das Ticket in die Benachrichtigung, App zeigt �
  const sc=read('assets/rc1630-self-correct.js');
  assert.match(sc,/phoneTicket:function\(r\)\{return allowed\(\)\?call\(AUTOFIX,/);
  const java=read('android-app/app/src/main/java/de/exporthub/test/NotificationDetailActivity.java');
- assert.match(java,/if \(autofixTicket\.startsWith\("ehaf1\."\) && !"demo"\.equals\(environment\)\) addAutofixButton\(root\);/);
+ assert.match(java,/if \(autofixTicket\.startsWith\("ehaf1\."\) && !"demo"\.equals\(environment\)\) addAutofixButton\(root, technical\);/);
+ assert.match(java,/Lohnt sich die KI\?/,'Einschätzung steht vor dem Senden sichtbar da');
+ assert.match(java,/if \(force\) payload\.put\("force", true\)/);
  assert.match(java,/payload\.put\("action", "request-phone"\)/);
  assert.match(java,/close\.setText\("Schließen"\)/,'Schließen bleibt');
  const env=read('android-app/app/src/main/java/de/exporthub/test/EnvironmentActivity.java');
  assert.match(env,/public void notifyDiagnostic\(String channel, String key, String title, String body, String route, String autofixTicket\)/);
+});
+
+test('Handy-Ticket: Ausfall/Verbindung wird ohne ausdrückliches „Trotzdem senden“ nicht an die KI geschickt (spart Nutzung)', async()=>{await withEnv(async()=>{
+ const h=harness();
+ const outage={area:'settings',message:'HTTP 503 bei POST /api/urgent-orders',category:'network',level:'error',count:1,at:'2026-11-06T08:22:00Z'};
+ const minted=await h.call(Object.assign({action:'phone-ticket'},outage),{'x-exporthub-token':h.token});
+ assert.equal(minted.status,200);
+ assert.equal(minted.body.fit,'unlikely');
+ const blocked=await h.call({action:'request-phone',ticket:minted.body.ticket});
+ assert.equal(blocked.status,409);
+ assert.equal(blocked.body.code,'AUTOFIX_UNLIKELY');
+ assert.equal(h.dispatched.length,0,'kein KI-Lauf');
+ const forced=await h.call({action:'request-phone',ticket:minted.body.ticket,force:true});
+ assert.equal(forced.status,200,JSON.stringify(forced.body));
+ assert.equal(h.dispatched.length,1,'nach „Trotzdem senden“ genau ein Lauf');
+})});
+
+test('Fehlerdiagnose zeigt vor dem Senden, ob sich die KI lohnt', () => {
+ require('../assets/i18n/rc1650-diagnostics-plain.js');require('../assets/rc1650-diagnostics-plain.js');const plain=globalThis.ExportHUBDiagnosticsPlain;
+ assert.equal(plain.explain({message:'HTTP 503 bei POST /api/urgent-orders',level:'error',category:'network',total:1}).fit,'unlikely');
+ assert.equal(plain.explain({message:'Netzwerkfehler bei GET /api/pickup-status',level:'error',category:'network',total:1}).fit,'unlikely');
+ assert.equal(plain.explain({message:'HTTP 401 bei GET /api/exporthub-state',level:'error',category:'network',total:1}).fit,'unlikely');
+ assert.equal(plain.explain({message:'TypeError: x is not a function',level:'error',category:'javascript',total:1}).fit,'good');
+ assert.equal(plain.explain({message:'HTTP 500 bei POST /api/pickup',level:'error',category:'network',total:1}).fit,'good');
+ assert.equal(plain.explain({message:'Etwas Seltsames',level:'error',category:'system',total:1}).fit,'maybe');
+ const fs=require('node:fs'),i18n=fs.readFileSync(new URL('../assets/i18n/rc1650-diagnostics-plain.js',import.meta.url),'utf8');
+ for(const key of ['fitTitle','fit_good','fit_maybe','fit_unlikely','sendConfirmUnlikely','aiSkip'])assert.equal((i18n.match(new RegExp('\\b'+key+':','g'))||[]).length,6,key+' in allen 6 Sprachen');
 });

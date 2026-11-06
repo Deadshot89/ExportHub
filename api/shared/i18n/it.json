@@ -104,6 +104,7 @@
   "api.autofix.githubTokenMissing": "Il token GitHub autofix non è ancora configurato sul server.",
   "api.autofix.disabledReason": "La correzione automatica è attualmente disattivata intenzionalmente. Non viene avviato alcun job AI esterno.",
   "api.autofix.diagnosticIdRequired": "Manca l’ID diagnostica.",
+  "api.autofix.unlikelyFit": "Non sembra un errore di codice (breve disservizio, connessione o accesso). L’IA probabilmente non troverebbe nulla, quindi non è stato inviato nulla.",
   "api.autofix.alreadyRunning": "Per questo errore è già in corso una correzione automatica.",
   "api.state.environmentInvalid": "Ambiente dati ExportHUB sconosciuto.",
   "api.state.productionNoTestData": "Il sito di produzione non può richiedere dati del servizio di test.",
