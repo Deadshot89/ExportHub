@@ -132,9 +132,11 @@
     if(view!=='shipment'&&view!=='shipmentview'){if(existing)existing.remove();return false;}
     const shipment=activeShipment(state);
     if(!shipment||!q(shipment.packNotificationId)){if(existing)existing.remove();return false;}
-    const docs=packDocuments(shipment),host=doc.getElementById('rc363BlockDocuments')||doc.getElementById('rc363FixedShipmentLayout')||(view==='shipmentview'?doc.getElementById('content'):null);
+    const docs=packDocuments(shipment),host=doc.getElementById('rc363BlockDocuments')||doc.getElementById('rc363FixedShipmentLayout')||doc.getElementById('rc573ShipmentShell')||(doc.querySelector&&doc.querySelector('[data-exporthub-rendered-view="shipment"]'));
     if(!host){if(existing)existing.remove();return false;}
-    let panel=existing;if(!panel){panel=doc.createElement('section');panel.id='packAvisDocumentPanel';panel.className='pack-avis-panel';host.appendChild(panel);}
+    let panel=existing;if(!panel){panel=doc.createElement('section');panel.id='packAvisDocumentPanel';panel.className='pack-avis-panel';}
+    // Layout changes may replace the active shipment host without changing the view.
+    if(panel.parentNode!==host)host.appendChild(panel);
     const markup=`<div class="pack-avis-head"><div><span>${esc(tr('pack.title'))}</span><h3>${esc(tr('pack.avis.title'))}</h3><p>${esc(tr('pack.avis.help'))}</p></div><strong>${publicPackDocuments(shipment).length}/${docs.length}</strong></div><div class="pack-avis-list">${docs.length?docs.map(doc=>{const key=documentKey(doc),visible=doc.customerAvisVisible===true;return`<label class="pack-avis-row"><span><b>${esc(doc.name||doc.fileName||tr('pack.avis.deliveryNote'))}</b><small>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.internalOnly'))}</small></span><input type="checkbox" data-pack-avis-doc="${esc(key)}" ${visible?'checked':''}><em>${esc(visible?tr('pack.avis.visible'):tr('pack.avis.release'))}</em></label>`;}).join(''):`<p>${esc(tr('pack.avis.empty'))}</p>`}</div>`;
     // MutationObserver watches the whole app. Reassigning identical innerHTML
     // used to trigger another observer callback every 80 ms indefinitely.
