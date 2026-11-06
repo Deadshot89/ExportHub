@@ -219,7 +219,7 @@ function applyResult(state,reference,result,now){
   if(present||!hasAbd){
     for(const t of open){
       Object.assign(t,{status:'erledigt',done:true,completed:true,doneAt:nowIso,completedAt:nowIso,
-        doneBy:'AV-Prüfung',completedBy:'AV-Prüfung',autoCompletedByAvCheck:true,
+        doneBy:'AV-Prüfung',completedBy:'AV-Prüfung',autoCompletedByAvCheck:true,avVerificationPending:false,
         updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
     }
     return{reference:ref,status:present?'present':'not-required',closedTasks:open.length,createdTask:false};
@@ -229,7 +229,7 @@ function applyResult(state,reference,result,now){
   const reopenedTask=!!existing&&!isOpenTask(existing);
   if(existing){
     Object.assign(existing,{status:'offen',done:false,completed:false,doneAt:'',completedAt:'',
-      doneBy:'',completedBy:'',autoCompletedByAvCheck:false,unread:!isOpenTask(existing)||existing.unread===true,
+      doneBy:'',completedBy:'',autoCompletedByAvCheck:false,avVerificationPending:false,unread:!isOpenTask(existing)||existing.unread===true,
       avMissingCount:missing,avRequiredCount:required,avFoundCount:count,
       updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
   }else if(sh){
