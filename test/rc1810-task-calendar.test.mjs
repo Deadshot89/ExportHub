@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const recurrence=fs.readFileSync('assets/taskplanner-v2-recurrence.js','utf8');
 const calendar=fs.readFileSync('assets/rc1810-task-calendar.js','utf8');
 const board=fs.readFileSync('assets/rc1810-task-board.js','utf8');
+const texts=fs.readFileSync('assets/i18n/rc1810-task-board.js','utf8');
 const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8').replace(/\r\n/g,'\n');
 
@@ -81,6 +82,8 @@ test('RC1810 Build bindet Kalender, Aufgabenseite und Styles in allen Umgebungen
   assert.match(build,/rc1810-task-calendar\.js\?v=1810/);
   assert.match(build,/rc1810-task-board\.js\?v=1810/);
   assert.match(build,/rc1810-task-board\.css\?v=1810/);
+  assert.match(build,/i18n\/rc1810-task-board\.js\?v=1810/);
+  assert.ok(build.indexOf("'exporthub-rc1810-task-board-i18n'")<build.indexOf("injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_SCRIPT_TAG"),'Texte laden vor der Aufgabenseite');
   assert.match(build,/RC1810 Aufgabenseite fehlt/);
   assert.ok(build.indexOf("'exporthub-rc1810-task-board-script'")>build.indexOf("'exporthub-rc1570-tasks-script'"),'Aufgabenseite lädt nach RC1570');
 });
@@ -89,6 +92,8 @@ test('RC1810 Seite: Reiter, Menü zusammengeführt, Korrekturen in der RC971-Ebe
   for(const tab of ['heute','woche','monat','liste'])assert.match(board,new RegExp("'"+tab+"'"));
   assert.match(css,/nav#nav#nav > button\[data-view="planning"\]/);
   assert.match(css,/nav#nav#nav > button\[data-view="taskdetail"\]/);
+  assert.match(texts,/ExportHUBTaskBoard1810I18n=/);
+  assert.match(texts,/Betriebsferien & Feiertage/);
   assert.match(css,/@layer rc971\{/);
   assert.match(css,/#rc1810TaskBoard#rc1810TaskBoard#rc1810TaskBoard\{display:grid!important\}/);
   assert.match(board,/var TAB_ATTR='data-rc1810-board-tab';/,'Body-Attribut darf nicht wie ein Reiter-Knopf heißen (closest() träfe sonst body)');

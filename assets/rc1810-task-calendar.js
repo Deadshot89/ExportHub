@@ -167,17 +167,17 @@ function saveClosure(raw){
   if(utc(c.endDate)-utc(c.startDate)>120*864e5)throw new Error('Zeitraum ist länger als 120 Tage');
   c.createdAt=c.createdAt||new Date().toISOString();c.createdBy=c.createdBy||currentUserName();
   writeCalendar(s,function(src){src.closures=src.closures.filter(function(x){return x.id!==c.id});src.closures.push(c)});
-  var r=applyToTasks(s);persist('Aufgaben: freie Tage gespeichert ('+c.label+')');return{closure:c,result:r};
+  var r=applyToTasks(s);persist('RC1810 closure saved');return{closure:c,result:r};
 }
 function removeClosure(id){
   var s=state();if(!s)return null;if(!canWrite())throw new Error('Keine Berechtigung für Aufgaben');
   writeCalendar(s,function(src){src.closures=src.closures.filter(function(x){return x.id!==q(id)})});
-  var r=applyToTasks(s);persist('Aufgaben: freie Tage entfernt');return r;
+  var r=applyToTasks(s);persist('RC1810 closure removed');return r;
 }
 function setHolidayRule(rule){
   var s=state();if(!s)return null;if(!canWrite())throw new Error('Keine Berechtigung für Aufgaben');
   writeCalendar(s,function(src){src.holidayRoutineRule=normalizeRule(rule,'prev')});
-  var r=applyToTasks(s);persist('Aufgaben: Feiertagsregel geändert');return r;
+  var r=applyToTasks(s);persist('RC1810 holiday rule changed');return r;
 }
 function holidaysBetween(start,end,s){
   var cal=calendarOf(s||state()||{}),out=[];start=dayKey(start);end=dayKey(end);if(!start||!end)return out;
@@ -190,7 +190,7 @@ var timer=0,running=false;
 function run(){
   timer=0;if(running||!canWrite())return;var s=state();if(!s||!Array.isArray(s.tasks))return;
   running=true;
-  try{var r=applyToTasks(s);if(r.changed)persist('Aufgaben an Feiertage/Betriebsferien angepasst')}
+  try{var r=applyToTasks(s);if(r.changed)persist('RC1810 tasks adjusted to holidays')}
   catch(err){try{console.warn('RC1810 Feiertage',err)}catch(_){}}
   finally{setTimeout(function(){running=false},50)}
 }

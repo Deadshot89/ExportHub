@@ -15,48 +15,7 @@ var TAB_ATTR='data-rc1810-board-tab';
 var PREF_KEY='exporthub.rc1810.board';
 var TABS=['heute','woche','monat','liste'];
 
-var I18N={
- de:{eyebrow:'Planung',title:'Aufgaben',tab_heute:'Heute',tab_woche:'Woche',tab_monat:'Monat',tab_liste:'Liste',
-  closures:'Betriebsferien & Feiertage',planner:'Wochenplan & PDF',newTask:'+ Neue Aufgabe',
-  overdue:'Überfällig',today:'Heute',thisWeek:'Diese Woche',moved:'Wegen Feiertag verschoben',
-  byPerson:'Nach Person',byArea:'Nach Bereich',all:'Alle',mine:'Nur meine',groupBy:'Zeilen gruppieren nach',who:'Wer',
-  person:'Person',area:'Bereich',open:'{count} offen',noTasks:'Keine Aufgaben',routine:'Routine',prevWeek:'Vorherige Woche',nextWeek:'Nächste Woche',
-  week:'KW {week}',hint:'Wichtige Aufgaben oben, Routine zugeklappt. Klick auf eine Aufgabe zeigt Details.',
-  movedTag:'verschoben',plusMoved:'+ verschoben',skipped:'entfällt',noOwner:'Ohne Zuständigen',noArea:'Ohne Bereich',
-  more:'+{count} weitere',routineCount:'{count} Routine',legendOff:'Feiertag oder Betriebsferien',legendP0:'● = P0',
-  overdueSince:'überfällig seit {date}',nothingToday:'Für heute ist nichts offen.',routineDone:'Routine heute ({done}/{total} erledigt)',lateRoutine:'Routine von früheren Tagen offen: {count}',
-  due:'Fällig',owner:'Zuständig',priority:'Priorität',repeat:'Wiederholung',weekly:'Wöchentlich',once:'Einmalig',status:'Status',
-  stOpen:'Offen',stDone:'Erledigt',stCancelled:'Entfällt',movedFrom:'Verschoben',movedFromVal:'von {date} ({label})',customer:'Kunde',ref:'REF',note:'Notiz',
-  markDone:'Erledigt',reopen:'Wieder öffnen',edit:'Bearbeiten',close:'Schließen',openShipment:'Sendung öffnen',normal:'Normal',
-  savedDone:'Als erledigt markiert',savedOpen:'Wieder geöffnet',saveFailed:'Konnte nicht gespeichert werden',noRights:'Keine Berechtigung für Aufgaben',
-  dlgTitle:'Betriebsferien & Feiertage',dlgHint:'Gesetzliche Feiertage (NRW) kennt ExportHUB schon. Hier tragt ihr eigene freie Tage ein, z. B. Betriebsferien oder Brückentage.',
-  dlgEmpty:'Noch keine freien Tage eingetragen.',dlgLabel:'Bezeichnung',dlgLabelDefault:'Betriebsferien',dlgFrom:'Von',dlgTo:'Bis',
-  dlgRule:'Was passiert mit Routineaufgaben in dieser Zeit?',rulePrev:'Auf den letzten Arbeitstag davor vorziehen (gleiche Woche)',ruleNext:'Auf den nächsten Arbeitstag danach schieben (gleiche Woche)',ruleSkip:'Entfallen lassen',
-  ruleShortPrev:'Routine vorziehen',ruleShortNext:'Routine nachholen',ruleShortSkip:'Routine entfällt',
-  holidayRule:'Gesetzliche Feiertage: Routine',dlgSave:'Speichern',dlgDelete:'Löschen',dlgSaved:'Gespeichert. Wochenplan angepasst.',dlgDeleted:'Gelöscht. Wochenplan angepasst.',
-  upcoming:'Nächste Feiertage',readOnly:'Nur Lesen: Änderungen braucht das Recht „Aufgaben“.',
-  days:['So','Mo','Di','Mi','Do','Fr','Sa']},
- en:{eyebrow:'Planning',title:'Tasks',tab_heute:'Today',tab_woche:'Week',tab_monat:'Month',tab_liste:'List',
-  closures:'Company closures & holidays',planner:'Week plan & PDF',newTask:'+ New task',
-  overdue:'Overdue',today:'Today',thisWeek:'This week',moved:'Moved for holiday',
-  byPerson:'By person',byArea:'By area',all:'All',mine:'Only mine',groupBy:'Group rows by',who:'Who',
-  person:'Person',area:'Area',open:'{count} open',noTasks:'No tasks',routine:'Routine',prevWeek:'Previous week',nextWeek:'Next week',
-  week:'CW {week}',hint:'Important tasks on top, routine collapsed. Click a task for details.',
-  movedTag:'moved',plusMoved:'+ moved',skipped:'skipped',noOwner:'Unassigned',noArea:'No area',
-  more:'+{count} more',routineCount:'{count} routine',legendOff:'Public holiday or company closure',legendP0:'● = P0',
-  overdueSince:'overdue since {date}',nothingToday:'Nothing open for today.',routineDone:'Routine today ({done}/{total} done)',lateRoutine:'Routine from earlier days still open: {count}',
-  due:'Due',owner:'Owner',priority:'Priority',repeat:'Repeat',weekly:'Weekly',once:'Once',status:'Status',
-  stOpen:'Open',stDone:'Done',stCancelled:'Skipped',movedFrom:'Moved',movedFromVal:'from {date} ({label})',customer:'Customer',ref:'REF',note:'Note',
-  markDone:'Done',reopen:'Reopen',edit:'Edit',close:'Close',openShipment:'Open shipment',normal:'Normal',
-  savedDone:'Marked as done',savedOpen:'Reopened',saveFailed:'Could not be saved',noRights:'No permission for tasks',
-  dlgTitle:'Company closures & holidays',dlgHint:'ExportHUB already knows public holidays (NRW). Add your own days off here, e.g. company closures or bridge days.',
-  dlgEmpty:'No days off entered yet.',dlgLabel:'Name',dlgLabelDefault:'Company closure',dlgFrom:'From',dlgTo:'To',
-  dlgRule:'What happens to routine tasks during this time?',rulePrev:'Move to the last workday before (same week)',ruleNext:'Move to the next workday after (same week)',ruleSkip:'Skip them',
-  ruleShortPrev:'routine moved earlier',ruleShortNext:'routine moved later',ruleShortSkip:'routine skipped',
-  holidayRule:'Public holidays: routine',dlgSave:'Save',dlgDelete:'Delete',dlgSaved:'Saved. Week plan adjusted.',dlgDeleted:'Deleted. Week plan adjusted.',
-  upcoming:'Upcoming holidays',readOnly:'Read only: changes need the "Tasks" permission.',
-  days:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']}
-};
+var I18N=w.ExportHUBTaskBoard1810I18n||{de:{days:['So','Mo','Di','Mi','Do','Fr','Sa']}};
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
@@ -322,7 +281,7 @@ async function toggleTask(id){
   if(!rt||typeof rt.setTaskStatus!=='function'){toast(t('saveFailed'));return}
   var to=isDone(x)?'open':'done';
   try{await rt.setTaskStatus(x,to,{state:state(),currentUser:currentUser()});toast(to==='done'?t('savedDone'):t('savedOpen'))}
-  catch(err){toast(t('saveFailed'));try{console.error('RC1810 Aufgabe nicht gespeichert',err)}catch(_){}}
+  catch(err){toast(t('saveFailed'));try{console.error('RC1810 task save failed',err)}catch(_){}}
   finally{safeRender(true);try{var f=focus();if(f&&f.refresh)f.refresh()}catch(_){}}
 }
 function setTab(tab){if(TABS.indexOf(tab)<0)return;ui.tab=tab;remember();safeRender(true);if(tab==='liste'){try{var f=focus();if(f&&f.refresh)f.refresh()}catch(_){}}}
