@@ -47,7 +47,7 @@ test('Packtisch: neue Texte gibt es in allen sechs Sprachen',()=>{
 
 test('Menü: Packmeldungen steht direkt unter dem Dashboard und wird als Hauptpunkt gezeichnet',()=>{
   const js=read('assets/rc1579-menu-redesign.js'),css=read('assets/rc1579-menu-redesign.css');
-  assert.match(js,/\{key:'start',flat:true,accent:'#2563eb',views:\['dashboard','packnotifications','notifications'\]\}/);
+  assert.match(js,/\{key:'start',flat:true,accent:'#2563eb',views:\['dashboard','packnotifications','urgentorders','notifications'\]\}/);
   assert.doesNotMatch(js,/'pickupcalendar','packnotifications'\]/);
   assert.match(css,/:not\(\[data-view="notifications"\]\):not\(\[data-view="packnotifications"\]\)\{margin-left:14px/);
 });

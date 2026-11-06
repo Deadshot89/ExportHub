@@ -53,11 +53,13 @@ ICONS.customers=ICONS.customerfolder;
 ICONS.selfcorrect='<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>';
 ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
 ICONS.quality=ICONS.inspections;
+ICONS.urgentorders='<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"/>';
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
  // Packmeldungen direkt unter dem Dashboard: der Packtisch-Eingang ist der Start jeder Sendung
- {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','notifications']},
+ // Urgent Order (pack-notification-nav.js, ohne data-view) steht direkt unter Packmeldungen
+ {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','urgentorders','notifications']},
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
  {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
@@ -91,8 +93,10 @@ function css(){
   if(!s.flat)out.push(N+'>.rc1579-section[data-rc1579-section="'+s.key+'"]{order:'+base+'!important;--rc1579-accent:'+s.accent+';--rc1579-icon:'+uri(ICONS['section-'+s.key])+'}');
   s.views.forEach(function(v,vi){
    var item=itemSel(v),sel=N+'>'+item;
-   out.push(sel+'{order:'+(base+vi+1)+'!important;--menu-accent:'+s.accent+'!important}');
-   out.push(sel+' .index308-nav-icon{--menu-accent:'+s.accent+'!important;--rc1579-icon:'+uri(ICONS[v])+'}');
+   out.push(sel+'{order:'+(base+vi+1)+'!important'+(v==='urgentorders'?'':';--menu-accent:'+s.accent+'!important')+'}');
+   // Urgent Order behält seine eigene Akzentfarbe; das Icon kommt wie bei allen Punkten über die Maske
+   if(v==='urgentorders'){out.push(sel+' .index308-nav-icon{--rc1579-icon:'+uri(ICONS[v])+'}');out.push(R+'>'+item+' .index308-nav-icon>svg{display:none!important}')}
+   else out.push(sel+' .index308-nav-icon{--menu-accent:'+s.accent+'!important;--rc1579-icon:'+uri(ICONS[v])+'}');
    if(IT_VIEWS.indexOf(v)>=0)out.push(R+'>'+item+'{display:none!important}');
    if(!s.flat){
     out.push(sel+'{--rc1579-sub:1}');
@@ -106,7 +110,7 @@ function css(){
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
-function itemSel(v){if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
+function itemSel(v){if(v==='urgentorders')return '[data-exporthub-urgent-nav]';if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
 function ensureStyle(){if(d.getElementById(STYLE_ID))return;var st=d.createElement('style');st.id=STYLE_ID;st.textContent=css();(d.head||d.documentElement).appendChild(st)}
 
 function header(s){
