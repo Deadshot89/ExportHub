@@ -205,6 +205,49 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
     await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?25_000:12_000});
     const reopenedRef=await referenceInput(page);
     await expect(reopenedRef).toHaveValue(ref);
+
+    // RC1713: Die bereits in Azure gespeicherte Sendung muss ihre Colli-Anzahl
+    // in derselben Referenz überschreiben können (kein Löschen / Neuanlegen).
+    const editedRow=page.locator('#rc573ColliCard .rc363-owned-row').first();
+    await expect(editedRow).toBeVisible();
+    const editedCount=editedRow.locator('[data-rc363-field="count"] input');
+    await expect(editedCount).toHaveValue('1');
+    await editedCount.fill('2');
+    await editedCount.blur();
+
+    // Einzelgewichte passend zur neuen Colli-Menge erfassen.
+    await editedRow.locator('[data-rc363-field="weight"] input').click();
+    await expect(page.locator('#rc363WeightModal')).toBeVisible();
+    await page.locator('#rc363WeightTarget').fill('100');
+    await page.getByRole('button',{name:/Gewicht gleich aufteilen/i}).click();
+    await page.locator('#rc363WeightModal').getByRole('button',{name:/Übernehmen/i}).click();
+
+    await expect(editedCount).toHaveValue('2');
+    await saveButton.click();
+    await settleStateSave(page,{timeout:30_000});
+    await expect.poll(()=>page.evaluate(ref=>{
+      const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+      const list=Array.isArray(s.shipments)?s.shipments:[];
+      const sh=list.find(x=>String(x.ref||x.reference||'').toUpperCase()===ref);
+      return sh&&Number(sh.rows?.[0]?.count);
+    },ref),{timeout:30_000,message:'RC1713: geänderte Colli-Anzahl muss lokal als 2 gespeichert werden'}).toBe(2);
+
+    await page.reload({waitUntil:'domcontentloaded'});
+    await waitReady(page);
+    await settleStateSave(page,{timeout:30_000});
+    const resaved=await page.evaluate(async({token,runId,ref})=>{
+      const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+        credentials:'same-origin',cache:'no-store',
+        headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+      });
+      const data=await response.json().catch(()=>({}));
+      const shipments=Array.isArray(data?.state?.shipments)?data.state.shipments:[];
+      const sameRef=shipments.filter(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
+      return {status:response.status,count:sameRef.length,colli:Number(sameRef[0]?.rows?.[0]?.count||0)};
+    },{token:session.token,runId:session.runId,ref});
+    expect(resaved.status).toBe(200);
+    expect(resaved.count,'RC1713: dieselbe Referenz muss genau einmal in Azure vorhanden sein').toBe(1);
+    expect(resaved.colli,'RC1713: Colli-Menge 2 muss nach Azure-Speicherung und Reload erhalten bleiben').toBe(2);
   }
 
   await assertNoSourceLeak(page);
