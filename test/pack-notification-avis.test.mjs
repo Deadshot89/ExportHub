@@ -181,3 +181,13 @@ test('AVIS visibility save failure does not claim success and restores earlier v
   assert.equal(note.customerVisible,true);
   assert.match(root.lastAlert,/nicht gespeichert/);
 });
+
+test('production and TESTSERVICE always revalidate the corrected Pack AVIS visibility runtime',()=>{
+  for(const configFile of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
+    const config=JSON.parse(fs.readFileSync(configFile,'utf8'));
+    const route=config.routes.find(row=>row.route==='/assets/pack-notification-avis.js');
+    assert.ok(route,configFile+' must protect document visibility from stale script caches');
+    assert.match(route.headers['Cache-Control'],/no-store/);
+    assert.match(route.headers['Cache-Control'],/must-revalidate/);
+  }
+});
