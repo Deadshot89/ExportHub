@@ -257,7 +257,7 @@ function patchRc1835LearningUi(html,file){
   }
   if(html.includes(cacheFreshAnchor)&&!html.includes(cacheFreshInsert)){
     if(html.split(cacheFreshAnchor).length!==2)throw new Error(file+': RC1835 Cache-Frische-Anker mehrfach');
-    html=html.replace(cacheFreshAnchor,cacheFreshAnchor+'\\n '+cacheFreshInsert);
+    html=html.replace(cacheFreshAnchor,cacheFreshAnchor+'\n '+cacheFreshInsert);
   }else if(file!=='demo.html'&&!html.includes(cacheFreshInsert)){
     throw new Error(file+': RC1835 Cache-Frische-Prüfung fehlt');
   }
