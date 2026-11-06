@@ -178,7 +178,16 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         page.waitForEvent('popup',{timeout:25_000}),
         packOpenButton.click()
       ]);
-      await expect.poll(()=>packPreview.url(),{timeout:25_000}).toMatch(/^blob:/);
+      // RC1803: the preview is either a local blob: URL (legacy path) or a
+      // short-lived signed document ticket that company web filters can
+      // follow as a plain navigation. A ticket must still deliver PDF bytes.
+      await expect.poll(()=>packPreview.url(),{timeout:25_000}).toMatch(/^(blob:|https?:\/\/[^/]+\/api\/exporthub-document\?ticket=edt1\.)/);
+      const packPreviewUrl=packPreview.url();
+      if(!packPreviewUrl.startsWith('blob:')){
+        const ticketResponse=await page.request.get(packPreviewUrl);
+        expect(ticketResponse.status()).toBe(200);
+        expect((await ticketResponse.body()).subarray(0,5).toString('latin1')).toBe('%PDF-');
+      }
       await packPreview.close();
 
       // RC1702: Validate the actual staff-facing Download button, not just a
