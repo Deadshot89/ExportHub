@@ -256,8 +256,8 @@ async function confirmManualPickup(environment,id,reference,payload,user){
     if(!copies.length)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
     // If the client only supplied a reference, never confirm two distinct
     // physical shipments with duplicate REF values in one request.
-    const uniqueIds=new Set(copies.flatMap(identityValues));
-    if(uniqueIds.size>1&&( !id||upper(id)===upper(reference)))
+    const uniqueIds=new Set(copies.map(shipment=>identityValues(shipment)[0]).filter(Boolean));
+    if(uniqueIds.size>1&&(!id||upper(id)===upper(reference)))
       throw auth.error('SHIPMENT_AMBIGUOUS','Sendungszuordnung ist nicht eindeutig. Abholung wurde nicht gespeichert.',409);
     // Only a genuinely new pickup needs the gate. Correcting existing pickup
     // evidence never erases or rewrites a previously recorded physical event.
