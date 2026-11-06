@@ -73,7 +73,10 @@ test('RC1803: forged, expired or foreign-environment tickets are rejected',async
   const good=endpoint.createTicket(blobName,'production','a.pdf');
   const parts=good.split('.');
   const forgedPayload=Buffer.from(JSON.stringify({v:1,p:'exporthub-document',b:`rc1059/production/dd/${'d'.repeat(64)}`,e:'production',n:'x',x:Date.now()+60000})).toString('base64url');
-  for(const ticket of ['edt1.x.y',`edt1.${forgedPayload}.${parts[2]}`,`${parts[0]}.${parts[1]}.${parts[2].slice(0,-2)}AA`]){
+  // Flip a significant signature character; replacing its suffix with AA can
+  // accidentally leave a valid HMAC unchanged when it already ends in AA.
+  const tamperedSignature=(parts[2][0]==='A'?'B':'A')+parts[2].slice(1);
+  for(const ticket of ['edt1.x.y',`edt1.${forgedPayload}.${parts[2]}`,`${parts[0]}.${parts[1]}.${tamperedSignature}`]){
     const res=await call(endpoint,{ticket});
     assert.equal(res.status,403,ticket);
     assert.equal(JSON.parse(res.body).code,'DOCUMENT_TICKET_INVALID');
