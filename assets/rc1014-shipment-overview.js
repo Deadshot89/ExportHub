@@ -333,16 +333,22 @@
 
   function viewShipment(s){
     s=s||state();
-    const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toUpperCase();
-    if(wanted){
-      const all=arr(s.shipments).concat(arr(s.savedShipments));
-      // Select the unique internal shipment ID before falling back to a
-      // reference. Two shipments may share a reference in older team states.
-      const hit=all.find(sh=>shipmentId(sh)===wanted)||all.find(sh=>shipmentReference(sh)===wanted);
-      if(hit)return hit;
+    const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId||s.currentShipmentId).toUpperCase();
+    const explicitRef=q(s.shipmentViewRef||s.selectedShipmentRef||s.currentShipmentRef).toUpperCase();
+    if(wanted||explicitRef){
+      const all=arr(s.shipments).concat(arr(s.savedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
+      const byRef=all.filter(sh=>obj(sh)&&shipmentReference(sh)===(explicitRef||wanted));
+      if(byRef.length)return byRef[0];
+      if(explicitRef)return null;
+      const byId=all.filter(sh=>obj(sh)&&shipmentId(sh)===wanted);
+      const refs=new Set(byId.map(sh=>shipmentReference(sh)).filter(Boolean));
+      // A reused technical ID cannot select the first (possibly foreign) REF.
+      return refs.size===1?byId[0]:null;
     }
     return activeShipment(s);
   }
+
+  function manualPickupIdentity(sh){return shipmentReference(sh)+'|'+shipmentId(sh)}
 
   // Browser state may still contain the pre-pickup shipment while the server
   // has already synchronized its three photos to savedShipments. Only combine
@@ -446,11 +452,16 @@
 
   async function loadManualPickupAvailability(panel,shipment,date,selected){
     const select=panel&&panel.querySelector&&panel.querySelector('[data-rc1370-slot]');if(!select)return false;
-    const safeDate=q(date),wanted=q(selected);
+    const safeDate=q(date),wanted=q(selected),identity=manualPickupIdentity(shipment);
+    if(panel.dataset.rc1370ShipmentIdentity!==identity)return false;
+    const requestSeq=String((Number(panel.dataset.rc1370RequestSequence)||0)+1);
+    panel.dataset.rc1370RequestSequence=requestSeq;
     select.disabled=true;select.innerHTML='<option value="">'+tr('manualPickup.loadingSlots')+'</option>';
     if(!safeDate){select.innerHTML='<option value="">'+tr('manualPickup.selectDateFirst')+'</option>';select.disabled=false;return false}
     try{
-      const data=await manualPickupApi('manual-availability',shipment,{pickupDate:safeDate}),availability=data&&data.availability||{},slots=arr(availability.slots);
+      const data=await manualPickupApi('manual-availability',shipment,{pickupDate:safeDate});
+      if(panel.dataset.rc1370ShipmentIdentity!==identity||panel.dataset.rc1370RequestSequence!==requestSeq)return false;
+      const availability=data&&data.availability||{},slots=arr(availability.slots);
       select.innerHTML='<option value="">'+tr('manualPickup.selectSlot')+'</option>';
       slots.forEach(slot=>{
         const option=root.document.createElement('option'),value=q(slot.from)+'|'+q(slot.to);
@@ -460,6 +471,7 @@
       if(wanted&&Array.from(select.options||[]).some(o=>o.value===wanted&&!o.disabled))select.value=wanted;
       select.disabled=false;panel.dataset.rc1370AvailabilityDate=safeDate;return true;
     }catch(e){
+      if(panel.dataset.rc1370ShipmentIdentity!==identity||panel.dataset.rc1370RequestSequence!==requestSeq)return false;
       select.innerHTML='<option value="">'+tr('manualPickup.slotsFailedShort')+'</option>';select.disabled=false;
       setManualPickupStatus(panel,tr('manualPickup.slotsFailed'),'error');return false;
     }
@@ -472,7 +484,8 @@
     [date,slot,carrier,number,plate].forEach(input=>{if(input)input.addEventListener('input',()=>{panel.dataset.rc1370Dirty='1'})});
     if(date)date.addEventListener('change',()=>{panel.dataset.rc1370Dirty='1';const sh=viewShipment(state());if(sh)loadManualPickupAvailability(panel,sh,date.value,'')});
     if(save)save.addEventListener('click',async()=>{
-      const sh=viewShipment(state());if(!sh)return setManualPickupStatus(panel,tr('manualPickup.shipmentMissing'),'error');
+      const sh=viewShipment(state());if(!sh||panel.dataset.rc1370ShipmentIdentity!==manualPickupIdentity(sh))return setManualPickupStatus(panel,tr('manualPickup.shipmentMissing'),'error');
+      const requestIdentity=manualPickupIdentity(sh);
       if(manualPickupClosed(sh))return setManualPickupStatus(panel,tr('manualPickup.alreadyPicked'),'error');
       const dateValue=q(date&&date.value),slotValue=q(slot&&slot.value),parts=slotValue.split('|'),carrierValue=q(carrier&&carrier.value),numberValue=q(number&&number.value),plateValue=q(plate&&plate.value);
       if(!dateValue)return setManualPickupStatus(panel,tr('manualPickup.dateRequired'),'error');
@@ -482,6 +495,8 @@
       save.disabled=true;setManualPickupStatus(panel,tr('manualPickup.saving'),'info');
       try{
         const result=await manualPickupApi('manual-appointment',sh,{pickupDate:dateValue,timeFrom:parts[0],timeTo:parts[1],plate:plateValue,carrier:carrierValue,shipmentNumber:numberValue});
+        if(q(result&&result.reference)&&q(result.reference).toUpperCase()!==shipmentReference(sh))throw new Error('SHIPMENT_IDENTITY_MISMATCH');
+        if(panel.dataset.rc1370ShipmentIdentity!==requestIdentity||manualPickupIdentity(viewShipment(state()))!==requestIdentity)return;
         const values=result&&result.values||{};Object.assign(sh,values);
         try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{reference:shipmentReference(sh),manualPickup:true}}))}catch(_){}
         panel.dataset.rc1370Dirty='';setManualPickupStatus(panel,tr('manualPickup.saved',{date:dateValue,from:parts[0],to:parts[1]}),'ok');
@@ -500,6 +515,16 @@
     const docsCard=doc.getElementById('rc786ReferenceFilesCard'),host=docsCard&&docsCard.parentNode;if(!host||typeof host.insertBefore!=='function')return false;
     let panel=doc.querySelector&&doc.querySelector('[data-rc1370-manual-pickup]');
     if(!panel){panel=createManualPickupPanel(doc);host.insertBefore(panel,docsCard);lastMutationAt=Date.now()}
+    const identity=manualPickupIdentity(sh);
+    if(panel.dataset.rc1370ShipmentIdentity!==identity){
+      panel.dataset.rc1370ShipmentIdentity=identity;
+      panel.dataset.rc1370Dirty='';
+      panel.dataset.rc1370AvailabilityDate='';
+      panel.dataset.rc1370RequestSequence=String((Number(panel.dataset.rc1370RequestSequence)||0)+1);
+      const oldSlot=panel.querySelector('[data-rc1370-slot]');
+      if(oldSlot)oldSlot.innerHTML='<option value="">'+tr('manualPickup.selectDateFirst')+'</option>';
+      setManualPickupStatus(panel,'','info');
+    }
     const meta=manualPickupMeta(sh),closed=manualPickupClosed(sh),date=panel.querySelector('[data-rc1370-date]'),slot=panel.querySelector('[data-rc1370-slot]'),carrier=panel.querySelector('[data-rc1370-carrier]'),number=panel.querySelector('[data-rc1370-shipment-number]'),plate=panel.querySelector('[data-rc1370-plate]'),save=panel.querySelector('[data-rc1370-save]');
     if(!panel.dataset.rc1370Dirty){
       if(date&&doc.activeElement!==date)date.value=meta.date||'';
