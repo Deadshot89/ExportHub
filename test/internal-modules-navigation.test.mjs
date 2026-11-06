@@ -79,9 +79,13 @@ test('same-origin embedded module renders with an accessible title and preserves
  assert.equal(staleRedirects,0,'reused menu entries must never open the old standalone route');
  // Disabled quality links remain blocked by the existing menu-rights layer.
  quality.hidden=true;
- const blocked={target:quality,defaultPrevented:false,preventDefault(){this.defaultPrevented=true}};
+ const blocked={target:quality,defaultPrevented:false,stopped:false,
+  preventDefault(){this.defaultPrevented=true},stopImmediatePropagation(){this.stopped=true}};
  listeners.click.handler(blocked);
- assert.equal(blocked.defaultPrevented,false,'hidden quality link stays inaccessible');
+ if(!blocked.stopped)quality.onclick();
+ assert.equal(blocked.defaultPrevented,true,'hidden QM link cannot use obsolete navigation');
+ assert.equal(blocked.stopped,true);
+ assert.equal(staleRedirects,0,'hidden entries must never trigger a stale redirect');
 });
 
 test('frame protection is changed only for two same-origin staff pages in both environments',()=>{
