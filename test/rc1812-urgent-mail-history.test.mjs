@@ -77,3 +77,32 @@ test('Urgent Order overview has a dedicated sent-email column with one-click his
  assert.match(html,/mailColumnMarkup\(order\)/,'status is part of each Urgent Order row');
  assert.match(html,/details\.querySelectorAll\('\[data-open-mail-history\]'\)/);
 });
+
+test('Problem notifications and shipping confirmations share the saved mail history and remain distinguishable in the overview',()=>{
+ const record=order();
+ const problem=model.recordMailHandoff(record,{
+  kind:'problem',to:'cs@example.org',subject:'SO3002 - Problem',
+  body:'Bitte prüfen: Artikel nicht verfügbar.',language:'de'
+ },manager,'2026-11-06T12:00:00.000Z');
+ const shipping=model.recordMailHandoff(record,{
+  kind:'shipping',to:'cs@example.org',subject:'SO3002 - Versandbestätigung',
+  body:'Die Sendung wurde verschickt.',language:'de'
+ },manager,'2026-11-06T12:05:00.000Z');
+ assert.equal(record.mailHistory.length,2);
+ assert.deepEqual(record.mailHistory.map(x=>x.kind),['problem','shipping']);
+ assert.deepEqual(record.mailHistory.map(x=>x.status),['open_requested','open_requested']);
+ model.confirmMailSent(record,shipping.id,manager,'2026-11-06T12:06:00.000Z');
+ assert.equal(record.mailHistory[0].status,'open_requested','problem report must remain unconfirmed when shipping confirmation is sent');
+ assert.equal(record.mailHistory[1].status,'sent_confirmed');
+ model.confirmMailSent(record,problem.id,otherManager,'2026-11-06T12:08:00.000Z');
+ assert.equal(record.mailHistory[0].status,'sent_confirmed');
+ assert.equal(record.mailHistory[0].sentConfirmedBy.name,'Logistik Zwei');
+ assert.equal(record.mailHistory[0].body,'Bitte prüfen: Artikel nicht verfügbar.');
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.resolve('assets/urgent-orders.html'),'utf8');
+ assert.match(html,/\['problem','shipping'\]\.map\(kind=>/,'overview must distinguish the two email types');
+ assert.match(html,/mailColumnPartial/,'mixed states must not display a false full sent confirmation');
+ assert.match(html,/data-mail="problem"/,'problem report button must stay available');
+ assert.match(html,/id:modalOrder,kind:modalKind,to,subject:sub,body/,'problem emails must use the same exact-text save path');
+ assert.match(html,/mailKindProblem/,'history must identify problem messages');
+});
