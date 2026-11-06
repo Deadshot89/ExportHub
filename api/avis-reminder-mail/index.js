@@ -2,6 +2,7 @@
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
+const {renderAvisMailHtml}=require('../shared/avis-mail-html');
 
 const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.com';
 
@@ -249,7 +250,8 @@ module.exports=async function(context,req){
   }
   const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
-  const sent=await graphMail.sendTextMail({to,subject:sub,body:content,sender,cc});
+  const htmlContent=renderAvisMailHtml(content,url,lang);
+  const sent=await graphMail.sendHtmlMail({to,subject:sub,body:htmlContent,sender,cc});
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);
   await record(req,current,id,ref,event,mode,sender);
   const nextGate=mode==='initial'?reminderGate(Object.assign({},shipment,{avisFirstMailSentAt:event.at})):reminderGate(shipment);
