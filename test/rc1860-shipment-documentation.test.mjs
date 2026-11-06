@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
+const apiRequire=createRequire(new URL('../api/package.json',import.meta.url));
 const doc=require('../api/shipment-documentation/index.js');
 const refFiles=require('../api/reference-files/index.js');
 const b64=bytes=>Buffer.from(bytes).toString('base64');
@@ -92,7 +93,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
 
 test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit Azure-Readback',async t=>{
  const {Readable}=await import('node:stream');
- const {BlobServiceClient}=require('@azure/storage-blob');
+ const {BlobServiceClient}=apiRequire('@azure/storage-blob');
  const auth=require('../api/shared/auth-store.js');
  const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
  const previousIso=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
@@ -161,7 +162,7 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
 });
 
 test('TESTSERVICE kann keine Produktionssendung als eigene Dokumentation freigeben',async t=>{
- const {BlobServiceClient}=require('@azure/storage-blob');
+ const {BlobServiceClient}=apiRequire('@azure/storage-blob');
  const auth=require('../api/shared/auth-store.js');
  const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
  const previousIso=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
