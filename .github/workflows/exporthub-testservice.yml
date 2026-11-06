@@ -54,6 +54,10 @@ jobs:
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
           node .github/rc1112/build-three-env.mjs
+          # gleicher Build wie Main Verification: ohne Packmeldungs-Baustein fehlten Packmeldung und Urgent Order (2026-11-06)
+          node .github/packmeldungen/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+          node .github/rc1505/verify-build-contract.mjs
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
           grep -q "version:'RC1112'" dist-rc1112/TESTVERSION.html

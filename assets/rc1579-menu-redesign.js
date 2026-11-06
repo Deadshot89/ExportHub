@@ -143,8 +143,10 @@ function ensureProxy(){
  return proxy;
 }
 // Der Stellvertreter-Knopf übernimmt das Aussehen eines normalen Menüknopfs des aktiven Designs
-function copyLook(proxy,activeRef){
+function copyLook(proxy,activeRef,section){
  var ref=activeRef||null,fallback=null;
+ // own section first (Fehler & Verbesserungen -> Wissen), so the icon takes the colour of its neighbours (2026-11-06)
+ if(!ref&&section)nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(!ref&&SECTION_OF[viewOf(b)]===section&&!b.classList.contains('active')&&b.getAttribute('aria-current')!=='page')ref=b});
  // a resting button of the same section (Administration), so icon and text colours match the neighbours
  if(!ref)nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(ref||b.classList.contains('active')||b.getAttribute('aria-current')==='page'||!SECTION_OF[viewOf(b)]||SECTION_OF[viewOf(b)]==='start'||IT_VIEWS.indexOf(viewOf(b))>=0)return;if(SECTION_OF[viewOf(b)]==='admin')ref=b;else if(!fallback)fallback=b});
  ref=ref||fallback;
@@ -158,7 +160,10 @@ function copyLook(proxy,activeRef){
  // no inline display/width: an inline !important display beat the collapse rule and left IT under a closed Administration (2026-10-24)
  ['display','width'].forEach(function(p){proxy.style.removeProperty(p)});
  if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing','opacity'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p),'important')})}
- if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));proxy.style.setProperty('--rc1579-proxy-icon-fg',glyph.getPropertyValue('background-color'))}
+ if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));var fg=glyph.getPropertyValue('background-color');
+  // a transparent glyph (reference not styled yet) made the icon invisible: fall back to currentColor and retry next time
+  if(/^(transparent|rgba\(0, 0, 0, 0\))$/.test(fg)){proxy.style.removeProperty('--rc1579-proxy-icon-fg');return}
+  proxy.style.setProperty('--rc1579-proxy-icon-fg',fg)}
  proxy.__rc1579Look=key;
 }
 
@@ -183,7 +188,7 @@ function ensureQualityLink(){
  var label=t('quality');
  setText(proxy.querySelector('.index308-nav-label'),label);
  setAttr(proxy,'title',label);setAttr(proxy,'aria-label',label);
- proxy.hidden=!qualityAllowed();copyLook(proxy);
+ proxy.hidden=!qualityAllowed();copyLook(proxy,null,'knowledge');
  return proxy;
 }
 
