@@ -337,13 +337,12 @@
     const explicitRef=q(s.shipmentViewRef||s.selectedShipmentRef||s.currentShipmentRef).toUpperCase();
     if(wanted||explicitRef){
       const all=arr(s.shipments).concat(arr(s.savedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
-      const byRef=all.filter(sh=>obj(sh)&&shipmentReference(sh)===(explicitRef||wanted));
-      if(byRef.length)return byRef[0];
-      if(explicitRef)return null;
-      const byId=all.filter(sh=>obj(sh)&&shipmentId(sh)===wanted);
-      const refs=new Set(byId.map(sh=>shipmentReference(sh)).filter(Boolean));
-      // A reused technical ID cannot select the first (possibly foreign) REF.
-      return refs.size===1?byId[0]:null;
+      const matches=all.filter(sh=>obj(sh)&&
+        (!explicitRef||shipmentReference(sh)===explicitRef)&&
+        (!wanted||shipmentReference(sh)===wanted||shipmentId(sh)===wanted));
+      const refs=new Set(matches.map(sh=>shipmentReference(sh)).filter(Boolean));
+      // Contradictory view keys or recycled IDs must never select a foreign REF.
+      return refs.size===1?matches[0]:null;
     }
     return activeShipment(s);
   }
