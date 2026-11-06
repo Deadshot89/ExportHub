@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function load(){
+function load(root={}){
   const source=fs.readFileSync('assets/pack-notification-avis.js','utf8');
-  const root={};
   vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}),{filename:'pack-notification-avis.js'});
   return root.ExportHUBPackAvis;
 }
@@ -45,4 +44,38 @@ test('AVIS adapter renders a shipment panel only for pack-linked shipments and l
   assert.match(source,/tr\('pack\.avis\.release'\)/);
   assert.match(source,/tr\('pack\.avis\.visible'\)/);
   assert.doesNotMatch(source,/Für AVIS freigeben|Auf AVIS sichtbar/,'AVIS action labels must come from the six-language pack catalog.');
+});
+
+test('AVIS controls are scoped to shipment views and never leak into inspections',()=>{
+  const sh=shipment(),state={view:'inspections',currentShipment:sh};
+  let view='inspections',panel=null;
+  const content={id:'content',children:[],appendChild(el){this.children.push(el);el.parentNode=this;}};
+  const host={id:'rc363BlockDocuments',children:[],appendChild(el){this.children.push(el);el.parentNode=this;}};
+  const doc={
+    body:{getAttribute(key){return key==='data-exporthub-view'?view:null;}},
+    getElementById(id){
+      if(id==='packAvisDocumentPanel')return panel&&panel.parentNode?panel:null;
+      if(id==='rc363BlockDocuments')return view==='shipment'?host:null;
+      if(id==='content')return content;
+      return null;
+    },
+    createElement(){
+      panel={id:'',className:'',parentNode:null,innerHTML:'',remove(){this.parentNode=null;}};
+      return panel;
+    },
+    addEventListener(){}
+  };
+  const api=load({document:doc,__EXPORTHUB_GET_STATE__:()=>state});
+  assert.equal(api.renderPanel(),false,'inspections must never render an AVIS panel');
+  assert.equal(content.children.length,0,'global content must never receive the panel');
+  state.view='shipment';view='shipment';
+  assert.equal(api.renderPanel(),true);
+  assert.equal(panel.parentNode,host);
+  assert.match(panel.innerHTML,/LS1\.pdf/);
+  const originalMarkup=panel.innerHTML;
+  assert.equal(api.renderPanel(),true);
+  assert.equal(panel.innerHTML,originalMarkup,'stable re-render keeps the same markup');
+  state.view='inspections';view='inspections';
+  assert.equal(api.renderPanel(),false);
+  assert.equal(panel.parentNode,null,'navigation removes the obsolete AVIS panel');
 });
