@@ -7,6 +7,9 @@
 
   function sharedState(){try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{};}catch(_){}return root.__EXPORTHUB_STATE__||root.state||{};}
   function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase();}
+  const DOCUMENT_COPY_ARRAYS=['shipments','savedShipments','salesSharedShipments','sharedShipments',
+    'shipmentArchive','archivedShipments','archive'];
+  function storedShipments(state){return DOCUMENT_COPY_ARRAYS.flatMap(key=>arr(state&&state[key]));}
   function packDocuments(shipment){
     const owner=q(shipment&&shipment.packNotificationId);
     return arr(shipment&&shipment.deliveryFiles).filter(doc=>
@@ -15,7 +18,7 @@
   }
   function activeShipment(state){
     const s=state||{},viewId=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId||s.currentShipmentId||s.editingShipmentId).toUpperCase();
-    const stored=arr(s.shipments).concat(arr(s.savedShipments),arr(s.sharedShipments));
+    const stored=storedShipments(s);
     const matchesId=sh=>[q(sh&&sh.id),q(sh&&sh.shipmentId),shipmentRef(sh)].some(id=>id.toUpperCase()===viewId);
     const bodyView=q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase();
     // The detail page has a canonical shipment ID. Never use a stale editor
@@ -60,8 +63,8 @@
   function setVisibilityAcrossCopies(state,shipment,key,visible,at){
     const primary=packDocuments(shipment).find(doc=>documentKey(doc)===q(key));
     if(!primary)return[];
-    const all=[shipment,...arr(state&&state.shipments),...arr(state&&state.savedShipments),
-      ...arr(state&&state.sharedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment];
+    const all=[shipment,...storedShipments(state),
+      state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment];
     const seen=new Set(),changes=[],blob=q(primary.blobName),id=q(primary.id||primary.fileId);
     const matches=doc=>{
       if(blob)return q(doc.blobName)===blob;
