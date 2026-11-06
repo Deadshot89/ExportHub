@@ -182,7 +182,7 @@ function ensureQualityLink(){
   proxy=d.createElement('button');proxy.type='button';proxy.className='rc1579-proxy';
   proxy.setAttribute('data-rc1579-proxy','quality');
   proxy.innerHTML='<span class="index308-nav-icon" aria-hidden="true"></span><span class="index308-nav-label"></span>';
-  proxy.addEventListener('click',function(e){e.preventDefault();w.location.assign('/qualitaet.html')});
+  proxy.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();w.ExportHUBEmbeddedModules.open('quality')});
   nav.appendChild(proxy);
  }
  var label=t('quality');
