@@ -10,6 +10,10 @@ on:
       - 'test/rc1546-pickup-control.test.mjs'
       - 'test/rc1547-abd-age-kpi.test.mjs'
       - 'test/rc1818-manual-pickup-identity.test.mjs'
+      - 'assets/rc1014-shipment-overview.js'
+      - 'api/customer-avis/**'
+      - 'api/shared/customer-avis-slots.js'
+      - 'test/rc1819-manual-appointment-identity.test.mjs'
       - '.github/rc1488/finalize-auto-update.mjs'
       - '.github/workflows/rc1547-pickup-control-verify.yml'
   workflow_dispatch:
@@ -28,4 +32,4 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: RC1547 gezielte Abholkontrolle-Regression
-        run: node --test --test-concurrency=1 test/rc1546-pickup-control.test.mjs test/rc1547-abd-age-kpi.test.mjs test/rc1818-manual-pickup-identity.test.mjs
+        run: node --test --test-concurrency=1 test/rc1546-pickup-control.test.mjs test/rc1547-abd-age-kpi.test.mjs test/rc1818-manual-pickup-identity.test.mjs test/rc1819-manual-appointment-identity.test.mjs
