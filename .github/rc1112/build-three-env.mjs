@@ -72,6 +72,8 @@ const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" re
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
+const RC1835_ACADEMY_EXAMS_STYLE_TAG='<link id="exporthub-rc1835-academy-exams-style" rel="stylesheet" href="/assets/rc1835-academy-exams.css?v=1835">';
+const RC1835_ACADEMY_EXAMS_SCRIPT_TAG='<script id="exporthub-rc1835-academy-exams-script" defer src="/assets/rc1835-academy-exams.js?v=1835"></script>';
 const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
 const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
 const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1630"></script>';
@@ -212,6 +214,27 @@ function patchRc1579Menu(html,file){
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_I18N_TAG,'exporthub-rc1579-menu-i18n');
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_SCRIPT_TAG,'exporthub-rc1579-menu-script');
   if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1630'))throw new Error(file+': RC1579 Menü fehlt');
+  return html;
+}
+
+
+// RC1835: preserve exam page metrics/header when changing the catalog profession.
+// Only the catalog body is redrawn; no browser-global render and no timer reset.
+function patchRc1835LearningUi(html,file){
+  const setProfessionOld="function ihkSetProfession(key){var k=q(key);if(['lagerlogistik','industriekaufmann','handel'].indexOf(k)<0)k='lagerlogistik';var st=ihkState();st.ihkExamUi.profession=k;st.ihkExamUi.tab='catalog';st.ihkExamUi.activeAttempt=null;renderInspections();return false}";
+  const setProfessionNew="function ihkSetProfession(key){var k=q(key);if(['lagerlogistik','industriekaufmann','handel'].indexOf(k)<0)k='lagerlogistik';var st=ihkState();if(st.ihkExamUi.profession===k&&st.ihkExamUi.tab==='catalog')return false;st.ihkExamUi.profession=k;st.ihkExamUi.tab='catalog';st.ihkExamUi.activeAttempt=null;var region=document.querySelector('#rc626Inspections [data-rc1835-catalog-body]');if(region){var body=ihkCatalogHtml();if(region.innerHTML!==body)region.innerHTML=body;return false}renderInspections();return false}";
+  const renderEndOld="+'</div>'+body+'</div>';activateNav('inspections')";
+  const renderEndNew="+'</div><section data-rc1835-catalog-body=\"1\">'+body+'</section></div>';activateNav('inspections')";
+  if(html.includes(setProfessionOld)){
+    if(html.split(setProfessionOld).length!==2||html.split(renderEndOld).length!==2)throw new Error(file+': RC1835 Prüfungsanker nicht eindeutig');
+    html=html.replace(setProfessionOld,setProfessionNew);
+    html=html.replace(renderEndOld,renderEndNew);
+  }else if(file!=='demo.html'&&!html.includes(setProfessionNew)){
+    throw new Error(file+': RC1835 Prüfungswechsel fehlt');
+  }
+  html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_STYLE_TAG,'exporthub-rc1835-academy-exams-style');
+  html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_SCRIPT_TAG,'exporthub-rc1835-academy-exams-script');
+  if(!html.includes('rc1835-academy-exams.css?v=1835')||!html.includes('rc1835-academy-exams.js?v=1835'))throw new Error(file+': RC1835 Lernansichten fehlen');
   return html;
 }
 
@@ -1625,6 +1648,7 @@ function patchHtml(file){
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=patchRc1800PremiumDesign(html,file);
+  html=patchRc1835LearningUi(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1048',cache:'1048',loginReturn:'([^']*)'\}\);/,
@@ -1842,6 +1866,8 @@ for(const rel of [
   'assets/rc1577-shipment-overview-compact.css',
   'assets/rc1579-menu-redesign.css',
   'assets/rc1579-menu-redesign.js',
+  'assets/rc1835-academy-exams.css',
+  'assets/rc1835-academy-exams.js',
   'assets/i18n/rc1579-menu-redesign.js',
   'assets/customer-folder-redesign.css',
   'assets/customer-folder-redesign.js',
