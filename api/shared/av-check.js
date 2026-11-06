@@ -172,7 +172,7 @@ function candidates(state,now){
     const hasAbd=copies.some(s=>shipmentHasAbd(state,s));
     if(!hasAbd&&!openRefs.has(ref))continue;
     const day=pickupDay(sh);
-    const latestCheck=copies.map(x=>text(x.avCheckedAt)).filter(Boolean).sort().pop()||'';
+    const latestCheck=copies.flatMap(x=>[text(x.avCheckedAt),text(x.avUploadCheckedAt)]).filter(Boolean).sort().pop()||'';
     out.push({reference:ref,shipmentId:text(sh.id||sh.shipmentId),pickupDay:day,
       dueDay:day?dueDay(day):'',eligible:hasAbd,requiredAvCount:hasAbd?requiredAvCount(state,sh,copies):0,
       lastCheckedAt:latestCheck});
@@ -255,4 +255,52 @@ async function checkReference(reference,listFiles){
     avFiles:avFiles.map(f=>({name:text(f.name)}))};
 }
 
-module.exports={AV_DUE_DAYS,AV_LOOKBACK_DAYS,SOURCE_TYPE,AREA,isAvFileName,isAvTask,shipmentHasAbd,requiredAvCount,allShipments,pickupDay,dueDay,candidates,applyResult,checkReference,taskId};
+
+/**
+ * Authoritative 'AV hochladen' inbox reconciliation.
+ * An issued ABD creates an upload task when the private Azure AV archive does
+ * not contain enough uploaded AV documents. SharePoint may separately contain
+ * legacy documents; this state is explicitly marked as pending verification
+ * rather than falsely reporting that the REF folder is empty.
+ * The signed /api/av-check workflow is the only caller.
+ */
+function applyUploadRequirement(state,reference,archivedFiles,now){
+  const ref=text(reference).toUpperCase();
+  if(!validRef(ref)||!Array.isArray(archivedFiles))throw new Error('AV_ARCHIVE_LIST_INVALID');
+  const copies=shipmentCopies(state,ref),sh=copies[0];
+  if(!sh||!copies.some(copy=>shipmentHasAbd(state,copy)))
+    return{reference:ref,status:'not-required',createdTask:false,closedTasks:0};
+  const at=new Date(now).toISOString(),required=requiredAvCount(state,sh,copies);
+  const seen=new Set();
+  const count=archivedFiles.filter(file=>{
+    if(!isAvFileName(file&&file.name))return false;
+    const identity=text(file.id||file.blobName||file.name).toLowerCase();
+    if(!identity||seen.has(identity))return false;
+    seen.add(identity);return true;
+  }).length;
+  // Only successful Azure listings advance the upload-task scan cursor.
+  for(const copy of copies)copy.avUploadCheckedAt=at;
+  if(count>=required)return applyResult(state,ref,{avFiles:archivedFiles},now);
+  // Preserve previously verified legacy SharePoint AVs when Graph is offline.
+  if(copies.some(copy=>copy.avPresent===true&&Number(copy.avFoundCount)>=required))
+    return{reference:ref,status:'verified-elsewhere',createdTask:false,closedTasks:0};
+  state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+  const id=taskId(ref),existing=state.tasks.find(task=>text(task&&task.id)===id);
+  const task=existing||missingTask(sh,at),wasOpen=existing&&isOpenTask(existing);
+  if(!existing)state.tasks.unshift(task);
+  const customer=text(sh.customer&&sh.customer.name||sh.customerName);
+  Object.assign(task,{
+    sourceType:SOURCE_TYPE,sourceId:ref,sourceRef:ref,linkedShipmentRef:ref,
+    title:'AV hochladen · '+ref+(customer?' · '+customer:''),
+    area:AREA,group:AREA,status:'offen',done:false,completed:false,
+    doneAt:'',completedAt:'',doneBy:'',completedBy:'',
+    avMissingCount:required-count,avRequiredCount:required,avFoundCount:count,
+    avVerificationPending:true,autoCompletedByAvCheck:false,
+    note:'Für diese Sendung ist ein ABD vorhanden. Im ExportHUB-AV-Archiv fehlen noch '+(required-count)+' AV-Dokument(e). Bitte den Ausgangsvermerk über „AV hochladen“ in der Sendungsansicht speichern. Vorhandene ältere SharePoint-Dokumente werden separat geprüft.',
+    updatedAt:at,_syncUpdatedAt:at,_syncDeviceId:'av-upload-task-check'
+  });
+  if(!wasOpen)task.unread=true;
+  return{reference:ref,status:'upload-pending',createdTask:!existing,reopenedTask:!!existing&&!wasOpen,missingCount:required-count,closedTasks:0};
+}
+
+module.exports={AV_DUE_DAYS,AV_LOOKBACK_DAYS,SOURCE_TYPE,AREA,isAvFileName,isAvTask,shipmentHasAbd,requiredAvCount,allShipments,pickupDay,dueDay,candidates,applyResult,checkReference,taskId,applyUploadRequirement};
