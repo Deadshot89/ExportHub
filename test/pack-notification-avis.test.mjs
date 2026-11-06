@@ -194,3 +194,24 @@ test('production and TESTSERVICE always revalidate the corrected Pack AVIS visib
     assert.match(route.headers['Cache-Control'],/must-revalidate/);
   }
 });
+
+test('AVIS detail never opens documents of a different REF through a reused editor ID',()=>{
+  const note=threeNotes()[0];
+  const shared={
+    shipmentViewId:'REUSED-42',
+    shipment:{id:'REUSED-42',ref:'WRONG1',packNotificationId:'pn-other',deliveryFiles:[note]},
+    shipments:[
+      {id:'REUSED-42',ref:'NEFF01',packNotificationId:'pn-neff',deliveryFiles:[note]},
+      {id:'REUSED-42',ref:'OTHER1',packNotificationId:'pn-other',
+       deliveryFiles:[{...note,id:'foreign',name:'foreign.pdf',packNotificationId:'pn-other'}]}
+    ]
+  };
+  const fixture=avisFixture('shipmentview',shared);
+  assert.equal(fixture.api.renderPanel(),false,'ambiguous ID must not show unrelated customer PDFs');
+  assert.equal(fixture.elements.has('packAvisDocumentPanel'),false);
+  shared.shipmentViewId='NEFF01';
+  assert.equal(fixture.api.renderPanel(),true,'explicit REF restores the right shipment');
+  const html=fixture.elements.get('packAvisDocumentPanel').innerHTML;
+  assert.match(html,/DNC3019228460.pdf/);
+  assert.doesNotMatch(html,/foreign.pdf/);
+});
