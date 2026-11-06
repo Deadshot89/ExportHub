@@ -101,7 +101,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </section>
 </div>
 </main>
-<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help">Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField">Problembeschreibung *<textarea id="mailIssue" placeholder="Was ist das Problem?"></textarea></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
+<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField">Problembeschreibung *<textarea id="mailIssue" placeholder="Was ist das Problem?"></textarea></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
 <script>
 (function(){
 'use strict';
@@ -235,20 +235,20 @@ function mailDate(iso){if(!iso)return'';const value=new Date(iso);return Number.
 function priorityText(code){const fallback=({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code;try{const i=window.ExportHUBI18n,v=i&&i.t('urgentOrderV2.'+code,null,i.language());return v&&v!=='urgentOrderV2.'+code?v:fallback;}catch(_){return fallback;}}
 function mailHistoryMarkup(order){
  const records=Array.isArray(order.mailHistory)?order.mailHistory.slice().reverse():[];
- if(!records.length)return '<section class="mail-history"><h3>'+escapeHtml(mailUi('E-Mail-Verlauf','Email history'))+'</h3><p class="help">'+escapeHtml(mailUi('Noch keine E-Mails aus ExportHUB360 vorbereitet.','No emails prepared from ExportHUB360 yet.'))+'</p></section>';
+ if(!records.length)return '<section class="mail-history"><h3>'+escapeHtml(localeV2('mailHistoryTitle',"Email history"))+'</h3><p class="help">'+escapeHtml(localeV2('mailHistoryEmpty',"No emails prepared from ExportHUB360 yet."))+'</p></section>';
  const rows=records.map(m=>{
   const sent=m.status==='sent_confirmed';
-  const kind=m.kind==='shipping'?mailUi('Versandbestätigung','Shipping confirmation'):mailUi('Problemmeldung','Problem notification');
-  const state=sent?mailUi('Versand manuell bestätigt','Manually confirmed as sent'):mailUi('Mailprogramm angefordert','Mail program requested');
+  const kind=m.kind==='shipping'?localeV2('mailKindShipping',"Shipping confirmation"):localeV2('mailKindProblem',"Problem notification");
+  const state=sent?localeV2('mailStatusManuallySent',"Manually confirmed as sent"):localeV2('mailStatusOpenRequested',"Mail program requested");
   const creator=m.createdBy&&m.createdBy.name||m.createdBy&&m.createdBy.id||'–';
   const confirmed=m.sentConfirmedBy&&m.sentConfirmedBy.name||m.sentConfirmedBy&&m.sentConfirmedBy.id||'–';
   return '<details class="mail-entry"><summary><span>'+escapeHtml(kind)+'</span><span class="mail-chip '+(sent?'sent':'')+'">'+escapeHtml(state)+'</span><span class="mail-meta">'+escapeHtml(creator)+' · '+escapeHtml(mailDate(m.createdAt))+'</span></summary>'+
-   '<div class="mail-entry-content"><p class="mail-meta">'+escapeHtml(mailUi('An','To'))+': '+escapeHtml(m.to)+' · '+escapeHtml(mailUi('Sprache','Language'))+': '+escapeHtml(m.language||'de')+'</p>'+
-   '<p><strong>'+escapeHtml(mailUi('Betreff','Subject'))+':</strong> '+escapeHtml(m.subject)+'</p><pre>'+escapeHtml(m.body)+'</pre>'+
-   (sent?'<p class="mail-meta">'+escapeHtml(mailUi('Versand bestätigt durch','Sent confirmed by'))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(mailUi('Tatsächlichen Versand bestätigen','Confirm actual sending'))+'</button>':'')+
+   '<div class="mail-entry-content"><p class="mail-meta">'+escapeHtml(localeV2('mailRecipient',"To"))+': '+escapeHtml(m.to)+' · '+escapeHtml(localeV2('mailLanguageLabel',"Language"))+': '+escapeHtml(m.language||'de')+'</p>'+
+   '<p><strong>'+escapeHtml(localeV2('mailSubjectLabel',"Subject"))+':</strong> '+escapeHtml(m.subject)+'</p><pre>'+escapeHtml(m.body)+'</pre>'+
+   (sent?'<p class="mail-meta">'+escapeHtml(localeV2('mailConfirmedBy',"Sent confirmed by"))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(localeV2('mailConfirmButton',"Confirm actual sending"))+'</button>':'')+
    '</div></details>';
  }).join('');
- return '<section class="mail-history"><h3>'+escapeHtml(mailUi('E-Mail-Verlauf','Email history'))+' · '+records.length+'</h3>'+rows+'</section>';
+ return '<section class="mail-history"><h3>'+escapeHtml(localeV2('mailHistoryTitle',"Email history"))+' · '+records.length+'</h3>'+rows+'</section>';
 }
 function render(){
  showView(activeView);
@@ -276,17 +276,17 @@ function render(){
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const recorded=(order.mailHistory||[]);
   const lastMail=recorded.length?recorded[recorded.length-1]:null;
-  const mailSummary=lastMail?'<span class="sub">'+escapeHtml(mailUi('Letzte E-Mail','Latest email'))+': '+escapeHtml(lastMail.status==='sent_confirmed'?mailUi('Versand bestätigt','Sent confirmed'):mailUi('Mailprogramm angefordert','Mail program requested'))+'</span>':'';
+  const mailSummary=lastMail?'<span class="sub">'+escapeHtml(localeV2('mailLatest',"Latest email"))+': '+escapeHtml(lastMail.status==='sent_confirmed'?localeV2('mailSummaryConfirmed',"Sent confirmed"):localeV2('mailStatusOpenRequested',"Mail program requested"))+'</span>':'';
   details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml((order.items||[]).length)+' '+escapeHtml(localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span>'+mailSummary+'</span><span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+mailHistoryMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-confirm-mail]').forEach(button=>button.addEventListener('click',async()=>{
-   if(!window.confirm(mailUi('Wurde diese E-Mail wirklich im E-Mail-Programm gesendet? Die Bestätigung wird mit deinem Benutzernamen gespeichert.','Was this email actually sent in your mail application? Your account will be recorded.')))return;
+   if(!window.confirm(localeV2('mailConfirmPrompt',"Was this email actually sent in your mail application? Your account will be recorded.")))return;
    button.disabled=true;
    try{
     const result=await api('confirm-mail-sent',{id:order.id,mailId:button.dataset.confirmMail});
     const index=orders.findIndex(x=>x.id===order.id);if(index>=0)orders[index]=result.order;
     render();const expanded=[...$('orders').querySelectorAll('details.order')].find(x=>x.querySelector('.so')?.textContent.includes(order.orderNumber));if(expanded)expanded.open=true;
-    setMessage('listMessage',mailUi('Versandbestätigung gespeichert.','Sent confirmation recorded.'),'ok');
+    setMessage('listMessage',localeV2('mailConfirmSaved',"Sent confirmation recorded."),'ok');
    }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
   }));
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
@@ -354,18 +354,18 @@ async function mailto(){
  // Save the CURRENT editor values, not the originally generated template and
  // never an unobservable later change inside Outlook.
  const to=$('mailTo').value,sub=$('mailSubject').value,body=$('mailBody').value;
- if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',mailUi('Bitte zuerst einen E-Mail-Text erstellen.','Please create an email first.'),'error');return;}
+ if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',localeV2('mailRequireText',"Please create an email first."),'error');return;}
  const button=$('openMailer');if(button.disabled)return;button.disabled=true;
  try{
-  setMessage('mailMessage',mailUi('Speichere den E-Mail-Text im Auftrag …','Saving the email text to the order …'),'');
+  setMessage('mailMessage',localeV2('mailSaving',"Saving the email text to the order …"),'');
   const result=await api('record-mail-handoff',{id:modalOrder,kind:modalKind,to,subject:sub,body,language:$('mailLanguage').value});
   const index=orders.findIndex(x=>x.id===modalOrder);if(index>=0)orders[index]=result.order;
   render();
   const uri='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
   window.location.href=uri;
-  setMessage('mailMessage',mailUi('E-Mail-Text gespeichert. Bitte nach dem Versand in der Auftragshistorie bestätigen.','Email text saved. Confirm sending in the order history afterward.'),'ok');
+  setMessage('mailMessage',localeV2('mailSaved',"Email text saved. Confirm sending in the order history afterward."),'ok');
  }catch(e){
-  setMessage('mailMessage',mailUi('E-Mail nicht geöffnet: ','Email not opened: ')+e.message,'error');
+  setMessage('mailMessage',localeV2('mailOpenFailed',"Email not opened: ")+e.message,'error');
  }finally{button.disabled=false;}
 }
 async function copyDraft(){
