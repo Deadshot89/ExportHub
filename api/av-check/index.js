@@ -128,6 +128,38 @@ function createHandler(deps = {}) {
         return !Number.isFinite(checkedAt) || checkedAt > at.getTime() || at.getTime() - checkedAt >= minAgeMs;
       });
       const selected = all.slice(0, limit);
+
+      if (payload.uploadTasksOnly === true) {
+        // The missing-upload inbox is based on real issued ABD evidence and the
+        // independently verified Azure AV archive. Do not require Microsoft
+        // Graph to be online before creating these actionable tasks.
+        const uploads = [], uploadErrors = [];
+        for (const item of selected) {
+          try {
+            const files = await listArchivedFiles(item.reference, environment);
+            if (!Array.isArray(files)) throw error('AV_ARCHIVE_LIST_INVALID', 'Das AV-Archiv lieferte keine vollständige Dateiliste.', 502);
+            uploads.push({ reference: item.reference, files });
+          } catch (e) {
+            uploadErrors.push({ reference: item.reference, code: text(e && e.code) || 'AV_ARCHIVE_LIST_FAILED' });
+          }
+        }
+        const applied = await mutateState(environment, current => {
+          const results = uploads.map(upload =>
+            avCheck.applyUploadRequirement(current, upload.reference, upload.files, at));
+          return { changed: results.length > 0, results };
+        });
+        const results = applied.results || [];
+        return { status: uploadErrors.length ? 503 : 200, body: {
+          ok: uploadErrors.length === 0, mode: 'upload-tasks', environment,
+          graphConfigured: graphReady, candidates: all.length,
+          checked: results.length, remaining: Math.max(0, all.length - selected.length),
+          uploadPending: results.filter(result => result.status === 'upload-pending').length,
+          createdTasks: results.filter(result => result.createdTask).length,
+          reopenedTasks: results.filter(result => result.reopenedTask).length,
+          closedTasks: results.reduce((sum, result) => sum + (result.closedTasks || 0), 0),
+          errorCount: uploadErrors.length, errors: uploadErrors
+        } };
+      }
       const checks = [], errors = [];
       for (const item of selected) {
         try {
