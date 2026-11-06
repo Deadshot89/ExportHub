@@ -53,6 +53,7 @@ function avisFixture(view,shared){
   const body={getAttribute(key){return key==='data-exporthub-view'?view:null;}};
   root.document={
     body,
+    addEventListener(){},
     getElementById(id){return elements.get(id)||(
       id==='content'||id==='rc363BlockDocuments'?host:null
     );},
