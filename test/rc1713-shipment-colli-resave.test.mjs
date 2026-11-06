@@ -31,3 +31,13 @@ for(const file of ['index.html','TESTVERSION.html']){
   assert.equal(create({...stored,count:0})?.[0]?.count,0,'invalid edit still reaches normal save validation');
  });
 }
+
+test('RC1713: TESTSERVICE E2E covers edit, re-save and Azure readback after reload',()=>{
+ const source=readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
+ assert.match(source,/const editedRow=page\.locator\('#rc573ColliCard/);
+ assert.match(source,/await editedCount\.fill\('2'\)/);
+ assert.match(source,/await saveButton\.click\(\)/);
+ assert.match(source,/await page\.reload\(\{waitUntil:'domcontentloaded'\}\)/);
+ assert.match(source,/expect\(resaved\.colli[\s\S]*?\)\.toBe\(2\)/);
+ assert.match(source,/expect\(resaved\.count[\s\S]*?\)\.toBe\(1\)/);
+});
