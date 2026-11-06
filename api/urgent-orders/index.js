@@ -174,7 +174,7 @@ async function execute(req,user,refs){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails dokumentieren.',403);
   return write(refs,doc=>{
    const order=accessibleOrder(doc,model.text(p.id,90),user);
-   const mail=model.recordMailHandoff(order,p,identity(user),now);
+   const mail=model.recordMailHandoff(order,p,user,now);
    return{mail,order};
   });
  }
@@ -182,7 +182,7 @@ async function execute(req,user,refs){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails als versendet bestätigen.',403);
   return write(refs,doc=>{
    const order=accessibleOrder(doc,model.text(p.id,90),user);
-   const mail=model.confirmMailSent(order,model.text(p.mailId,90),identity(user),now);
+   const mail=model.confirmMailSent(order,model.text(p.mailId,90),user,now);
    return{mail,order};
   });
  }
