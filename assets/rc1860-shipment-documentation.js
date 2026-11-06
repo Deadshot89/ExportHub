@@ -29,7 +29,7 @@ function sh(){
  return current&&typeof current==='object'?current:null;
 }
 function refOf(v){return q(v&&(v.ref||v.reference||v.shipmentRef)).toUpperCase()}
-function isCurrent(box,ref){return activeRef===ref&&activeCard===box&&!!box&&box.isConnected}
+function isCurrent(box,ref){return activeRef===ref&&activeCard===box&&!!box&&box.isConnected&&refOf(sh())===ref}
 function safeCustomer(v){var c=v&&(v.customerName||v.customerDisplayName||v.customer||v.customerId);return q(c&&typeof c==='object'?(c.name||c.companyName||c.displayName||c.account||''):c)}
 function filenameForProof(f,type,index){var original=q(f.name),ext=(original.match(/\.[^.]+$/)||[''])[0],base=original.slice(0,Math.max(0,original.length-ext.length)).slice(0,85);var uniq=Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,11)+'_'+index;return(type==='photo'?'Versandfoto_':'')+base+'__'+uniq+ext;}
 function headers(){var r=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},token=q(r.authToken),h={'Content-Type':'application/json','Accept':'application/json'};if(token){h.Authorization='Bearer '+token;h['X-ExportHUB-Token']=token;h['X-ExportHUB-Session']=token}return h}
@@ -153,7 +153,7 @@ async function load(box,ref){
  }catch(e){if(serial===loadSerial&&activeRef===ref&&box.isConnected)status(box,q(e.message),'error')}
 }
 async function saveRecord(box,ref){
- if(busy||activeRef!==ref)return;
+ if(busy||!isCurrent(box,ref))return;
  var fields=values(box),expectedRevision=activeRecord?activeRecord.revision:0;
  setBusy(box,true);status(box,tr('saving'));
  try{
