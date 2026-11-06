@@ -145,4 +145,50 @@ function draftMail(order,kind,lang,note){
   ].join('\n')
  };
 }
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail};
+// The browser cannot observe Outlook's Send action. Preserve the exact editor
+// content before opening the mail program; confirmation is explicitly manual.
+function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
+ if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails dokumentieren.',403);
+ const p=raw&&typeof raw==='object'?raw:{};
+ const kind=text(p.kind,30);
+ if(!['problem','shipping'].includes(kind))throw problem('URGENT_MAIL_KIND_INVALID','Unbekannter E-Mail-Typ.');
+ if(kind==='shipping'&&(order.items||[]).some(x=>!['Shipped','Invoiced'].includes(x.status)))throw problem('URGENT_NOT_SHIPPED','Versandbestätigung erst nach Status Shipped für alle Positionen möglich.',409);
+ const to=email(p.to);
+ if(to!==order.email)throw problem('URGENT_MAIL_RECIPIENT_MISMATCH','Empfänger entspricht nicht der CS-E-Mail des Auftrags.',409);
+ const subject=String(p.subject==null?'':p.subject);
+ const body=String(p.body==null?'':p.body);
+ if(!subject.trim()||subject.length>250||/[\r\n\x00]/.test(subject))throw problem('URGENT_MAIL_SUBJECT_INVALID','Bitte einen gültigen Betreff eingeben (maximal 250 Zeichen).');
+ if(!body.trim()||body.length>20000||body.includes('\x00'))throw problem('URGENT_MAIL_BODY_INVALID','Bitte einen gültigen E-Mail-Text eingeben (maximal 20.000 Zeichen).');
+ const actorId=text(actor&&actor.id,150);
+ if(!actorId)throw problem('URGENT_ACTOR_REQUIRED','Angemeldeter Mitarbeiter erforderlich.',401);
+ const mail={
+  id:crypto.randomUUID(),kind,to,subject,body,language:language(p.language||order.language),
+  createdAt:now,createdBy:{id:actorId,name:text(actor.name||actor.user||actor.login||actorId,150)},
+  status:'open_requested',sentAt:null,sentConfirmedBy:null
+ };
+ order.mailHistory=Array.isArray(order.mailHistory)?order.mailHistory:[];
+ order.mailHistory.push(mail);
+ order.updatedAt=now;
+ order.history=Array.isArray(order.history)?order.history:[];
+ order.history.push({at:now,actorId,event:'mail_open_requested',mailId:mail.id,kind});
+ if(order.history.length>200)order.history=order.history.slice(-200);
+ return mail;
+}
+function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
+ if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Versandbestätigungen erfassen.',403);
+ const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
+ if(!mail)throw problem('URGENT_MAIL_NOT_FOUND','Gespeicherter E-Mail-Entwurf nicht gefunden.',404);
+ if(mail.status==='sent_confirmed')return mail;
+ if(mail.status!=='open_requested')throw problem('URGENT_MAIL_STATUS_INVALID','Der Mailstatus kann nicht bestätigt werden.',409);
+ const actorId=text(actor&&actor.id,150);
+ if(!actorId)throw problem('URGENT_ACTOR_REQUIRED','Angemeldeter Mitarbeiter erforderlich.',401);
+ mail.status='sent_confirmed';mail.sentAt=now;
+ mail.sentConfirmedBy={id:actorId,name:text(actor.name||actor.user||actor.login||actorId,150)};
+ order.updatedAt=now;
+ order.history=Array.isArray(order.history)?order.history:[];
+ order.history.push({at:now,actorId,event:'mail_sent_manually_confirmed',mailId:mail.id,kind:mail.kind});
+ if(order.history.length>200)order.history=order.history.slice(-200);
+ return mail;
+}
+
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent};

@@ -170,6 +170,22 @@ async function execute(req,user,refs){
    return{order};
   });
  }
+ if(action==='record-mail-handoff'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails dokumentieren.',403);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,model.text(p.id,90),user);
+   const mail=model.recordMailHandoff(order,p,user,now);
+   return{mail,order};
+  });
+ }
+ if(action==='confirm-mail-sent'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails als versendet bestätigen.',403);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,model.text(p.id,90),user);
+   const mail=model.confirmMailSent(order,model.text(p.mailId,90),user,now);
+   return{mail,order};
+  });
+ }
  if(action==='prepare-mail'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails vorbereiten.',403);
   const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value),order=accessibleOrder(doc,model.text(p.id,90),user);
