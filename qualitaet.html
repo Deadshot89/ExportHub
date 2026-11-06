@@ -87,6 +87,7 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 <div class="field"><label for="status">Bearbeitungsstand</label><select id="status" name="status"><option value="offen">Offen</option><option value="ursachenanalyse">Ursachenanalyse</option><option value="massnahme">Maßnahme wird umgesetzt</option><option value="wirksamkeitspruefung">Wirksamkeit prüfen</option><option value="abgeschlossen" disabled>Abgeschlossen (nur mit Prüfung)</option></select></div>
 <div class="field wide"><label for="evidence">Nachweis / Dokumentreferenz</label><textarea id="evidence" name="evidence" maxlength="2000" placeholder="z. B. Prüfprotokoll, Foto-/Dateiname oder Referenzordner"></textarea></div>
 </div>
+<div class="field wide" id="attachBlock" hidden><label for="attachInput">Anhänge (Fotos, PDF – max. 15 MB, höchstens 10 je Fall)</label><input id="attachInput" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><ul id="attachList" class="helper" style="margin:8px 0 0;padding-left:18px"></ul></div>
 <div class="section-title">03 · War die Maßnahme erfolgreich?</div>
 <div class="fields">
 <div class="field"><label for="effectivenessResult">Bewertung</label><select id="effectivenessResult" name="effectivenessResult"><option value="">Noch nicht geprüft</option><option value="offen">Prüfung offen</option><option value="wirksam">Wirksam</option><option value="unwirksam">Nicht wirksam</option></select></div>
@@ -132,8 +133,36 @@ function fill(item){
  el('saveHint').textContent=closed?'Abgeschlossen':item?'Gespeichert':'Noch nicht gespeichert';
  dirty=false;currentAdvice=[];notice('');el('suggestions').classList.remove('show');history(item);
 }
+function fmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
+function renderAttachments(item){
+ el('attachBlock').hidden=!item;if(!item)return;
+ var closed=item.status==='abgeschlossen',list=item.attachments||[];
+ el('attachInput').disabled=closed||busy;
+ el('attachList').innerHTML=list.length?list.map(function(a){return'<li><a href="#" data-att="'+esc(a.id)+'">'+esc(a.name)+'</a> · '+esc(fmtSize(a.size))+' · '+esc(a.uploadedBy||'')+' · '+esc(new Date(a.uploadedAt).toLocaleDateString('de-DE'))+'</li>'}).join(''):'<li>Noch kein Anhang</li>';
+}
+function readBase64(file){return new Promise(function(ok,fail){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');ok(i>=0?s.slice(i+1):s)};r.onerror=function(){fail(r.error||Error('Datei nicht lesbar'))};r.readAsDataURL(file)})}
+async function attachFiles(files){
+ if(!selected||busy)return;
+ if(dirty){notice('Bitte den Fall zuerst speichern, danach Anhänge hinzufügen.',true);return}
+ setBusy(true);var ok=0,failed=[];
+ try{for(var i=0;i<files.length;i++){
+  var f=files[i];
+  try{if(f.size>15*1024*1024)throw Error('größer als 15 MB');await api({action:'attach',id:selected.id,fileName:f.name,data:await readBase64(f)});ok++}
+  catch(e){failed.push(f.name+': '+(e&&e.message||e))}
+ }}finally{setBusy(false)}
+ try{await load(selected.id)}catch(e){failed.push('Aktualisierung: '+(e&&e.message||e))}
+ notice(ok+' Anhang/Anhänge gespeichert'+(failed.length?'. Fehlgeschlagen: '+failed.join('; '):'.'),!!failed.length);
+}
+async function downloadAttachment(att){
+ var headers={'Content-Type':'application/json'},tk=token();if(tk){headers['X-ExportHUB-Token']=tk;headers.Authorization='Bearer '+tk}
+ var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers,body:JSON.stringify({action:'attachment',id:selected.id,attachmentId:att.id})});
+ if(!r.ok){var m='HTTP '+r.status;try{m=(await r.json()).message||m}catch(_){}throw Error(m)}
+ var blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=att.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},4000)
+}
+el('attachInput').addEventListener('change',function(){var files=Array.prototype.slice.call(this.files||[]);this.value='';if(files.length)attachFiles(files)});
+el('attachList').addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('[data-att]');if(!a||!selected)return;e.preventDefault();var att=(selected.attachments||[]).filter(function(x){return x.id===a.getAttribute('data-att')})[0];if(att)downloadAttachment(att).catch(function(err){notice(err.message,true)})});
 function integrityRow(item){var i=item&&item.historyIntegrity;if(!i)return'';return i.ok?'<div class="history-row"><span>Verlauf geprüft: lückenlos verkettet'+(i.legacy?' (die ersten '+i.legacy+' Einträge stammen aus der Zeit vor der Verkettung)':'')+'.</span></div>':'<div class="history-row" style="color:#b12438"><b>Verlauf nicht integer</b> ab Eintrag '+esc(String(i.brokenAt))+'. Der Fall ist für Änderungen gesperrt und muss von der Leitung geprüft werden.</div>'}
-function history(item){el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
+function history(item){renderAttachments(item);el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
  el('history').innerHTML=integrityRow(item)+(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
 function list(){
  el('countOpen').textContent=items.filter(function(x){return x.status!=='abgeschlossen'}).length;

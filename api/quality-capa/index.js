@@ -26,14 +26,14 @@ function userKey(u){return str(u&&(u.user||u.login||u.username||u.name),120).toL
 function actor(u){return str(u&&(u.name||u.user||u.username||u.login),120)||'Benutzer'}
 /* CAPA records do not belong in shared team.state: that state is readable by unrelated
  * ExportHUB functions. Use a private, environment-separated Blob guarded by this API. */
-function recordsClient(environment){
+function qualityContainer(environment){
  const test=environment==='testservice',isolated=test?isolationConfig():{enabled:false};
  const connection=test&&isolated.enabled?isolated.connectionString:primaryConnection(process.env);
  if(!connection)throw err('STORAGE_NOT_CONFIGURED','Qualitätsspeicher nicht konfiguriert',503);
  const container=test&&isolated.enabled?isolated.container:auth.TEAM_CONTAINER;
- const path=(test?'testservice/':'')+'quality/capa-cases.json';
- return BlobServiceClient.fromConnectionString(connection).getContainerClient(container).getBlockBlobClient(path);
+ return {container:BlobServiceClient.fromConnectionString(connection).getContainerClient(container),prefix:test?'testservice/':''};
 }
+function recordsClient(environment){const q=qualityContainer(environment);return q.container.getBlockBlobClient(q.prefix+'quality/capa-cases.json')}
 function recordsOf(doc){
  if(!doc||doc.schemaVersion!==1||!Array.isArray(doc.items)||!doc.items.every(item=>item&&typeof item.id==='string'&&item.id.startsWith('QM-')&&Number.isInteger(item.revision)&&item.revision>=1&&Array.isArray(item.history)))
   throw err('STORAGE_DATA_INVALID','QM-Daten sind unvollständig oder beschädigt. Speichern gesperrt, um Datenverlust zu verhindern.',503);
@@ -134,7 +134,7 @@ function verifyChain(history){
  return{ok:true,brokenAt:0,legacy};
 }
 function requireIntactHistory(item){if(!verifyChain(item.history).ok)throw err('HISTORY_BROKEN','Der Verlauf dieses Falls ist nicht integer. Änderungen sind gesperrt, bis die Leitung den Fall geprüft hat.',409)}
-function withIntegrity(item){return Object.assign({},item,{historyIntegrity:verifyChain(item.history)})}
+function withIntegrity(item){return Object.assign({},item,{historyIntegrity:verifyChain(item.history),attachments:publicAttachments(item)})}
 function event(caseItem,action,user,notes,changedFields){
  caseItem.history=Array.isArray(caseItem.history)?caseItem.history:[];
  if(caseItem.history.length>=MAX_HISTORY)throw err('HISTORY_LIMIT','Der Verlauf dieses Falls hat die Höchstzahl erreicht. Bitte einen Folgefall anlegen.',409);
@@ -181,6 +181,45 @@ function reopenCase(item,p,user){
  if(Number(p.revision)!==Number(item.revision))throw err('CONFLICT','Fall wurde zwischenzeitlich geändert',409);
  item.status='ursachenanalyse';item.closedAt='';item.effectivenessResult='offen';item.effectivenessEvidence='';item.verifiedOn='';item.verifiedBy='';item.updatedAt=new Date().toISOString();item.revision++;event(item,'WIEDEREROEFFNET',user,reason);return item
 }
+/* Anhänge: PDF/JPG/PNG als Nachweis. Dateien liegen im privaten QM-Speicher (nicht im Team-State), im Fall stehen nur
+ * Metadaten und der SHA-256. Beim Herunterladen wird der Hash erneut geprüft. */
+const ATTACH_TYPES={'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png'};
+const MAX_ATTACH_BYTES=15*1024*1024,MAX_ATTACHMENTS=10;
+function attachSignatureOk(ext,b){
+ if(ext==='.pdf')return b.length>=5&&b.subarray(0,5).toString('ascii')==='%PDF-';
+ if(ext==='.jpg'||ext==='.jpeg')return b.length>=3&&b[0]===0xff&&b[1]===0xd8&&b[2]===0xff;
+ if(ext==='.png')return b.length>=8&&b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+ return false
+}
+function parseAttachment(p){
+ const base=str(p&&(p.fileName||p.name),300).split(/[\\/]/).pop();
+ const name=base.replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').trim().slice(0,120);
+ const ext=((name.toLowerCase().match(/(\.[a-z0-9]+)$/)||[])[1])||'';
+ const mime=ATTACH_TYPES[ext];
+ if(!name||!mime)throw err('ATTACH_TYPE','Nur PDF, JPG oder PNG sind als Anhang erlaubt',400);
+ const raw=String(p&&p.data||'').replace(/^data:[^,]*,/,'').replace(/\s+/g,'');
+ if(raw.length>Math.ceil(MAX_ATTACH_BYTES/3)*4+8)throw err('ATTACH_SIZE','Der Anhang ist größer als 15 MB',413);
+ if(!raw||!/^[A-Za-z0-9+/]+={0,2}$/.test(raw))throw err('ATTACH_EMPTY','Der Anhang ist leer oder ungültig',400);
+ const buffer=Buffer.from(raw,'base64');
+ if(!buffer.length)throw err('ATTACH_EMPTY','Der Anhang ist leer oder ungültig',400);
+ if(buffer.length>MAX_ATTACH_BYTES)throw err('ATTACH_SIZE','Der Anhang ist größer als 15 MB',413);
+ if(!attachSignatureOk(ext,buffer))throw err('ATTACH_CONTENT','Der Dateiinhalt passt nicht zum Dateityp',400);
+ const sha256=crypto.createHash('sha256').update(buffer).digest('hex');
+ return{id:sha256.slice(0,16),name,mime,size:buffer.length,sha256,ext,buffer}
+}
+function verifyAttachmentBytes(meta,buffer){return !!meta&&Buffer.isBuffer(buffer)&&crypto.createHash('sha256').update(buffer).digest('hex')===meta.sha256}
+function canAttach(item,user){return canEdit(user)||!!(item&&item.createdByUser&&item.createdByUser===userKey(user)&&item.status==='offen')}
+function addAttachment(item,a,user){
+ requireIntactHistory(item);
+ if(item.status==='abgeschlossen')throw err('CLOSED','Der Fall ist abgeschlossen. Zum Anhängen bitte zuerst wieder öffnen',409);
+ item.attachments=Array.isArray(item.attachments)?item.attachments:[];
+ if(item.attachments.some(x=>x.sha256===a.sha256))return item;
+ if(item.attachments.length>=MAX_ATTACHMENTS)throw err('ATTACH_LIMIT','Je Fall sind höchstens '+MAX_ATTACHMENTS+' Anhänge möglich',409);
+ const at=new Date().toISOString();
+ item.attachments.push({id:a.id,name:a.name,mime:a.mime,size:a.size,sha256:a.sha256,blobPath:'quality/attachments/'+item.id+'/'+a.sha256+a.ext,uploadedAt:at,uploadedBy:actor(user)});
+ event(item,'ANHANG',user,a.name);item.revision++;item.updatedAt=at;return item
+}
+function publicAttachments(item){return(Array.isArray(item.attachments)?item.attachments:[]).map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,sha256:x.sha256,uploadedAt:x.uploadedAt,uploadedBy:x.uploadedBy}))}
 /* Meldung für jeden angemeldeten Mitarbeiter: nur Meldefelder, Status immer 'offen', höchstens 20 Meldungen je Benutzer und 24 h. */
 const REPORT_FIELDS=['title','description','category','severity','occurredOn','area','reference','impact','immediateAction'];
 const MAX_REPORTS_PER_DAY=20;
@@ -206,6 +245,19 @@ module.exports=async function(context,req){
  try{
   const payload=body(req);const current=await auth.validateSession(req),user=current.user;
   const action=str(payload.action||'list',30).toLowerCase(),env=auth.environmentFromRequest(req);
+  if(action==='attach'){
+   const file=parseAttachment(payload),id=str(payload.id,50);
+   const found=recordsOf((await readRecords(env)).value).find(x=>x.id===id);
+   if(!found)throw err('NOT_FOUND','Fall nicht gefunden',404);
+   requireRight(canAttach(found,user),'Anhänge zu diesem Fall');
+   const q=qualityContainer(env),path='quality/attachments/'+found.id+'/'+file.sha256+file.ext;
+   await q.container.getBlockBlobClient(q.prefix+path).uploadData(file.buffer,{blobHTTPHeaders:{blobContentType:file.mime}});
+   const saved=await mutateRecords(env,items=>{
+    const idx=items.findIndex(x=>x.id===id);if(idx<0)throw err('NOT_FOUND','Fall nicht gefunden',404);
+    const item=JSON.parse(JSON.stringify(items[idx]));requireRight(canAttach(item,user),'Anhänge zu diesem Fall');
+    addAttachment(item,file,user);items[idx]=item;return {items,item};
+   });
+   context.res=json(200,{ok:true,id:saved.id,attachments:publicAttachments(saved)});return}
   if(action==='report'||action==='report-note'){
    const saved=await mutateRecords(env,items=>{
     let item;
@@ -216,6 +268,13 @@ module.exports=async function(context,req){
    // Melder ohne Leserecht erhalten nur die Fallnummer zurück, keine fremden Daten.
    context.res=json(200,{ok:true,id:saved.id,environment:env});return}
   requireRight(canRead(user),'Qualitätsabweichungen');
+  if(action==='attachment'){
+   const item=recordsOf((await readRecords(env)).value).find(x=>x.id===str(payload.id,50));
+   const meta=item&&(item.attachments||[]).find(x=>x.id===str(payload.attachmentId,40));
+   if(!meta)throw err('NOT_FOUND','Anhang nicht gefunden',404);
+   const q=qualityContainer(env),buffer=await q.container.getBlockBlobClient(q.prefix+meta.blobPath).downloadToBuffer();
+   if(!verifyAttachmentBytes(meta,buffer))throw err('ATTACH_INTEGRITY','Der Anhang stimmt nicht mehr mit dem gespeicherten Prüfwert überein',409);
+   context.res={status:200,isRaw:true,headers:{'Content-Type':meta.mime,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(meta.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};return}
   if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items:items.map(withIntegrity),environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);
@@ -241,4 +300,4 @@ module.exports=async function(context,req){
   context.res=json(200,{ok:true,item:saved,environment:env});
  }catch(e){context.log&&context.log.warn&&context.log.warn('quality-capa',e.code||'SERVER_ERROR');context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:apiI18n.t(req,'api.state.unknownStorage')})}
 };
-module.exports._test={verifyChain,reportCase,addReportNote,withIntegrity,canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,validatedSnapshot,STATUSES};
+module.exports._test={parseAttachment,addAttachment,canAttach,verifyAttachmentBytes,verifyChain,reportCase,addReportNote,withIntegrity,canRead,canEdit,canClose,cleanPatch,newCase,updateCase,closeCase,reopenCase,advice,relatedCases,recordsOf,validatedSnapshot,STATUSES};
