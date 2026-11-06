@@ -71,6 +71,32 @@ test('RC1810 von Hand wieder geöffnete Aufgabe wird nicht erneut gestrichen, er
   assert.equal(state.tasks[0].rc1810Holiday.action,'override');
 });
 
+test('RC1810 Stornieren: Aufgabe bleibt erhalten, Ferienlogik fasst sie nicht an, Wieder öffnen stellt sie her',()=>{
+  const state={tasks:[master('fr','Freitag','2026-W52'),{id:'one',title:'Einzelaufgabe',dueDate:'2026-12-28',status:'open'}]};
+  const {api}=load(state);
+  const fr=state.tasks[0];
+  assert.equal(api.cancelTask(fr,{user:'Tobias',now:'2026-11-06T10:00:00Z'}),true);
+  assert.equal(fr.status,'cancelled');
+  assert.equal(fr.cancelReason,'manual');
+  assert.equal(fr.cancelledBy,'Tobias');
+  assert.equal(fr.statusUpdatedAt,'2026-11-06T10:00:00Z','Statuszeit schützt vor altem Ledger-Eintrag beim Server-Merge');
+  assert.equal(state.tasks.length,2,'nichts gelöscht');
+  api.applyToTasks(state);
+  assert.equal(fr.status,'cancelled','Feiertagslogik überschreibt eine von Hand stornierte Aufgabe nicht');
+  assert.equal(fr.rc1810Holiday,undefined);
+  assert.equal(api.cancelTask(fr),false,'doppelt stornieren ändert nichts');
+  assert.equal(api.uncancelTask(fr,{now:'2026-11-06T11:00:00Z'}),true);
+  assert.equal(fr.status,'offen');
+  assert.equal(fr.cancelReason,undefined);
+  assert.equal(fr.rc1810Cancel,undefined);
+  api.applyToTasks(state);
+  assert.equal(fr.day,'Donnerstag','nach Wieder öffnen greift die Feiertagsregel wieder');
+  const done={id:'d',title:'x',status:'erledigt',done:true};
+  assert.equal(api.cancelTask(done),false,'erledigte Aufgaben werden nicht storniert');
+  const one=state.tasks[1];api.cancelTask(one);api.uncancelTask(one);
+  assert.equal(one.status,'open','voriger Status kommt zurück');
+});
+
 test('RC1810 Datumseingabe: TT-MM-JJJJ und TT.MM.JJJJ werden verstanden',()=>{
   const {api}=load({tasks:[]});
   assert.equal(api.dayKey('24-12-2026'),'2026-12-24');
@@ -96,5 +122,7 @@ test('RC1810 Seite: Reiter, Menü zusammengeführt, Korrekturen in der RC971-Ebe
   assert.match(texts,/Betriebsferien & Feiertage/);
   assert.match(css,/@layer rc971\{/);
   assert.match(css,/#rc1810TaskBoard#rc1810TaskBoard#rc1810TaskBoard\{display:grid!important\}/);
+  assert.match(board,/data-rc1810-cancel=/,'Stornieren-Knopf im Detailbereich');
+  assert.match(board,/data-rc1810-uncancel=/,'Wieder öffnen für stornierte Aufgaben');
   assert.match(board,/var TAB_ATTR='data-rc1810-board-tab';/,'Body-Attribut darf nicht wie ein Reiter-Knopf heißen (closest() träfe sonst body)');
 });

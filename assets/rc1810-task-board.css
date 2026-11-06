@@ -38,6 +38,8 @@ html body[data-rc1810-board-tab="liste"] #rc1570Tasks#rc1570Tasks > .rc1570-head
 .rc1810-btn{border:1px solid var(--rc1810-line);background:var(--rc1810-surface);color:var(--rc1810-text);font:inherit;font-weight:700;font-size:.84rem;padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
 .rc1810-btn:hover{background:var(--rc1810-sunken)}
 .rc1810-btn.rc1810-primary{background:var(--rc1810-primary);border-color:var(--rc1810-primary);color:#fff}
+.rc1810-btn.rc1810-danger{border-color:var(--rc1810-crit);color:var(--rc1810-crit)}
+.rc1810-btn.rc1810-danger:hover{background:var(--rc1810-crit-soft)}
 .rc1810-board button:focus-visible,.rc1810-dlg button:focus-visible,.rc1810-dlg input:focus-visible{outline:2px solid var(--rc1810-primary);outline-offset:2px}
 .rc1810-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .rc1810-chips{display:flex;flex-wrap:wrap;gap:8px}

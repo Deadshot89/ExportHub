@@ -194,6 +194,24 @@ function run(){
   catch(err){try{console.warn('RC1810 Feiertage',err)}catch(_){}}
   finally{setTimeout(function(){running=false},50)}
 }
+/* Von Hand stornieren: Aufgabe bleibt erhalten (kein Löschen), Status "cancelled", Grund "manual".
+   Wochenplan-Instanzen (RC848) gelten storniert als vorhanden und werden nicht neu angelegt. */
+var MANUAL_REASON='manual';
+function stamp(t,now){t.updatedAt=now;t.statusUpdatedAt=now;t._syncUpdatedAt=now}
+function cancelTask(t,opts){
+  opts=opts||{};if(!t||low(t.status)==='cancelled'||userFinished(t))return false;
+  var now=q(opts.now)||new Date().toISOString();
+  t.rc1810Cancel={prevStatus:Object.prototype.hasOwnProperty.call(t,'status')?t.status:null,at:now,by:q(opts.user)};
+  t.status='cancelled';t.done=false;t.completed=false;t.cancelReason=MANUAL_REASON;t.cancelledAt=now;t.cancelledBy=q(opts.user);
+  stamp(t,now);return true;
+}
+function uncancelTask(t,opts){
+  opts=opts||{};if(!t||!/^(cancelled|canceled|storniert)$/.test(low(t.status)))return false;
+  var now=q(opts.now)||new Date().toISOString(),prev=t.rc1810Cancel&&t.rc1810Cancel.prevStatus;
+  t.status=prev&&!/^(cancelled|canceled|storniert)$/.test(low(prev))?prev:(t.masterTaskRC848?'offen':'open');
+  t.done=false;t.completed=false;delete t.cancelReason;delete t.cancelledAt;delete t.cancelledBy;delete t.rc1810Cancel;
+  stamp(t,now);return true;
+}
 function schedule(){if(timer)return;timer=setTimeout(run,400)}
 if(typeof root.addEventListener==='function'){
   ['exporthub:ready','exporthub:state-loaded','exporthub:sync','exporthub:tasks-updated'].forEach(function(n){try{root.addEventListener(n,function(e){if(e&&e.detail&&e.detail.source===VERSION)return;schedule()})}catch(_){}});
@@ -204,7 +222,7 @@ root.ExportHUBTaskCalendar1810=Object.freeze({
   version:VERSION,cancelReason:CANCEL_REASON,calendar:function(s){return calendarOf(s||state()||{})},
   nonWork:function(key,s){return nonWork(key,calendarOf(s||state()||{}))},isWorkday:function(key,s){return isWorkday(key,calendarOf(s||state()||{}))},
   holidaysBetween:holidaysBetween,isRoutine:isRoutine,plannedDayOf:plannedDayOf,applyToTasks:applyToTasks,
-  saveClosure:saveClosure,removeClosure:removeClosure,setHolidayRule:setHolidayRule,run:run,
+  saveClosure:saveClosure,removeClosure:removeClosure,cancelTask:cancelTask,uncancelTask:uncancelTask,manualReason:MANUAL_REASON,setHolidayRule:setHolidayRule,run:run,
   _shiftInWeek:function(key,rule,s){return shiftInWeek(key,rule,calendarOf(s||{}))},weekKeyOf:weekKeyOf,mondayOf:mondayOf,addDays:addDays,dayKey:dayKey
 });
 })(typeof window!=='undefined'?window:globalThis);

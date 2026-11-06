@@ -45,6 +45,7 @@ function monthTitle(y,m){try{return new Intl.DateTimeFormat(lang()==='de'?'de-DE
 function taskId(x){return q(x&&(x.id||x.taskId||x.uuid))}
 function title(x){return q(x&&(x.title||x.name||x.text))}
 function isCancelled(x){return /^(cancelled|canceled|storniert)$/i.test(q(x&&x.status))}
+function isManualCancel(x){return isCancelled(x)&&q(x&&x.cancelReason)!==q(cal()&&cal().cancelReason||'rc1810_holiday')}
 function isDone(x){return !!(x&&(x.done===true||x.completed===true))||/^(erledigt|done|abgeschlossen|completed|archiviert)$/i.test(q(x&&x.status))}
 function isTemplate(x){return !!(x&&(x.isTemplate||x.template||x.recurringTemplate||x.repeatTemplate||x.isRecurringTemplate||x.seriesTemplate))}
 function isRoutine(x){var c=cal();if(c&&c.isRoutine(x))return true;return !!(x&&(x.masterTaskRC848||x.weeklySeriesId||/week|woch/i.test(q(x.recurrence))))}
@@ -81,7 +82,7 @@ function tags(x){
   var p=prio(x),h=x.rc1810Holiday,out='';
   if(p==='P0'||p==='P1')out+='<span class="rc1810-tag rc1810-'+p.toLowerCase()+'">'+p+'</span>';
   if(h&&h.action==='moved')out+='<span class="rc1810-tag rc1810-mv">'+esc(t('movedTag'))+'</span>';
-  if(isCancelled(x))out+='<span class="rc1810-tag rc1810-sk">'+esc(t('skipped'))+'</span>';
+  if(isCancelled(x))out+='<span class="rc1810-tag rc1810-sk">'+esc(isManualCancel(x)?t('cancelledTag'):t('skipped'))+'</span>';
   return out;
 }
 function taskBtn(x,opts){
@@ -130,10 +131,10 @@ function weekHtml(){
     var openCount=list.filter(function(x){return !isDone(x)&&!isCancelled(x)}).length;
     var cells=days.map(function(k){
       var o=nonWork(k),cell=list.filter(function(x){return taskDay(x)===k}).sort(sortTasks);
-      var imp=cell.filter(function(x){return !isRoutine(x)}),rout=cell.filter(function(x){return isRoutine(x)&&!isCancelled(x)});
+      var imp=cell.filter(function(x){return !isRoutine(x)}),rout=cell.filter(function(x){return isRoutine(x)&&(!isCancelled(x)||isManualCancel(x))});
       if(o&&!imp.length&&!rout.length)return '<td class="is-off"><span class="rc1810-offtxt">'+esc(t('noTasks'))+'</span></td>';
-      var ck=r+'|'+k,isOpen=!!ui.open[ck],dn=rout.filter(isDone).length,hasMoved=rout.some(function(x){return x.rc1810Holiday&&x.rc1810Holiday.action==='moved'});
-      var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+rout.length+'<span class="rc1810-progress"><i style="width:'+Math.round(dn/rout.length*100)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):''})}).join('')+'</div>':'')+'</div>':'';
+      var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length,hasMoved=rout.some(function(x){return x.rc1810Holiday&&x.rc1810Holiday.action==='moved'});
+      var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):''})}).join('')+'</div>':'')+'</div>':'';
       return '<td class="'+(k===today?'is-today ':'')+(o?'is-off':'')+'">'+imp.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+rh+'</td>';
     }).join('');
     return '<tr><th scope="row" class="rc1810-rowh"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span><span class="rc1810-sub">'+esc(t('open',{count:openCount}))+'</span></th>'+cells+'</tr>';
@@ -152,10 +153,10 @@ function weekListHtml(days,inWeek,rows,today){
     var head='<h3 class="rc1810-dayh'+(k===today?' is-today':'')+(o?' is-off':'')+'">'+esc(fmt(k))+(o?' · '+esc(o.label):(k===today?' · '+esc(t('today')):''))+'</h3>';
     var groups=rows.map(function(r){
       var list=cell.filter(function(x){return rowKey(x)===r}).sort(sortTasks);if(!list.length)return '';
-      var imp=list.filter(function(x){return !isRoutine(x)}),rout=list.filter(function(x){return isRoutine(x)&&!isCancelled(x)});
-      var ck=r+'|'+k,isOpen=!!ui.open[ck],dn=rout.filter(isDone).length;
+      var imp=list.filter(function(x){return !isRoutine(x)}),rout=list.filter(function(x){return isRoutine(x)&&(!isCancelled(x)||isManualCancel(x))});
+      var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length;
       return '<div class="rc1810-daygroup"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span>'+imp.map(function(x){return taskBtn(x,{meta:areaOf(x)===t('noArea')?'':areaOf(x)})}).join('')+
-        (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+rout.length+'<span class="rc1810-progress"><i style="width:'+Math.round(dn/rout.length*100)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x)}).join('')+'</div>':'')+'</div>':'')+'</div>';
+        (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x)}).join('')+'</div>':'')+'</div>':'')+'</div>';
     }).join('');
     return '<section class="rc1810-day'+(o?' is-off':'')+'">'+head+(groups||'<p class="rc1810-offtxt">'+esc(t('noTasks'))+'</p>')+'</section>';
   }).join('')+'</div>';
@@ -198,13 +199,14 @@ function todayHtml(){
 /* Details */
 function panelHtml(){
   var x=ui.sel&&findTask(ui.sel);if(!x)return '';
-  var h=x.rc1810Holiday,p=prio(x),st=isCancelled(x)?t('stCancelled'):isDone(x)?t('stDone'):t('stOpen'),ref=q(x.shipmentRef||x.ref||x.reference);
+  var h=x.rc1810Holiday,p=prio(x),st=isCancelled(x)?(isManualCancel(x)?t('stCancelledManual')+(q(x.cancelledBy)?' · '+q(x.cancelledBy):''):t('stCancelled')):isDone(x)?t('stDone'):t('stOpen'),ref=q(x.shipmentRef||x.ref||x.reference);
   var rows=[[t('due'),taskDay(x)?fmt(taskDay(x))+(q(x.time)?' · '+q(x.time):''):''],[t('owner'),ownerOf(x)],[t('priority'),p||t('normal')],[t('repeat'),isRoutine(x)?t('weekly'):t('once')],
     h&&h.action==='moved'?[t('movedFrom'),t('movedFromVal',{date:fmt(h.originalDate),label:h.label||''})]:null,[t('status'),st],
     q(x.customerName||x.customer)?[t('customer'),q(x.customerName||x.customer)]:null,ref?[t('ref'),ref]:null].filter(Boolean);
   return '<div class="rc1810-eyebrow">'+esc(areaOf(x))+'</div><h2>'+esc(title(x))+'</h2><dl>'+rows.map(function(r){return '<dt>'+esc(r[0])+'</dt><dd>'+(esc(r[1])||'–')+'</dd>'}).join('')+'</dl>'+
     (q(x.note||x.description)?'<p class="rc1810-note">'+esc(x.note||x.description)+'</p>':'')+
-    '<div class="rc1810-actions">'+(canWrite()&&!isCancelled(x)?'<button type="button" class="rc1810-btn rc1810-primary" data-rc1810-check="'+esc(taskId(x))+'">'+esc(isDone(x)?t('reopen'):t('markDone'))+'</button><button type="button" class="rc1810-btn" data-rc1810-edit="'+esc(taskId(x))+'">'+esc(t('edit'))+'</button>':'')+
+    '<div class="rc1810-actions">'+(canWrite()&&!isCancelled(x)?'<button type="button" class="rc1810-btn rc1810-primary" data-rc1810-check="'+esc(taskId(x))+'">'+esc(isDone(x)?t('reopen'):t('markDone'))+'</button><button type="button" class="rc1810-btn" data-rc1810-edit="'+esc(taskId(x))+'">'+esc(t('edit'))+'</button>'+(isDone(x)?'':'<button type="button" class="rc1810-btn rc1810-danger" data-rc1810-cancel="'+esc(taskId(x))+'">'+esc(t('cancel'))+'</button>'):'')+
+    (canWrite()&&isCancelled(x)?'<button type="button" class="rc1810-btn rc1810-primary" data-rc1810-uncancel="'+esc(taskId(x))+'">'+esc(t('reopen'))+'</button>':'')+
     (ref?'<button type="button" class="rc1810-btn" data-rc1810-ref="'+esc(ref)+'">'+esc(t('openShipment'))+'</button>':'')+
     '<button type="button" class="rc1810-btn" data-rc1810-close="1">'+esc(t('close'))+'</button></div>';
 }
@@ -284,10 +286,30 @@ async function toggleTask(id){
   catch(err){toast(t('saveFailed'));try{console.error('RC1810 task save failed',err)}catch(_){}}
   finally{safeRender(true);try{var f=focus();if(f&&f.refresh)f.refresh()}catch(_){}}
 }
+async function setCancelled(id,on){
+  if(!canWrite()){toast(t('noRights'));return}
+  var x=findTask(id),c=cal();if(!x||!c)return;
+  if(on){var msg=isRoutine(x)?t('cancelConfirmRoutine',{title:title(x),date:fmt(taskDay(x))}):t('cancelConfirm',{title:title(x)});
+    try{if(typeof w.confirm==='function'&&!w.confirm(msg))return}catch(_){}}
+  var before=JSON.parse(JSON.stringify(x)),u=currentUser(),who=q(u&&(u.name||u.displayName||u.email||u.id));
+  var ok=on?c.cancelTask(x,{user:who}):c.uncancelTask(x,{user:who});if(!ok){safeRender(true);return}
+  try{
+    var clean=w.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function')throw new Error('RC1810_STORAGE_UNAVAILABLE');
+    var queued=await Promise.resolve(clean.queueSave(on?'RC1810 task cancelled':'RC1810 task reopened'));if(queued===false)throw new Error('RC1810_QUEUE_REJECTED');
+    if(typeof clean.flushSave==='function'){var saved=await Promise.resolve(clean.flushSave(on?'RC1810 task cancelled':'RC1810 task reopened',{force:true,userInitiated:true}));if(saved!==true)throw new Error('RC1810_SAVE_NOT_CONFIRMED')}
+    toast(on?t('savedCancelled'):t('savedOpen'));
+    try{w.dispatchEvent(new CustomEvent('exporthub:tasks-updated',{detail:{source:'RC1810-board',ids:[id]}}))}catch(_){}
+  }catch(err){
+    Object.keys(x).forEach(function(k){delete x[k]});Object.assign(x,before);
+    toast(t('saveFailed'));try{console.error('RC1810 task cancel failed',err)}catch(_){}
+  }finally{safeRender(true);try{var f=focus();if(f&&f.refresh)f.refresh()}catch(_){}}
+}
 function setTab(tab){if(TABS.indexOf(tab)<0)return;ui.tab=tab;remember();safeRender(true);if(tab==='liste'){try{var f=focus();if(f&&f.refresh)f.refresh()}catch(_){}}}
 function bindBoard(board){
   board.addEventListener('click',function(e){
     var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
+    if((b=el.closest('[data-rc1810-cancel]'))){e.preventDefault();setCancelled(b.getAttribute('data-rc1810-cancel'),true);return}
+    if((b=el.closest('[data-rc1810-uncancel]'))){e.preventDefault();setCancelled(b.getAttribute('data-rc1810-uncancel'),false);return}
     if((b=el.closest('[data-rc1810-check]'))){e.preventDefault();toggleTask(b.getAttribute('data-rc1810-check'));return}
     if((b=el.closest('[data-rc1810-open]'))){e.preventDefault();var id=b.getAttribute('data-rc1810-open');ui.sel=ui.sel===id?'':id;safeRender(true);return}
     if((b=el.closest('[data-rc1810-tab]'))){e.preventDefault();setTab(b.getAttribute('data-rc1810-tab'));return}
