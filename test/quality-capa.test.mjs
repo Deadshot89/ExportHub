@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const api=require('../api/quality-capa/index.js');
-const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot}=api._test;
+const {canRead,canEdit,canClose,newCase,updateCase,closeCase,reopenCase,cleanPatch,advice,relatedCases,recordsOf,validatedSnapshot,verifyChain,reportCase,addReportNote,withIntegrity,parseAttachment,addAttachment,canAttach,verifyAttachmentBytes}=api._test;
 const admin={name:'QM Leitung',role:'Admin'};
 const staff={name:'Warenausgang',role:'Mitarbeiter',rights:{sop:{level:'edit',read:true,edit:true}}};
 const viewer={name:'Leser',role:'Mitarbeiter',rights:{sop:{level:'view',read:true}}};
@@ -150,4 +150,110 @@ test('CAPA: release bundle includes page, server API and menu link',()=>{
 test('CAPA: unauthenticated calls never return cases',async()=>{
  const ctx={};await api(ctx,{method:'POST',headers:{},body:{action:'list'}});
  assert.equal(ctx.res.status,401);assert.equal(JSON.parse(ctx.res.body).ok,false);
+});
+
+test('CAPA: history is hash-chained, never truncated, and tampering is detected',()=>{
+ const item=fresh();
+ for(let i=0;i<40;i++)updateCase(item,{revision:item.revision,description:'Beschreibung '+i},staff);
+ assert.equal(item.history.length,41,'Verlauf wird nicht mehr gekürzt');
+ assert.deepEqual(item.history.map(e=>e.seq),Array.from({length:41},(_,i)=>i+1));
+ assert.equal(item.history[0].prevHash,'GENESIS');
+ assert.equal(item.history[1].prevHash,item.history[0].hash);
+ assert.deepEqual(verifyChain(item.history),{ok:true,brokenAt:0,legacy:0});
+ const edited=JSON.parse(JSON.stringify(item.history));edited[5].actor='Fremder';
+ assert.equal(verifyChain(edited).ok,false);assert.equal(verifyChain(edited).brokenAt,6);
+ const removed=JSON.parse(JSON.stringify(item.history));removed.splice(10,1);
+ assert.equal(verifyChain(removed).ok,false);
+ const reordered=JSON.parse(JSON.stringify(item.history));[reordered[3],reordered[4]]=[reordered[4],reordered[3]];
+ assert.equal(verifyChain(reordered).ok,false);
+});
+test('CAPA: existing history without hashes is accepted as legacy prefix and extended with a chain',()=>{
+ const item=fresh();item.history=[{at:'2026-10-01T10:00:00.000Z',action:'ANGELEGT',actor:'Alt',notes:'',changedFields:[]},{at:'2026-10-02T10:00:00.000Z',action:'AKTUALISIERT',actor:'Alt',notes:'',changedFields:['title']}];
+ updateCase(item,{revision:1,title:'Neu'},staff);
+ assert.equal(item.history.length,3);assert.equal(item.history[2].prevHash,'LEGACY');
+ assert.deepEqual(verifyChain(item.history),{ok:true,brokenAt:0,legacy:2});
+ const bad=JSON.parse(JSON.stringify(item.history));bad.splice(1,0,{at:'x',action:'X',actor:'Y',notes:'',changedFields:[]});
+ assert.equal(verifyChain(bad).ok,false,'unverkettete Einträge nach verketteten sind nicht zulässig');
+});
+test('CAPA: a case with broken history cannot be modified until reviewed',()=>{
+ const item=fresh();item.history[0].actor='Manipuliert';
+ assert.throws(()=>updateCase(item,{revision:1,title:'x'},staff),/Verlauf/);
+ assert.throws(()=>closeCase(item,{revision:1},admin),/Verlauf/);
+ assert.equal(withIntegrity(item).historyIntegrity.ok,false);
+});
+test('CAPA: every authenticated employee can report, but only report-level fields are accepted',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter',rights:{sop:{level:'none'}}};
+ assert.equal(canRead(plain),false);
+ const item=reportCase({title:'Falsche Ware',description:'Falsche Ware geladen',category:'verladung',rootCause:'erfunden',correctiveAction:'x',status:'abgeschlossen',effectivenessResult:'wirksam',owner:'Chef'},plain,[]);
+ assert.equal(item.status,'offen');assert.equal(item.rootCause,'');assert.equal(item.correctiveAction,'');
+ assert.equal(item.effectivenessResult,'');assert.equal(item.owner,'');
+ assert.equal(item.createdBy,'Lager');assert.equal(item.createdByUser,'lager1');
+ assert.equal(item.history[0].action,'GEMELDET');
+});
+test('CAPA: reporting is limited per user and per day',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter'};
+ const items=[];
+ for(let i=0;i<20;i++)items.unshift(reportCase({title:'F'+i,description:'B'},plain,items));
+ assert.throws(()=>reportCase({title:'Zu viel',description:'B'},plain,items),/Meldungen/);
+ const other={name:'Anderer',user:'andere',role:'Mitarbeiter'};
+ assert.ok(reportCase({title:'Ok',description:'B'},other,items));
+});
+test('CAPA: reporters may only add a note to their own still-open report',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter'};
+ const item=reportCase({title:'Falsche Ware',description:'B'},plain,[]);
+ addReportNote(item,{note:'Es war Palette 3'},plain);
+ assert.equal(item.history.at(-1).action,'ERGAENZT');assert.equal(item.history.at(-1).notes,'Es war Palette 3');
+ assert.throws(()=>addReportNote(item,{note:'x'},{name:'Fremd',user:'fremd'}),/eigene/);
+ assert.throws(()=>addReportNote(item,{note:''},plain),/Ergänzung/);
+ item.status='ursachenanalyse';
+ assert.throws(()=>addReportNote(item,{note:'spät'},plain),/offen/);
+});
+
+const PDF=Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF');
+const PNG=Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),Buffer.alloc(16)]);
+const JPG=Buffer.from([0xff,0xd8,0xff,0xe0,0,0,0,0]);
+const upload=(name,buf)=>({fileName:name,data:buf.toString('base64')});
+test('CAPA attachments: only PDF/JPG/PNG with matching content are accepted',()=>{
+ assert.equal(parseAttachment(upload('Foto 1.PNG',PNG)).mime,'image/png');
+ assert.equal(parseAttachment(upload('scan.jpeg',JPG)).mime,'image/jpeg');
+ const pdf=parseAttachment(upload('Beleg.pdf',PDF));
+ assert.equal(pdf.mime,'application/pdf');assert.equal(pdf.size,PDF.length);
+ assert.match(pdf.sha256,/^[0-9a-f]{64}$/);
+ assert.throws(()=>parseAttachment(upload('virus.exe',PDF)),/PDF, JPG oder PNG/);
+ assert.throws(()=>parseAttachment(upload('fake.pdf',PNG)),/inhalt/i);
+ assert.throws(()=>parseAttachment(upload('leer.pdf',Buffer.alloc(0))),/leer|ungültig/i);
+ assert.throws(()=>parseAttachment({fileName:'a.pdf',data:'***'}),/ungültig/i);
+ assert.throws(()=>parseAttachment(upload('gross.pdf',Buffer.concat([PDF,Buffer.alloc(15*1024*1024)]))),/15 MB/);
+});
+test('CAPA attachments: file names are sanitised, id and blob path are server-owned',()=>{
+ const a=parseAttachment(upload('..\\..\\evil/name?.pdf',PDF));
+ assert.doesNotMatch(a.name,/[\/?:*"<>|]/);
+ assert.match(a.id,/^[0-9a-f]{16}$/);
+ const item=fresh();addAttachment(item,a,staff);
+ assert.match(item.attachments[0].blobPath,new RegExp('^quality/attachments/'+item.id+'/'+a.sha256+'\\.pdf$'));
+ assert.equal(item.history.at(-1).action,'ANHANG');assert.equal(item.attachments[0].uploadedBy,'Warenausgang');
+ assert.equal(item.revision,2);
+});
+test('CAPA attachments: duplicates are idempotent, limit is 10, closed or broken cases refuse',()=>{
+ const item=fresh();const a=parseAttachment(upload('a.pdf',PDF));
+ addAttachment(item,a,staff);const rev=item.revision;
+ assert.equal(addAttachment(item,a,staff).attachments.length,1);assert.equal(item.revision,rev,'Duplikat ändert nichts');
+ for(let i=0;i<9;i++)addAttachment(item,parseAttachment(upload('f'+i+'.pdf',Buffer.concat([PDF,Buffer.from(String(i))]))),staff);
+ assert.equal(item.attachments.length,10);
+ assert.throws(()=>addAttachment(item,parseAttachment(upload('elf.pdf',Buffer.concat([PDF,Buffer.from('elf')]))),staff),/10 Anhänge/);
+ const closed=fresh();closed.status='abgeschlossen';
+ assert.throws(()=>addAttachment(closed,a,staff),/abgeschlossen|öffnen/);
+ const broken=fresh();broken.history[0].actor='X';
+ assert.throws(()=>addAttachment(broken,a,staff),/Verlauf/);
+});
+test('CAPA attachments: who may attach and download integrity',()=>{
+ const plain={name:'Lager',user:'lager1',role:'Mitarbeiter',rights:{sop:{level:'none'}}};
+ const own=reportCase({title:'T',description:'B'},plain,[]);
+ assert.equal(canAttach(own,plain),true,'Melder an eigener offener Meldung');
+ assert.equal(canAttach(own,{name:'Fremd',user:'fremd'}),false);
+ assert.equal(canAttach(own,staff),true,'Bearbeiter');
+ own.status='ursachenanalyse';assert.equal(canAttach(own,plain),false);
+ const a=parseAttachment(upload('a.pdf',PDF));
+ assert.equal(verifyAttachmentBytes(a,PDF),true);
+ assert.equal(verifyAttachmentBytes(a,Buffer.concat([PDF,Buffer.from('x')])),false);
 });
