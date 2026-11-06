@@ -264,7 +264,7 @@ async function sendHtmlAvis(sh,email,target,lang,url,mode){
  });
  var result=await response.json().catch(function(){return{}});
  if(!response.ok||result.ok!==true){
-  var error=new Error(q(result.message)||'Der formatierte AVIS-Mailversand ist aktuell nicht verfügbar. Sie können den bisherigen Outlook-Entwurf verwenden.');
+  var error=new Error(q(result.message)||tr('avisReminder.failed'));
   error.code=q(result.code)||'AVIS_HTML_SEND_FAILED';throw error
  }
  var event={id:q(result.historyId),at:q(result.sentAt),type:'mail-sent',label:mode==='initial'?'Lieferavis versendet':'Avis-Erinnerung versendet',details:{reference:refOf(sh),to:q(email),mailType:mode==='initial'?'avis-initial':'avis-reminder',language:lang,target:target}};
@@ -309,7 +309,7 @@ function openDialog(sh,mode){
    sendStatus.textContent=({de:'AVIS-Mail wurde erfolgreich versendet.',en:'Collection notice sent successfully.',pl:'Awizo zostało wysłane.',es:'Aviso enviado correctamente.',fr:'Avis envoyé avec succès.',it:'Avviso inviato correttamente.'})[l];
   }catch(err){
    sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');
-   sendStatus.textContent=q(err&&err.message)||'HTML-Versand nicht verfügbar. Bitte Outlook verwenden.';
+   sendStatus.textContent=q(err&&err.message)||tr('avisReminder.failed');
    htmlSend.disabled=false;open.disabled=false;
   }
  });
