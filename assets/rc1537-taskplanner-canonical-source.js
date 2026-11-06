@@ -127,8 +127,15 @@
     function persistFor(ctx,liveState){
       const supplied=ctx&&typeof ctx.persist==='function'?ctx.persist:null;
       return tasks=>{
-        liveState.tasks=arr(tasks);
-        if(supplied)return supplied(liveState.tasks);
+        // The V2 UI also persists non-task values through ctx.persist
+        // (view preference -> taskSettings object, templates -> taskTemplates).
+        // Only a task list may replace state.tasks; anything else used to
+        // become arr({...})=[] and wiped every task (Kompakt/Detailliert).
+        const isTaskList=Array.isArray(tasks)&&tasks!==liveState.taskTemplates;
+        if(isTaskList){
+          liveState.tasks=tasks;
+          if(supplied)return supplied(liveState.tasks);
+        }
         try{
           if(root.ExportHUBClean&&typeof root.ExportHUBClean.queueSave==='function')return root.ExportHUBClean.queueSave('TaskPlanner V2 planner update');
         }catch(_){}
