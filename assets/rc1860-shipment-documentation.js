@@ -4,6 +4,11 @@ if(w.__EXPORTHUB_RC1860_SHIPMENT_DOCUMENTATION__)return;
 w.__EXPORTHUB_RC1860_SHIPMENT_DOCUMENTATION__=true;
 var activeRef='',activeCard=null,activeRecord=null,loadSerial=0,scheduled=false,busy=false;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key){
+ var available=w.ExportHUBShipmentDocumentationI18n&&w.ExportHUBShipmentDocumentationI18n.packs||{},language='de';
+ try{var a=w.ExportHUBI18n;if(a&&typeof a.language==='function')language=q(a.language()).toLowerCase().slice(0,2)}catch(_){}
+ return (available[language]&&available[language][key])||(available.de&&available.de[key])||key;
+}
 function el(tag,klass,value){var x=d.createElement(tag);if(klass)x.className=klass;if(value!=null)x.textContent=value;return x}
 function sh(){var s=w.__EXPORTHUB_RC776_VIEW_SHIPMENT__;return s&&typeof s==='object'?s:null}
 function refOf(v){return q(v&&(v.ref||v.reference||v.shipmentRef)).toUpperCase()}
@@ -38,40 +43,40 @@ function addField(grid,key,label,type,wide){
 function build(ref){
  styles();
  var box=el('section','card eh1860');box.setAttribute('data-shipment-documentation',ref);
- var head=el('div','eh1860-head'),intro=el('div'),h=el('h3',null,'Sendungsdokumentation'),sub=el('p',null,'Versandnachweis mit Fotos, Lieferscheinen und Kundenbeschwerden');
+ var head=el('div','eh1860-head'),intro=el('div'),h=el('h3',null,tr('title')),sub=el('p',null,tr('subtitle'));
  intro.appendChild(h);intro.appendChild(sub);head.appendChild(intro);
- var badge=el('span','eh1860-badge','Noch nicht gespeichert');badge.setAttribute('data-proof-badge','1');head.appendChild(badge);box.appendChild(head);
+ var badge=el('span','eh1860-badge',tr('notSaved'));badge.setAttribute('data-proof-badge','1');head.appendChild(badge);box.appendChild(head);
  var grid=el('div','eh1860-grid');
  [
-  ['reference','Sendungsreferenz','text'],['shipmentNumber','Sendungsnummer / Tracking','text'],['customer','Kunde','text'],
-  ['dispatchDate','Versanddatum','date'],['colli','Colli-Anzahl','number'],['weightKg','Gesamtgewicht (kg)','number'],
-  ['packaging','Verpackungsart (Palette, Karton, …)','text'],['shippingMethod','Versandart (LKW, Paketdienst, …)','text'],['carrier','Spedition / Versanddienst','text'],
-  ['trackingNumber','Frachtbrief- / Sendungsverfolgungsnummer','text'],
-  ['contents','Was wurde verschickt? / Inhalt','textarea',true],
-  ['loadSecuring','Wie wurde verpackt und gesichert?','textarea',true],
-  ['remarks','Besonderheiten / interne Bemerkungen','textarea',true]
+  ['reference',tr('reference'),'text'],['shipmentNumber',tr('shipmentNumber'),'text'],['customer',tr('customer'),'text'],
+  ['dispatchDate',tr('dispatchDate'),'date'],['colli',tr('colliCount'),'number'],['weightKg',tr('weightKg'),'number'],
+  ['packaging',tr('packaging'),'text'],['shippingMethod',tr('shippingMethod'),'text'],['carrier',tr('carrier'),'text'],
+  ['trackingNumber',tr('tracking'),'text'],
+  ['contents',tr('contents'),'textarea',true],
+  ['loadSecuring',tr('securing'),'textarea',true],
+  ['remarks',tr('remarks'),'textarea',true]
  ].forEach(function(f){addField(grid,f[0],f[1],f[2],!!f[3])});
  box.appendChild(grid);
- var action=el('div','eh1860-actions'),save=el('button','primary','Versanddokumentation speichern');save.type='button';save.setAttribute('data-proof-save','1');action.appendChild(save);
- var reload=el('button',null,'Neu laden');reload.type='button';reload.setAttribute('data-proof-reload','1');action.appendChild(reload);box.appendChild(action);
+ var action=el('div','eh1860-actions'),save=el('button','primary',tr('save'));save.type='button';save.setAttribute('data-proof-save','1');action.appendChild(save);
+ var reload=el('button',null,tr('reload'));reload.type='button';reload.setAttribute('data-proof-reload','1');action.appendChild(reload);box.appendChild(action);
  var status=el('p','eh1860-status','');status.setAttribute('data-proof-status','1');status.setAttribute('aria-live','polite');box.appendChild(status);
- var filesBlock=el('div','eh1860-block'),filesHeading=el('h4',null,'Fotos und Lieferscheine');filesBlock.appendChild(filesHeading);
- filesBlock.appendChild(el('p','eh1860-status','Dateien werden nach dem Upload automatisch mit Sendungsreferenz und Zeitstempel im REF-Ordner gespeichert.'));
+ var filesBlock=el('div','eh1860-block'),filesHeading=el('h4',null,tr('filesTitle'));filesBlock.appendChild(filesHeading);
+ filesBlock.appendChild(el('p','eh1860-status',tr('filesHint')));
  var upGrid=el('div','eh1860-upload-grid');
- [['photo','Versandfotos aufnehmen oder auswählen','image/jpeg,image/png'],['note','Lieferscheine auswählen','application/pdf,image/jpeg,image/png']].forEach(function(item){
+ [['photo',tr('photosPicker'),'image/jpeg,image/png'],['note',tr('notesPicker'),'application/pdf,image/jpeg,image/png']].forEach(function(item){
   var label=el('label',null,item[1]),input=el('input');
   input.type='file';input.multiple=true;input.accept=item[2];input.setAttribute('data-proof-upload',item[0]);label.appendChild(input);upGrid.appendChild(label);
  });
  filesBlock.appendChild(upGrid);
  var fileNote=el('p','eh1860-status','');fileNote.setAttribute('data-proof-file-status','1');fileNote.setAttribute('aria-live','polite');filesBlock.appendChild(fileNote);
  var fileList=el('div');fileList.setAttribute('data-proof-files','1');filesBlock.appendChild(fileList);box.appendChild(filesBlock);
- var complaintBlock=el('div','eh1860-block');complaintBlock.appendChild(el('h4',null,'Kundenbeschwerden'));
- complaintBlock.appendChild(el('p','eh1860-status','Beschwerden bleiben mit Bearbeiter, Datum und Status nachvollziehbar.'));
+ var complaintBlock=el('div','eh1860-block');complaintBlock.appendChild(el('h4',null,tr('complaintsTitle')));
+ complaintBlock.appendChild(el('p','eh1860-status',tr('complaintsHint')));
  var complaintGrid=el('div','eh1860-grid');
- var cDate=addField(complaintGrid,'complaintDate','Beschwerdedatum','date'),cText=addField(complaintGrid,'complaintText','Beschwerde des Kunden','textarea',true);
+ var cDate=addField(complaintGrid,'complaintDate',tr('complaintDate'),'date'),cText=addField(complaintGrid,'complaintText',tr('complaintText'),'textarea',true);
  cDate.setAttribute('data-proof-complaint-date','1');cText.setAttribute('data-proof-complaint-text','1');
  complaintBlock.appendChild(complaintGrid);
- var complaintActions=el('div','eh1860-actions'),add=el('button',null,'Beschwerde hinzufügen');add.type='button';add.setAttribute('data-proof-add-complaint','1');complaintActions.appendChild(add);complaintBlock.appendChild(complaintActions);
+ var complaintActions=el('div','eh1860-actions'),add=el('button',null,tr('addComplaint'));add.type='button';add.setAttribute('data-proof-add-complaint','1');complaintActions.appendChild(add);complaintBlock.appendChild(complaintActions);
  var complaints=el('div','eh1860-list');complaints.setAttribute('data-proof-complaints','1');complaintBlock.appendChild(complaints);
  box.appendChild(complaintBlock);
  save.addEventListener('click',function(){saveRecord(box,ref)});
@@ -111,17 +116,17 @@ function values(box){
 function setBusy(box,on){busy=!!on;box.querySelectorAll('button,input[type=file]').forEach(function(btn){btn.disabled=!!on})}
 function annotate(box){
  var badge=box.querySelector('[data-proof-badge]');if(!badge)return;
- if(!activeRecord||!activeRecord.revision){badge.textContent='Noch nicht gespeichert';return}
- badge.textContent='Gespeichert · Version '+activeRecord.revision+' · '+(activeRecord.updatedAt?new Date(activeRecord.updatedAt).toLocaleString('de-DE'):'');
+ if(!activeRecord||!activeRecord.revision){badge.textContent=tr('notSaved');return}
+ badge.textContent=tr('savedVersion')+activeRecord.revision+' · '+(activeRecord.updatedAt?new Date(activeRecord.updatedAt).toLocaleString('de-DE'):'');
 }
 async function load(box,ref){
- var serial=++loadSerial;status(box,'Lade Versanddokumentation …');
+ var serial=++loadSerial;status(box,tr('loading'));
  try{
   var data=await api('GET',ref);
   if(serial!==loadSerial||activeRef!==ref||!box.isConnected)return;
   activeRecord=data.record||null;
   fill(box,activeRecord&&activeRecord.fields);annotate(box);renderComplaints(box,ref);
-  status(box,activeRecord&&activeRecord.revision?'Dokumentation geladen.':'Neue Dokumentation – bitte Angaben prüfen und speichern.','ok');
+  status(box,activeRecord&&activeRecord.revision?tr('loaded'):tr('newRecord'),'ok');
   loadFiles(box,ref);
  }catch(e){if(serial===loadSerial&&activeRef===ref&&box.isConnected)status(box,q(e.message),'error')}
 }
@@ -131,25 +136,25 @@ async function saveRecord(box,ref){
  setBusy(box,true);status(box,'Speichere Versandnachweis …');
  try{
   var d=await api('POST',ref,{action:'save',expectedRevision:expectedRevision,fields:fields});
-  activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,'Versandnachweis ist dauerhaft gespeichert.','ok');
+  activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('saved'),'ok');
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
 }
 function renderComplaints(box,ref){
  var list=box.querySelector('[data-proof-complaints]');if(!list)return;list.textContent='';
  var complaints=activeRecord&&Array.isArray(activeRecord.complaints)?activeRecord.complaints:[];
- if(!complaints.length){list.appendChild(el('p','eh1860-status','Noch keine Kundenbeschwerden erfasst.'));return}
+ if(!complaints.length){list.appendChild(el('p','eh1860-status',tr('noComplaints')));return}
  complaints.slice().reverse().forEach(function(c){
-  var item=el('div','eh1860-complaint'),header=el('strong',null,'Beschwerde · '+q(c.reportedDate||c.date).slice(0,10));
+  var item=el('div','eh1860-complaint'),header=el('strong',null,tr('complaintItem')+q(c.reportedDate||c.date).slice(0,10));
   item.appendChild(header);item.appendChild(el('p',null,q(c.text)));
-  item.appendChild(el('small',null,'Erfasst von '+q(c.createdBy)+' · '+new Date(c.date).toLocaleString('de-DE')));
+  item.appendChild(el('small',null,tr('createdBy')+q(c.createdBy)+' · '+new Date(c.date).toLocaleString('de-DE')));
   var states=el('select');
-  [['offen','Offen'],['in_pruefung','In Prüfung'],['abgeschlossen','Abgeschlossen']].forEach(function(k){var o=el('option');o.value=k[0];o.textContent=k[1];o.selected=k[0]===c.state;states.appendChild(o)});
-  states.setAttribute('aria-label','Beschwerdestatus');
+  [['offen',tr('open')],['in_pruefung',tr('inReview')],['abgeschlossen',tr('closed')]].forEach(function(k){var o=el('option');o.value=k[0];o.textContent=k[1];o.selected=k[0]===c.state;states.appendChild(o)});
+  states.setAttribute('aria-label',tr('statusAria'));
   states.addEventListener('change',async function(){
    if(busy)return;setBusy(box,true);
    try{
     var d=await api('POST',ref,{action:'complaint-status',expectedRevision:activeRecord.revision,complaintId:c.id,state:states.value});
-    activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,'Beschwerdestatus gespeichert.','ok');
+    activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('statusSaved'),'ok');
    }catch(e){status(box,q(e.message),'error');states.value=c.state}finally{setBusy(box,false)}
   });
   item.appendChild(states);list.appendChild(item);
@@ -158,65 +163,65 @@ function renderComplaints(box,ref){
 async function addComplaint(box,ref){
  if(busy)return;
  var textInput=box.querySelector('[data-proof-complaint-text]'),date=box.querySelector('[data-proof-complaint-date]');
- if(!activeRecord||!activeRecord.revision){status(box,'Zuerst Versandnachweis speichern.','error');return}
- if(!q(textInput.value)){status(box,'Bitte Kundenbeschwerde eintragen.','error');return}
+ if(!activeRecord||!activeRecord.revision){status(box,tr('saveFirst'),'error');return}
+ if(!q(textInput.value)){status(box,tr('enterComplaint'),'error');return}
  setBusy(box,true);
  try{
   var d=await api('POST',ref,{action:'complaint',expectedRevision:activeRecord.revision,text:textInput.value,reportedDate:date.value});
   activeRecord=d.record;textInput.value='';annotate(box);renderComplaints(box,ref);
-  status(box,'Kundenbeschwerde ist dauerhaft dokumentiert.','ok');
+  status(box,tr('complaintSaved'),'ok');
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
 }
 async function uploadFiles(box,ref,input,type){
  if(busy||activeRef!==ref)return;
  var files=Array.from(input.files||[]);input.value='';if(!files.length)return;
  var runtime=w.ExportHUBShipmentDocUpload;
- if(!runtime||typeof runtime.upload!=='function'){status(box,'Dokument-Upload derzeit nicht verfügbar.','error',true);return}
+ if(!runtime||typeof runtime.upload!=='function'){status(box,tr('uploadUnavailable'),'error',true);return}
  setBusy(box,true);var ok=0,errors=[];
  for(var i=0;i<files.length;i++){
   var f=files[i],ext=q(f.name).toLowerCase();
-  if(!(/\.(jpe?g|png)$/.test(ext))&&(type==='photo'||!(/\.pdf$/.test(ext)))){errors.push(f.name+': Dateityp nicht erlaubt');continue}
-  if(f.size>15*1024*1024){errors.push(f.name+': über 15 MB');continue}
+  if(!(/\.(jpe?g|png)$/.test(ext))&&(type==='photo'||!(/\.pdf$/.test(ext)))){errors.push(f.name+tr('wrongType'));continue}
+  if(f.size>15*1024*1024){errors.push(f.name+tr('max15'));continue}
   try{
    var prepared=type==='photo'?new File([f],'Versandfoto_'+f.name,{type:f.type}):f;
    await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');ok++;
   }catch(e){errors.push(f.name+': '+q(e.message))}
-  status(box,'Dateien hochgeladen: '+ok+' / '+files.length+(errors.length?' · '+errors.join('; '):''),errors.length?'error':'ok',true);
+  status(box,tr('uploadedProgress')+ok+' / '+files.length+(errors.length?' · '+errors.join('; '):''),errors.length?'error':'ok',true);
  }
  setBusy(box,false);
- if(ok){status(box,ok+' Datei(en) im REF-Ordner gespeichert.'+(errors.length?' Fehlgeschlagen: '+errors.join('; '):''),errors.length?'error':'ok',true);
+ if(ok){status(box,ok+tr('filesSaved')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
   try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:true}}))}catch(_){}
   if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.refreshReferenceFiles==='function')w.ExportHUBShipmentView.refreshReferenceFiles();
   loadFiles(box,ref);
- }else status(box,'Kein Upload erfolgreich: '+errors.join('; '),'error',true);
+ }else status(box,tr('uploadNone')+errors.join('; '),'error',true);
 }
 async function loadFiles(box,ref){
  var host=box.querySelector('[data-proof-files]');if(!host)return;host.textContent='';
  try{
   var res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref),{headers:headers(),credentials:'same-origin',cache:'no-store'}),data=await res.json();
-  if(!res.ok||!data.ok)throw new Error(q(data.message)||'Dateien nicht verfügbar');
+  if(!res.ok||!data.ok)throw new Error(q(data.message)||tr('filesUnavailable'));
   if(activeRef!==ref||!box.isConnected)return;
   var photos=(data.files||[]).filter(function(f){return /^Dokument_[A-Z0-9]{6}_\d{8}-\d{6}_Versandfoto_/i.test(q(f.name))});
   var notes=(data.files||[]).filter(function(f){return /^Lieferschein_[A-Z0-9]{6}_\d{8}-\d{6}_/i.test(q(f.name))});
-  host.appendChild(el('strong',null,photos.length+' Versandfotos · '+notes.length+' Lieferscheine im REF-Ordner'));
+  host.appendChild(el('strong',null,photos.length+tr('photosCount')+notes.length+tr('notesCount')));
   photos.concat(notes).slice(0,50).forEach(function(f){
-   var row=el('div','eh1860-file'),txt=el('span',null,q(f.name)),btn=el('button',null,'Ansehen');
+   var row=el('div','eh1860-file'),txt=el('span',null,q(f.name)),btn=el('button',null,tr('preview'));
    btn.type='button';btn.addEventListener('click',function(){preview(ref,f,box)});
    row.appendChild(txt);row.appendChild(btn);host.appendChild(row);
   });
- }catch(e){host.appendChild(el('p','eh1860-status','REF-Dateiliste derzeit nicht lesbar: '+q(e.message)))}
+ }catch(e){host.appendChild(el('p','eh1860-status',tr('refListError')+q(e.message)))}
 }
 async function preview(ref,file,box){
- status(box,'Lade '+q(file.name)+' …','',true);
+ status(box,tr('loadingFile')+q(file.name)+' …','',true);
  try{
   var url='/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(file.id);
   var res=await fetch(url,{headers:headers(),credentials:'same-origin',cache:'no-store'});
-  if(!res.ok)throw new Error('Datei nicht abrufbar (HTTP '+res.status+')');
+  if(!res.ok)throw new Error(tr('fileUnavailable')+res.status+')');
   var blob=await res.blob(),obj=URL.createObjectURL(blob);
   if(w.ExportHUBFilePreview1460&&typeof w.ExportHUBFilePreview1460.open==='function')w.ExportHUBFilePreview1460.open(obj,q(file.name));
   else w.open(obj,'_blank','noopener');
   setTimeout(function(){URL.revokeObjectURL(obj)},120000);
-  status(box,'Datei geöffnet.','ok',true);
+  status(box,tr('opened'),'ok',true);
  }catch(e){status(box,q(e.message),'error',true)}
 }
 function ensure(){
