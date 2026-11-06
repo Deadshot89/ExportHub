@@ -48,7 +48,70 @@
     doc.customerAvisVisible=visible===true;doc.customerVisible=visible===true;doc.customerAvisVisibilityUpdatedAt=q(at)||new Date().toISOString();return true;
   }
   function publicPackDocuments(shipment){return packDocuments(shipment).filter(doc=>doc.customerAvisVisible===true);}
-  async function persist(){try{const clean=root.ExportHUBClean;if(clean&&typeof clean.queueSave==='function')await Promise.resolve(clean.queueSave('Pack-Lieferschein AVIS-Freigabe'));if(clean&&typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('Pack-Lieferschein AVIS-Freigabe'));return true;}catch(_){return false;}}
+  // Customer AVIS combines document arrays from multiple persisted aliases of
+  // the same shipment. A withdrawn PDF must not remain public on an older alias.
+  // REF and Pack owner are both required: editor IDs can be reused elsewhere.
+  function samePackShipment(copy,selected){
+    if(!copy||!selected||!q(selected.packNotificationId)||!shipmentRef(selected))return copy===selected;
+    if(shipmentRef(copy)!==shipmentRef(selected)||q(copy.packNotificationId)!==q(selected.packNotificationId))return false;
+    const left=q(copy.packNotificationRef),right=q(selected.packNotificationRef);
+    return !left||!right||left===right;
+  }
+  function setVisibilityAcrossCopies(state,shipment,key,visible,at){
+    const primary=packDocuments(shipment).find(doc=>documentKey(doc)===q(key));
+    if(!primary)return[];
+    const all=[shipment,...arr(state&&state.shipments),...arr(state&&state.savedShipments),
+      ...arr(state&&state.sharedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment];
+    const seen=new Set(),changes=[],blob=q(primary.blobName),id=q(primary.id||primary.fileId);
+    const matches=doc=>{
+      if(blob)return q(doc.blobName)===blob;
+      if(id)return q(doc.id||doc.fileId)===id;
+      return documentKey(doc)===documentKey(primary);
+    };
+    for(const row of all){
+      if(!samePackShipment(row,shipment))continue;
+      for(const doc of packDocuments(row)){
+        if(!matches(doc)||seen.has(doc))continue;
+        seen.add(doc);
+        changes.push({doc,before:{customerAvisVisible:doc.customerAvisVisible,customerVisible:doc.customerVisible,
+          customerAvisVisibilityUpdatedAt:doc.customerAvisVisibilityUpdatedAt,
+          customerAvisVisibilitySource:doc.customerAvisVisibilitySource}});
+        doc.customerAvisVisible=visible===true;
+        doc.customerVisible=visible===true;
+        doc.customerAvisVisibilityUpdatedAt=q(at)||new Date().toISOString();
+        doc.customerAvisVisibilitySource='pack_avis_user';
+      }
+    }
+    return changes;
+  }
+  function restoreVisibility(changes){
+    for(const {doc,before} of changes){
+      for(const [key,value] of Object.entries(before)){
+        if(value===undefined)delete doc[key];else doc[key]=value;
+      }
+    }
+  }
+  async function persist(){
+    try{
+      const clean=root.ExportHUBClean;
+      if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return false;
+      const queued=await Promise.resolve(clean.queueSave('Pack-Lieferschein AVIS-Freigabe'));
+      if(queued===false)return false;
+      const runtime=clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0;
+      let flushed=await Promise.resolve(clean.flushSave('Pack-Lieferschein AVIS-Freigabe'));
+      if(flushed===false&&!runtime)return false;
+      if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)<target){
+        const delay=clean.native&&typeof clean.native.setTimeout==='function'?clean.native.setTimeout.bind(clean.native):(root.setTimeout||setTimeout);
+        for(let i=0;i<20&&Number(runtime.lastSavedGeneration||0)<target;i++){
+          if(!runtime.saving&&i>=2)break;
+          await new Promise(resolve=>delay(resolve,100));
+        }
+        if(Number(runtime.lastSavedGeneration||0)<target)return false;
+      }
+      if(flushed===false&&(!runtime||target<=0))return false;
+      return true;
+    }catch(_){return false;}
+  }
   function esc(value){return q(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function renderPanel(){
     const doc=root.document;if(!doc||!doc.getElementById)return false;
@@ -69,10 +132,30 @@
     if(panel.__packAvisRenderKey!==markup){panel.innerHTML=markup;panel.__packAvisRenderKey=markup;}
     return true;
   }
-  async function onChange(event){const input=event.target&&event.target.closest&&event.target.closest('[data-pack-avis-doc]');if(!input)return;const shipment=activeShipment(sharedState());if(!shipment)return;if(setVisibility(shipment,input.getAttribute('data-pack-avis-doc'),input.checked,new Date().toISOString())){await persist();renderPanel();}}
+  let savingVisibility=false;
+  async function onChange(event){
+    const input=event.target&&event.target.closest&&event.target.closest('[data-pack-avis-doc]');
+    if(!input)return;
+    const document=root.document;
+    const panel=document&&document.getElementById&&document.getElementById('packAvisDocumentPanel');
+    if(!panel||typeof panel.contains==='function'&&!panel.contains(input))return;
+    if(savingVisibility){renderPanel();return;}
+    const state=sharedState(),shipment=activeShipment(state);
+    if(!shipment)return;
+    const changes=setVisibilityAcrossCopies(state,shipment,input.getAttribute('data-pack-avis-doc'),input.checked,new Date().toISOString());
+    if(!changes.length){renderPanel();return;}
+    savingVisibility=true;
+    try{
+      if(!await persist()){
+        restoreVisibility(changes);
+        const msg=tr('pack.internal.saveFailed');
+        if(typeof root.alert==='function')root.alert(msg==='pack.internal.saveFailed'?'Die AVIS-Freigabe konnte nicht gespeichert werden.':msg);
+      }
+    }finally{savingVisibility=false;renderPanel();}
+  }
   function schedule(){clearTimeout(timer);timer=setTimeout(renderPanel,80);}
   function install(){const doc=root.document;if(!doc||doc.__packAvisInstalled)return false;doc.__packAvisInstalled=true;doc.addEventListener('change',onChange,true);if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(schedule);observer.observe(doc.documentElement||doc.body,{childList:true,subtree:true});}if(typeof root.addEventListener==='function'){['exporthub:shipment-saved','exporthub:state-updated','exporthub:view-changed','exporthub:pack-language-changed'].forEach(name=>root.addEventListener(name,schedule));}schedule();return true;}
 
-  root.ExportHUBPackAvis=Object.freeze({packDocuments,setVisibility,publicPackDocuments,renderPanel,install});
+  root.ExportHUBPackAvis=Object.freeze({packDocuments,setVisibility,setVisibilityAcrossCopies,restoreVisibility,publicPackDocuments,renderPanel,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);
