@@ -24,6 +24,8 @@ test('Sendungsdokumentation: Felder sauber normalisiert',()=>{
 test('Sendungsdokumentation: ungueltige Werte werden nicht als Versandnachweis gespeichert',()=>{
  for(const x of [{colli:'-2'},{colli:'2.5'},{weightKg:'NaN'},{weightKg:'-5'},{dispatchDate:'morgen'}])assert.throws(()=>doc.normalizeFields(x));
  assert.throws(()=>doc.normalizeFields(null));
+ assert.throws(()=>doc.normalizeFields({customer:'X'.repeat(201)}),e=>e.code==='FIELD_TOO_LONG');
+ assert.throws(()=>doc.normalizeFields({contents:'A'.repeat(3001)}),e=>e.code==='FIELD_TOO_LONG');
 });
 test('Kundenbeschwerden sind revisioniert und nur mit Login erreichbar',()=>{
  const api=fs.readFileSync('api/shipment-documentation/index.js','utf8');
@@ -35,6 +37,8 @@ test('Kundenbeschwerden sind revisioniert und nur mit Login erreichbar',()=>{
  assert.match(api,/action==='complaint'/);
  assert.match(api,/action==='complaint-status'/);
  assert.match(api,/history\.push\(event\)/);
+ assert.match(api,/WRITE_READBACK_MISMATCH/);
+ assert.match(api,/const proof=await read\(blob,record\.reference\)/);
  assert.match(api,/testservice\/shipment-documentation/);
  assert.match(api,/Content-Type.*application\/json/);
 });
@@ -78,6 +82,9 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.match(ui,/action:'complaint'/);
  assert.match(ui,/action:'save'/);
  assert.match(ui,/runtime\.upload\(ref,prepared,type==='photo'\?'sonstiges':'lieferschein'\)/);
+ assert.match(ui,/filenameForProof\(f,type,i\)/);
+ assert.match(ui,/if\(!isCurrent\(box,ref\)\)return/);
+ assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1860/);
  assert.equal(azure.bindings[0].type,'httpTrigger');
  assert.deepEqual(azure.bindings[0].methods,['get','post','options']);
 });
