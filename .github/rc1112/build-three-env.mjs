@@ -232,6 +232,22 @@ function patchRc1835LearningUi(html,file){
   }else if(file!=='demo.html'&&!html.includes(setProfessionNew)){
     throw new Error(file+': RC1835 Prüfungswechsel fehlt');
   }
+  // RC325 already keeps detached, generation-checked views for shipping. Reuse
+  // its bounded 2-minute cache for the Academy and IHK catalog (never an active exam).
+  const cacheOld="function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
+  const cacheNew="function fastCacheable(view){view=canonical(view);if(view==='inspections'){var u=state().ihkExamUi||{};return (u.tab||'catalog')==='catalog'&&!u.activeAttempt}return view==='academy'||view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
+  const cacheMaxOld="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;";
+  const cacheMaxNew="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=4,fastViewRestoreTimer=0;";
+  const cacheFreshOld="if(canonical(entry.rendered||'')!==view)return false;\n if(Date.now()-Number(entry.savedAt||0)>120000)return false;";
+  const cacheFreshNew="if(canonical(entry.rendered||'')!==view)return false;\n if(view==='inspections'&&!fastCacheable(view))return false;\n if(Date.now()-Number(entry.savedAt||0)>120000)return false;";
+  if(html.includes(cacheOld)&&html.includes(cacheMaxOld)&&html.includes(cacheFreshOld)){
+    for(const [oldText,newText] of [[cacheOld,cacheNew],[cacheMaxOld,cacheMaxNew],[cacheFreshOld,cacheFreshNew]]){
+      if(html.split(oldText).length!==2)throw new Error(file+': RC1835 View-Cache-Anker mehrdeutig');
+      html=html.replace(oldText,newText);
+    }
+  }else if(file!=='demo.html'&&!html.includes(cacheNew)){
+    throw new Error(file+': RC1835 Lernansichten-Cache fehlt');
+  }
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_STYLE_TAG,'exporthub-rc1835-academy-exams-style');
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_SCRIPT_TAG,'exporthub-rc1835-academy-exams-script');
   if(!html.includes('rc1835-academy-exams.css?v=1835')||!html.includes('rc1835-academy-exams.js?v=1835'))throw new Error(file+': RC1835 Lernansichten fehlen');
