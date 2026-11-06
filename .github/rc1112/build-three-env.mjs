@@ -62,8 +62,11 @@ const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/asset
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
-const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1800"><\/script>';
+const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1820"><\/script>';
 const RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="/assets/rc1800-premium-design.css?v=1804">';
+// RC1820: Design "Neu" (Prototyp A) mit Menü oben; greift nur bei html[data-eh-layout="top"]
+const RC1820_TOPNAV_STYLE_TAG='<link id="exporthub-rc1820-topnav-style" rel="stylesheet" href="/assets/rc1820-top-navigation.css?v=1820">';
+const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=1820"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
@@ -169,7 +172,7 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_STYLE_TAG,'exporthub-rc1304-theme-style');
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
-  if(!html.includes('rc1304-theme-switcher.js?v=1800'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  if(!html.includes('rc1304-theme-switcher.js?v=1820'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
   return html;
 }
 
@@ -178,6 +181,9 @@ function patchRc1304ThemeRedesign(html,file){
 function patchRc1800PremiumDesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1800_PREMIUM_STYLE_TAG,'exporthub-rc1800-premium-design');
   if(!html.includes('rc1800-premium-design.css?v=1804'))throw new Error(file+': RC1800 Premium-CSS fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_STYLE_TAG,'exporthub-rc1820-topnav-style');
+  html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_SCRIPT_TAG,'exporthub-rc1820-topnav-script');
+  if(!html.includes('rc1820-top-navigation.css?v=1820')||!html.includes('rc1820-top-navigation.js?v=1820'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }
 
@@ -1892,6 +1898,8 @@ for(const rel of [
   'assets/rc1304-theme-switcher.js',
   'assets/rc1800-premium-design.css', // RC1800: Premium-Design (Auswahl im Design-Umschalter)
   'assets/rc1800-premium-standalone.css',
+  'assets/rc1820-top-navigation.css', // RC1820: Design "Neu" mit Menü oben
+  'assets/rc1820-top-navigation.js',
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',

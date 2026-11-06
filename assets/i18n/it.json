@@ -1159,6 +1159,7 @@
   "theme.glass": "Glass",
   "theme.neonNight": "Neon Night",
   "theme.premium": "Premium",
+  "theme.neu": "Nuovo (menu in alto)",
   "loadingList.documentCount": "{{count}} documenti",
   "loadingList.resultCount": "{{count}} risultati",
   "loadingList.shipmentCount": "{{count}} spedizioni",
@@ -2529,8 +2530,7 @@
   "urgentOrderV2.clearEmailHistory": "Elimina le e-mail salvate",
   "urgentOrderV2.saveEmailOnDevice": "Salva l’e-mail su questo dispositivo",
   "urgentOrderV2.emailHistoryStorageFailed": "La memorizzazione locale non è attualmente disponibile.",
-  "urgentOrderV2.emailHistorySaved": "Indirizzo e-mail salvato su questo dispositivo."
-,
+  "urgentOrderV2.emailHistorySaved": "Indirizzo e-mail salvato su questo dispositivo.",
   "urgentOrderV2.mailHistoryTitle": "Cronologia delle e-mail",
   "urgentOrderV2.mailHistoryEmpty": "Non è stata ancora preparata alcuna e-mail in ExportHUB360.",
   "urgentOrderV2.mailKindShipping": "Conferma di spedizione",
@@ -2550,15 +2550,13 @@
   "urgentOrderV2.mailSaving": "Salvataggio del testo dell'e-mail nell'ordine …",
   "urgentOrderV2.mailSaved": "Testo dell'e-mail salvato. Dopo l'invio, confermalo nella cronologia dell'ordine.",
   "urgentOrderV2.mailOpenFailed": "Impossibile aprire l'e-mail: ",
-  "urgentOrderV2.mailIntro": "Prima di aprire il programma di posta, destinatario, oggetto e testo esatto scritto in ExportHUB360 vengono salvati nell'Urgent Order. L'invio effettivo deve essere confermato in seguito."
-,
+  "urgentOrderV2.mailIntro": "Prima di aprire il programma di posta, destinatario, oggetto e testo esatto scritto in ExportHUB360 vengono salvati nell'Urgent Order. L'invio effettivo deve essere confermato in seguito.",
   "urgentOrderV2.mailColumnTitle": "Email inviata",
   "urgentOrderV2.mailColumnSent": "Sì · confermato manualmente",
   "urgentOrderV2.mailColumnPending": "Non confermato",
   "urgentOrderV2.mailColumnNone": "Nessuna email",
   "urgentOrderV2.mailCountConfirmed": "confermate",
   "urgentOrderV2.mailCountOpen": "in attesa",
-  "urgentOrderV2.mailHistoryButton": "Visualizza cronologia"
-,
+  "urgentOrderV2.mailHistoryButton": "Visualizza cronologia",
   "urgentOrderV2.mailColumnPartial": "Parzialmente confermato"
 }

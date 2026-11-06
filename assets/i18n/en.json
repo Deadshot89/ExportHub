@@ -1159,6 +1159,7 @@
   "theme.glass": "Glass",
   "theme.neonNight": "Neon Night",
   "theme.premium": "Premium",
+  "theme.neu": "New (top menu)",
   "loadingList.documentCount": "{{count}} documents",
   "loadingList.resultCount": "{{count}} results",
   "loadingList.shipmentCount": "{{count}} shipments",
@@ -2529,8 +2530,7 @@
   "urgentOrderV2.clearEmailHistory": "Delete saved emails",
   "urgentOrderV2.saveEmailOnDevice": "Save email on this device",
   "urgentOrderV2.emailHistoryStorageFailed": "Local storage is currently unavailable.",
-  "urgentOrderV2.emailHistorySaved": "Email address saved on this device."
-,
+  "urgentOrderV2.emailHistorySaved": "Email address saved on this device.",
   "urgentOrderV2.mailHistoryTitle": "Email history",
   "urgentOrderV2.mailHistoryEmpty": "No emails prepared from ExportHUB360 yet.",
   "urgentOrderV2.mailKindShipping": "Shipping confirmation",
@@ -2550,15 +2550,13 @@
   "urgentOrderV2.mailSaving": "Saving the email text to the order …",
   "urgentOrderV2.mailSaved": "Email text saved. Confirm sending in the order history afterward.",
   "urgentOrderV2.mailOpenFailed": "Email not opened: ",
-  "urgentOrderV2.mailIntro": "Opening your mail application first saves the recipient, subject, and exact text from ExportHUB360 to the Urgent Order. Sending must then be confirmed separately."
-,
+  "urgentOrderV2.mailIntro": "Opening your mail application first saves the recipient, subject, and exact text from ExportHUB360 to the Urgent Order. Sending must then be confirmed separately.",
   "urgentOrderV2.mailColumnTitle": "Email sent",
   "urgentOrderV2.mailColumnSent": "Yes · manually confirmed",
   "urgentOrderV2.mailColumnPending": "Not confirmed",
   "urgentOrderV2.mailColumnNone": "No email",
   "urgentOrderV2.mailCountConfirmed": "confirmed",
   "urgentOrderV2.mailCountOpen": "pending",
-  "urgentOrderV2.mailHistoryButton": "View history"
-,
+  "urgentOrderV2.mailHistoryButton": "View history",
   "urgentOrderV2.mailColumnPartial": "Partially confirmed"
 }
