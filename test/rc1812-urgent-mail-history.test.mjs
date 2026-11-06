@@ -62,3 +62,18 @@ test('Urgent Order mailto flow saves the current editor text before opening the 
  assert.match(handler,/catch\(e\)/,'failed save must be handled without opening Outlook');
  assert.match(html,/data-confirm-mail/,'audit history must expose explicit sent confirmation');
 });
+
+test('Urgent Order overview has a dedicated sent-email column with one-click history',()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const html=fs.readFileSync(path.resolve('assets/urgent-orders.html'),'utf8');
+ assert.match(html,/<span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail versendet<\/span>/);
+ assert.match(html,/function mailColumnMarkup\(order\)/);
+ assert.match(html,/order\.mailHistory/);
+ assert.match(html,/records\.filter\(x=>x\.status==='sent_confirmed'\)/,'yes can only result from a confirmed send');
+ assert.match(html,/data-open-mail-history/,'history button is in table cell');
+ assert.match(html,/details\.open=true;/,'history action expands the order');
+ assert.match(html,/recent\.open=true;/,'history action expands the newest email');
+ assert.match(html,/mailColumnMarkup\(order\)/,'status is part of each Urgent Order row');
+ assert.match(html,/details\.querySelectorAll\('\[data-open-mail-history\]'\)/);
+});
