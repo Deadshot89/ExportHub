@@ -163,7 +163,11 @@ test('AVIS visibility save failure does not claim success and restores earlier v
     alert(message){this.lastAlert=message;},
     document:{
       body:{getAttribute(){return'shipment';}},
-      getElementById(id){return id==='packAvisDocumentPanel'?{contains:()=>true}:null;},
+      getElementById(id){
+        if(id==='packAvisDocumentPanel')return{contains:()=>true,remove(){},innerHTML:''};
+        if(id==='rc363BlockDocuments')return{appendChild(){}};
+        return null;
+      },
       addEventListener(type,cb){if(type==='change')handler=cb;}
     }
   };
