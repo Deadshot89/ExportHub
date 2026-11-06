@@ -220,6 +220,8 @@
   "api.document.referenceInvalid": "Odwołanie do dokumentu jest nieprawidłowe.",
   "api.document.environmentMismatch": "Dokument należy do innego środowiska danych ExportHUB.",
   "api.document.loadFailed": "Nie udało się wczytać dokumentu.",
+  "api.document.ticketInvalid": "Link do pobrania dokumentu jest nieprawidłowy.",
+  "api.document.ticketExpired": "Link do pobrania wygasł. Otwórz dokument ponownie.",
   "api.readiness.environmentRequired": "Brakuje środowiska.",
   "api.readiness.testProductionMismatch": "TESTSERVICE nie może potwierdzać gotowości produkcji.",
   "api.readiness.productionTestMismatch": "Produkcja nie może potwierdzać gotowości TESTSERVICE.",

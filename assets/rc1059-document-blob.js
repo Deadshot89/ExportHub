@@ -77,8 +77,43 @@
   if(!r.ok){var message=tr('document.loadFailed',null,'Document could not be loaded.');try{var j=await r.json();if(j&&j.message)message=j.message}catch(_){}throw new Error(message+' (HTTP '+r.status+')')}
   return r
  }
+ // RC1803: company web filters (Zscaler marks its redirect with `_sm_nck=1`)
+ // redirect PDF downloads. A fetch carrying ExportHUB headers cannot follow
+ // that redirect and failed as AZURE_ROUTE_BLOCKED / login redirect. A ticket
+ // URL needs no custom header, so the browser can follow the filter.
+ function filterRedirect(e){var c=q(e&&e.code);return c==='AZURE_ROUTE_BLOCKED'||c==='DOCUMENT_API_LOGIN_REDIRECT'||(e instanceof TypeError)}
+ async function ticketUrl(file,name){
+  if(!isBlobDocument(file))return'';
+  var url=endpoint(file)+'&action=ticket'+(q(name)?'&name='+encodeURIComponent(q(name)):'');
+  var r=await w.fetch(url,{method:'GET',headers:headers(),credentials:'omit',cache:'no-store',redirect:'manual'});
+  if(r&&(r.status===404||r.status===405))return'';
+  if(redirectedToLogin(r)){var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e}
+  var j=null;try{j=await r.json()}catch(_){j=null}
+  if(!r.ok||!j||j.ok===false){if(r.ok&&!j)return'';throw new Error(q(j&&j.message)||tr('document.loadFailed',null,'Document could not be loaded.')+' (HTTP '+r.status+')')}
+  var u=q(j.url);return /^\/api\/exporthub-document\?ticket=edt1\.[A-Za-z0-9_.%-]+$/.test(u)?u:''
+ }
+ function xhrBlob(url){
+  return new Promise(function(resolve,reject){
+   try{
+    var x=new w.XMLHttpRequest();x.open('GET',url,true);x.responseType='blob';
+    x.onload=function(){if(x.status>=200&&x.status<300)resolve(x.response);else reject(new Error(tr('document.loadFailed',null,'Document could not be loaded.')+' (HTTP '+x.status+')'))};
+    x.onerror=function(){reject(new Error(tr('document.loadFailed',null,'Document could not be loaded.')))};
+    x.send();
+   }catch(e){reject(e)}
+  })
+ }
  async function fetchBlob(file){
-  var result=await response(file),blob=await result.blob(),mime=q(blob&&blob.type).toLowerCase();
+  var result;
+  try{result=await response(file)}
+  catch(e){
+   if(!filterRedirect(e)||typeof w.XMLHttpRequest!=='function')throw e;
+   var link=await ticketUrl(file,file&&file.name);if(!link)throw e;
+   return checkBlob(file,await xhrBlob(link));
+  }
+  return checkBlob(file,await result.blob());
+ }
+ async function checkBlob(file,blob){
+  var mime=q(blob&&blob.type).toLowerCase();
   if(/^(?:text\/html|application\/xhtml\+xml)/.test(mime)){
    var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));
    e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e;
@@ -106,6 +141,17 @@
   // authenticated fetch a target=_blank click is treated as a popup and blocked.
   var tab=null;
   if(options.download!==true&&typeof w.open==='function'){try{tab=w.open('about:blank','_blank')}catch(_){tab=null}}
+  // RC1803: open the PDF as a normal navigation through a short-lived ticket,
+  // so a company web filter can redirect and scan it. Older APIs without
+  // ticket support fall back to the authenticated Blob transport below.
+  var link='';
+  try{link=await ticketUrl(file,options.name||file&&file.name)}catch(e){closeTab(tab);throw e}
+  if(link){
+   try{if(q(w.location&&w.location.origin))link=q(w.location.origin)+link}catch(_){}
+   if(options.download===true){clickUrl(link+'&download=1',options.name||file&&file.name,true);return true}
+   if(tab&&!tab.closed){try{tab.opener=null}catch(_){}try{tab.location.href=link;return true}catch(_){closeTab(tab)}}
+   clickUrl(link,options.name||file&&file.name,false);return true
+  }
   var blob,url;
   try{blob=await fetchBlob(file)}catch(e){closeTab(tab);throw e}
   url=w.URL.createObjectURL(blob);
@@ -114,5 +160,5 @@
   w.setTimeout(function(){try{w.URL.revokeObjectURL(url)}catch(_){}},120000);return true
  }
  function closeTab(tab){try{if(tab&&!tab.closed)tab.close()}catch(_){}}
- w.ExportHUBDocumentBlob1059={version:'RC1231',environment:environment,isBlobDocument:isBlobDocument,blobName:blobName,legacyUrl:legacyUrl,protectedApiUrl:protectedApiUrl,headers:headers,endpoint:endpoint,fetchBlob:fetchBlob,fetchBytes:fetchBytes,open:open};
+ w.ExportHUBDocumentBlob1059={version:'RC1803',ticketUrl:ticketUrl,environment:environment,isBlobDocument:isBlobDocument,blobName:blobName,legacyUrl:legacyUrl,protectedApiUrl:protectedApiUrl,headers:headers,endpoint:endpoint,fetchBlob:fetchBlob,fetchBytes:fetchBytes,open:open};
 })(window);

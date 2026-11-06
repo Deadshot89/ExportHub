@@ -78,7 +78,8 @@ test('Öffnen reserves the tab during the click so the PDF is not blocked as a p
     location:{hostname:'www.exporthub360.de',origin:'https://www.exporthub360.de'},
     ExportHUBClean:{runtime:{authToken:'T'}},
     open(url,target){events.push('open:'+url+':'+target);return tab;},
-    fetch:async()=>{events.push('fetch');return reply;},
+    // Legacy API without RC1803 ticket support answers the ticket request with 404.
+    fetch:async(url)=>{events.push('fetch');return /action=ticket/.test(url)?{ok:false,status:404,type:'basic',headers:{get(){return'application/json';}},async json(){return{};}}:reply;},
     document:{createElement(){return{click(){events.push('click');},remove(){}};},body:{appendChild(){}}},
     URL:{createObjectURL(){return'blob:pdf';},revokeObjectURL(){}},
     setTimeout(){}
@@ -86,18 +87,18 @@ test('Öffnen reserves the tab during the click so the PDF is not blocked as a p
   vm.runInNewContext(source,{window:w,URL,Blob,Uint8Array,String});
   const doc={name:'DNC000123456.pdf',storage:'blob',blobName:'rc1059/production/aa/'+'a'.repeat(64)};
   assert.equal(await w.ExportHUBDocumentBlob1059.open(doc,{name:doc.name}),true);
-  assert.deepEqual(events,['open:about:blank:_blank','fetch','navigate:blob:pdf']);
+  assert.deepEqual(events,['open:about:blank:_blank','fetch','fetch','navigate:blob:pdf']);
   assert.equal(tab.opener,null);
 
   events.length=0;tab.closed=false;
   reply={ok:false,status:404,redirected:false,type:'basic',url:'',headers:{get(){return'application/json';}},async json(){return{message:'weg'};}};
   await assert.rejects(w.ExportHUBDocumentBlob1059.open(doc,{name:doc.name}));
-  assert.deepEqual(events,['open:about:blank:_blank','fetch','close'],'a failed fetch must not leave an empty tab');
+  assert.deepEqual(events,['open:about:blank:_blank','fetch','fetch','close'],'a failed fetch must not leave an empty tab');
 
   events.length=0;
   reply={ok:true,status:200,redirected:false,type:'basic',url:'',headers:{get(){return'application/pdf';}},async blob(){return new Blob(['%PDF-1.7'],{type:'application/pdf'});}};
   await w.ExportHUBDocumentBlob1059.open(doc,{name:doc.name,download:true});
-  assert.deepEqual(events,['fetch','click'],'download keeps the named anchor download');
+  assert.deepEqual(events,['fetch','fetch','click'],'download keeps the named anchor download');
 });
 
 test('Lieferschein-Abruf sendet kein Microsoft-Anmeldecookie mit, nur das ExportHUB-Token',async()=>{

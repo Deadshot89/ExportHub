@@ -220,6 +220,8 @@
   "api.document.referenceInvalid": "Il riferimento del documento non è valido.",
   "api.document.environmentMismatch": "Il documento appartiene a un altro ambiente dati ExportHUB.",
   "api.document.loadFailed": "Non è stato possibile caricare il documento.",
+  "api.document.ticketInvalid": "Il link per scaricare il documento non è valido.",
+  "api.document.ticketExpired": "Il link per il download è scaduto. Riaprire il documento.",
   "api.readiness.environmentRequired": "Manca l’ambiente.",
   "api.readiness.testProductionMismatch": "TESTSERVICE non può confermare la disponibilità della produzione.",
   "api.readiness.productionTestMismatch": "La produzione non può confermare la disponibilità di TESTSERVICE.",
