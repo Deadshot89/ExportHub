@@ -157,12 +157,6 @@
  var d=w.document;
  var URGENT_ACCENT='#dc7226';
  var URGENT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"></path></svg>';
- function urgentOrdersDestination(){
-  var host=String(w.location&&w.location.hostname||'').toLowerCase();
-  var canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
-  var productionHosts=['wonderful-forest-0f315e310.7.azurestaticapps.net','exporthub360.de','www.exporthub360.de','exporthub360.com','www.exporthub360.com'];
-  return productionHosts.includes(host)?canonical+'/assets/urgent-orders.html':'/assets/urgent-orders.html';
- }
  function ensure(){
   // Wait for the real application sidebar. A startup fallback must not appear above Dashboard.
   var nav=d.querySelector('#nav');
