@@ -203,3 +203,116 @@ test('RC1570 Aufgabenansicht entfernt den Listen-Fokus, sonst blendet das CSS di
   assert.match(branch,/removeAttribute\(BODY_FLAG\)/);
   assert.match(branch,/getElementById\(SECTION_ID\)/);
 });
+
+
+/* RC1811: real task-view form writes must be confirmed, not merely queued. */
+function editorHarness(tasks,flushSave){
+  const store={tasks,users:[],taskSeries:[]},calls=[];
+  const win={
+    __EXPORTHUB_GET_STATE__:()=>store,
+    __EXPORTHUB_GET_CURRENT_USER__:()=>me,
+    document:null,
+    localStorage:{getItem:()=>null,setItem(){}},
+    ExportHUBClean:{
+      queueSave(reason){calls.push(['queue',reason]);return true},
+      flushSave(reason,opts){calls.push(['flush',reason,opts]);return flushSave(reason,opts)},
+      operationStatus(){}
+    }
+  };
+  const context={window:win,Date,Intl,console:{...console,error(){}}};
+  vm.runInNewContext(texts,context);
+  vm.runInNewContext(source,context);
+  return{api:win.ExportHUBTasksFocus1570,store,calls};
+}
+function editorForm(overrides={}){
+  const vals={title:'Neue Beschreibung',area:'Versand',owner:'Tobias',date:'2026-11-09',time:'10:00',priority:'P1',
+    status:'open',customer:'Testkunde',customerNo:'1001',ref:'REF1001',note:'Bearbeitung'};
+  Object.assign(vals,overrides);
+  const fields=Object.fromEntries(Object.entries(vals).map(([k,v])=>[k,{value:v}]));
+  fields.autoDone={checked:true};
+  const error={hidden:true,textContent:''},submit={disabled:false};
+  return{
+    elements:fields,error,submit,
+    querySelector(selector){
+      if(selector==='[name="repeat"]:checked')return{value:overrides.weekly?'weekly':'once'};
+      if(selector==='[type="submit"]')return submit;
+      if(selector==='.rc1570-error')return error;
+      return null;
+    },
+    querySelectorAll(selector){return selector==='[name="weekdays"]:checked'?(overrides.weekdays||[]).map(value=>({value})):[]}
+  };
+}
+test('RC1811: editing preserves unrelated tasks and reports success only after confirmed flush',async()=>{
+  const{api,store,calls}=editorHarness([
+    {id:'a',title:'Aufgabe A',owner:'Tobias',status:'open'},
+    {id:'b',title:'Aufgabe B',owner:'Tobias',status:'open'}
+  ],()=>true);
+  api.editTask('a');
+  const result=await api._saveForm(editorForm());
+  assert.equal(result,true);
+  assert.equal(store.tasks.length,2);
+  assert.equal(store.tasks.find(row=>row.id==='a').title,'Neue Beschreibung');
+  assert.equal(store.tasks.find(row=>row.id==='b').title,'Aufgabe B');
+  assert.equal(calls.length,2);
+  assert.equal(calls[0][0],'queue');
+  assert.equal(calls[1][0],'flush');
+  assert.equal(calls[1][2].force,true);
+  assert.equal(api._tv.mode,'show');
+  assert.match(api.taskViewHtml(),/data-rc1570-tv-open="b"/);
+});
+test('RC1811: rejected flush rolls back all task and series changes and preserves the form',async()=>{
+  const tasks=[{id:'a',title:'Unverändert',owner:'Tobias',status:'open'},{id:'b',title:'Andere Aufgabe',owner:'Tobias'}];
+  const{api,store}=editorHarness(tasks,()=>false);
+  api.editTask('a');
+  const form=editorForm();
+  const result=await api._saveForm(form);
+  assert.equal(result,false);
+  assert.strictEqual(store.tasks,tasks);
+  assert.equal(tasks[0].title,'Unverändert');
+  assert.equal(store.tasks[1].title,'Andere Aufgabe');
+  assert.equal(api._tv.mode,'edit');
+  assert.equal(form.error.hidden,false);
+  assert.equal(form.submit.disabled,false);
+  assert.equal(api._tv.saved,'');
+});
+test('RC1811: weekly master and completed entries stay visible in management list',async()=>{
+  const{api,store}=editorHarness([
+    {id:'w',title:'Wiederkehrend',owner:'Tobias',sourceType:'manual',status:'open'},
+    {id:'d',title:'Erledigt aber verwaltbar',owner:'Tobias',status:'done',done:true}
+  ],()=>true);
+  api.editTask('w');
+  const result=await api._saveForm(editorForm({weekly:true,weekdays:[1,3],date:''}));
+  assert.equal(result,true);
+  assert.equal(store.tasks.find(row=>row.id==='w').isTemplate,true);
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="w"/);
+  assert.match(html,/data-rc1570-tv-open="d"/);
+});
+test('RC1811: detail status action confirms server flush and rolls back on failure',async()=>{
+  let permitted=true;
+  const{api,store}=editorHarness([{id:'s',title:'Statusaufgabe',owner:'Tobias',status:'open'}],()=>permitted);
+  api.openTask('s');
+  assert.equal(await api._changeTaskStatus('done'),true);
+  assert.equal(store.tasks[0].status,'done');
+  assert.equal(store.taskStatusLedger['id:s'].done,true);
+  const before=store.tasks;
+  permitted=false;
+  assert.equal(await api._changeTaskStatus('open'),false);
+  assert.strictEqual(store.tasks,before);
+  assert.equal(store.tasks[0].status,'done');
+  assert.equal(store.taskStatusLedger['id:s'].done,true);
+});
+
+
+test('RC1811: edited task has a fresh sync timestamp so server merge cannot prefer old data',async()=>{
+  const{api,store}=editorHarness([{id:'m',title:'Vorher',owner:'Tobias',status:'open',
+    updatedAt:'2026-11-01T10:00:00.000Z',_syncUpdatedAt:'2026-11-01T10:00:00.000Z'}],()=>true);
+  api.editTask('m');
+  assert.equal(await api._saveForm(editorForm({status:'done'})),true);
+  const task=store.tasks[0];
+  assert.equal(task.status,'done');
+  assert.equal(task.title,'Neue Beschreibung');
+  assert.equal(task._syncUpdatedAt,task.updatedAt);
+  assert.equal(task.statusUpdatedAt,task.updatedAt);
+  assert.equal(store.taskStatusLedger['id:m'].done,true);
+});

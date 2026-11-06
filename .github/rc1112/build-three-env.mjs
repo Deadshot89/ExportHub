@@ -88,7 +88,7 @@ const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defe
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1667"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1754">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1754"></script>';
-const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1754"></script>';
+const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1754.1"></script>';
 const RC1650_SHIPMENT_TASKS_SCRIPT_TAG='<script id="exporthub-rc1650-shipment-tasks-script" defer src="/assets/rc1650-shipment-task-link.js?v=1650"></script>';
 // RC1810 Aufgabenseite (Heute/Woche/Monat/Liste) plus Betriebsferien und Feiertage im Wochenplan
 const RC1810_TASK_BOARD_STYLE_TAG='<link id="exporthub-rc1810-task-board-style" rel="stylesheet" href="/assets/rc1810-task-board.css?v=1810">';
