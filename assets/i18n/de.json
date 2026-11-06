@@ -2551,4 +2551,12 @@
   "urgentOrderV2.mailSaved": "E-Mail-Text gespeichert. Bitte nach dem Versand in der Auftragshistorie bestätigen.",
   "urgentOrderV2.mailOpenFailed": "E-Mail nicht geöffnet: ",
   "urgentOrderV2.mailIntro": "Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden."
+,
+  "urgentOrderV2.mailColumnTitle": "E-Mail versendet",
+  "urgentOrderV2.mailColumnSent": "Ja · manuell bestätigt",
+  "urgentOrderV2.mailColumnPending": "Nicht bestätigt",
+  "urgentOrderV2.mailColumnNone": "Keine E-Mail",
+  "urgentOrderV2.mailCountConfirmed": "bestätigt",
+  "urgentOrderV2.mailCountOpen": "offen",
+  "urgentOrderV2.mailHistoryButton": "Verlauf ansehen"
 }
