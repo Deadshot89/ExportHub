@@ -15,7 +15,7 @@ Ein Neubau ist deshalb nicht nötig. Dieser Entwurf schließt nur die Lücken ge
 ## Festgelegte Anforderungen (Gespräch vom 2026-11-05)
 - Alle Mitarbeiter erfassen, die Leitung schließt ab.
 - Alle Fehlerarten, Sendungs-REF optional, Anhänge möglich.
-- KI-Tipps auf Knopfdruck pro Fall plus Muster-Auswertung über alle Fälle.
+- Tipps pro Fall plus Muster-Auswertung über alle Fälle, kostenlos (Budget 0 Euro, daher regelbasiert statt externer KI).
 - Nachweis für Audits: Fehler und Lösungen nachvollziehbar dokumentiert.
 - Aufbewahrung: mindestens 2 Jahre (Entscheidung 2026-11-06). Fälle werden in dieser Zeit weder gelöscht noch gekürzt; eine Archivierung nach Ablauf ist eine eigene, freizugebende Entscheidung.
 
@@ -39,16 +39,12 @@ Soll: In der Sendungsansicht ein Link „Fehler melden“, der `qualitaet.html` 
 Ist: `qualitaet.html` und die API-Meldungen sind nur deutsch.
 Soll: Texte in de, en, pl, es, fr, it über die vorhandene i18n-Struktur (`npm run verify:i18n`). Gespeicherte Falltexte bleiben unübersetzt.
 
-### 6. KI-Tipps (generativ)
-Ist: nur Regeln (`advise`).
-Soll (erst nach Freigabe, siehe unten):
-- `ai-case`: Auf Knopfdruck Ursachenanalyse (5-Why) und Vorschläge für Korrektur und Vorbeugung zu einem Fall.
-- `ai-patterns`: Auswertung über einen Zeitraum aus verdichteten Kennzahlen (Anzahl je Kategorie, Bereich, Wiederholungen), keine Volltexte.
-- Eingabe nur Falltexte ohne Anhänge. Ausgabe als „KI-Vorschlag“ gekennzeichnet, im Verlauf als Ereignis `AI_SUGGESTION` festgehalten. Der Mensch übernimmt Teile bewusst in die Felder.
-- Nutzt die vorhandene Anbindung `customs-ai-provider` (dieselben Fehlerursachen `config`, `busy`, `timeout`, `server`). Ohne KI bleibt `advise` aktiv.
-- Begrenzung: Rate-Limit je Benutzer, Kürzung der Eingabe, kein automatischer Aufruf, keine Wiederholschleifen.
-
-**Freigabe nötig:** Nach AGENTS.md sind neue KI-Aufrufe ohne Freigabe von Anbieter, Budget und Umfang durch den Eigentümer nicht zulässig; vorhandene Zugangsdaten gelten nicht als Kostenfreigabe. Der Block 6 wird erst umgesetzt, wenn Anbieter, Monatsbudget und Umfang freigegeben sind. Die Blöcke 1–5 sind davon unabhängig.
+### 6. Tipps ohne Kosten (Entscheidung 2026-11-06: Budget 0 Euro)
+Ein externer KI-Anbieter wird **nicht** eingebunden, weil jeder Aufruf Geld kostet. Stattdessen wird der vorhandene Regel-Assistent (`advise`) ausgebaut. Er läuft komplett in der eigenen API, ohne Netzwerkaufruf.
+- **Tipps pro Fall:** konkrete 5-Warum-Leitfragen je Kategorie (Verladung, Dokumente, Zoll, POD, Beschädigung, Termin/Abholung, System), Hinweise zu Sofortmaßnahme, Korrektur und Vorbeugung, Schweregrad-abhängige Eskalation.
+- **Muster-Auswertung** (neue Aktion `patterns`, reine Berechnung über die Fälle eines Zeitraums): Häufungen nach Kategorie, Bereich und Wochentag, Wiederholungsfälle derselben Referenz oder Ursache, Maßnahmen mit Ergebnis „unwirksam“, überfällige Fristen.
+- **Kennzeichnung:** Ausgaben heißen „Regelvorschlag“, nicht „KI“. Sie ändern nie selbst einen Fall; der Mensch übernimmt Teile bewusst.
+- Keine Ausgaben an Dritte, keine Zugangsdaten, keine laufenden Kosten. Eine spätere KI-Anbindung bräuchte eine neue Freigabe von Anbieter, Budget und Umfang durch den Eigentümer (AGENTS.md).
 
 ## Rechte (Zielzustand)
 | Aktion | Wer |
@@ -57,24 +53,23 @@ Soll (erst nach Freigabe, siehe unten):
 | lesen | wie bisher (`canRead`) |
 | bearbeiten, Status | wie bisher (`canEdit`) |
 | abschließen, wiederöffnen | wie bisher (`canClose`) |
-| KI-Tipps | wer lesen darf, mit Rate-Limit |
+| Tipps und Muster-Auswertung | wer lesen darf |
 
 Der Benutzername kommt immer aus der Sitzung auf dem Server.
 
 ## Fehlerbehandlung
-Speicher nicht erreichbar oder Daten unvollständig: Speichern bleibt gesperrt (wie bisher). Anhang scheitert: Fall bleibt gespeichert, Anhang erneut hochladbar. KI scheitert: Hinweis nach Ursache, Regelvorschläge bleiben.
+Speicher nicht erreichbar oder Daten unvollständig: Speichern bleibt gesperrt (wie bisher). Anhang scheitert: Fall bleibt gespeichert, Anhang erneut hochladbar.
 
 ## Tests
-Bestehende `test/quality-capa.test.mjs` bleibt grün. Neu: Rechte von `report`, Hash-Kette (lückenlos, Manipulation erkannt, Migration), Anhang-Grenzen und -Ablage, REF-Link, i18n-Vollständigkeit, nach Freigabe KI-Fehlergründe und Prompt ohne Anhänge. Keine Produktionsdaten in Tests.
+Bestehende `test/quality-capa.test.mjs` bleibt grün. Neu: Rechte von `report`, Hash-Kette (lückenlos, Manipulation erkannt, Migration), Anhang-Grenzen und -Ablage, REF-Link, i18n-Vollständigkeit, Muster-Auswertung (Häufung, Wiederholung, unwirksame Maßnahmen, Zeitraum). Keine Produktionsdaten in Tests.
 
 ## Umsetzung in eigenen PRs
 1. Hash-Kette und `report`-Recht (API, Tests).
 2. Anhänge.
 3. Mehrsprachigkeit und Link aus der Sendungsansicht.
-4. KI-Tipps (nur nach Freigabe).
+4. Ausgebauter Regel-Assistent und Muster-Auswertung (kostenlos).
 
 Kein Merge und kein Deployment ohne ausdrückliche Freigabe von Deadshot89.
 
 ## Offene Punkte
-- Freigabe für KI: Anbieter (vorhandener OpenAI-Zugang?), Monatsbudget, Umfang.
 - „Leitung“ bleibt vorerst an das SOP-Admin-Recht gebunden (Empfehlung A); ein eigenes Recht „Fehler abschließen“ wäre Variante B.
