@@ -5,6 +5,8 @@ const crypto=require('crypto');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const apiI18n=require('../shared/i18n');
+const rights=require('../shared/state-write-guard');
+const shipments=require('../shared/av-check');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 
 const FIELDS={
@@ -61,7 +63,7 @@ async function userEnvironment(req){
  const sessionEnv=txt(logged.session&&logged.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
   throw problem('SESSION_ENVIRONMENT_MISMATCH','Anmeldung gehoert zu einer anderen Umgebung.',403);
- return{env,username:txt(auth.usernameOf(logged.user)||logged.user&&logged.user.name||'Mitarbeiter',120)};
+ return{env,username:txt(auth.usernameOf(logged.user)||logged.user&&logged.user.name||'Mitarbeiter',120),user:logged.user,team:logged.team};
 }
 async function write(blob,record,etag){
  const data=Buffer.from(JSON.stringify(record),'utf8');
@@ -71,10 +73,18 @@ async function write(blob,record,etag){
    conditions:etag?{ifMatch:etag}:{ifNoneMatch:'*'}});
  }catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw problem('CONFLICT','Die Dokumentation wurde zwischenzeitlich geaendert. Bitte neu laden.',409);throw e}
 }
+function assertShipmentAccess(user,team,ref,method){
+ if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))throw problem('DOCUMENTATION_FORBIDDEN','Keine Berechtigung fuer die Sendungsdokumentation.',403);
+ if(method==='POST'&&!rights.canEditAny(user,['shipment','documents']))throw problem('DOCUMENTATION_READ_ONLY','Keine Berechtigung zum Aendern der Sendungsdokumentation.',403);
+ const state=team&&team.state&&typeof team.state==='object'?team.state:{};
+ if(!shipments.shipmentCopies(state,ref).length)throw problem('SHIPMENT_NOT_FOUND','Diese Sendungsreferenz existiert nicht im zentralen ExportHUB-Sendungsbestand.',404);
+}
 async function handle(req){
- const {env,username}=await userEnvironment(req);
+ const {env,username,user,team}=await userEnvironment(req);
  const input=req.method==='GET'?(req.query||{}):bodyOf(req);
- const ref=reference(input.reference),blob=blobFor(env,ref);
+ const ref=reference(input.reference);
+ assertShipmentAccess(user,team,ref,req.method);
+ const blob=blobFor(env,ref);
  const existing=await read(blob,ref);
  if(req.method==='GET')return json(200,{ok:true,exists:!!existing.etag,record:existing.record});
  const expected=Number(input.expectedRevision);
@@ -125,3 +135,4 @@ module.exports=async function(context,req){
 };
 module.exports.reference=reference;
 module.exports.normalizeFields=normalizeFields;
+module.exports.assertShipmentAccess=assertShipmentAccess;
