@@ -1159,6 +1159,7 @@
   "theme.glass": "Glass",
   "theme.neonNight": "Neon Night",
   "theme.premium": "Premium",
+  "theme.neu": "Neu (Menü oben)",
   "loadingList.documentCount": "{{count}} Dokumente",
   "loadingList.resultCount": "{{count}} Treffer",
   "loadingList.shipmentCount": "{{count}} Sendungen",
@@ -2529,8 +2530,7 @@
   "urgentOrderV2.clearEmailHistory": "Gespeicherte E-Mails löschen",
   "urgentOrderV2.saveEmailOnDevice": "E-Mail auf diesem Gerät speichern",
   "urgentOrderV2.emailHistoryStorageFailed": "Lokale Speicherung derzeit nicht verfügbar.",
-  "urgentOrderV2.emailHistorySaved": "E-Mail-Adresse auf diesem Gerät gespeichert."
-,
+  "urgentOrderV2.emailHistorySaved": "E-Mail-Adresse auf diesem Gerät gespeichert.",
   "urgentOrderV2.mailHistoryTitle": "E-Mail-Verlauf",
   "urgentOrderV2.mailHistoryEmpty": "Noch keine E-Mails aus ExportHUB360 vorbereitet.",
   "urgentOrderV2.mailKindShipping": "Versandbestätigung",
@@ -2550,15 +2550,13 @@
   "urgentOrderV2.mailSaving": "Speichere den E-Mail-Text im Auftrag …",
   "urgentOrderV2.mailSaved": "E-Mail-Text gespeichert. Bitte nach dem Versand in der Auftragshistorie bestätigen.",
   "urgentOrderV2.mailOpenFailed": "E-Mail nicht geöffnet: ",
-  "urgentOrderV2.mailIntro": "Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden."
-,
+  "urgentOrderV2.mailIntro": "Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.",
   "urgentOrderV2.mailColumnTitle": "E-Mail versendet",
   "urgentOrderV2.mailColumnSent": "Ja · manuell bestätigt",
   "urgentOrderV2.mailColumnPending": "Nicht bestätigt",
   "urgentOrderV2.mailColumnNone": "Keine E-Mail",
   "urgentOrderV2.mailCountConfirmed": "bestätigt",
   "urgentOrderV2.mailCountOpen": "offen",
-  "urgentOrderV2.mailHistoryButton": "Verlauf ansehen"
-,
+  "urgentOrderV2.mailHistoryButton": "Verlauf ansehen",
   "urgentOrderV2.mailColumnPartial": "Teilweise bestätigt"
 }

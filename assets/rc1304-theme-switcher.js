@@ -16,8 +16,11 @@
   // RC1800 Premium: fünfte Auswahl. Technisch Klassisch als Basis (data-eh-design="classic"),
   // darüber das Premium-Designsystem über data-eh-skin="premium". Andere Designs bleiben unverändert.
   var PREMIUM='premium';
-  var CHOICES=VALUES.concat([PREMIUM]);
+  // RC1820 Neu (Prototyp A): Premium-Skin plus Menü oben statt Seitenleiste (data-eh-layout="top").
+  var NEU='neu';
+  var CHOICES=VALUES.concat([PREMIUM,NEU]);
   var SKIN_ATTR='data-eh-skin';
+  var LAYOUT_ATTR='data-eh-layout';
   var refreshTimer=0;
   var RC1532_COMPLETION_STYLE_ID='exporthub-rc1532-theme-completion';
   var RC1532_COMPLETION_CSS=String.raw`
@@ -433,7 +436,13 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     try{localStorage.setItem(STORAGE_KEY,value)}catch(_){}
   }
 
-  function baseDesign(value){return value===PREMIUM?CLASSIC:value}
+  function baseDesign(value){return value===PREMIUM||value===NEU?CLASSIC:value}
+  function skinOf(value){return value===PREMIUM||value===NEU?PREMIUM:''}
+  function setLayout(node,layout){
+    if(!node)return;
+    if(layout){if(node.getAttribute(LAYOUT_ATTR)!==layout)node.setAttribute(LAYOUT_ATTR,layout)}
+    else if(node.hasAttribute(LAYOUT_ATTR))node.removeAttribute(LAYOUT_ATTR);
+  }
   function setSkin(node,skin){
     if(!node)return;
     if(skin){if(node.getAttribute(SKIN_ATTR)!==skin)node.setAttribute(SKIN_ATTR,skin)}
@@ -442,11 +451,13 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
   function setRoot(choice){
     choice=normalize(choice);
     var value=baseDesign(choice);
-    var skin=choice===PREMIUM?PREMIUM:'';
+    var skin=skinOf(choice),layout=choice===NEU?'top':'';
     if(document.documentElement.getAttribute('data-eh-design')!==value)document.documentElement.setAttribute('data-eh-design',value);
     if(document.body&&document.body.getAttribute('data-eh-design')!==value)document.body.setAttribute('data-eh-design',value);
     setSkin(document.documentElement,skin);
     setSkin(document.body,skin);
+    setLayout(document.documentElement,layout);
+    setLayout(document.body,layout);
     return choice;
   }
 
@@ -480,19 +491,21 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
   function options(select,value){
     if(!select)return;
     var ready=select.dataset.rc1304==='1'&&
-      select.options&&select.options.length===5&&
+      select.options&&select.options.length===6&&
       select.options[0].value===CLASSIC&&
       select.options[1].value===MODERN&&
       select.options[2].value===GLASS&&
       select.options[3].value===NEON&&
-      select.options[4].value===PREMIUM;
+      select.options[4].value===PREMIUM&&
+      select.options[5].value===NEU;
     if(!ready){
       select.innerHTML=
         '<option value="'+CLASSIC+'"></option>'+ 
         '<option value="'+MODERN+'"></option>'+ 
         '<option value="'+GLASS+'"></option>'+ 
         '<option value="'+NEON+'"></option>'+
-        '<option value="'+PREMIUM+'"></option>';
+        '<option value="'+PREMIUM+'"></option>'+
+        '<option value="'+NEU+'"></option>';
       select.dataset.rc446='1';
       select.dataset.rc1304='1';
     }
@@ -501,6 +514,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     setText(select.options[2],tr('theme.glass'));
     setText(select.options[3],tr('theme.neonNight'));
     setText(select.options[4],tr('theme.premium'));
+    setText(select.options[5],tr('theme.neu'));
     if(select.value!==value)select.value=value;
     select.setAttribute('aria-label',tr('theme.select'));
     // also on every language change: the title set before the language pack loaded would otherwise stay the raw key
@@ -606,7 +620,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     ensureLogin(value);
     syncControls(value);
     try{
-      window.dispatchEvent(new CustomEvent('exporthub:designchange',{detail:{design:baseDesign(value),skin:value===PREMIUM?PREMIUM:''}}));
+      window.dispatchEvent(new CustomEvent('exporthub:designchange',{detail:{design:baseDesign(value),skin:skinOf(value),layout:value===NEU?'top':''}}));
     }catch(_){}
     return value;
   }
@@ -673,10 +687,12 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
       Object.freeze({id:MODERN,labelKey:'theme.modernBusiness'}),
       Object.freeze({id:GLASS,labelKey:'theme.glass'}),
       Object.freeze({id:NEON,labelKey:'theme.neonNight'}),
-      Object.freeze({id:PREMIUM,labelKey:'theme.premium'})
+      Object.freeze({id:PREMIUM,labelKey:'theme.premium'}),
+      Object.freeze({id:NEU,labelKey:'theme.neu'})
     ]),
     apply:function(value){return apply(value,true)},
     current:function(){
+      if(document.documentElement.getAttribute(LAYOUT_ATTR)==='top')return NEU;
       if(document.documentElement.getAttribute(SKIN_ATTR)===PREMIUM)return PREMIUM;
       return normalize(document.documentElement.getAttribute('data-eh-design')||read());
     },

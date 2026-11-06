@@ -1159,6 +1159,7 @@
   "theme.glass": "Glass",
   "theme.neonNight": "Neon Night",
   "theme.premium": "Premium",
+  "theme.neu": "Nouveau (menu en haut)",
   "loadingList.documentCount": "{{count}} documents",
   "loadingList.resultCount": "{{count}} résultats",
   "loadingList.shipmentCount": "{{count}} expéditions",
@@ -2529,8 +2530,7 @@
   "urgentOrderV2.clearEmailHistory": "Effacer les adresses enregistrées",
   "urgentOrderV2.saveEmailOnDevice": "Enregistrer l’e-mail sur cet appareil",
   "urgentOrderV2.emailHistoryStorageFailed": "Le stockage local est actuellement indisponible.",
-  "urgentOrderV2.emailHistorySaved": "Adresse e-mail enregistrée sur cet appareil."
-,
+  "urgentOrderV2.emailHistorySaved": "Adresse e-mail enregistrée sur cet appareil.",
   "urgentOrderV2.mailHistoryTitle": "Historique des e-mails",
   "urgentOrderV2.mailHistoryEmpty": "Aucun e-mail n'a encore été préparé depuis ExportHUB360.",
   "urgentOrderV2.mailKindShipping": "Confirmation d'expédition",
@@ -2550,15 +2550,13 @@
   "urgentOrderV2.mailSaving": "Enregistrement du texte de l'e-mail dans la commande …",
   "urgentOrderV2.mailSaved": "Texte de l'e-mail enregistré. Confirmez ensuite l'envoi dans l'historique de la commande.",
   "urgentOrderV2.mailOpenFailed": "Impossible d'ouvrir l'e-mail : ",
-  "urgentOrderV2.mailIntro": "Avant l'ouverture de votre messagerie, le destinataire, l'objet et le texte exact saisi dans ExportHUB360 sont enregistrés dans l'Urgent Order. L'envoi effectif doit ensuite être confirmé."
-,
+  "urgentOrderV2.mailIntro": "Avant l'ouverture de votre messagerie, le destinataire, l'objet et le texte exact saisi dans ExportHUB360 sont enregistrés dans l'Urgent Order. L'envoi effectif doit ensuite être confirmé.",
   "urgentOrderV2.mailColumnTitle": "E-mail envoyé",
   "urgentOrderV2.mailColumnSent": "Oui · confirmé manuellement",
   "urgentOrderV2.mailColumnPending": "Non confirmé",
   "urgentOrderV2.mailColumnNone": "Aucun e-mail",
   "urgentOrderV2.mailCountConfirmed": "confirmés",
   "urgentOrderV2.mailCountOpen": "en attente",
-  "urgentOrderV2.mailHistoryButton": "Voir l’historique"
-,
+  "urgentOrderV2.mailHistoryButton": "Voir l’historique",
   "urgentOrderV2.mailColumnPartial": "Partiellement confirmé"
 }

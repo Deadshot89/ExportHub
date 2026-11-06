@@ -62,7 +62,7 @@ test('RC1800: Auswahl Premium = Klassisch als Basis plus data-eh-skin; andere De
     assert.equal(env.html.getAttribute('data-eh-design'),'neon');
     assert.equal(env.html.getAttribute('data-eh-skin'),null);
     assert.equal(env.store.get('exporthub-ui-design'),'neon');
-    assert.equal(JSON.stringify(api.designs.map(d=>d.id)),JSON.stringify(['classic','modern','glass','neon','premium']));
+    assert.equal(JSON.stringify(api.designs.map(d=>d.id)),JSON.stringify(['classic','modern','glass','neon','premium','neu']));
   }
 });
 

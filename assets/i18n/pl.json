@@ -1159,6 +1159,7 @@
   "theme.glass": "Glass",
   "theme.neonNight": "Neon Night",
   "theme.premium": "Premium",
+  "theme.neu": "Nowy (menu u góry)",
   "loadingList.documentCount": "{{count}} dokumentów",
   "loadingList.resultCount": "{{count}} wyników",
   "loadingList.shipmentCount": "{{count}} przesyłek",
@@ -2529,8 +2530,7 @@
   "urgentOrderV2.clearEmailHistory": "Usuń zapisane adresy e-mail",
   "urgentOrderV2.saveEmailOnDevice": "Zapisz e-mail na tym urządzeniu",
   "urgentOrderV2.emailHistoryStorageFailed": "Zapis lokalny jest obecnie niedostępny.",
-  "urgentOrderV2.emailHistorySaved": "Adres e-mail zapisano na tym urządzeniu."
-,
+  "urgentOrderV2.emailHistorySaved": "Adres e-mail zapisano na tym urządzeniu.",
   "urgentOrderV2.mailHistoryTitle": "Historia wiadomości e-mail",
   "urgentOrderV2.mailHistoryEmpty": "Nie przygotowano jeszcze żadnej wiadomości e-mail w ExportHUB360.",
   "urgentOrderV2.mailKindShipping": "Potwierdzenie wysyłki",
@@ -2550,15 +2550,13 @@
   "urgentOrderV2.mailSaving": "Trwa zapisywanie treści wiadomości w zleceniu …",
   "urgentOrderV2.mailSaved": "Treść wiadomości została zapisana. Po wysłaniu potwierdź to w historii zlecenia.",
   "urgentOrderV2.mailOpenFailed": "Nie otwarto wiadomości e-mail: ",
-  "urgentOrderV2.mailIntro": "Przed otwarciem programu pocztowego odbiorca, temat i dokładna treść wpisana w ExportHUB360 zostaną zapisane w zgłoszeniu Urgent Order. Faktyczne wysłanie należy następnie potwierdzić."
-,
+  "urgentOrderV2.mailIntro": "Przed otwarciem programu pocztowego odbiorca, temat i dokładna treść wpisana w ExportHUB360 zostaną zapisane w zgłoszeniu Urgent Order. Faktyczne wysłanie należy następnie potwierdzić.",
   "urgentOrderV2.mailColumnTitle": "E-mail wysłany",
   "urgentOrderV2.mailColumnSent": "Tak · potwierdzono ręcznie",
   "urgentOrderV2.mailColumnPending": "Niepotwierdzone",
   "urgentOrderV2.mailColumnNone": "Brak e-maila",
   "urgentOrderV2.mailCountConfirmed": "potwierdzone",
   "urgentOrderV2.mailCountOpen": "oczekujące",
-  "urgentOrderV2.mailHistoryButton": "Zobacz historię"
-,
+  "urgentOrderV2.mailHistoryButton": "Zobacz historię",
   "urgentOrderV2.mailColumnPartial": "Częściowo potwierdzono"
 }
