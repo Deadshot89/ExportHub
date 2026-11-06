@@ -1,0 +1,172 @@
+/* RC1821 Design "Neu" Stufe 2: eigenes Erscheinungsbild für alle Ansichten.
+   Greift nur bei html[data-eh-layout="top"] (Auswahl "Neu (Menü oben)"). Funktionen und Abläufe bleiben unverändert,
+   es werden nur Farben, Flächen, Abstände und Rahmen gesetzt (kein display, keine Reihenfolge).
+   Liegt in @layer rc971, weil das globale Formular-Standardlayer Knöpfe und Felder mit !important setzt;
+   drei ids (#content#content#content) schlagen dessen Selektoren. */
+@layer rc971{
+
+/* ---------- Grundlage ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"]{
+  --n-bg:#f4f5fa;--n-surface:#ffffff;--n-surface-2:#f8f9fd;--n-line:#e4e7f0;--n-line-2:#d6dbe8;
+  --n-text:#0f172a;--n-muted:#5b6478;--n-primary:#4f46e5;--n-primary-2:#7c3aed;--n-primary-soft:#eef0ff;
+  --n-danger:#dc2626;--n-radius:18px;
+  --n-shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.06);
+  --n-shadow-hover:0 2px 4px rgba(16,24,40,.05),0 14px 34px rgba(16,24,40,.10);
+  background:radial-gradient(1100px 420px at 8% -120px,rgba(99,102,241,.16),transparent 70%),radial-gradient(900px 380px at 96% -140px,rgba(168,85,247,.13),transparent 70%),var(--n-bg)!important;
+  background-attachment:fixed!important;
+  color:var(--n-text)!important
+}
+
+/* ---------- Seitenkopf: helle Kopfkarte statt Linie ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.page-head,.rc524-page-head,.rc1810-head,.tpv2-planner-head){
+  position:relative!important;
+  background:linear-gradient(115deg,#ffffff 0%,#ffffff 45%,#f1efff 100%)!important;
+  border:1px solid var(--n-line)!important;border-radius:22px!important;
+  padding:20px 24px!important;margin:0 0 18px!important;
+  box-shadow:var(--n-shadow)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.page-head,.rc524-page-head,.rc1810-head,.tpv2-planner-head)::before{
+  content:""!important;position:absolute!important;left:0!important;top:18px!important;bottom:18px!important;width:5px!important;border-radius:0 5px 5px 0!important;
+  background:linear-gradient(180deg,var(--n-primary),var(--n-primary-2))!important;pointer-events:none!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.page-head,.rc524-page-head,.rc1810-head,.tpv2-planner-head) :is(h1,h2){
+  font-size:30px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.025em!important;color:var(--n-text)!important;margin:2px 0 0!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.rc524-kicker,.page-head .kicker,.page-head .eyebrow,.rc1810-kicker){
+  color:var(--n-primary)!important;font-weight:750!important;letter-spacing:.09em!important
+}
+
+/* ---------- Karten ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.card,.rc524-panel,.rc543-section,.rc776-card,.folder-section){
+  background:var(--n-surface)!important;border:1px solid var(--n-line)!important;border-radius:var(--n-radius)!important;
+  box-shadow:var(--n-shadow)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .card>:is(h2,h3):first-child{
+  font-size:17px!important;font-weight:750!important;letter-spacing:-.01em!important;color:var(--n-text)!important
+}
+
+/* ---------- Knöpfe ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.btn,.ghost,.soft,.danger):not(.index209-signature-trigger):not(#loadListDoc *):not(.rc390-paper *){
+  min-height:38px!important;padding:8px 14px!important;border-radius:12px!important;font-size:13px!important;font-weight:650!important;
+  letter-spacing:0!important;text-transform:none!important;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .1s ease!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .btn:not(.ghost):not(.soft):not(.danger):not(:disabled){
+  background:linear-gradient(135deg,var(--n-primary) 0%,var(--n-primary-2) 100%)!important;color:#fff!important;border:1px solid transparent!important;
+  box-shadow:0 1px 2px rgba(79,70,229,.25),0 6px 16px rgba(79,70,229,.22)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .btn:not(.ghost):not(.soft):not(.danger):not(:disabled):hover{
+  background:linear-gradient(135deg,#4338ca 0%,#6d28d9 100%)!important;box-shadow:0 2px 4px rgba(79,70,229,.25),0 10px 24px rgba(79,70,229,.28)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .ghost:not(.danger):not(.active):not(.is-active):not(:disabled){
+  background:#fff!important;color:#28324a!important;border:1px solid var(--n-line-2)!important;box-shadow:0 1px 2px rgba(16,24,40,.05)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .ghost:not(.danger):not(.active):not(.is-active):not(:disabled):hover{
+  background:var(--n-primary-soft)!important;color:#3730a3!important;border-color:#c7cbfb!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .soft:not(.danger):not(.active):not(.is-active):not(:disabled){
+  background:var(--n-primary-soft)!important;color:#3730a3!important;border:1px solid #dfe2ff!important;box-shadow:none!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .soft:not(.danger):not(.active):not(.is-active):not(:disabled):hover{
+  background:#e0e4ff!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .danger:not(:disabled){
+  background:#fef2f2!important;color:#b91c1c!important;border:1px solid #fecaca!important;box-shadow:none!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .danger:not(:disabled):hover{
+  background:var(--n-danger)!important;color:#fff!important;border-color:var(--n-danger)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(.btn,.ghost,.soft,.danger):not(:disabled):active{transform:translateY(1px)!important}
+
+/* ---------- Eingabefelder ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]),select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){
+  background-color:var(--n-surface-2)!important;border:1px solid var(--n-line-2)!important;border-radius:12px!important;color:var(--n-text)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(input,select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *):hover{border-color:#b9c0d4!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content :is(input,select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *):focus{
+  background-color:#fff!important;border-color:var(--n-primary)!important;box-shadow:0 0 0 4px rgba(99,102,241,.14)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content label:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){color:#344054!important}
+
+/* ---------- Tabellen ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content table:not(#loadListDoc *):not(.rc390-paper *) th{
+  background:var(--n-surface-2)!important;color:var(--n-muted)!important;font-size:11.5px!important;font-weight:700!important;
+  text-transform:uppercase!important;letter-spacing:.06em!important;border-bottom:1px solid var(--n-line)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content table:not(#loadListDoc *):not(.rc390-paper *) td{border-bottom:1px solid #eef0f6!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content table:not(#loadListDoc *):not(.rc390-paper *) tbody tr:hover>td{background:#fafaff!important}
+
+/* ---------- Sendungsübersicht: Statusfarben ---------- */
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="entwurf"],.rc543-overview-group-entwurf,.rc210-status-pill-entwurf){--n-st:#64748b}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="erstellt"],.rc543-overview-group-erstellt,.rc210-status-pill-erstellt){--n-st:#6366f1}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="inbearbeitung"],.rc543-overview-group-inbearbeitung,.rc210-status-pill-inbearbeitung){--n-st:#0ea5e9}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="wartetabd"],.rc543-overview-group-wartetabd,.rc210-status-pill-wartetabd){--n-st:#d97706}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="offen"],.rc543-overview-group-offen,.rc210-status-pill-offen){--n-st:#ea580c}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="nachbearbeitung"],.rc543-overview-group-nachbearbeitung,.rc210-status-pill-nachbearbeitung){--n-st:#e11d48}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="bereit"],.rc543-overview-group-bereit,.rc210-status-pill-bereit){--n-st:#059669}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="abgeholt"],.rc543-overview-group-abgeholt,.rc210-status-pill-abgeholt){--n-st:#0d9488}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="pod"],.rc543-overview-group-pod,.rc210-status-pill-pod){--n-st:#8b5cf6}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="abgeschlossen"],.rc543-overview-group-abgeschlossen,.rc210-status-pill-abgeschlossen){--n-st:#16a34a}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="archiviert"],.rc543-overview-group-archiviert,.rc210-status-pill-archiviert){--n-st:#94a3b8}
+html[data-eh-layout="top"] body[data-eh-layout="top"] :is([data-status-key="storniert"],.rc543-overview-group-storniert,.rc210-status-pill-storniert){--n-st:#dc2626}
+
+/* Gruppe: keine eigene Fläche mehr, farbiger Kopf */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view .rc543-overview-group{
+  background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 22px!important;border-radius:0!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view .rc543-overview-group-head{
+  min-height:48px!important;padding:8px 14px 8px 16px!important;border-radius:14px!important;
+  background:color-mix(in srgb,var(--n-st,#6366f1) 9%,#ffffff)!important;
+  border:1px solid color-mix(in srgb,var(--n-st,#6366f1) 22%,#ffffff)!important;border-left:6px solid var(--n-st,#6366f1)!important;
+  box-shadow:none!important;color:var(--n-text)!important;font-size:14px!important;font-weight:700!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view .rc543-overview-group-body{
+  gap:18px!important;padding:14px 0 0!important;background:transparent!important;border:0!important
+}
+/* Statusetikett überall in Statusfarbe */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content .rc210-status-pill{
+  background:var(--n-st,#6366f1)!important;color:#fff!important;border:0!important;box-shadow:none!important;width:fit-content!important;max-width:100%!important;flex:0 0 auto!important;
+  padding:5px 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:750!important;letter-spacing:.05em!important
+}
+/* Kachel: klare Grenze, Statusband oben */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card{
+  position:relative!important;background:#fff!important;
+  border:1px solid #dfe3ee!important;border-top:6px solid var(--n-st,#6366f1)!important;border-radius:18px!important;
+  box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.08)!important;padding:16px 18px 18px!important;
+  transition:box-shadow .15s ease,transform .15s ease!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card:hover{
+  box-shadow:0 2px 4px rgba(16,24,40,.06),0 18px 40px rgba(16,24,40,.13)!important;transform:translateY(-2px)!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card .rc524-area-head{
+  margin:-16px -18px 12px!important;padding:14px 18px 12px!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--n-st,#6366f1) 8%,#ffffff),#ffffff)!important;
+  border-bottom:1px solid #eef0f6!important;border-radius:12px 12px 0 0!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card :is(.rc524-overview-meta,.rc524-link-columns>*,.rc403-overview-note){
+  background:var(--n-surface-2)!important;border:1px solid #e9ecf3!important;border-radius:12px!important
+}
+}
+
+/* ---------- Aufbau (nur breite Bildschirme) ---------- */
+@media (min-width:1024px){
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content .rc626-page{max-width:none!important}
+/* Demo-Hinweis nicht über dem Menü: links unten */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #eh996-demo-banner{top:auto!important;bottom:16px!important;left:16px!important;transform:none!important;max-width:min(560px,calc(100vw - 340px))!important}
+}
+
+/* ---------- Schwebende Elemente ohne Überlappung ---------- */
+/* rechte Ecke: SOP/Hilfe ganz unten, Warncenter links daneben, Standard-SOP und Erinnerung darüber */
+html[data-eh-layout="top"] body[data-eh-layout="top"] #rc1705-sop-launcher{right:20px!important;bottom:20px!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #rc1705-sop-shipment{left:auto!important;right:20px!important;bottom:76px!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #tpv2ReminderToast{bottom:132px!important}
+@media (max-width:1023px){
+html[data-eh-layout="top"] body[data-eh-layout="top"] #rc885WarningButton{top:auto!important;right:16px!important;bottom:76px!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #rc1705-sop-shipment{bottom:132px!important;right:16px!important}
+}
+@media print{html[data-eh-layout="top"] body[data-eh-layout="top"]{background:#fff!important}}
+
+/* Fix für alle Designs: "Sendung erstellen" auf schmalen Bildschirmen. Die Containerregel von RC894 stellt auf eine Spalte,
+   die festen Spaltenregeln für Kunde/Sendung/Colli (mit id) gewinnen aber und erzeugen eine 18px-Spalte, Blöcke überlappen. */
+@container rc978ShipmentLayout (max-width:760px){
+#rc383TopPair#rc383TopPair.rc894-full-stack>.rc363-process-block{grid-column:1/-1!important;grid-row:auto!important}
+}

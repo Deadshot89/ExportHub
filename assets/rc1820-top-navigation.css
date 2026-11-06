@@ -4,7 +4,7 @@
 @media (min-width:1024px){
 html[data-eh-layout="top"] body[data-eh-layout="top"] #app.app{display:block!important;grid-template-columns:none!important}
 html[data-eh-layout="top"] body[data-eh-layout="top"] #app.app>aside.sidebar{display:none!important}
-html[data-eh-layout="top"] body[data-eh-layout="top"] #app.app>main.main{width:auto!important;max-width:1640px!important;margin:0 auto!important;padding:16px 28px 40px!important;box-sizing:border-box}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #app.app>main.main{width:auto!important;max-width:none!important;margin:0!important;padding:16px 32px 56px!important;box-sizing:border-box}
 html[data-eh-layout="top"] body[data-eh-layout="top"] #ehMenuBtn{display:none!important}
 
 /* Leiste */

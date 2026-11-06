@@ -66,6 +66,8 @@ const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/
 const RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="/assets/rc1800-premium-design.css?v=1804">';
 // RC1820: Design "Neu" (Prototyp A) mit Menü oben; greift nur bei html[data-eh-layout="top"]
 const RC1820_TOPNAV_STYLE_TAG='<link id="exporthub-rc1820-topnav-style" rel="stylesheet" href="/assets/rc1820-top-navigation.css?v=1820">';
+// RC1821: Design "Neu" Stufe 2, eigenes Erscheinungsbild (nur html[data-eh-layout="top"])
+const RC1821_DESIGN_NEU_STYLE_TAG='<link id="exporthub-rc1821-design-neu-style" rel="stylesheet" href="/assets/rc1821-design-neu.css?v=1821">';
 const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=1820"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
@@ -182,7 +184,9 @@ function patchRc1800PremiumDesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1800_PREMIUM_STYLE_TAG,'exporthub-rc1800-premium-design');
   if(!html.includes('rc1800-premium-design.css?v=1804'))throw new Error(file+': RC1800 Premium-CSS fehlt');
   html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_STYLE_TAG,'exporthub-rc1820-topnav-style');
+  html=injectDeferredRuntimeInHead(html,RC1821_DESIGN_NEU_STYLE_TAG,'exporthub-rc1821-design-neu-style');
   html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_SCRIPT_TAG,'exporthub-rc1820-topnav-script');
+  if(!html.includes('rc1821-design-neu.css?v=1821'))throw new Error(file+': RC1821 Design Neu fehlt');
   if(!html.includes('rc1820-top-navigation.css?v=1820')||!html.includes('rc1820-top-navigation.js?v=1820'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }
@@ -1902,6 +1906,7 @@ for(const rel of [
   'assets/rc1800-premium-standalone.css',
   'assets/rc1820-top-navigation.css', // RC1820: Design "Neu" mit Menü oben
   'assets/rc1820-top-navigation.js',
+  'assets/rc1821-design-neu.css', // RC1821: Design "Neu" Stufe 2
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',
