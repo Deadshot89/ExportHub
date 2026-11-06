@@ -238,6 +238,44 @@ async function sendReminder(sh,email,target,lang,url,mode){
  recordDraft(sh,result,mode,target,lang);
  return result
 }
+
+function htmlSendLabel(lang){
+ return {de:'Formatierte AVIS-Mail senden',en:'Send formatted collection notice',pl:'Wyślij sformatowane awizo',es:'Enviar aviso con formato',fr:'Envoyer l’avis mis en forme',it:'Invia avviso formattato'}[normalizeLanguage(lang)];
+}
+function htmlSendHint(lang){
+ return {
+  de:'Die formatierte Mail zeigt einen klickbaren Linktext statt der technischen Adresse. Der Outlook-Entwurf zeigt weiterhin die volle URL.',
+  en:'The formatted email shows a clickable label instead of the technical URL. The Outlook draft still displays the full URL.',
+  pl:'Wiadomość HTML zawiera klikalny napis zamiast adresu URL. Wersja robocza Outlook nadal pokazuje pełny adres.',
+  es:'El correo con formato muestra un enlace con texto en vez de la URL. El borrador de Outlook sigue mostrando la URL.',
+  fr:'L’e-mail mis en forme affiche un lien nommé plutôt que l’URL. Le brouillon Outlook affiche toujours l’URL.',
+  it:'L’e-mail formattata mostra un link con testo anziché l’URL. La bozza Outlook continua a mostrare l’URL.'
+ }[normalizeLanguage(lang)];
+}
+async function sendHtmlAvis(sh,email,target,lang,url,mode){
+ if(avisRecipientExcluded(email)){var excluded=new Error('Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.');excluded.code='AVIS_RECIPIENT_EXCLUDED';throw excluded}
+ if(!/^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$/i.test(q(email)))throw new Error(tr('avisReminder.missingCustomer'));
+ if(closed(sh)||exception(sh)||!avisLink(sh))throw new Error(tr('avisReminder.notReady'));
+ lang=normalizeLanguage(lang);target=target==='carrier'?'carrier':'customer';mode=mode==='initial'?'initial':'reminder';
+ var gate=reminderGate(sh);if(!gate.enabled||gate.mode!==mode)throw new Error(tr('avisReminder.notReady'));
+ var response=await w.fetch('/api/avis-reminder-mail',{
+  method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-ExportHUB-Environment':environmentName()},
+  body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target,language:lang,mode:mode,avisUrl:safeAvisLink(sh,url||avisLink(sh))})
+ });
+ var result=await response.json().catch(function(){return{}});
+ if(!response.ok||result.ok!==true){
+  var error=new Error(q(result.message)||tr('avisReminder.failed'));
+  error.code=q(result.code)||'AVIS_HTML_SEND_FAILED';throw error
+ }
+ var event={id:q(result.historyId),at:q(result.sentAt),type:'mail-sent',label:mode==='initial'?'Lieferavis versendet':'Avis-Erinnerung versendet',details:{reference:refOf(sh),to:q(email),mailType:mode==='initial'?'avis-initial':'avis-reminder',language:lang,target:target}};
+ shipmentCopies(sh).forEach(function(copy){
+  copy.shipmentHistory=arr(copy.shipmentHistory);
+  if(event.id&&!copy.shipmentHistory.some(function(e){return e&&e.id===event.id}))copy.shipmentHistory.push(event);
+  if(mode==='initial'){copy.avisFirstMailSentAt=event.at;copy.avisInitialMailSentAt=event.at}
+ });
+ try{w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}));schedule()}catch(_){}
+ return result
+}
 function inOverview(){var b=d.body;return !!(b&&low(b.getAttribute('data-exporthub-view'))==='shipmentoverview')}
 function ensureStyle(){
  if(d.getElementById('rc1166AvisReminderStyle'))return;
@@ -249,17 +287,32 @@ function options(list){return list.map(function(x){return'<option value="'+esc(x
 function openDialog(sh,mode){
  mode=mode==='initial'?'initial':'reminder';
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><p class="rc1166-note" data-html-hint></p><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-html-send></button><button type="button" class="ghost" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
  d.body.appendChild(dialog);
- var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]');
+ var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]'),htmlSend=dialog.querySelector('[data-html-send]'),htmlHint=dialog.querySelector('[data-html-hint]');
  function refresh(){
   var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
-  text.value=mode==='initial'?initialBody(sh,t,l,url):body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>'
+  text.value=mode==='initial'?initialBody(sh,t,l,url):body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>'
  }
+ try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang.value=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
  dialog.querySelector('[data-close]').addEventListener('click',closeDialog);
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
+ htmlSend.addEventListener('click',async function(){
+  var email=q(recipient.value);if(!email)return;
+  var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value);
+  htmlSend.disabled=true;open.disabled=true;sendStatus.hidden=true;sendStatus.textContent='';
+  try{
+   await sendHtmlAvis(sh,email,t,l,url,mode);
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');
+   sendStatus.textContent=({de:'AVIS-Mail wurde erfolgreich versendet.',en:'Collection notice sent successfully.',pl:'Awizo zostało wysłane.',es:'Aviso enviado correctamente.',fr:'Avis envoyé avec succès.',it:'Avviso inviato correttamente.'})[l];
+  }catch(err){
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');
+   sendStatus.textContent=q(err&&err.message)||tr('avisReminder.failed');
+   htmlSend.disabled=false;open.disabled=false;
+  }
+ });
  open.addEventListener('click',async function(){
   var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),oldLabel=q(open.textContent);
   open.disabled=true;open.textContent=tr('avisReminder.opening');sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
@@ -338,5 +391,5 @@ function ensureObserver(){
 function boot(){ensureObserver();schedule()}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:rc1027-avis-ready','exporthub:customer-mail-contacts-updated','exporthub:language-changed','exporthub:theme-changed','exporthub:design-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1358',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,initialSubject:initialSubject,initialBody:initialBody,reminderGate:reminderGate,sendReminder:sendReminder,recipientExcluded:avisRecipientExcluded,render:render});
+w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1358',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,initialSubject:initialSubject,initialBody:initialBody,reminderGate:reminderGate,sendReminder:sendReminder,sendHtmlAvis:sendHtmlAvis,recipientExcluded:avisRecipientExcluded,render:render});
 })(window,document);

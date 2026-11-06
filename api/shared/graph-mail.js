@@ -112,13 +112,13 @@ function sendFailure(e,sender){
 
 function delay(e,n){const h=e&&e.responseHeaders||{},ra=Number(h['retry-after']||0);return ra>0?Math.min(5000,ra*1000):Math.min(2500,350*Math.pow(2,n-1))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-async function sendTextMail({to,subject,body,sender,cc}){
+async function sendTextMail({to,subject,body,sender,cc,html=false}){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
  const actualSender=text(sender)||cfg.sender,email=text(to),sub=text(subject),content=text(body),ccEmails=emailList(cc).filter(x=>x.toLowerCase()!==email.toLowerCase()&&x.toLowerCase()!==actualSender.toLowerCase());
  if(!validEmail(email))throw error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
  if(!sub||sub.length>200)throw error('MAIL_SUBJECT_INVALID','Der Mailbetreff ist ungültig.',400);
  if(!content||content.length>12000)throw error('MAIL_BODY_INVALID','Der Mailtext ist ungültig.',400);
- const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:'Text',content},toRecipients:[{emailAddress:{address:email}}],ccRecipients:ccEmails.map(address=>({emailAddress:{address}}))},saveToSentItems:true}),'utf8');
+ const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:html?'HTML':'Text',content},toRecipients:[{emailAddress:{address:email}}],ccRecipients:ccEmails.map(address=>({emailAddress:{address}}))},saveToSentItems:true}),'utf8');
  let force=false,last=null,lastClaims={},lastToken='';
  for(let attempt=1;attempt<=3;attempt++){
   try{
@@ -137,4 +137,5 @@ async function sendTextMail({to,subject,body,sender,cc}){
  }
  throw sendFailure(last,actualSender)
 }
-module.exports={readiness,verifyAuthentication,permissionRequirement,sendTextMail};
+async function sendHtmlMail(options){return sendTextMail({...options,html:true})}
+module.exports={readiness,verifyAuthentication,permissionRequirement,sendTextMail,sendHtmlMail};
