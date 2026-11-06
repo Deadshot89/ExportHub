@@ -159,8 +159,9 @@ function buildModel(now){
   return model
 }
 // work groups as in the old task list (RC874): same rules, same order
-var GROUPS=['shipments','pod','customer','picks','abds'];
-var GROUP_KEYS={shipments:'gShipments',pod:'gPod',customer:'gCustomer',picks:'gPicks',abds:'gAbds'};
+var GROUPS=['shipments','pod','customer','picks','abds','check','extra'];
+var GROUP_LIMIT=6;
+var GROUP_KEYS={shipments:'gShipments',pod:'gPod',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
 function fold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function workGroup(task){
   var x=task||{},a=fold(x.area||x.category||x.section||x.type),tt=fold(x.title||x.name),hay=fold([a,tt,x.note,x.source,x.recurringSource].join(' '));
@@ -168,6 +169,8 @@ function workGroup(task){
   var pickedUp=!!(x.pickedUp===true||x.pickupConfirmed===true||x.pickedUpAt||x.pickupAt||x.abgeholtAt)||/abgeholt|picked up|pickedup/.test(ship);
   var hasPod=!!(x.pod===true||x.hasPod===true||x.podAvailable===true||x.podAt||x.podUrl||x.podFile||x.podDocument);
   if((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod)return'pod';
+  if(/kontroll|pruf/.test(a))return'check';
+  if(/zusatz|additional/.test(a))return'extra';
   if(/abd|mrn|ausfuhr/.test(hay))return'abds';
   if(/^(picken|pick|heute picken)$/.test(a)||(a.indexOf('pick')>=0&&a.indexOf('pickup')<0)||/picken|pick/.test(tt))return'picks';
   if(/kunde.*angemeld|angemeld.*kunde|anmeld|avis|spedition|carrier/.test(hay))return'customer';
@@ -195,9 +198,13 @@ function card(r,opts){
     '<button type="button" class="rc1570-edit" data-rc1570-edit="'+esc(r.id)+'" aria-label="'+esc(t('edit'))+'" title="'+esc(t('edit'))+'">✎</button></li>'
 }
 function cards(rows,opts){return'<ul class="rc1570-cards">'+rows.map(function(r){return card(r,opts)}).join('')+'</ul>'}
-function groupBlocks(rows,opts){
+function groupBlocks(rows,opts,scope){
   var o=Object.assign({},opts,{showArea:true});
-  return byGroup(rows).map(function(g){return'<div class="rc1570-area" data-rc1570-group="'+g.group+'"><h4>'+esc(g.label)+' <span>'+g.rows.length+'</span></h4>'+cards(g.rows,o)+'</div>'}).join('')
+  return byGroup(rows).map(function(g){
+    var key=(scope||'g')+':'+g.group,open=!!ui.expanded[key],shown=open?g.rows:g.rows.slice(0,GROUP_LIMIT);
+    var more=g.rows.length>GROUP_LIMIT?'<button type="button" class="rc1570-more" data-rc1570-expand="'+esc(key)+'">'+esc(open?t('showLess'):t('showAll',{count:g.rows.length}))+'</button>':'';
+    return'<div class="rc1570-area" data-rc1570-group="'+g.group+'"><h4>'+esc(g.label)+' <span>'+g.rows.length+'</span></h4>'+cards(shown,o)+more+'</div>'
+  }).join('')
 }
 function countLabel(n){return n===1?t('task'):t('tasks',{count:n})}
 function section(id,label,count,body,tone,extra){
@@ -242,7 +249,7 @@ function renderHtml(model,now){
     html+='<a id="rc1570-overdue"></a>'+section('overdue',t('overdue'),model.overdue.length,cards(rows,{users:model.users,showOwner:showOwner,showDate:true,showArea:true,late:true})+more,'crit')
   }
   html+='<a id="rc1570-today"></a>'+section('today',t('today')+' · '+dayName(now)+' '+fmtDate(now).replace(/^[^,\s]+,?\s*/,''),model.today.length,
-    model.today.length?groupBlocks(model.today,opts):'<p class="rc1570-empty">'+esc(t('emptyToday'))+'</p>');
+    model.today.length?groupBlocks(model.today,opts,'today'):'<p class="rc1570-empty">'+esc(t('emptyToday'))+'</p>');
   var days=Object.keys(model.week).sort();
   if(days.length){
     html+='<a id="rc1570-week"></a><section class="rc1570-section" data-rc1570-section="week"><header><h3>'+esc(t('week'))+'</h3></header>'+days.map(function(k){
@@ -251,7 +258,7 @@ function renderHtml(model,now){
     }).join('')+'</section>'
   }
   if(model.later.length)html+=section('later',t('later'),model.later.length,cards(model.later,{users:model.users,showOwner:showOwner,showDate:true,showArea:true}));
-  if(model.none.length)html+=section('none',t('noDate'),model.none.length,groupBlocks(model.none,opts));
+  if(model.none.length)html+=section('none',t('noDate'),model.none.length,groupBlocks(model.none,opts,'none'));
   if(model.doneToday.length)html+='<details class="rc1570-section rc1570-done"><summary><h3>'+esc(t('doneToday'))+'</h3><span class="rc1570-count">'+esc(countLabel(model.doneToday.length))+'</span></summary>'+cards(model.doneToday,{users:model.users,showOwner:showOwner})+'</details>';
   return html
 }

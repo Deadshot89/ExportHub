@@ -31,7 +31,10 @@
     "api.customsAi.commodityCodes": "In der aktuellen Analyse sind folgende HS-Codes enthalten: {{codes}}.",
     "api.customsAi.commodityCodesNone": "In der aktuellen Analyse ist kein belastbarer HS-Code vorhanden.",
     "api.customsAi.originCountries": "In der aktuellen Analyse sind folgende Ursprungsländer enthalten: {{countries}}.",
-    "api.customsAi.originCountriesNone": "In der aktuellen Analyse ist kein belastbares Ursprungsland vorhanden."
+    "api.customsAi.originCountriesNone": "In der aktuellen Analyse ist kein belastbares Ursprungsland vorhanden.",
+    "api.customsAi.unavailableConfig": "Der KI-Zollexperte ist nicht korrekt eingerichtet (Zugang oder Modell wurde abgelehnt). Bitte den Administrator informieren.",
+    "api.customsAi.unavailableBusy": "Das KI-Kontingent ist aktuell ausgelastet. Bitte in einer Minute erneut versuchen.",
+    "api.customsAi.unavailableTimeout": "Die KI hat zu lange für die Antwort gebraucht. Bitte die Frage erneut stellen oder kürzer formulieren."
   },
   "en": {
     "api.customsAi.methodNotAllowed": "Only POST is allowed.",
@@ -65,7 +68,10 @@
     "api.customsAi.commodityCodes": "The current analysis contains the following HS codes: {{codes}}.",
     "api.customsAi.commodityCodesNone": "No reliable HS code is available in the current analysis.",
     "api.customsAi.originCountries": "The current analysis contains the following countries of origin: {{countries}}.",
-    "api.customsAi.originCountriesNone": "No reliable country of origin is available in the current analysis."
+    "api.customsAi.originCountriesNone": "No reliable country of origin is available in the current analysis.",
+    "api.customsAi.unavailableConfig": "The AI Customs Expert is not set up correctly (access or model was rejected). Please inform the administrator.",
+    "api.customsAi.unavailableBusy": "The AI quota is currently exhausted. Please try again in a minute.",
+    "api.customsAi.unavailableTimeout": "The AI took too long to answer. Please ask again or shorten the question."
   },
   "pl": {
     "api.customsAi.methodNotAllowed": "Dozwolona jest wyłącznie metoda POST.",
@@ -99,7 +105,10 @@
     "api.customsAi.commodityCodes": "Bieżąca analiza zawiera następujące kody HS: {{codes}}.",
     "api.customsAi.commodityCodesNone": "W bieżącej analizie nie ma wiarygodnego kodu HS.",
     "api.customsAi.originCountries": "Bieżąca analiza zawiera następujące kraje pochodzenia: {{countries}}.",
-    "api.customsAi.originCountriesNone": "W bieżącej analizie nie ma wiarygodnego kraju pochodzenia."
+    "api.customsAi.originCountriesNone": "W bieżącej analizie nie ma wiarygodnego kraju pochodzenia.",
+    "api.customsAi.unavailableConfig": "Ekspert celny AI nie jest poprawnie skonfigurowany (dostęp lub model został odrzucony). Poinformuj administratora.",
+    "api.customsAi.unavailableBusy": "Limit AI jest obecnie wyczerpany. Spróbuj ponownie za minutę.",
+    "api.customsAi.unavailableTimeout": "AI odpowiadało zbyt długo. Zadaj pytanie ponownie lub skróć je."
   },
   "es": {
     "api.customsAi.methodNotAllowed": "Solo se permite POST.",
@@ -133,7 +142,10 @@
     "api.customsAi.commodityCodes": "El análisis actual contiene los siguientes códigos HS: {{codes}}.",
     "api.customsAi.commodityCodesNone": "No hay ningún código HS fiable en el análisis actual.",
     "api.customsAi.originCountries": "El análisis actual contiene los siguientes países de origen: {{countries}}.",
-    "api.customsAi.originCountriesNone": "No hay ningún país de origen fiable en el análisis actual."
+    "api.customsAi.originCountriesNone": "No hay ningún país de origen fiable en el análisis actual.",
+    "api.customsAi.unavailableConfig": "El experto aduanero IA no está configurado correctamente (se rechazó el acceso o el modelo). Informe al administrador.",
+    "api.customsAi.unavailableBusy": "La cuota de IA está agotada por ahora. Inténtelo de nuevo en un minuto.",
+    "api.customsAi.unavailableTimeout": "La IA tardó demasiado en responder. Repita la pregunta o acórtela."
   },
   "fr": {
     "api.customsAi.methodNotAllowed": "Seule la méthode POST est autorisée.",
@@ -167,7 +179,10 @@
     "api.customsAi.commodityCodes": "L’analyse actuelle contient les codes SH suivants : {{codes}}.",
     "api.customsAi.commodityCodesNone": "Aucun code SH fiable n’est disponible dans l’analyse actuelle.",
     "api.customsAi.originCountries": "L’analyse actuelle contient les pays d’origine suivants : {{countries}}.",
-    "api.customsAi.originCountriesNone": "Aucun pays d’origine fiable n’est disponible dans l’analyse actuelle."
+    "api.customsAi.originCountriesNone": "Aucun pays d’origine fiable n’est disponible dans l’analyse actuelle.",
+    "api.customsAi.unavailableConfig": "L’expert douane IA n’est pas correctement configuré (accès ou modèle refusé). Veuillez informer l’administrateur.",
+    "api.customsAi.unavailableBusy": "Le quota IA est actuellement épuisé. Réessayez dans une minute.",
+    "api.customsAi.unavailableTimeout": "L’IA a mis trop de temps à répondre. Reposez la question ou raccourcissez-la."
   },
   "it": {
     "api.customsAi.methodNotAllowed": "È consentito solo POST.",
@@ -201,6 +216,9 @@
     "api.customsAi.commodityCodes": "L’analisi attuale contiene i seguenti codici HS: {{codes}}.",
     "api.customsAi.commodityCodesNone": "Nell’analisi attuale non è disponibile alcun codice HS affidabile.",
     "api.customsAi.originCountries": "L’analisi attuale contiene i seguenti paesi di origine: {{countries}}.",
-    "api.customsAi.originCountriesNone": "Nell’analisi attuale non è disponibile alcun paese di origine affidabile."
+    "api.customsAi.originCountriesNone": "Nell’analisi attuale non è disponibile alcun paese di origine affidabile.",
+    "api.customsAi.unavailableConfig": "L’esperto doganale IA non è configurato correttamente (accesso o modello rifiutato). Informare l’amministratore.",
+    "api.customsAi.unavailableBusy": "La quota IA è attualmente esaurita. Riprovare tra un minuto.",
+    "api.customsAi.unavailableTimeout": "L’IA ha impiegato troppo tempo a rispondere. Ripetere la domanda o accorciarla."
   }
 }

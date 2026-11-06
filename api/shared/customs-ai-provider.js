@@ -76,6 +76,13 @@ function citationIds(answer,sources){
  while((match=pattern.exec(answer))){if(allowed.has(match[1])&&!out.includes(match[1]))out.push(match[1])}
  return out
 }
+// Ursache für Administratoren und passende Nutzertexte: config = Zugang/Modell abgelehnt, busy = Kontingent/Rate-Limit.
+function failureReasonOf(status){
+ if(status===401||status===403||status===404)return'config';
+ if(status===429)return'busy';
+ if(status===408)return'timeout';
+ return'server'
+}
 function failure(code,message,extra={}){
  return Object.assign({ok:false,code,recoverable:true,message:text(message,240),answer:'',citations:[],modelInfo:{provider:'openai',model:''}},extra)
 }
@@ -83,7 +90,7 @@ function failure(code,message,extra={}){
 async function askCustomsModel(options={}){
  const env=options.env&&typeof options.env==='object'?options.env:process.env;
  const config=resolveConfig(env);
- if(!config.available)return failure('AI_UNAVAILABLE','Der KI-Zollexperte ist serverseitig noch nicht konfiguriert.',{modelInfo:{provider:config.provider||'openai',model:config.model||''}});
+ if(!config.available)return failure('AI_UNAVAILABLE','Der KI-Zollexperte ist serverseitig noch nicht konfiguriert.',{reason:'config',modelInfo:{provider:config.provider||'openai',model:config.model||''}});
  const sources=(Array.isArray(options.sources)?options.sources:[]).slice(0,12).map(cleanSource).filter(Boolean);
  const question=text(options.question,5000);
  if(!question)return failure('AI_QUESTION_REQUIRED','Bitte eine Zollfrage eingeben.',{modelInfo:{provider:config.provider,model:config.model}});
@@ -103,7 +110,7 @@ async function askCustomsModel(options={}){
   const response=await fetchImpl(config.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':`Bearer ${config.apiKey}`},body:JSON.stringify(body),signal:controller.signal});
   if(!response||response.ok!==true){
    const status=Number(response&&response.status)||0;
-   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,modelInfo:{provider:config.provider,model:config.model}})
+   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht verfügbar.',{status,reason:failureReasonOf(status),modelInfo:{provider:config.provider,model:config.model}})
   }
   const payload=await response.json();
   const answer=extractAnswer(payload);
@@ -116,7 +123,7 @@ async function askCustomsModel(options={}){
    recoverable:true
   }
  }catch(error){
-  if(error&&error.name==='AbortError')return failure('AI_TIMEOUT','Die KI-Antwort hat zu lange gedauert.',{modelInfo:{provider:config.provider,model:config.model}});
+  if(error&&error.name==='AbortError')return failure('AI_TIMEOUT','Die KI-Antwort hat zu lange gedauert.',{reason:'timeout',modelInfo:{provider:config.provider,model:config.model}});
   return failure('AI_PROVIDER_ERROR','Der KI-Dienst ist vorübergehend nicht erreichbar.',{modelInfo:{provider:config.provider,model:config.model}})
  }finally{clearTimeout(timer)}
 }

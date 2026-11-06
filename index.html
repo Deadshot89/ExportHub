@@ -25142,6 +25142,15 @@ async function load(src){
 }
 function qrSource(src){return /qr|pickup|signed-loadlist|unterschrieben|ladeliste.*unterschrift/.test(low([src&&src.kind,src&&src.name,src&&src.url].join(' ')))}
 async function localSignedPod(sh){
+ var official=window.ExportHUBRC1602OfficialPOD,original=null;
+ if(official){
+  if(typeof official.storedSignedBlob==='function')try{original=await official.storedSignedBlob(sh)}catch(_){}
+  if(!original&&typeof official.canonicalPdf==='function'){
+   try{original=await official.canonicalPdf(sh)}
+   catch(error){if(typeof official.originalFile==='function'&&official.originalFile(sh))throw error}
+  }
+  if(original){var originalBytes=new Uint8Array(await original.arrayBuffer());if(originalBytes.length<1000||fileFormat(originalBytes)!=='pdf')throw new Error('Der gespeicherte unterschriebene POD ist keine vollständige PDF-Datei');return{bytes:originalBytes,ext:'pdf',name:'POD_'+safe(ref(sh))+'_Ladeliste_mit_Unterschrift.pdf'}}
+ }
  if(!await ensureInlineSignature(sh))throw new Error('Digitale Unterschrift ist nicht als Bild verfügbar');
  var api=window.ExportHUBIndex240;if(!api||typeof api.createPodBlob!=='function')throw new Error('Lokale POD-Erstellung ist nicht verfügbar');
  var out=await api.createPodBlob(sh),bytes=new Uint8Array(await out.blob.arrayBuffer()),ext=fileFormat(bytes);
