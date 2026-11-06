@@ -4,6 +4,7 @@ if(w.__EXPORTHUB_RC1860_SHIPMENT_DOCUMENTATION__)return;
 w.__EXPORTHUB_RC1860_SHIPMENT_DOCUMENTATION__=true;
 var activeRef='',activeCard=null,activeRecord=null,loadSerial=0,scheduled=false,busy=false;
 function q(v){return String(v==null?'':v).trim()}
+function locale(){var code='de';try{code=q(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()).slice(0,2).toLowerCase()||'de'}catch(_){}return{de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[code]||'de-DE'}
 function tr(key){
  var available=w.ExportHUBShipmentDocumentationI18n&&w.ExportHUBShipmentDocumentationI18n.packs||{},language='de';
  try{var a=w.ExportHUBI18n;if(a&&typeof a.language==='function')language=q(a.language()).toLowerCase().slice(0,2)}catch(_){}
@@ -38,6 +39,8 @@ function addField(grid,key,label,type,wide){
  var labelEl=el('label',wide?'wide':'',label),input=el(type==='textarea'?'textarea':'input');
  if(type!=='textarea')input.type=type||'text';
  input.setAttribute('data-proof-field',key);
+ var limits={shipmentNumber:100,customer:200,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,contents:3000,loadSecuring:1500,remarks:2000,complaintText:2000};
+ if(limits[key])input.maxLength=limits[key];
  if(key==='reference')input.readOnly=true;
  if(key==='colli'){input.min='0';input.max='100000';input.step='1'}
  if(key==='weightKg'){input.min='0';input.max='100000000';input.step='0.001'}
@@ -120,7 +123,7 @@ function setBusy(box,on){if(activeCard!==box)return;busy=!!on;box.querySelectorA
 function annotate(box){
  var badge=box.querySelector('[data-proof-badge]');if(!badge)return;
  if(!activeRecord||!activeRecord.revision){badge.textContent=tr('notSaved');return}
- badge.textContent=tr('savedVersion')+activeRecord.revision+' · '+(activeRecord.updatedAt?new Date(activeRecord.updatedAt).toLocaleString('de-DE'):'');
+ badge.textContent=tr('savedVersion')+activeRecord.revision+' · '+(activeRecord.updatedAt?new Date(activeRecord.updatedAt).toLocaleString(locale()):'');
 }
 async function load(box,ref){
  var serial=++loadSerial;status(box,tr('loading'));
@@ -136,7 +139,7 @@ async function load(box,ref){
 async function saveRecord(box,ref){
  if(busy||activeRef!==ref)return;
  var fields=values(box),expectedRevision=activeRecord?activeRecord.revision:0;
- setBusy(box,true);status(box,'Speichere Versandnachweis …');
+ setBusy(box,true);status(box,tr('saving'));
  try{
   var d=await api('POST',ref,{action:'save',expectedRevision:expectedRevision,fields:fields});
   if(!isCurrent(box,ref))return;
@@ -150,7 +153,7 @@ function renderComplaints(box,ref){
  complaints.slice().reverse().forEach(function(c){
   var item=el('div','eh1860-complaint'),header=el('strong',null,tr('complaintItem')+q(c.reportedDate||c.date).slice(0,10));
   item.appendChild(header);item.appendChild(el('p',null,q(c.text)));
-  item.appendChild(el('small',null,tr('createdBy')+q(c.createdBy)+' · '+new Date(c.date).toLocaleString('de-DE')));
+  item.appendChild(el('small',null,tr('createdBy')+q(c.createdBy)+' · '+new Date(c.date).toLocaleString(locale())));
   var states=el('select');
   [['offen',tr('open')],['in_pruefung',tr('inReview')],['abgeschlossen',tr('closed')]].forEach(function(k){var o=el('option');o.value=k[0];o.textContent=k[1];o.selected=k[0]===c.state;states.appendChild(o)});
   states.setAttribute('aria-label',tr('statusAria'));
