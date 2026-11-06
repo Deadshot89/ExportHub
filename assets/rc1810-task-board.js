@@ -136,7 +136,7 @@ function weekHtml(){
       var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+rout.length+'<span class="rc1810-progress"><i style="width:'+Math.round(dn/rout.length*100)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):''})}).join('')+'</div>':'')+'</div>':'';
       return '<td class="'+(k===today?'is-today ':'')+(o?'is-off':'')+'">'+imp.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+rh+'</td>';
     }).join('');
-    return '<tr><th scope="row" class="rc1810-rowh"><span class="rc1810-who">'+esc(r)+'</span><span class="rc1810-sub">'+esc(t('open',{count:openCount}))+'</span></th>'+cells+'</tr>';
+    return '<tr><th scope="row" class="rc1810-rowh"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span><span class="rc1810-sub">'+esc(t('open',{count:openCount}))+'</span></th>'+cells+'</tr>';
   }).join('');
   if(!rows.length)body='<tr><td colspan="6" class="rc1810-empty">'+esc(t('noTasks'))+'</td></tr>';
   var nav='<div class="rc1810-nav"><div class="rc1810-weeknav"><button type="button" class="rc1810-btn" data-rc1810-week="-7" aria-label="'+esc(t('prevWeek'))+'">‹</button><strong>'+esc(t('week',{week:isoWeek(ws)}))+' · '+esc(fmt(days[0]))+' – '+esc(fmt(days[4]))+'</strong><button type="button" class="rc1810-btn" data-rc1810-week="7" aria-label="'+esc(t('nextWeek'))+'">›</button><button type="button" class="rc1810-btn" data-rc1810-week="0">'+esc(t('today'))+'</button></div><span class="rc1810-hint">'+esc(t('hint'))+'</span></div>';
@@ -154,7 +154,7 @@ function weekListHtml(days,inWeek,rows,today){
       var list=cell.filter(function(x){return rowKey(x)===r}).sort(sortTasks);if(!list.length)return '';
       var imp=list.filter(function(x){return !isRoutine(x)}),rout=list.filter(function(x){return isRoutine(x)&&!isCancelled(x)});
       var ck=r+'|'+k,isOpen=!!ui.open[ck],dn=rout.filter(isDone).length;
-      return '<div class="rc1810-daygroup"><span class="rc1810-who">'+esc(r)+'</span>'+imp.map(function(x){return taskBtn(x,{meta:areaOf(x)===t('noArea')?'':areaOf(x)})}).join('')+
+      return '<div class="rc1810-daygroup"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span>'+imp.map(function(x){return taskBtn(x,{meta:areaOf(x)===t('noArea')?'':areaOf(x)})}).join('')+
         (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+rout.length+'<span class="rc1810-progress"><i style="width:'+Math.round(dn/rout.length*100)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x)}).join('')+'</div>':'')+'</div>':'')+'</div>';
     }).join('');
     return '<section class="rc1810-day'+(o?' is-off':'')+'">'+head+(groups||'<p class="rc1810-offtxt">'+esc(t('noTasks'))+'</p>')+'</section>';
