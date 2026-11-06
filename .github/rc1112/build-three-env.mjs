@@ -232,34 +232,31 @@ function patchRc1835LearningUi(html,file){
   }else if(file!=='demo.html'&&!html.includes(setProfessionNew)){
     throw new Error(file+': RC1835 Prüfungswechsel fehlt');
   }
-  // RC325 already keeps detached, generation-checked views for shipping. Reuse
-  // its bounded 2-minute cache for the Academy and IHK catalog (never an active exam).
-  const cacheOld="function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
-  const cacheNew="function fastCacheable(view){view=canonical(view);if(view==='inspections'){var u=state().ihkExamUi||{};return (u.tab||'catalog')==='catalog'&&!u.activeAttempt}return view==='academy'||view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
-  const cacheMaxOld="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;";
-  const cacheMaxNew="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=4,fastViewRestoreTimer=0;";
-  const cacheFreshAnchor="if(canonical(entry.rendered||'')!==view)return false;";
-  const cacheFreshInsert="if(view==='inspections'&&!fastCacheable(view))return false;";
-  // Some earlier build patches reformat the subsequent generation check, so
-  // each stable anchor is applied independently rather than requiring an exact
-  // multi-line match. This also avoids false build failures on valid snapshots.
-  if(html.includes(cacheOld)){
-    if(html.split(cacheOld).length!==2)throw new Error(file+': RC1835 Cache-Router mehrfach');
-    html=html.replace(cacheOld,cacheNew);
-  }else if(file!=='demo.html'&&!html.includes(cacheNew)){
-    throw new Error(file+': RC1835 Cache-Router fehlt');
+  // The legacy RC1112 build source already caches customer views (five slots).
+  // Preserve those existing entries; augment with only Academy and the safe IHK catalog.
+  const routerOldVariants=[
+    "function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'||view==='customers'||view==='customerfolder'}",
+    "function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}"
+  ];
+  const routerReplacement="function fastCacheable(view){view=canonical(view);if(view==='inspections'){var u=state().ihkExamUi||{};return (u.tab||'catalog')==='catalog'&&!u.activeAttempt}return view==='academy'||view==='shipment'||view==='shipmentoverview'||view==='cmr'||view==='customers'||view==='customerfolder'}";
+  const cacheCurrentMax5="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=5,fastViewRestoreTimer=0;";
+  const cacheCurrentMax2="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;";
+  const cacheNewMax7="var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=7,fastViewRestoreTimer=0;";
+  const freshnessAnchor="if(canonical(entry.rendered||'')!==view)return false;";
+  const safeExamGuard="if(view==='inspections'&&!fastCacheable(view))return false;";
+  if(!html.includes(routerReplacement)){
+    const matched=routerOldVariants.filter(function(text){return html.includes(text)});
+    if(matched.length!==1||html.split(matched[0]).length!==2)throw new Error(file+': RC1835 Router-Anker unklar');
+    html=html.replace(matched[0],routerReplacement);
   }
-  if(html.includes(cacheMaxOld)){
-    if(html.split(cacheMaxOld).length!==2)throw new Error(file+': RC1835 Cache-Limit mehrfach');
-    html=html.replace(cacheMaxOld,cacheMaxNew);
-  }else if(file!=='demo.html'&&!html.includes(cacheMaxNew)){
-    throw new Error(file+': RC1835 Cache-Limit fehlt');
+  if(!html.includes(cacheNewMax7)){
+    const matched=[cacheCurrentMax5,cacheCurrentMax2].filter(function(text){return html.includes(text)});
+    if(matched.length!==1||html.split(matched[0]).length!==2)throw new Error(file+': RC1835 View-Cache-Limit unklar');
+    html=html.replace(matched[0],cacheNewMax7);
   }
-  if(html.includes(cacheFreshAnchor)&&!html.includes(cacheFreshInsert)){
-    if(html.split(cacheFreshAnchor).length!==2)throw new Error(file+': RC1835 Cache-Frische-Anker mehrfach');
-    html=html.replace(cacheFreshAnchor,cacheFreshAnchor+'\n '+cacheFreshInsert);
-  }else if(file!=='demo.html'&&!html.includes(cacheFreshInsert)){
-    throw new Error(file+': RC1835 Cache-Frische-Prüfung fehlt');
+  if(!html.includes(safeExamGuard)){
+    if(html.split(freshnessAnchor).length!==2)throw new Error(file+': RC1835 Cache-Frische-Anker unklar');
+    html=html.replace(freshnessAnchor,freshnessAnchor+'\n '+safeExamGuard);
   }
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_STYLE_TAG,'exporthub-rc1835-academy-exams-style');
   html=injectDeferredRuntimeInHead(html,RC1835_ACADEMY_EXAMS_SCRIPT_TAG,'exporthub-rc1835-academy-exams-script');
