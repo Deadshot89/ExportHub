@@ -152,6 +152,7 @@ function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
  const p=raw&&typeof raw==='object'?raw:{};
  const kind=text(p.kind,30);
  if(!['problem','shipping'].includes(kind))throw problem('URGENT_MAIL_KIND_INVALID','Unbekannter E-Mail-Typ.');
+ if(kind==='shipping'&&(order.items||[]).some(x=>!['Shipped','Invoiced'].includes(x.status)))throw problem('URGENT_NOT_SHIPPED','Versandbestätigung erst nach Status Shipped für alle Positionen möglich.',409);
  const to=email(p.to);
  if(to!==order.email)throw problem('URGENT_MAIL_RECIPIENT_MISMATCH','Empfänger entspricht nicht der CS-E-Mail des Auftrags.',409);
  const subject=String(p.subject==null?'':p.subject);
