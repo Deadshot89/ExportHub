@@ -11,7 +11,23 @@ function tr(key){
  return (available[language]&&available[language][key])||(available.de&&available.de[key])||key;
 }
 function el(tag,klass,value){var x=d.createElement(tag);if(klass)x.className=klass;if(value!=null)x.textContent=value;return x}
-function sh(){var s=w.__EXPORTHUB_RC776_VIEW_SHIPMENT__;return s&&typeof s==='object'?s:null}
+function sh(){
+ var state={};
+ try{state=typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__()||{}:w.ExportHUBClean&&w.ExportHUBClean.state||{}}catch(_){}
+ var view=q(state.view||state.currentView).toLowerCase();
+ if(view&&view!=='shipmentview')return null;
+ var wanted=q(state.shipmentViewId||state.selectedShipmentId||state.activeShipmentId).toUpperCase();
+ var rows=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ if(wanted){
+  var match=rows.find(function(v){return q(v&&(v.id||v.shipmentId)).toUpperCase()===wanted})||
+   rows.find(function(v){return refOf(v)===wanted});
+  // If a shipment is selected but its data is not ready, do not use a stale
+  // global shipment reference from the previous customer.
+  return match||null;
+ }
+ var current=w.__EXPORTHUB_RC776_VIEW_SHIPMENT__||state.shipment||state.currentShipment||null;
+ return current&&typeof current==='object'?current:null;
+}
 function refOf(v){return q(v&&(v.ref||v.reference||v.shipmentRef)).toUpperCase()}
 function isCurrent(box,ref){return activeRef===ref&&activeCard===box&&!!box&&box.isConnected}
 function safeCustomer(v){var c=v&&(v.customerName||v.customerDisplayName||v.customer||v.customerId);return q(c&&typeof c==='object'?(c.name||c.companyName||c.displayName||c.account||''):c)}
