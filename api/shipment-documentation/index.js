@@ -67,7 +67,15 @@ async function userEnvironment(req){
  const sessionEnv=txt(logged.session&&logged.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
   throw problem('SESSION_ENVIRONMENT_MISMATCH','Anmeldung gehoert zu einer anderen Umgebung.',403);
- return{env,username:txt(auth.usernameOf(logged.user)||logged.user&&logged.user.name||'Mitarbeiter',120),user:logged.user,team:logged.team};
+ // TESTSERVICE uses an isolated shipment state even when legacy user logins
+ // are temporarily verified against production credentials.
+ let shipmentTeam=logged.team;
+ if(env==='testservice'){
+  const clients=await auth.clientsForEnvironment('testservice');
+  const testState=await auth.readJson(clients.team,auth.emptyTeam());
+  shipmentTeam=testState.value||auth.emptyTeam();
+ }
+ return{env,username:txt(auth.usernameOf(logged.user)||logged.user&&logged.user.name||'Mitarbeiter',120),user:logged.user,team:shipmentTeam};
 }
 async function write(blob,record,etag){
  const data=Buffer.from(JSON.stringify(record),'utf8');
