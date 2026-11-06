@@ -87,6 +87,22 @@ test('RC1803: forged, expired or foreign-environment tickets are rejected',async
   assert.equal(endpoint.reads.length,0);
 });
 
+test('RC1803: a TESTSERVICE ticket opens when the function host is not the public host (Azure SWA backend)',async()=>{
+  const endpoint=loadEndpoint();
+  const testBlob=`rc1059/testservice/81/${'8'.repeat(64)}`;
+  const internalHost='exporthub-api.internal.azurewebsites.net';
+  const issued=await call(endpoint,{blob:testBlob,environment:'testservice',action:'ticket',name:'DNC1.pdf'},{authorization:'Bearer ehs1.a.b',host:internalHost});
+  assert.equal(issued.status,200);
+  const ticket=decodeURIComponent(JSON.parse(issued.body).url.split('ticket=')[1]);
+  const res=await call(endpoint,{ticket},{host:internalHost});
+  assert.equal(res.status,200,'navigation without ?environment= must use the signed ticket environment');
+  assert.equal(Buffer.from(res.body).subarray(0,5).toString('latin1'),'%PDF-');
+  const onProd=await call(endpoint,{ticket},{host:prodHost});
+  assert.equal(onProd.status,409,'a TESTSERVICE ticket never opens on the production host');
+  const forced=await call(endpoint,{ticket,environment:'production'},{host:internalHost});
+  assert.equal(forced.status,409,'an explicit foreign environment hint is still rejected');
+});
+
 function browser({ticketReply,blobReply,throwBlob}={}){
   const source=fs.readFileSync('assets/rc1059-document-blob.js','utf8');
   const events=[],calls=[];
