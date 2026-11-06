@@ -164,6 +164,9 @@
    '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--menu-accent,#dc7226)}'+
    '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-icon svg{width:20px;height:20px;display:block}'+
    '#nav [data-exporthub-urgent-nav] .urgent-orders-nav-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+   // Klassisch hat eine helle Seitenleiste: Text wie die übrigen Menüpunkte statt hellblau (vorher kaum lesbar)
+   'html[data-eh-design="classic"] #nav>button[data-exporthub-urgent-nav],html[data-eh-design="classic"] #nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{color:var(--pc-side-text,#24435b)!important}'+
+   'html[data-eh-design="classic"] #nav>button[data-exporthub-urgent-nav] .index308-nav-icon{color:var(--menu-accent,#dc7226)!important}'+
    'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]{min-height:43px!important;border:1px solid transparent!important;color:#dbe7f5!important;background:transparent!important}'+
    'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav]:hover{color:#fff!important;border-color:rgba(255,255,255,.08)!important;background:rgba(255,255,255,.07)!important}'+
    'html[data-eh-design]:not([data-eh-design="classic"]) #nav>button[data-exporthub-urgent-nav] .index308-nav-icon{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.10)!important;color:var(--menu-accent,#dc7226)!important}'+

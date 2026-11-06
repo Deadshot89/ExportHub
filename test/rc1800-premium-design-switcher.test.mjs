@@ -72,3 +72,14 @@ test('RC1800: ohne gespeicherte Auswahl bleibt Klassisch der Standard (kein Prem
   assert.equal(env.html.getAttribute('data-eh-design'),'classic');
   assert.equal(env.html.getAttribute('data-eh-skin'),null);
 });
+
+test('RC1800: Urgent Order steht im Menü direkt unter Packmeldungen und ist in Klassisch lesbar',()=>{
+  const menu=fs.readFileSync('assets/rc1579-menu-redesign.js','utf8');
+  const menuCss=fs.readFileSync('assets/rc1579-menu-redesign.css','utf8');
+  const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
+  assert.match(menu,/views:\['dashboard','packnotifications','urgentorders','notifications'\]/);
+  assert.match(menu,/if\(v==='urgentorders'\)return '\[data-exporthub-urgent-nav\]'/);
+  assert.match(menu,/ICONS\.urgentorders=/);
+  assert.match(menuCss,/:not\(\[data-exporthub-urgent-nav\]\)/);
+  assert.match(nav,/html\[data-eh-design="classic"\] #nav>button\[data-exporthub-urgent-nav\]/);
+});
