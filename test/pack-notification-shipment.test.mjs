@@ -719,3 +719,23 @@ test('P0 shipment prefill uses authoritative stored DNC instead of stale SalesPa
   assert.equal(n.deliveryNoteReference,'SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf',
     'preserve original notification audit metadata');
 });
+
+test('P0 2026-11-06: three DNC Lieferscheine survive Pack to shipment to AVIS handoff',()=>{
+  const bridge=load(),s=state(),note=s.packNotifications[0],original=note.documents[0];
+  note.documents=['DNC3019228460.pdf','DNC3019228465.pdf','DNC3019228500.pdf'].map((name,index)=>({
+    ...original,id:'neff-'+index,name,documentReference:name.replace(/\\.pdf$/i,''),
+    blobName:'rc1059/testservice/aa/'+String(index+1).repeat(64),
+    mimeType:'application/pdf',storage:'blob'
+  }));
+  const prefill=bridge.shipmentPrefill(note);
+  assert.equal(prefill.deliveryFiles.length,3);
+  assert.deepEqual(Array.from(prefill.deliveryFiles,doc=>doc.name),note.documents.map(doc=>doc.name));
+  const shipment={id:'sh-neff',ref:'NEFF01',deliveryFiles:[]};
+  s.shipments.push(shipment);
+  assert.equal(bridge.linkShipment(s,note,shipment,'2026-11-06T12:00:00Z'),true);
+  assert.equal(shipment.deliveryFiles.length,3);
+  assert.ok(shipment.deliveryFiles.every(doc=>doc.customerAvisVisible===true&&doc.customerVisible===true));
+  assert.deepEqual(Array.from(shipment.deliveryFiles,doc=>doc.blobName),note.documents.map(doc=>doc.blobName));
+  assert.equal(bridge.linkShipment(s,note,shipment,'2026-11-06T12:01:00Z'),true);
+  assert.equal(shipment.deliveryFiles.length,3,'repeat link must never duplicate uploaded originals');
+});

@@ -43,6 +43,15 @@
       }
     },
     {
+      "route": "/assets/pack-notification-avis.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
       "route": "/assets/document-print-name.js",
       "allowedRoles": [
         "anonymous"
