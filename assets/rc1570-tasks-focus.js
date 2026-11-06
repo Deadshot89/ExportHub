@@ -357,9 +357,17 @@ function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
 function edit(id){if(!findTask(id))return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
 function openForm(){if(!canWrite()){alert(t('noRights'));return}openTaskView('new','')}
 function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='in_progress'?'in_progress':'open')}
-function persist(reason,id){
-  try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.queueSave==='function')w.ExportHUBClean.queueSave(reason);else if(typeof w.save==='function')w.save(reason)}catch(err){try{console.warn('RC1570 save',err)}catch(_){}}
+var savePending=false;
+async function persist(reason,id){
+  // Queueing a change is not a confirmed server save.
+  var clean=w.ExportHUBClean;
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('RC1570_TASK_STORAGE_UNAVAILABLE');
+  var queued=await Promise.resolve(clean.queueSave(reason));
+  if(queued===false)throw new Error('RC1570_TASK_QUEUE_REJECTED');
+  var stored=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true}));
+  if(stored!==true)throw new Error('RC1570_TASK_SAVE_NOT_CONFIRMED');
   try{w.dispatchEvent(new CustomEvent('exporthub:tasks-updated',{detail:{reason:reason,taskId:id}}))}catch(_){}
+  return true
 }
 function setStatus(task,status){
   var now=new Date().toISOString(),me=q(currentUser().name||currentUser().user);
@@ -394,33 +402,82 @@ function applyForm(task,v,isNew){
   task.updatedAt=now;task.updatedBy=me;
   return task
 }
-function saveForm(form){
+async function saveForm(form){
+  if(savePending)return false;
   if(!canWrite()){alert(t('noRights'));return false}
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
     date:q(f.date.value),weekdays:Array.from(form.querySelectorAll('[name="weekdays"]:checked')).map(function(node){return Number(node.value)}),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
     customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
-  if(!v.title){tv.error=t('required');renderTaskView(true);return false}
-  if(v.weekly&&!v.weekdays.length){tv.error=t('fWeekdaysRequired');var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=tv.error}else renderTaskView(true);return false}
-  // some designs turn the date picker into a text field (TT.MM.JJJJ); store ISO either way
-  if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){tv.error=t('badDate');renderTaskView(true);return false}v.date=dayKey(pd)}
-  var s=state(),isNew=tv.mode==='new',task=isNew?null:findTask(tv.id);
-  if(!isNew&&!task){tv.mode='list';renderTaskView(true);return false}
-  if(isNew){
-    task={id:'task-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),sourceType:'manual',createdAt:new Date().toISOString(),createdBy:q(currentUser().name||currentUser().user)};
-    if(!v.area)v.area=t('manualArea');if(!v.owner)v.owner=q(currentUser().name||currentUser().displayName||currentUser().user);
-    if(!Array.isArray(s.tasks))s.tasks=[];s.tasks.push(task)
-  }
-  applyForm(task,v,isNew);
-  if(v.weekly)syncWeeklySeries(s,task,v);
-  else if(q(task.seriesId).indexOf('rc1570-series:')===0){retireSeriesDays(s,q(task.seriesId),[]);s.taskSeries=arr(s.taskSeries).filter(function(x){return q(x&&x.id)!==q(task.seriesId)});task.seriesId='';task.weekdays=[];task.isTemplate=false;task.recurrence='';}
-  tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
-  persist(isNew?'RC1570 task created':'RC1570 task saved',tv.id);
-  lastHtml='';renderTaskView(true);
-  var shown=w.document.getElementById(TV_ID);if(shown&&shown.scrollIntoView)try{shown.scrollIntoView({block:'start'})}catch(_){}
-  return true
+  var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
+  if(!v.title){showError(t('required'));return false}
+  if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
+  if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
+  var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries;
+  // Stage changes separately: failed server writes must not replace the live task list.
+  var draft=Object.assign({},s,{
+    tasks:arr(s.tasks).map(function(x){return x&&typeof x==='object'?Object.assign({},x):x}),
+    taskSeries:arr(s.taskSeries).map(function(x){return x&&typeof x==='object'?Object.assign({},x):x})
+  });
+  var task=isNew?null:draft.tasks.find(function(x){return taskId(x)===tv.id});
+  if(!isNew&&!task){showError(t('saveFailed'));return false}
+  var button=form.querySelector('[type="submit"]');
+  savePending=true;if(button)button.disabled=true;
+  try{
+    if(isNew){
+      task={id:'task-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),sourceType:'manual',createdAt:new Date().toISOString(),createdBy:q(currentUser().name||currentUser().user)};
+      if(!v.area)v.area=t('manualArea');if(!v.owner)v.owner=q(currentUser().name||currentUser().displayName||currentUser().user);
+      draft.tasks.push(task);
+    }
+    applyForm(task,v,isNew);
+    if(v.weekly)syncWeeklySeries(draft,task,v);
+    else if(q(task.seriesId).indexOf('rc1570-series:')===0){
+      retireSeriesDays(draft,q(task.seriesId),[]);
+      draft.taskSeries=arr(draft.taskSeries).filter(function(x){return q(x&&x.id)!==q(task.seriesId)});
+      task.seriesId='';task.weekdays=[];task.isTemplate=false;task.recurrence='';
+    }
+    s.tasks=draft.tasks;s.taskSeries=draft.taskSeries;
+    await persist(isNew?'RC1570 task created':'RC1570 task saved',taskId(task));
+    tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
+    lastHtml='';lastView='';renderTaskView(true);
+    var shown=w.document&&w.document.getElementById(TV_ID);
+    if(shown&&shown.scrollIntoView)try{shown.scrollIntoView({block:'start'})}catch(_){}
+    return true
+  }catch(err){
+    s.tasks=originalTasks;s.taskSeries=originalSeries;
+    showError(t('saveFailed'));
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('saveFailed'),'bad')}catch(_){}
+    try{console.error('RC1570 task form save rejected',err)}catch(_){}
+    return false
+  }finally{savePending=false;if(button)button.disabled=false}
 }
+async function changeTaskStatus(status){
+  if(savePending||!canWrite())return false;
+  var s=state(),originalTasks=s.tasks,originalLedger=s.taskStatusLedger,task=findTask(tv.id);
+  if(!task)return false;
+  var rows=arr(s.tasks).map(function(x){return x===task?Object.assign({},x):x});
+  var target=rows.find(function(x){return taskId(x)===tv.id});
+  var now=new Date().toISOString(),user=q(currentUser().name||currentUser().user)||'Benutzer';
+  var key='id:'+tv.id.toLowerCase().replace(/\s+/g,' ').replace(/[^a-z0-9äöüß|:_-]+/gi,'');
+  var ledger=Object.assign({},originalLedger||{});
+  setStatus(target,status);
+  target.updatedAt=now;target.statusUpdatedAt=now;target._syncUpdatedAt=now;target._syncDeviceId='manual-task-status';
+  ledger[key]={status:status==='done'?'erledigt':'offen',done:status==='done',doneAt:status==='done'?now:'',doneBy:status==='done'?user:'',updatedAt:now};
+  savePending=true;s.tasks=rows;s.taskStatusLedger=ledger;
+  try{
+    await persist('RC1570 task status changed',tv.id);
+    tv.saved=t('updated');tv.error='';lastView='';renderTaskView(true);
+    return true
+  }catch(err){
+    s.tasks=originalTasks;s.taskStatusLedger=originalLedger;tv.saved='';
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('saveFailed'),'bad')}catch(_){}
+    try{console.error('RC1570 task status save rejected',err)}catch(_){}
+    lastView='';renderTaskView(true);
+    return false
+  }finally{savePending=false}
+}
+
 function field(label,html,wide){return'<label class="rc1570-field'+(wide?' rc1570-wide':'')+'"><span>'+esc(label)+'</span>'+html+'</label>'}
 function formHtml(task){
   var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?(low(x.recurrence)==='weekly'||(isWeekly(x)&&(!q(x.plannedDate||x.dueDate||x.dueAt)||arr(state().taskSeries).some(function(s){return q(s&&s.id)===q(x.seriesId)&&s.rule&&s.rule.type==='weekly'})))):false;
@@ -461,7 +518,10 @@ function detailHtml(task){
       (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+'</footer></article>'
 }
 function listHtml(){
-  var needle=low(tv.search),us=users(),rows=arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)&&!isDone(x)});
+  var needle=low(tv.search),us=users(),rows=arr(state().tasks).filter(function(x){
+    // The manager must show completed tasks and editable manual weekly-series masters.
+    return x&&title(x)&&(!isTemplate(x)||(q(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
+  });
   if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
   rows.sort(function(a,b){var da=taskDate(a),db=taskDate(b),ka=da?dayKey(da):'9',kb=db?dayKey(db):'9';return ka<kb?-1:ka>kb?1:title(a).localeCompare(title(b))});
   var shown=rows.slice(0,200);
@@ -510,9 +570,10 @@ function refreshList(panel){
 }
 function bindTaskView(panel){
   panel.addEventListener('click',function(e){
+    if(savePending){e.preventDefault();return}
     var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
     if((b=el.closest('[data-rc1570-tv-open]'))){e.preventDefault();tv.saved='';openTaskView('show',b.getAttribute('data-rc1570-tv-open'));return}
-    if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();var task=findTask(tv.id);if(!task||!canWrite())return;setStatus(task,b.getAttribute('data-rc1570-tv-status'));task.updatedAt=new Date().toISOString();tv.saved=t('updated');persist('RC1570 task status changed',tv.id);lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();changeTaskStatus(b.getAttribute('data-rc1570-tv-status'));return}
     if((b=el.closest('[data-rc1570-tv]'))){
       e.preventDefault();var a=b.getAttribute('data-rc1570-tv');tv.saved='';tv.error='';
       if(a==='new')openForm();
@@ -530,7 +591,7 @@ function bindTaskView(panel){
     // picking a known customer fills in its customer number
     if(el.name==='customer'){var hit=customers().find(function(c){return low(c.name)===low(el.value)}),no=el.form&&el.form.elements.customerNo;if(hit&&hit.no&&no&&!q(no.value))no.value=hit.no}
   });
-  panel.addEventListener('keydown',function(e){if(e.key==='Escape'&&(tv.mode==='edit'||tv.mode==='new')){tv.mode=tv.id&&findTask(tv.id)?'show':'list';lastView='';renderTaskView(true)}})
+  panel.addEventListener('keydown',function(e){if(savePending)return;if(e.key==='Escape'&&(tv.mode==='edit'||tv.mode==='new')){tv.mode=tv.id&&findTask(tv.id)?'show':'list';lastView='';renderTaskView(true)}})
 }
 
 /* mounting */
@@ -599,6 +660,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_tv:tv});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_saveForm:saveForm,_changeTaskStatus:changeTaskStatus,_tv:tv});
 install();
 })(window);
