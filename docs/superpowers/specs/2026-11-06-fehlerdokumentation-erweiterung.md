@@ -17,6 +17,7 @@ Ein Neubau ist deshalb nicht nötig. Dieser Entwurf schließt nur die Lücken ge
 - Alle Fehlerarten, Sendungs-REF optional, Anhänge möglich.
 - KI-Tipps auf Knopfdruck pro Fall plus Muster-Auswertung über alle Fälle.
 - Nachweis für Audits: Fehler und Lösungen nachvollziehbar dokumentiert.
+- Aufbewahrung: mindestens 2 Jahre (Entscheidung 2026-11-06). Fälle werden in dieser Zeit weder gelöscht noch gekürzt; eine Archivierung nach Ablauf ist eine eigene, freizugebende Entscheidung.
 
 ## Lücken und Maßnahmen
 
@@ -76,5 +77,4 @@ Kein Merge und kein Deployment ohne ausdrückliche Freigabe von Deadshot89.
 
 ## Offene Punkte
 - Freigabe für KI: Anbieter (vorhandener OpenAI-Zugang?), Monatsbudget, Umfang.
-- Aufbewahrungsfrist laut Audit (Löschen bleibt ausgeschlossen).
-- Soll „Leitung“ weiter an das SOP-Admin-Recht gebunden sein?
+- „Leitung“ bleibt vorerst an das SOP-Admin-Recht gebunden (Empfehlung A); ein eigenes Recht „Fehler abschließen“ wäre Variante B.
