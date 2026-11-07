@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
 const apiI18n=require('../shared/i18n');
 const qmAi=require('../shared/qm-ai');
+const qmPatterns=require('../shared/qm-patterns');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const {isolationConfig,primaryConnection}=require('../shared/testservice-auth-isolation');
 const STATUSES=['offen','ursachenanalyse','massnahme','wirksamkeitspruefung','abgeschlossen'];
@@ -281,6 +282,11 @@ module.exports=async function(context,req){
    if(!verifyAttachmentBytes(meta,buffer))throw err('ATTACH_INTEGRITY','Der Anhang stimmt nicht mehr mit dem gespeicherten Prüfwert überein',409);
    context.res={status:200,isRaw:true,headers:{'Content-Type':meta.mime,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(meta.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};return}
   if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items:items.map(withIntegrity),environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
+  if(action==='patterns'){
+   // Reine Berechnung über die gespeicherten Fälle: nur lesend, keine KI, keine Kosten.
+   const days=[30,90,365,0].includes(Number(payload.days))?Number(payload.days):90;
+   const cases=recordsOf((await readRecords(env)).value);
+   context.res=json(200,{ok:true,patterns:qmPatterns.analyze(cases,{days}),environment:env});return}
   if(action==='ai-case'){
    // KI-Tipps (Gemini): nur lesend, ändert keinen Fall und speichert keinen KI-Text. Bei jedem Problem Rückfall auf die Regeln.
    const cases=recordsOf((await readRecords(env)).value),item=cases.find(x=>x.id===str(payload.id,50));

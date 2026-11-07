@@ -57,7 +57,7 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 <body>
 <header><div class="top"><div class="mark" aria-hidden="true">EH</div><div><div class="brand">ExportHUB360</div><div class="tagline">Qualitätsmanagement · Fehler & Verbesserungen</div></div><a class="back" href="/">← Zur Hauptseite</a><select id="langSelect" aria-label="Sprache" title="Sprache" style="margin-left:12px"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></div></header>
 <main>
-<div class="titlebar"><div><h1>Fehler & Verbesserungen</h1><p>Abweichungen erfassen, Ursachen beheben und Wirksamkeit nachweisen.</p></div><div class="top-actions"><button id="newBtn" class="primary" type="button">+ Fehler dokumentieren</button> <button id="printBtn" class="subtle" type="button">Fall drucken</button></div></div>
+<div class="titlebar"><div><h1>Fehler & Verbesserungen</h1><p>Abweichungen erfassen, Ursachen beheben und Wirksamkeit nachweisen.</p></div><div class="top-actions"><button id="newBtn" class="primary" type="button">+ Fehler dokumentieren</button> <button id="printBtn" class="subtle" type="button">Fall drucken</button> <button id="patternBtn" class="subtle" type="button">Muster-Auswertung</button></div></div>
 <div id="access" class="locked" hidden></div>
 <div id="app" hidden>
 <section class="metrics" aria-label="Fallübersicht"><div class="metric"><strong id="countOpen">0</strong><span>Offene Fälle</span></div><div class="metric"><strong id="countDue">0</strong><span>Überfällige Maßnahmen</span></div><div class="metric"><strong id="countVerify">0</strong><span>Wirksamkeit prüfen</span></div><div class="metric"><strong id="countClosed">0</strong><span>Abgeschlossen</span></div></section>
@@ -122,7 +122,7 @@ async function api(data){
  var j=await r.json();if(!r.ok||j.ok===false){var ex=Error(j.message||('HTTP '+r.status));ex.code=j.code||'';throw ex}return j
 }
 function notice(s,error){el('notice').textContent=s||'';el('notice').className=error?'error':''}
-function setBusy(v){busy=v;['saveBtn','tipsBtn','aiBtn','closeBtn','reopenBtn','newBtn'].forEach(function(x){el(x).disabled=v})}
+function setBusy(v){busy=v;['saveBtn','tipsBtn','aiBtn','closeBtn','reopenBtn','newBtn','patternBtn'].forEach(function(x){el(x).disabled=v})}
 function value(){var o={};fields.forEach(function(f){o[f]=form.elements[f].value});return o}
 function fill(item){
  fields.forEach(function(f){form.elements[f].value=(item&&item[f])||''});
@@ -240,6 +240,54 @@ async function aiTips(){
   }
  }catch(e){notice(e.message,true)}finally{setBusy(false)}
 }
+
+var catNames={versand:T('Versand'),verladung:T('Verladung'),dokumente:T('Dokumente'),zoll:T('Zoll'),kunde:T('Kunde'),qualitaet:T('Qualität'),umwelt:T('Umwelt'),arbeitsschutz:T('Arbeitsschutz'),sonstiges:T('Sonstiges')};
+var dayNames=[T('Montag'),T('Dienstag'),T('Mittwoch'),T('Donnerstag'),T('Freitag'),T('Samstag'),T('Sonntag')];
+function patternHint(h){
+ var pct={share:h.share};
+ if(h.code==='category-cluster')return T('Häufung: {key} macht {share} % der Fälle aus ({count} von {total}). Prüfen, ob dahinter ein gemeinsamer Prozessfehler steckt.',{key:catNames[h.key]||h.key,share:h.share,count:h.count,total:h.total});
+ if(h.code==='area-cluster')return T('Häufung im Bereich „{key}“: {count} von {total} Fällen. Ablauf und Prüfschritte in diesem Bereich ansehen.',{key:h.key,count:h.count,total:h.total});
+ if(h.code==='weekday-cluster')return T('Auffälliger Wochentag: {key} ({count} von {total} Fällen, {share} %). Besetzung, Spitzenlast und Übergaben prüfen.',{key:dayNames[h.day]||'',count:h.count,total:h.total,share:h.share});
+ if(h.code==='repeat')return T('Wiederholungen erkannt ({count}). Gleiche Ursache oder Sendung mehrfach: Maßnahme wirkt vermutlich nicht an der Wurzel.',{count:h.count});
+ if(h.code==='ineffective')return T('{count} Maßnahme(n) wurden als nicht wirksam bewertet. Ursache neu analysieren.',{count:h.count});
+ if(h.code==='overdue')return T('{count} Maßnahme(n) sind überfällig. Verantwortliche und Frist klären.',{count:h.count});
+ if(h.code==='long-open')return T('{count} Fall/Fälle sind länger als 30 Tage offen. Bearbeitung priorisieren oder Blocker klären.',{count:h.count});
+ return pct.share?'':''
+}
+function patternList(title,rows,label){
+ if(!rows||!rows.length)return'';
+ return'<h3 style="margin:12px 0 4px;font-size:14px">'+esc(title)+'</h3><ul style="margin:0;padding-left:18px">'+rows.map(function(r){return'<li>'+label(r)+'</li>'}).join('')+'</ul>'
+}
+function renderPatterns(r,days){
+ var box=el('suggestions');
+ var opts=[[30,'Letzte 30 Tage'],[90,'Letzte 90 Tage'],[365,'Letztes Jahr'],[0,'Alle Fälle']].map(function(o){return'<option value="'+o[0]+'"'+(o[0]===days?' selected':'')+'>'+esc(T(o[1]))+'</option>'}).join('');
+ var html='<h2>'+esc(T('Muster-Auswertung'))+'</h2><p class="helper">'+esc(T('Rein rechnerische Auswertung Ihrer erfassten Fälle – keine KI, keine Kosten.'))+'</p>'+
+  '<label>'+esc(T('Zeitraum'))+' <select id="patternDays">'+opts+'</select></label>';
+ if(!r.total){box.innerHTML=html+'<p>'+esc(T('Im Zeitraum sind keine Fälle erfasst.'))+'</p>';box.classList.add('show');return}
+ html+='<p><b>'+esc(T('Fälle im Zeitraum: {n}, davon offen: {open}',{n:r.total,open:r.open}))+'</b></p>';
+ var hints=(r.hints||[]).map(patternHint).filter(Boolean);
+ html+=hints.length?'<h3 style="margin:12px 0 4px;font-size:14px">'+esc(T('Auffälligkeiten'))+'</h3><ul style="margin:0;padding-left:18px">'+hints.map(function(h){return'<li>'+esc(h)+'</li>'}).join('')+'</ul>':'<p>'+esc(T('Keine Auffälligkeiten'))+'</p>';
+ html+=patternList(T('Nach Kategorie'),r.byCategory,function(x){return esc(catNames[x.key]||x.key)+': '+x.count});
+ html+=patternList(T('Nach Bereich'),r.byArea,function(x){return esc(x.key)+': '+x.count});
+ html+=patternList(T('Nach Schweregrad'),r.bySeverity,function(x){return esc(T(x.key))+': '+x.count});
+ html+=patternList(T('Nach Wochentag'),(r.byWeekday||[]).filter(function(x){return x.count>0}),function(x){return esc(dayNames[x.day])+': '+x.count});
+ html+=patternList(T('Wiederholungen'),r.repeats,function(x){return esc(x.kind==='reference'?T('Gleiche Referenz in {n} Fällen: {key}',{n:x.count,key:x.key}):T('Gleiches Ursachenwort „{key}“ in {n} Fällen',{n:x.count,key:x.key}))+' ('+x.ids.map(function(id){return'<a href="#" data-pattern-case="'+esc(id)+'">'+esc(id)+'</a>'}).join(', ')+')'});
+ html+=patternList(T('Maßnahmen ohne Wirkung'),r.ineffective,function(x){return'<a href="#" data-pattern-case="'+esc(x.id)+'">'+esc(x.title)+'</a>'});
+ html+=patternList(T('Überfällige Maßnahmen'),r.overdue,function(x){return'<a href="#" data-pattern-case="'+esc(x.id)+'">'+esc(x.title)+'</a> · '+esc(T('{n} Tage',{n:x.daysOverdue}))});
+ html+=patternList(T('Länger als 30 Tage offen'),r.longOpen,function(x){return'<a href="#" data-pattern-case="'+esc(x.id)+'">'+esc(x.title)+'</a> · '+esc(T('{n} Tage',{n:x.days}))});
+ box.innerHTML=html;box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
+}
+async function showPatterns(days){
+ if(busy)return;setBusy(true);
+ try{var p=await api({action:'patterns',days:days});renderPatterns(p.patterns,days)}
+ catch(e){notice(e.message,true)}finally{setBusy(false)}
+}
+el('patternBtn').addEventListener('click',function(){showPatterns(90)});
+el('suggestions').addEventListener('change',function(e){if(e.target&&e.target.id==='patternDays')showPatterns(Number(e.target.value))});
+el('suggestions').addEventListener('click',function(e){
+ var a=e.target.closest&&e.target.closest('[data-pattern-case]');if(!a)return;
+ e.preventDefault();var item=items.find(function(x){return x.id===a.getAttribute('data-pattern-case')});if(item)select(item)
+});
 el('suggestions').addEventListener('click',function(e){
  var take=e.target.closest('[data-take-tip]'),related=e.target.closest('[data-related-id]');
  if(related){var found=items.find(function(i){return i.id===related.getAttribute('data-related-id')});if(found)select(found);return}
