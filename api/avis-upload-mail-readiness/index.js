@@ -77,11 +77,11 @@ module.exports=async function(context,req){
   const environment=environmentOf(req),action=lower(req&&req.body&&req.body.action),cfg=graphMail.readiness(),permission=graphMail.permissionRequirement(),recipient=text(process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO)||DEFAULT_RECIPIENT;
   const avisMailSender=text(process.env.EXPORTHUB_AVIS_MAIL_SENDER)||DEFAULT_RECIPIENT;
   if(!cfg.configured||!validEmail(recipient)||!validEmail(avisMailSender)){
-   context.res=json(503,{ok:false,configured:false,authenticated:false,environment,recipientConfigured:validEmail(recipient),senderConfigured:validEmail(avisMailSender),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?'GRAPH_MAIL_NOT_CONFIGURED':(!validEmail(avisMailSender)?'MAIL_SENDER_INVALID':'MAIL_RECIPIENT_INVALID'),version:'RC1270'});return
+   context.res=json(503,{ok:false,configured:false,authenticated:false,environment,recipientConfigured:validEmail(recipient),senderConfigured:validEmail(avisMailSender),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?(cfg.code||'GRAPH_MAIL_NOT_CONFIGURED'):(!validEmail(avisMailSender)?'MAIL_SENDER_INVALID':'MAIL_RECIPIENT_INVALID'),version:'RC1270'});return
   }
   const authProbe=await graphMail.verifyAuthentication();
   if(!authProbe.authenticated){
-   context.res=json(503,{ok:false,configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,environment,recipientConfigured:true,code:authProbe.code||'GRAPH_AUTH_FAILED',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1271'});return
+   context.res=json(503,{ok:false,configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,environment,recipientConfigured:true,code:authProbe.code||'GRAPH_AUTH_FAILED',authFailureCategory:text(authProbe.authFailureCategory)||'TOKEN_REQUEST_FAILED',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1271'});return
   }
   if(authProbe.audienceOk!==true||authProbe.mailSendGranted!==true){
    context.res=json(503,{ok:false,configured:true,authenticated:true,audienceOk:authProbe.audienceOk===true,mailSendGranted:authProbe.mailSendGranted===true,environment,recipientConfigured:true,code:authProbe.audienceOk!==true?'GRAPH_AUDIENCE_INVALID':'GRAPH_MAIL_PERMISSION_MISSING',upstreamStatus:Number(authProbe.upstreamStatus||0),requiredPermission:authProbe.audienceOk===true&&authProbe.mailSendGranted!==true?permission:undefined,version:'RC1290'});return
