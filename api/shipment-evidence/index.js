@@ -1,7 +1,6 @@
 'use strict';
 // RC1903: eigenstaendige Versandnachweise ohne ExportHUB-Sendungsdatensatz.
 const crypto=require('node:crypto');
-const net=require('node:net');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const rights=require('../shared/state-write-guard');
@@ -77,19 +76,15 @@ function verifyGuest(req,record){
  const a=Buffer.from(publicHash(token),'hex'),b=Buffer.from(record.publicAccess.hash||'','hex');
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))fail('PUBLIC_ACCESS_DENIED','Keine Berechtigung fuer diesen Nachweis.',403);
 }
-async function ratePublicCreate(ctx,req){
- const h=req.headers||{};
- // X-Forwarded-For kann vom Aufrufer manipuliert werden und darf nicht die Quote umschalten.
- // Wenn kein einzelner gueltiger Edge-IP-Header vorhanden ist, gilt eine kleine gemeinsame Gastquote.
- const rawIp=txt(h['x-ms-client-ip']||h['X-MS-CLIENT-IP']||h['x-azure-clientip']||h['X-Azure-ClientIP'],200);
- const ip=net.isIP(rawIp)?rawIp:'unknown';
+async function ratePublicCreate(ctx,normalized){
+ // Keine Client-IP-Header als Sicherheitsgrenze verwenden: SWA bestaetigt deren
+ // Authentizitaet fuer diesen API-Pfad nicht. Alle Quoten sind serverseitig atomar.
  const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
- // Count the visitor first; a blocked visitor must not exhaust the shared quota.
- // Some gateways omit the IP header; then the global quota remains the safeguard.
- const buckets=ip==='unknown'?[{key:'unidentified',limit:4},{key:'global',limit:40}]:[
-  {key:'client-'+publicHash(ip).slice(0,24),limit:12},
-  {key:'global',limit:40}
- ];
+ // Derselbe Kunde und dieselbe Sendungsnummer koennen nicht unbegrenzt
+ // neue Datensaetze erzeugen, auch nicht mit gefaelschten Proxy-Headern.
+ const identity=publicHash(normalized.customer.toLocaleLowerCase('de-DE')+'\\0'+
+  normalized.shipmentNumber.toLocaleLowerCase('de-DE')).slice(0,32);
+ const buckets=[{key:'shipment-'+identity,limit:3},{key:'global',limit:40}];
  for(const bucket of buckets){
   const blob=ctx.container.getBlockBlobClient(ctx.prefix+'public-rate/'+hour+'/'+bucket.key+'.json');
   let accepted=false;
@@ -121,7 +116,7 @@ async function guestRequest(req,method,payload,action){
   if(txt(payload.website,200))fail('INVALID_SUBMISSION','Ungueltige Eingabe.',400);
   const normalized=fields(payload.fields),now=new Date().toISOString();
   // Only new records can be created without login; no existing data is exposed.
-  await ratePublicCreate(ctx,req);
+  await ratePublicCreate(ctx,normalized);
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
   const token=crypto.randomBytes(32).toString('base64url');
   const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],
