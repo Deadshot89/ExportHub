@@ -3,7 +3,10 @@
  * Kostenschutz: nur mit gesetztem Schlüssel aktiv, hartes Tageslimit (gesamt und je Benutzer), Ausgabe auf wenige Token begrenzt.
  * Datenschutz: es werden nur anonymisierte Fachfelder gesendet (kein Titel, keine Referenz, kein Name, kein Kunde).
  * Fällt die KI aus oder ist das Kontingent erschöpft, nutzt der Aufrufer den regelbasierten Assistenten. */
+const crypto = require('node:crypto');
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
+// Reservierungen überleben nur kurzzeitig: länger als der maximale HTTP-Timeout (30s).
+const RESERVATION_TTL_MS = 5 * 60 * 1000;
 const LANGUAGES = { de: 'Deutsch', en: 'English', pl: 'polski', es: 'español', fr: 'français', it: 'italiano' };
 const FIELDS = ['category', 'severity', 'description', 'impact', 'immediateAction', 'rootCause', 'correctiveAction', 'preventiveAction'];
 
@@ -22,7 +25,8 @@ function resolveConfig(env) {
   return {
     apiKey, model, dailyLimit, perUserLimit,
     timeoutMs: int(env.EXPORTHUB_QM_AI_TIMEOUT_MS, 15000, 1000, 30000),
-    maxOutputTokens: int(env.EXPORTHUB_QM_AI_MAX_OUTPUT_TOKENS, 1400, 100, 2000),
+    // Gemini zählt auch Thinking-Tokens zum Ausgabelimit; 1400 reicht für 350–450 Wörter nicht zuverlässig.
+    maxOutputTokens: int(env.EXPORTHUB_QM_AI_MAX_OUTPUT_TOKENS, 2600, 256, 4096),
     enabled: Boolean(apiKey && modelOk && dailyLimit > 0 && perUserLimit > 0 && text(env.EXPORTHUB_QM_AI_ENABLED, 5) !== '0')
   };
 }
@@ -74,7 +78,6 @@ function reasonForHttp(status) {
   if (status === 408) return 'timeout';
   return 'server';
 }
-/* Grund einer leeren Antwort (z. B. MAX_TOKENS, SAFETY, PROHIBITED_CONTENT) für die Diagnose in der Oberfläche. */
 function emptyReason(payload) {
   const candidate = (((payload || {}).candidates || [])[0]) || {};
   const block = payload && payload.promptFeedback && payload.promptFeedback.blockReason;
@@ -84,6 +87,24 @@ function extractText(payload) {
   const parts = (((payload || {}).candidates || [])[0] || {}).content;
   const list = parts && Array.isArray(parts.parts) ? parts.parts : [];
   return list.map(p => (p && typeof p.text === 'string' ? p.text : '')).join('').trim();
+}
+const BLOCKED_FINISH_REASONS = new Set([
+  'SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'IMAGE_SAFETY'
+]);
+function classifyResponse(payload) {
+  const blockReason = payload && payload.promptFeedback && payload.promptFeedback.blockReason;
+  if (blockReason && blockReason !== 'BLOCK_REASON_UNSPECIFIED') return { ...failure('blocked', 200), detail: emptyReason(payload) };
+  const candidate = payload && Array.isArray(payload.candidates) ? payload.candidates[0] : null;
+  const finishReason = candidate && candidate.finishReason;
+  if (finishReason === 'MAX_TOKENS') return { ...failure('truncated', 200), detail: emptyReason(payload) };
+  if (BLOCKED_FINISH_REASONS.has(finishReason)) return { ...failure('blocked', 200), detail: emptyReason(payload) };
+  if (finishReason && finishReason !== 'STOP' && finishReason !== 'FINISH_REASON_UNSPECIFIED')
+    return { ...failure('empty', 200), detail: emptyReason(payload) };
+  const answer = extractText(payload);
+  if (!answer) return { ...failure('empty', 200), detail: emptyReason(payload) };
+  // Die Benutzeroberfläche darf niemals einen unvollständigen Vorschlag als fertig ausgeben.
+  if (answer.length > 8000) return { ...failure('truncated', 200), detail: emptyReason(payload) };
+  return { ok: true, text: answer };
 }
 async function askGemini(options = {}) {
   const config = options.config || resolveConfig(options.env || process.env);
@@ -103,39 +124,98 @@ async function askGemini(options = {}) {
       }),
       signal: controller.signal
     });
-    if (!response || response.ok !== true) return failure(reasonForHttp(Number(response && response.status)), response && response.status);
-    const payload = await response.json();
-    const answer = extractText(payload);
-    if (!answer) return Object.assign(failure('empty', 200), { detail: emptyReason(payload) });
-    return { ok: true, text: answer.slice(0, 4000), model: config.model };
+    if (!response || response.ok !== true)
+      return failure(reasonForHttp(Number(response && response.status)), response && response.status);
+    const result = classifyResponse(await response.json());
+    return result.ok ? { ...result, model: config.model } : result;
   } catch (e) {
     return failure(e && e.name === 'AbortError' ? 'timeout' : 'server', 0);
   } finally { clearTimeout(timer); }
 }
 
-/* Tageskontingent. store = { read(): {value, etag}, write(value, etag) }; Konflikte (409/412) werden wiederholt. */
+/* Tageskontingent mit temporären Reservierungen. Erst eine erfolgreiche Antwort wird
+ * dauerhaft gezählt. ETag-Vergleiche verhindern Überschreiten bei parallelen Requests.
+ * Alte Dokumente (schemaVersion 1, ohne pending) werden ohne Reset weiterverwendet.
+ * store = {read(): {value, etag}, write(value, etag)}.
+ */
+function activePending(doc, now) {
+  return (Array.isArray(doc.pending) ? doc.pending : []).filter(p =>
+    p && typeof p.id === 'string' && typeof p.day === 'string' &&
+    Number.isFinite(Date.parse(p.expiresAt)) && Date.parse(p.expiresAt) > now.getTime());
+}
+function recentDays(doc, day) {
+  const days = {};
+  Object.keys(doc.days || {}).concat(day).sort().filter((k, i, a) => a.indexOf(k) === i)
+    .slice(-7).forEach(k => { days[k] = (doc.days || {})[k] || { total: 0, users: {} }; });
+  return days;
+}
+function usageDocument(snapshot) {
+  const value = snapshot && snapshot.value;
+  // Ein noch nicht angelegter Blob ist zulässig. Eine bestehende Datei mit
+  // null oder ungültiger Struktur darf dagegen niemals den Zähler zurücksetzen.
+  if (value == null && !(snapshot && snapshot.etag))
+    return { schemaVersion: 1, days: {}, log: [] };
+  if (!value || value.schemaVersion !== 1 || !value.days || typeof value.days !== 'object' || Array.isArray(value.days))
+    throw new Error('QM AI usage storage invalid');
+  return value;
+}
 async function consumeQuota(store, config, userKey, caseId, now = new Date()) {
   const day = now.toISOString().slice(0, 10), user = text(userKey, 120).toLowerCase() || 'unbekannt';
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const snapshot = await store.read();
-    const doc = snapshot && snapshot.value && snapshot.value.schemaVersion === 1 ? snapshot.value : { schemaVersion: 1, days: {}, log: [] };
-    const today = (doc.days && doc.days[day]) || { total: 0, users: {} };
+  const reservationId = crypto.randomUUID();
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const snapshot = await store.read(), doc = usageDocument(snapshot);
+    const today = doc.days[day] || { total: 0, users: {} };
+    const pending = activePending(doc, now), reserved = pending.filter(p => p.day === day);
+    const used = Number(today.total) || 0;
     const mine = Number(today.users && today.users[user]) || 0;
-    if (today.total >= config.dailyLimit) return { allowed: false, reason: 'limit', total: today.total };
-    if (mine >= config.perUserLimit) return { allowed: false, reason: 'user-limit', total: today.total };
-    const days = {};
-    Object.keys(doc.days || {}).sort().slice(-6).forEach(k => { days[k] = doc.days[k]; });
-    days[day] = { total: today.total + 1, users: Object.assign({}, today.users, { [user]: mine + 1 }) };
-    const log = (Array.isArray(doc.log) ? doc.log : []).concat({ at: now.toISOString(), by: user, caseId: text(caseId, 60), model: config.model }).slice(-300);
+    if (used + reserved.length >= config.dailyLimit) return { allowed: false, reason: 'limit', total: used };
+    if (mine + reserved.filter(p => p.by === user).length >= config.perUserLimit)
+      return { allowed: false, reason: 'user-limit', total: used };
+    const entry = {
+      id: reservationId, day, by: user, caseId: text(caseId, 60), model: config.model,
+      at: now.toISOString(), expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS).toISOString()
+    };
+    const next = { ...doc, days: recentDays(doc, day), pending: pending.concat(entry) };
     try {
-      await store.write({ schemaVersion: 1, days, log }, snapshot && snapshot.etag);
-      return { allowed: true, total: days[day].total, limit: config.dailyLimit };
+      await store.write(next, snapshot && snapshot.etag);
+      return { allowed: true, reservationId, day, limit: config.dailyLimit };
     } catch (e) {
-      if (e && [409, 412].includes(e.statusCode) && attempt < 5) continue;
+      if (e && [409, 412].includes(e.statusCode) && attempt < 11) continue;
       throw e;
     }
   }
   return { allowed: false, reason: 'busy', total: 0 };
 }
+/* Auch fehlgeschlagene HTTP-, Timeout- und leere/gesperrte Antworten werden beendet.
+ * Fehlt die Reservierung (etwa nach einem Crash/TTL), keine ungezählte Erfolgsmeldung.
+ */
+async function finishQuota(store, ticket, successful, now = new Date()) {
+  if (!ticket || !ticket.allowed || !ticket.reservationId) return { settled: false };
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const snapshot = await store.read(), doc = usageDocument(snapshot);
+    const pending = activePending(doc, now);
+    const entry = pending.find(p => p.id === ticket.reservationId);
+    if (!entry) return { settled: false };
+    const remaining = pending.filter(p => p.id !== ticket.reservationId);
+    const days = recentDays(doc, entry.day);
+    const today = days[entry.day] || { total: 0, users: {} };
+    let log = Array.isArray(doc.log) ? doc.log : [];
+    if (successful) {
+      days[entry.day] = {
+        total: (Number(today.total) || 0) + 1,
+        users: { ...(today.users || {}), [entry.by]: (Number(today.users && today.users[entry.by]) || 0) + 1 }
+      };
+      log = log.concat({ at: entry.at, by: entry.by, caseId: entry.caseId, model: entry.model }).slice(-300);
+    }
+    try {
+      await store.write({ ...doc, days, pending: remaining, log }, snapshot && snapshot.etag);
+      return { settled: true, total: (days[entry.day] && days[entry.day].total) || 0 };
+    } catch (e) {
+      if (e && [409, 412].includes(e.statusCode) && attempt < 11) continue;
+      throw e;
+    }
+  }
+  return { settled: false };
+}
 
-module.exports = { resolveConfig, anonymize, caseFields, buildPrompt, systemInstructions, askGemini, consumeQuota, reasonForHttp, LANGUAGES };
+module.exports = { resolveConfig, anonymize, caseFields, buildPrompt, systemInstructions, askGemini, consumeQuota, finishQuota, reasonForHttp, LANGUAGES };
