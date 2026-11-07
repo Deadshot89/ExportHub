@@ -230,7 +230,7 @@ module.exports=async function(context,req){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
   context.log&&context.log.warn&&context.log.warn('urgent-orders',e&&e.code||'UNEXPECTED',status);
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
  }
 };
 module.exports.execute=execute;
