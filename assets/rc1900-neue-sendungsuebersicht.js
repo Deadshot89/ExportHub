@@ -9,19 +9,19 @@
   window.__rc1900NeueSendungsuebersicht=true;
 
   var ROOT_ID='rc1900Overview';
-  var STATUS_COLORS={entwurf:'#64748b',erstellt:'#6366f1',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
+  var STATUS_COLORS={entwurf:'#64748b',erstellt:'var(--eh-p3,#6366f1)',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
   var ui={status:'all',query:'',selected:'',scheduled:false,lastSig:''};
 
   function active(){
     var html=document.documentElement;
-    if(html.getAttribute('data-eh-layout')!=='top')return false;
+    if(!html.hasAttribute('data-eh-newui'))return false;
     var content=document.getElementById('content');
     return !!(content&&content.classList.contains('rc524-overview-view')&&content.querySelector('.rc524-page'));
   }
   function txt(el){return el?String(el.textContent||'').replace(/\s+/g,' ').trim():'';}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function tr(key){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){var v=window.ExportHUBI18n.t(key);if(v&&v!==key)return v;}}catch(_){}return key;}
-  function color(key){return STATUS_COLORS[key]||'#6366f1';}
+  function color(key){return STATUS_COLORS[key]||'var(--eh-p3,#6366f1)';}
   function cssId(v){return window.CSS&&CSS.escape?CSS.escape(v):String(v).replace(/["\\]/g,'\\$&');}
 
   /* Daten aus der alten Kachel lesen (sichtbare Texte, damit Sprache und Rechte stimmen) */
@@ -102,7 +102,7 @@
 
     var statusLabel={};items.forEach(function(it){if(!statusLabel[it.key])statusLabel[it.key]=it.status;});
     var rail='<nav class="rc1900-rail" aria-label="'+esc(tr('rc1900.colStatus'))+'">'+
-      '<button type="button" class="rc1900-rail-item'+(ui.status==='all'?' is-active':'')+'" data-rc1900-status="all"><span class="rc1900-dot" style="--c:#4f46e5"></span><span>'+esc(tr('rc1900.allShipments'))+'</span><b>'+items.length+'</b></button>'+
+      '<button type="button" class="rc1900-rail-item'+(ui.status==='all'?' is-active':'')+'" data-rc1900-status="all"><span class="rc1900-dot" style="--c:var(--eh-p,#4f46e5)"></span><span>'+esc(tr('rc1900.allShipments'))+'</span><b>'+items.length+'</b></button>'+
       order.map(function(k){return '<button type="button" class="rc1900-rail-item'+(ui.status===k?' is-active':'')+'" data-rc1900-status="'+esc(k)+'" style="--c:'+color(k)+'"><span class="rc1900-dot"></span><span>'+esc(statusLabel[k]||k)+'</span><b>'+counts[k]+'</b></button>';}).join('')+
       '</nav>';
 
@@ -229,7 +229,7 @@
     var content=document.getElementById('content');
     if(!content){setTimeout(start,300);return;}
     new MutationObserver(schedule).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','data-status-key','disabled']});
-    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout']});
+    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     schedule();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();

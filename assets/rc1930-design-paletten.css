@@ -1,0 +1,128 @@
+/*
+ * RC1930: neue Designs Frost, Graphit, Azur, Stahl und Polar (Design-Umschalter RC1304).
+ * Basis ist der Premium-Skin (data-eh-skin="premium") plus die neue Oberfläche (data-eh-newui).
+ * Diese Datei liefert nur Optik: Farbpalette, Hintergrundleuchten, Glas-Seitenleiste,
+ * kompaktere Größen und für Polar die schmale Icon-Leiste. Keine Logik, keine Texte.
+ * Aktiv nur mit html[data-eh-palette]; Original, Indigo und Horizont bleiben unverändert.
+ */
+
+/* 1 ── Paletten ───────────────────────────────────────────────────────── */
+html[data-eh-palette="frost"]{
+  --eh-p:#0369a1;--eh-p2:#0891b2;--eh-p3:#0ea5e9;--eh-pd:#075985;--eh-ps:#eef7fc;--eh-pl:#cfe8f6;
+  --eh-p-rgb:3 105 161;--eh-p3-rgb:14 165 233;
+  --eh-page:#f7f9fc;--eh-glow1:rgba(14,165,233,.55);--eh-glow2:rgba(6,182,212,.45);--eh-glow3:rgba(59,130,246,0);
+}
+html[data-eh-palette="graphit"]{
+  --eh-p:#1f2937;--eh-p2:#374151;--eh-p3:#3b82f6;--eh-pd:#111827;--eh-ps:#f1f3f6;--eh-pl:#d9dee6;
+  --eh-p-rgb:31 41 55;--eh-p3-rgb:59 130 246;
+  --eh-page:#f4f5f7;--eh-glow1:rgba(59,130,246,.40);--eh-glow2:rgba(14,165,233,.32);--eh-glow3:rgba(148,163,184,.40);
+}
+html[data-eh-palette="azur"]{
+  --eh-p:#2563eb;--eh-p2:#1d4ed8;--eh-p3:#0ea5e9;--eh-pd:#1e40af;--eh-ps:#eef4ff;--eh-pl:#d3e2fd;
+  --eh-p-rgb:37 99 235;--eh-p3-rgb:14 165 233;
+  --eh-page:#f2f6fc;--eh-glow1:rgba(37,99,235,.50);--eh-glow2:rgba(14,165,233,.42);--eh-glow3:rgba(56,189,248,.34);
+}
+html[data-eh-palette="stahl"]{
+  --eh-p:#1e40af;--eh-p2:#1e3a8a;--eh-p3:#3b5bdb;--eh-pd:#172f6e;--eh-ps:#edf1f8;--eh-pl:#d2dbea;
+  --eh-p-rgb:30 64 175;--eh-p3-rgb:59 91 219;
+  --eh-page:#e9edf2;--eh-glow1:rgba(30,64,175,.36);--eh-glow2:rgba(100,116,139,.42);--eh-glow3:rgba(148,163,184,.45);
+}
+html[data-eh-palette="polar"]{
+  --eh-p:#4361ee;--eh-p2:#3046c8;--eh-p3:#4cc9f0;--eh-pd:#2a3db0;--eh-ps:#f0f3fe;--eh-pl:#d8dffb;
+  --eh-p-rgb:67 97 238;--eh-p3-rgb:76 201 240;
+  --eh-page:#fbfcfe;--eh-glow1:rgba(67,97,238,.38);--eh-glow2:rgba(76,201,240,.42);--eh-glow3:rgba(67,97,238,0);
+}
+
+/* Premium-Tokens auf die Palette umstellen */
+html[data-eh-palette][data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  --pc-primary:var(--eh-p);--pc-primary-2:var(--eh-p2);--pc-primary-soft:var(--eh-ps);--pc-focus:var(--eh-p3);
+  --pc-page:var(--eh-page);--pc-page-accent:var(--eh-page);--pc-body-bg:var(--eh-page);
+  --pc-nav-active:var(--eh-ps);--pc-nav-active-text:var(--eh-pd);--pc-info:var(--eh-p);
+  --pc-button-bg:var(--eh-p);--menu-accent:var(--eh-p);
+  --pc-side-bg:rgba(255,255,255,.72);--pc-top-bg:rgba(255,255,255,.78);--pc-card-bg:rgba(255,255,255,.86);
+  --pc-card-radius:14px;--pc-control-radius:9px;--pc-button-radius:9px;--pc-nav-radius:9px;
+  --pc-shadow-soft:0 1px 2px rgba(16,24,40,.05),0 6px 20px -10px rgba(16,24,40,.14);
+  --px-info-bg:var(--eh-ps);
+  font-size:13px;
+}
+/* neue Oberfläche: eigene Variablen der Ansichten */
+html[data-eh-palette] :is(#rc1900Overview,#rc1901Shipment,#rc1902ShipmentForm,#rc1903Capture):is(#rc1900Overview,#rc1901Shipment,#rc1902ShipmentForm,#rc1903Capture){
+  --primary:var(--eh-p);--primary2:var(--eh-p2);--c:var(--eh-p3);
+}
+
+/* 2 ── Hintergrundleuchten ───────────────────────────────────────────── */
+html[data-eh-palette] body[data-eh-skin="premium"]::before{
+  content:"";position:fixed;inset:-15%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(46% 50% at 22% 8%,var(--eh-glow1),transparent 70%),
+    radial-gradient(42% 48% at 88% 30%,var(--eh-glow2),transparent 70%),
+    radial-gradient(36% 40% at 55% 100%,var(--eh-glow3),transparent 70%);
+  animation:rc1930-drift 26s ease-in-out infinite alternate;
+}
+html[data-eh-palette="frost"] body[data-eh-skin="premium"]::before,
+html[data-eh-palette="stahl"] body[data-eh-skin="premium"]::before{
+  background:
+    radial-gradient(45% 30% at 18% 0%,var(--eh-glow1),transparent 72%),
+    radial-gradient(40% 28% at 85% 0%,var(--eh-glow2),transparent 72%),
+    radial-gradient(36% 40% at 55% 100%,var(--eh-glow3),transparent 70%);
+}
+@keyframes rc1930-drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(4%,3%,0) scale(1.06)}}
+@media (prefers-reduced-motion:reduce){html[data-eh-palette] body[data-eh-skin="premium"]::before{animation:none}}
+html[data-eh-palette][data-eh-skin="premium"] body[data-eh-skin="premium"]{background:var(--eh-page)!important}
+html[data-eh-palette] body[data-eh-skin="premium"] :is(.app,.main,#app){background:transparent!important}
+
+/* 3 ── Glas-Seitenleiste und Kopfzeile (nur Desktop, backdrop-filter stört fixe Elemente auf dem Handy) */
+@media (min-width:1024px){
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar{
+    background:var(--pc-side-bg)!important;border:1px solid rgba(255,255,255,.9)!important;
+    box-shadow:0 1px 1px rgba(16,24,40,.04),0 14px 40px -14px rgba(16,24,40,.18)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] .topbar{
+    background:var(--pc-top-bg)!important;
+    -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
+  }
+}
+html[data-eh-palette] body[data-eh-skin="premium"] :is(.btn,.btn-primary,button.primary):hover{background:var(--eh-pd)!important}
+/* aktiver Menüpunkt leuchtet */
+html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button:is(.active,[aria-current="page"],[aria-current="true"]){
+  box-shadow:0 6px 18px -8px rgb(var(--eh-p-rgb)/.55),inset 0 0 0 1px rgb(var(--eh-p-rgb)/.10)!important;
+}
+/* Fokus mit Leuchtring */
+html[data-eh-palette] body[data-eh-skin="premium"] :is(input,select,textarea):focus{
+  box-shadow:0 0 0 3px rgb(var(--eh-p-rgb)/.14),0 0 18px -4px rgb(var(--eh-p3-rgb)/.55)!important;
+}
+/* Hauptknöpfe mit Glanz */
+html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary){position:relative;overflow:hidden}
+html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{
+  content:"";position:absolute;top:0;bottom:0;left:-80px;width:50px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-20deg);
+  animation:rc1930-shine 4.2s ease-in-out infinite;
+}
+@keyframes rc1930-shine{0%,65%{left:-80px}100%{left:120%}}
+@media (prefers-reduced-motion:reduce){html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{display:none}}
+
+/* 4 ── Kompaktere Größen ─────────────────────────────────────────────── */
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-head h1{font-size:26px!important}
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-search{height:36px}
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-btn{min-height:34px;padding:0 13px;font-size:13px!important;border-radius:10px}
+html[data-eh-palette] body[data-eh-skin="premium"] #content :is(h1,.page-head h1){font-size:24px}
+html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button{min-height:34px}
+
+/* 5 ── Polar: schmale Icon-Leiste, klappt bei Maus/Fokus auf ─────────── */
+@media (min-width:1024px){
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] .app#app{grid-template-columns:76px minmax(0,1fr)!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar{
+    position:sticky!important;z-index:1200;width:64px!important;min-width:64px!important;overflow:hidden!important;
+    transition:width .18s ease,box-shadow .18s ease;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:is(:hover,:focus-within){
+    width:264px!important;overflow-y:auto!important;box-shadow:0 24px 60px -18px rgba(16,24,40,.35)!important;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) :is(.brand>div:not(.logo),.profile,.rc1579-section-label,.rc1579-section-count,.rc1579-section-chevron){display:none!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) #nav#nav#nav button{
+    font-size:0!important;justify-content:center!important;padding-left:0!important;padding-right:0!important;gap:0!important;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) #nav#nav#nav button>:not(.index308-nav-icon){display:none!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) :is(.rc1579-section,.brand){justify-content:center!important;padding-left:0!important;padding-right:0!important}
+}

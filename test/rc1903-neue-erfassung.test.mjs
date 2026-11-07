@@ -9,7 +9,7 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const langs=['de','en','fr','it','es','pl'];
 
 test('RC1903: neue Erfassung greift nur im Design "Neu" und nur in der Sendungsmaske',()=>{
-  assert.match(js,/getAttribute\('data-eh-layout'\)!=='top'/);
+  assert.match(js,/hasAttribute\('data-eh-newui'\)/);
   assert.match(js,/getElementById\('rc363FixedShipmentLayout'\)/);
   assert.match(js,/getAttribute\('data-exporthub-rendered-view'\)==='shipment'/);
   assert.match(css,/^#rc1903Capture\{display:none\}/m);
@@ -57,8 +57,8 @@ test('RC1903: Texte kommen aus den Sprachdateien',()=>{
 });
 
 test('RC1903: Builder bindet Skript und Stylesheet ein',()=>{
-  assert.match(builder,/rc1903-neue-erfassung\.css\?v=1903/);
-  assert.match(builder,/rc1903-neue-erfassung\.js\?v=1903/);
+  assert.match(builder,/rc1903-neue-erfassung\.css\?v=1930/);
+  assert.match(builder,/rc1903-neue-erfassung\.js\?v=1930/);
   assert.match(builder,/'assets\/rc1903-neue-erfassung\.js'/);
   assert.match(builder,/RC1903 neue Erfassung fehlt/);
 });

@@ -8,10 +8,10 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const langs=['de','en','fr','it','es','pl'];
 
 test('RC1901: neue Sendungsansicht greift nur im Design "Neu"',()=>{
-  assert.match(js,/getAttribute\('data-eh-layout'\)!=='top'/);
+  assert.match(js,/hasAttribute\('data-eh-newui'\)/);
   assert.match(js,/classList\.contains\('rc776-shipment-view'\)/);
   assert.match(css,/^#rc1901Shipment\{display:none\}/m);
-  assert.match(css,/html\[data-eh-layout="top"\]\[data-rc1901-view="shipment"\] #rc1901Shipment\{display:block\}/);
+  assert.match(css,/html\[data-eh-newui\]\[data-rc1901-view="shipment"\] #rc1901Shipment\{display:block\}/);
 });
 
 test('RC1901: Abläufe bleiben die alten (keine eigene Logik, alte Ansicht bleibt im DOM)',()=>{
@@ -48,8 +48,8 @@ test('RC1901: Texte kommen aus den Sprachdateien',()=>{
 });
 
 test('RC1901: Builder bindet Skript und Stylesheet ein',()=>{
-  assert.match(builder,/rc1901-neue-sendungsansicht\.css\?v=1901/);
-  assert.match(builder,/rc1901-neue-sendungsansicht\.js\?v=1901/);
+  assert.match(builder,/rc1901-neue-sendungsansicht\.css\?v=1930/);
+  assert.match(builder,/rc1901-neue-sendungsansicht\.js\?v=1930/);
   assert.match(builder,/'assets\/rc1901-neue-sendungsansicht\.js'/);
   assert.match(builder,/RC1901 neue Sendungsansicht fehlt/);
 });

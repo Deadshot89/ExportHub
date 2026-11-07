@@ -11,13 +11,13 @@
   window.__rc1902NeueSendungsmaske=true;
 
   var ROOT_ID='rc1902ShipmentForm';
-  var STATUS_COLORS={entwurf:'#64748b',erstellt:'#6366f1',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',vorbereitet:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
+  var STATUS_COLORS={entwurf:'#64748b',erstellt:'var(--eh-p3,#6366f1)',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',vorbereitet:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
   var ui={scheduled:false,lastSig:'',current:'',observer:null};
 
   function content(){return document.getElementById('content');}
   function layout(){return document.getElementById('rc363FixedShipmentLayout');}
   function active(){
-    if(document.documentElement.getAttribute('data-eh-layout')!=='top')return false;
+    if(!document.documentElement.hasAttribute('data-eh-newui'))return false;
     var c=content(),l=layout();
     return !!(c&&l&&c.contains(l)&&c.getAttribute('data-exporthub-rendered-view')==='shipment');
   }
@@ -86,7 +86,7 @@
     var sig=JSON.stringify([d.title,d.ref,d.customer,d.status,d.kpis,d.blocks.map(function(b){return [b.id,b.num,b.title,b.warn];}),ui.current,!!d.save,d.save&&d.save.disabled,!!d.docs,txt(d.save),txt(d.docs)]);
     if(sig===ui.lastSig&&root.firstChild)return;
     ui.lastSig=sig;
-    root.style.setProperty('--c',STATUS_COLORS[d.key]||'#6366f1');
+    root.style.setProperty('--c',STATUS_COLORS[d.key]||'var(--eh-p3,#6366f1)');
     var open=d.blocks.filter(function(b){return b.warn;}).length;
     root.innerHTML=
       '<div class="rc1902-bar">'+
@@ -161,7 +161,7 @@
     var c=content();
     if(!c){setTimeout(start,300);return;}
     new MutationObserver(schedule).observe(c,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled','data-current-status','aria-invalid']});
-    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout']});
+    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     window.addEventListener('click',onClick,true);
     document.addEventListener('input',function(ev){if(ev.target&&content()&&content().contains(ev.target))schedule();},true);
     document.addEventListener('change',function(ev){if(ev.target&&content()&&content().contains(ev.target))schedule();},true);

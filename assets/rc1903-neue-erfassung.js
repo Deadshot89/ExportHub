@@ -18,7 +18,7 @@
   function content(){return document.getElementById('content');}
   function layout(){return document.getElementById('rc363FixedShipmentLayout');}
   function base(){
-    if(document.documentElement.getAttribute('data-eh-layout')!=='top')return false;
+    if(!document.documentElement.hasAttribute('data-eh-newui'))return false;
     var c=content(),l=layout();
     return !!(c&&l&&c.contains(l)&&c.getAttribute('data-exporthub-rendered-view')==='shipment');
   }
@@ -514,7 +514,7 @@
     var c=content();
     if(!c){setTimeout(start,300);return;}
     new MutationObserver(schedule).observe(c,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','hidden','disabled','readonly','data-active','data-current-status','aria-invalid','aria-pressed','title']});
-    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout']});
+    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     window.addEventListener('click',onClick,true);
     window.addEventListener('keydown',onKey,true);
     window.addEventListener('input',forward,true);

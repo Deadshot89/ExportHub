@@ -6,25 +6,22 @@ const runtime=fs.readFileSync('assets/rc1304-theme-switcher.js','utf8');
 const css=fs.readFileSync('assets/rc1304-theme-switcher.css','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
-test('RC1304: Switcher exposes four base designs plus Premium (RC1800) and Neu (RC1820) and persists the choice',()=>{
+test('RC1304/RC1930: Switcher bietet Original, Indigo, Horizont und die fünf neuen Designs und speichert die Auswahl',()=>{
   assert.match(runtime,/var CLASSIC='classic'/);
-  assert.match(runtime,/var MODERN='modern'/);
-  assert.match(runtime,/var GLASS='glass'/);
-  assert.match(runtime,/var NEON='neon'/);
-  assert.match(runtime,/VALUES=\[CLASSIC,MODERN,GLASS,NEON\]/);
-  assert.match(runtime,/theme\.classic/);
-  assert.match(runtime,/theme\.modernBusiness/);
-  assert.match(runtime,/theme\.glass/);
-  assert.match(runtime,/theme\.neonNight/);
   assert.match(runtime,/var PREMIUM='premium'/);
   assert.match(runtime,/var NEU='neu'/);
-  assert.match(runtime,/CHOICES=VALUES\.concat\(\[PREMIUM,NEU\]\)/);
-  assert.match(runtime,/theme\.neu/);
-  assert.match(runtime,/theme\.premium/);
-  assert.match(runtime,/options\.length===6/);
+  for(const id of ['frost','graphit','azur','stahl','polar'])assert.match(runtime,new RegExp("='"+id+"'"));
+  assert.match(runtime,/CHOICES=\[CLASSIC,PREMIUM,NEU\]\.concat\(PALETTES\)/);
+  // Modern Business, Glass und Neon Night sind keine Auswahl mehr; gespeicherte Altwerte fallen auf Original zurück
+  assert.match(runtime,/LEGACY_VALUES=\[MODERN,GLASS,NEON\]/);
+  assert.doesNotMatch(runtime,/theme\.modernBusiness|theme\.neonNight|'theme\.glass'/);
+  for(const key of ['classic','premium','neu','frost','graphit','azur','stahl','polar'])assert.match(runtime,new RegExp("labelKey:'theme\\."+key+"'"));
+  assert.match(runtime,/options\.length===DESIGNS\.length/);
   assert.match(runtime,/localStorage\.getItem\(STORAGE_KEY\)/);
   assert.match(runtime,/localStorage\.setItem\(STORAGE_KEY,value\)/);
   assert.match(runtime,/data-eh-design/);
+  assert.match(runtime,/data-eh-palette/);
+  assert.match(runtime,/data-eh-newui/);
 });
 
 test('RC1304: theme switcher uses central i18n keys instead of hard-coded German UI text',()=>{
@@ -119,7 +116,7 @@ test('RC1304: three redesigns are distinct while classic remains untouched',()=>
 
 test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
   assert.match(builder,/rc1304-theme-switcher\.css\?v=1306/);
-  assert.match(builder,/rc1304-theme-switcher\.js\?v=1820/);
+  assert.match(builder,/rc1304-theme-switcher\.js\?v=1930/);
   assert.match(builder,/patchRc1304ThemeRedesign/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.css'/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.js'/);

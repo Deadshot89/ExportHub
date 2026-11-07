@@ -1,12 +1,12 @@
 /* RC1901: Neue Oberfläche "Sendungsansicht" (Design "Neu"). Eigener Aufbau, siehe rc1901-neue-sendungsansicht.js.
    Die alte Ansicht bleibt im DOM (für alle Aktionen), wird aber aus dem Sichtbereich genommen. */
 #rc1901Shipment{display:none}
-html[data-eh-layout="top"][data-rc1901-view="shipment"] #rc1901Shipment{display:block}
-html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-view{
+html[data-eh-newui][data-rc1901-view="shipment"] #rc1901Shipment{display:block}
+html[data-eh-newui][data-rc1901-view="shipment"] #content.rc776-shipment-view{
   position:fixed!important;left:-10000px!important;top:0!important;width:1200px!important;height:1px!important;max-height:1px!important;overflow:hidden!important;opacity:0!important;clip-path:inset(50%)!important;pointer-events:none!important
 }
 
-#rc1901Shipment#rc1901Shipment{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--soft:#f6f7fb;--primary:#4f46e5;--primary2:#7c3aed;--c:#6366f1;font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);margin:0 0 32px}
+#rc1901Shipment#rc1901Shipment{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--soft:#f6f7fb;--primary:var(--eh-p,#4f46e5);--primary2:var(--eh-p2,#7c3aed);--c:var(--eh-p3,#6366f1);font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);margin:0 0 32px}
 #rc1901Shipment#rc1901Shipment *{box-sizing:border-box}
 #rc1901Shipment#rc1901Shipment button{font:inherit;cursor:pointer;margin:0;text-transform:none;letter-spacing:normal}
 #rc1901Shipment#rc1901Shipment :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -14,12 +14,12 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 
 /* Knöpfe */
 #rc1901Shipment#rc1901Shipment .rc1901-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:12px;border:1px solid transparent;font-size:13.5px!important;font-weight:650;white-space:nowrap;transition:background-color .15s,border-color .15s,box-shadow .15s}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgba(79,70,229,.25)}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-primary:hover{background:linear-gradient(135deg,#4338ca,#6d28d9)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgb(var(--eh-p-rgb,79 70 229)/.25)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-primary:hover{background:linear-gradient(135deg,var(--eh-pd,#4338ca),var(--eh-p2,#6d28d9))}
 #rc1901Shipment#rc1901Shipment .rc1901-btn-ghost{background:#fff;color:#28324a;border-color:#d6dbe8}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost:hover{background:#eef0ff;color:#3730a3;border-color:#c7cbfb}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-soft{background:#eef0ff;color:#3730a3;border-color:#dfe2ff}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-soft:hover{background:#e0e4ff}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost:hover{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#c7cbfb)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-soft{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#dfe2ff)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-soft:hover{background:var(--eh-pl,#e0e4ff)}
 #rc1901Shipment#rc1901Shipment .rc1901-btn:disabled{opacity:.45;cursor:not-allowed}
 
 /* Kopf mit Statusfarbe */

@@ -8,11 +8,11 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const langs=['de','en','fr','it','es','pl'];
 
 test('RC1902: neue Steuerleiste greift nur im Design "Neu" und nur in der Sendungsmaske',()=>{
-  assert.match(js,/getAttribute\('data-eh-layout'\)!=='top'/);
+  assert.match(js,/hasAttribute\('data-eh-newui'\)/);
   assert.match(js,/getElementById\('rc363FixedShipmentLayout'\)/);
   assert.match(js,/getAttribute\('data-exporthub-rendered-view'\)==='shipment'/);
   assert.match(css,/^#rc1902ShipmentForm\{display:none\}/m);
-  assert.match(css,/html\[data-eh-layout="top"\]\[data-rc1902-view="form"\] #rc1902ShipmentForm\{display:block\}/);
+  assert.match(css,/html\[data-eh-newui\]\[data-rc1902-view="form"\] #rc1902ShipmentForm\{display:block\}/);
 });
 
 test('RC1902: Speichern und Ausgabe laufen über die bestehenden Knöpfe',()=>{
@@ -43,8 +43,8 @@ test('RC1902: Texte kommen aus den Sprachdateien',()=>{
 });
 
 test('RC1902: Builder bindet Skript und Stylesheet ein',()=>{
-  assert.match(builder,/rc1902-neue-sendungsmaske\.css\?v=1902/);
-  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1902/);
+  assert.match(builder,/rc1902-neue-sendungsmaske\.css\?v=1930/);
+  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1930/);
   assert.match(builder,/'assets\/rc1902-neue-sendungsmaske\.js'/);
   assert.match(builder,/RC1902 neue Sendungsmaske fehlt/);
 });

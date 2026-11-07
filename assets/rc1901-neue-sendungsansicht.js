@@ -11,7 +11,7 @@
   window.__rc1901NeueSendungsansicht=true;
 
   var ROOT_ID='rc1901Shipment';
-  var STATUS_COLORS={entwurf:'#64748b',erstellt:'#6366f1',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',vorbereitet:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
+  var STATUS_COLORS={entwurf:'#64748b',erstellt:'var(--eh-p3,#6366f1)',inbearbeitung:'#0ea5e9',wartetabd:'#d97706',offen:'#ea580c',nachbearbeitung:'#e11d48',bereit:'#059669',vorbereitet:'#059669',abgeholt:'#0d9488',pod:'#8b5cf6',abgeschlossen:'#16a34a',archiviert:'#94a3b8',storniert:'#dc2626'};
   var STEP_RANK={entwurf:0,offen:0,erstellt:0,inbearbeitung:0,wartetabd:1,bereit:2,vorbereitet:2,abgeholt:3,pod:4,abgeschlossen:5,archiviert:5};
   var STEPS=['rc1901.stepCreated','rc1901.stepAbd','rc1901.stepReady','rc1901.stepPicked','rc1901.stepPod','rc1901.stepDone'];
   var TABS=[['overview','rc1901.tabOverview'],['documents','rc1901.tabDocuments'],['proof','rc1901.tabProof'],['history','rc1901.tabHistory']];
@@ -20,7 +20,7 @@
   function content(){return document.getElementById('content');}
   function page(){var c=content();return c?c.querySelector(':scope>.rc776-page'):null;}
   function active(){
-    if(document.documentElement.getAttribute('data-eh-layout')!=='top')return false;
+    if(!document.documentElement.hasAttribute('data-eh-newui'))return false;
     var c=content();
     return !!(c&&c.classList.contains('rc776-shipment-view')&&c.querySelector(':scope>.rc776-page>.rc776-hero'));
   }
@@ -143,7 +143,7 @@
       d.reminder&&d.reminder.buttons.map(function(b){return [txt(b),b.disabled];}),d.heroActions.map(txt),d.pod&&d.pod.html.innerHTML]);
     if(sig===ui.lastSig&&root.querySelector('.rc1901-head'))return;
     ui.lastSig=sig;
-    var color=STATUS_COLORS[d.key]||'#6366f1';
+    var color=STATUS_COLORS[d.key]||'var(--eh-p3,#6366f1)';
     root.style.setProperty('--c',color);
 
     /* Kopf */
@@ -245,7 +245,7 @@
     var c=content();
     if(!c){setTimeout(start,300);return;}
     new MutationObserver(onMutations).observe(c,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','disabled','data-shipment']});
-    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout']});
+    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     schedule();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
