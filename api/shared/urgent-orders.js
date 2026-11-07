@@ -174,6 +174,54 @@ function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
  if(order.history.length>200)order.history=order.history.slice(-200);
  return mail;
 }
+// Direct Microsoft 365 sending is separate from opening Outlook with mailto:.
+// Reserve the exact message before calling Graph and block accidental duplicate sends.
+function requestGraphMail(order,raw,actor,now=new Date().toISOString()){
+ const p=raw&&typeof raw==='object'?raw:{};
+ const requestId=text(p.requestId,60);
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))
+  throw problem('URGENT_MAIL_REQUEST_ID_INVALID','Ungültige E-Mail-Versandkennung.');
+ const existing=(order.mailHistory||[]).find(m=>m.requestId===requestId);
+ if(existing){
+  if(existing.source!=='microsoft_graph'||existing.to!==email(p.to)||existing.subject!==String(p.subject||'')||existing.body!==String(p.body||'')||existing.kind!==text(p.kind,30))
+   throw problem('URGENT_MAIL_REQUEST_CONFLICT','Die Versandkennung gehört zu einer anderen E-Mail.',409);
+  return{mail:existing,existing:true};
+ }
+ const subject=String(p.subject==null?'':p.subject),body=String(p.body==null?'':p.body);
+ if(subject.length>200||body.length>12000)
+  throw problem('URGENT_GRAPH_MAIL_TOO_LONG','Für direkten Microsoft-365-Versand sind höchstens 200 Zeichen im Betreff und 12.000 im Text erlaubt.');
+ const duplicate=(order.mailHistory||[]).some(m=>m.source==='microsoft_graph'&&m.to===email(p.to)&&m.kind===text(p.kind,30)&&m.subject===subject&&m.body===body&&
+  ['sending','send_unverified','sent_confirmed'].includes(m.status)&&
+  Number.isFinite(Date.parse(m.createdAt))&&Math.abs(Date.parse(now)-Date.parse(m.createdAt))<5*60*1000);
+ if(duplicate)throw problem('URGENT_MAIL_DUPLICATE','Diese E-Mail wurde vor kurzem bereits zum Versand eingereicht. Bitte die Historie prüfen.',409);
+ const mail=recordMailHandoff(order,p,actor,now);
+ mail.status='sending';mail.source='microsoft_graph';mail.requestId=requestId;
+ const last=order.history&&order.history.at(-1);
+ if(last&&last.mailId===mail.id)last.event='mail_send_requested';
+ return{mail,existing:false};
+}
+function confirmGraphMailAccepted(order,mailId,sender,now=new Date().toISOString()){
+ const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
+ if(!mail||mail.source!=='microsoft_graph')throw problem('URGENT_GRAPH_MAIL_NOT_FOUND','Automatischer E-Mail-Versand nicht gefunden.',404);
+ if(mail.status==='sent_confirmed')return mail;
+ if(mail.status!=='sending')throw problem('URGENT_GRAPH_MAIL_STATUS_INVALID','Der Versandstatus kann nicht automatisch bestätigt werden.',409);
+ mail.status='sent_confirmed';mail.sentAt=now;
+ mail.sentConfirmedBy={id:'microsoft_graph',name:'Microsoft 365'};
+ mail.confirmationSource='graph_accepted';mail.sender=email(sender);
+ order.updatedAt=now;order.history=Array.isArray(order.history)?order.history:[];
+ order.history.push({at:now,actorId:'microsoft_graph',event:'mail_graph_accepted',mailId:mail.id,kind:mail.kind});
+ if(order.history.length>200)order.history=order.history.slice(-200);
+ return mail;
+}
+function markGraphMailUnverified(order,mailId,now=new Date().toISOString()){
+ const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
+ if(!mail||mail.source!=='microsoft_graph'||mail.status!=='sending')return mail||null;
+ mail.status='send_unverified';order.updatedAt=now;
+ order.history=Array.isArray(order.history)?order.history:[];
+ order.history.push({at:now,actorId:'microsoft_graph',event:'mail_graph_unverified',mailId:mail.id,kind:mail.kind});
+ if(order.history.length>200)order.history=order.history.slice(-200);
+ return mail;
+}
 function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Versandbestätigungen erfassen.',403);
  const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
@@ -191,4 +239,4 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  return mail;
 }
 
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,requestGraphMail,confirmGraphMailAccepted,markGraphMailUnverified};
