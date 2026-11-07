@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Versand bestätigt",
   "urgentOrderV2.mailConfirmPrompt": "Wurde diese E-Mail wirklich im E-Mail-Programm gesendet? Die Bestätigung wird mit deinem Benutzernamen gespeichert.",
   "urgentOrderV2.mailConfirmSaved": "Versandbestätigung gespeichert.",
+  "urgentOrderV2.mailNoteRequired": "Bitte die Problembeschreibung mit mindestens 8 Zeichen ausfüllen.",
+  "urgentOrderV2.mailDraftReady": "E-Mail-Entwurf ist bereit.",
   "urgentOrderV2.mailRequireText": "Bitte zuerst einen E-Mail-Text erstellen.",
   "urgentOrderV2.mailSaving": "Speichere den E-Mail-Text im Auftrag …",
   "urgentOrderV2.mailSaved": "E-Mail-Text gespeichert. Bitte nach dem Versand in der Auftragshistorie bestätigen.",
