@@ -21,8 +21,8 @@
 html body[data-rc1570-tasks="1"] #content > #rc1810TaskBoard#rc1810TaskBoard#rc1810TaskBoard{display:grid!important}
 /* Reiter Heute/Woche/Monat: die alte Liste ist nur unter "Liste" zu sehen */
 html body[data-rc1810-board-tab]:not([data-rc1810-board-tab="liste"]) #content > #rc1570Tasks#rc1570Tasks{display:none!important}
-/* Ein Menüpunkt "Aufgaben": Planer und Aufgabenansicht sind über die Seite erreichbar */
-html body nav#nav#nav > button[data-view="planning"],html body nav#nav#nav > button[data-view="taskdetail"]{display:none!important}
+/* Aufgaben, Aufgabenplaner und Aufgabenansicht sind eigenständige Seiten.
+   Keine Navigationseinträge per CSS ausblenden: Rechteverwaltung entscheidet. */
 /* Doppelte Überschrift der Liste unter dem Reiter "Liste" ausblenden */
 html body[data-rc1810-board-tab="liste"] #rc1570Tasks#rc1570Tasks > .rc1570-head{display:none!important}
 
