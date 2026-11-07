@@ -234,8 +234,14 @@ async function execute(req,user,refs){
   const cfg=graphMail.readiness();
   const sender=model.text(process.env.EXPORTHUB_URGENT_MAIL_SENDER||process.env.EXPORTHUB_MAIL_SENDER,254);
   if(!cfg.configured||!sender)throw model.problem('URGENT_GRAPH_NOT_CONFIGURED','Microsoft-365-Direktversand ist noch nicht eingerichtet. Bitte die Mail-Einstellungen prüfen.',409);
+  // Distinguish a failed Entra sign-in from a missing Mail.Send grant.
+  // Neither condition may reserve or send customer mail.
   const permission=await graphMail.verifyAuthentication();
-  if(!permission.authenticated||!permission.mailSendGranted)
+  if(!permission.authenticated)
+   throw model.problem('URGENT_GRAPH_AUTH_FAILED','Die Microsoft-365-App kann sich derzeit nicht anmelden. Es wurde keine E-Mail versendet.',503);
+  if(permission.audienceOk===false)
+   throw model.problem('URGENT_GRAPH_AUDIENCE_INVALID','Die Microsoft-365-App verwendet kein gültiges Graph-Zugriffstoken. Es wurde keine E-Mail versendet.',503);
+  if(!permission.mailSendGranted)
    throw model.problem('URGENT_GRAPH_PERMISSION_MISSING','Microsoft Graph benötigt die freigegebene Berechtigung Mail.Send. Es wurde nichts versendet.',409);
   const orderId=model.text(p.id,90);
   const saved=await write(refs,doc=>{
