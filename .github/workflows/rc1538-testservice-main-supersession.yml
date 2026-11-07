@@ -61,7 +61,7 @@ jobs:
               // Ein älterer Run kann zwischen LIST und CANCEL regulär enden.
               // Ausschließlich diesen belegten 409-Rennfall als erledigt werten.
               if(response.status===409&&options.method==='POST'&&
-                 /^\/actions\/runs\/\d+\/cancel$/.test(new URL(url).pathname)){
+                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/cancel$/.test(new URL(url).pathname)){
                 let message='';
                 try{message=JSON.parse(body).message||''}catch(_){}
                 if(message==='Cannot cancel a workflow run that is completed.')
