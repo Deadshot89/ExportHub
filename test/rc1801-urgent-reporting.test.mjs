@@ -26,10 +26,14 @@ test('Urgent Order supports planned inbound and immediate express shipment',()=>
  assert.equal(order.items[0].checkResult,'passed');
  const en=model.draftMail(order,'problem','en','The inbound truck will arrive late.');
  const de=model.draftMail(order,'problem','de','Der Wareneingang ist verspätet.');
- assert.match(en.body,/Expected arrival: 2026-11-09 08:30/);
- assert.match(en.body,/Outbound service: Express/);
- assert.match(de.body,/Geplante Ankunft: 2026-11-09 08:30/);
- assert.match(de.body,/Versandart: Express/);
+ // Inbound/express details remain in the order data, but the staff
+ // requested a short, personal DU mail instead of an operational data dump.
+ assert.match(en.body,/Hi,\\n\\nIssue: The inbound truck will arrive late/);
+ assert.match(en.body,/Sales order: SO3002\\nItem: ART-101/);
+ assert.match(de.body,/Hallo,\\n\\nProblem: Der Wareneingang ist verspätet/);
+ assert.match(de.body,/Auftrag: SO3002\\nArtikel: ART-101/);
+ assert.doesNotMatch(en.body,/Expected arrival:|Outbound service:|EXPRESS|P1/);
+ assert.doesNotMatch(de.body,/Geplante Ankunft:|Versandart:|EXPRESS|P1/);
 });
 test('Direct outbound requires a real arrival date, transport mode, carrier and outbound service',()=>{
  assert.throws(()=>model.createOrder(base({directOutbound:{...base().directOutbound,arrivalAt:'2026-11-31T09:00'}}),actor),/arrival date/i);
