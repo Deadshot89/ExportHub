@@ -286,12 +286,12 @@ module.exports=async function(context,req){
    const cases=recordsOf((await readRecords(env)).value),item=cases.find(x=>x.id===str(payload.id,50));
    if(!item)throw err('NOT_FOUND','Fall nicht gefunden',404);
    const cfg=qmAi.resolveConfig(process.env),lang=str(payload.language,5).toLowerCase(),language=Object.prototype.hasOwnProperty.call(qmAi.LANGUAGES,lang)?lang:'de';
-   const fallback=reason=>{context.res=json(200,{ok:true,mode:'regelbasiert',fallbackReason:reason,suggestions:advice(item),relatedCases:relatedCases(item,cases),notice:'Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.'})};
+   const fallback=(reason,providerStatus)=>{context.res=json(200,{ok:true,mode:'regelbasiert',fallbackReason:reason,providerStatus:Number(providerStatus)||0,suggestions:advice(item),relatedCases:relatedCases(item,cases),notice:'Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.'})};
    if(!cfg.enabled){fallback('not_configured');return}
    let quota;try{quota=await qmAi.consumeQuota(aiUsageStore(env),cfg,userKey(user),item.id)}catch(_){fallback('busy');return}
    if(!quota.allowed){fallback(quota.reason);return}
    const answer=await qmAi.askGemini({config:cfg,item,language});
-   if(!answer.ok){fallback(answer.reason);return}
+   if(!answer.ok){fallback(answer.reason,answer.status);return}
    context.res=json(200,{ok:true,mode:'ki',text:answer.text,model:answer.model,usedToday:quota.total,dailyLimit:quota.limit,notice:'KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);

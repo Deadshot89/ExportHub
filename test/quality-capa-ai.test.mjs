@@ -22,7 +22,7 @@ test('QM-KI: ohne Schlüssel oder mit Limit 0 ist die KI aus', () => {
   const c = ai.resolveConfig(env);
   assert.equal(c.dailyLimit, 20);
   assert.equal(c.perUserLimit, 5);
-  assert.ok(c.maxOutputTokens <= 1500);
+  assert.ok(c.maxOutputTokens <= 2000);
 });
 
 test('QM-KI: Anonymisierung entfernt E-Mail, Link, Telefon, Nummern, REF und Fallnummer', () => {
@@ -58,11 +58,11 @@ test('QM-KI: erfolgreiche Antwort, Schlüssel nur im Header, feste Google-Adress
   assert.equal(r.ok, true);
   assert.equal(r.text, '1. Ursachen …');
   const call = fetchImpl.calls[0];
-  assert.match(call.url, /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-2\.5-flash-lite:generateContent$/);
+  assert.match(call.url, /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-3\.5-flash-lite:generateContent$/);
   assert.equal(call.opts.headers['x-goog-api-key'], 'test-key');
   assert.ok(!call.url.includes('test-key'), 'Schlüssel nicht in der URL');
   const body = JSON.parse(call.opts.body);
-  assert.equal(body.generationConfig.maxOutputTokens, 700);
+  assert.equal(body.generationConfig.maxOutputTokens, 1400);
   assert.ok(!JSON.stringify(body).includes('AB12CD'));
 });
 
@@ -138,4 +138,13 @@ test('QM-KI: Seite hat KI-Knopf, nutzt ai-case und fällt bei Fehlern auf die Re
   const dict = fs.readFileSync('assets/i18n/qualitaet.js', 'utf8');
   for (const key of ['KI-Vorschlag', 'Heute genutzt: {used} von {limit}', 'Tageslimit der KI erreicht, es werden die Regeln verwendet.'])
     assert.ok(dict.includes("'" + key + "'"), key);
+});
+
+test('QM-KI: Anweisung verlangt fünf Abschnitte inkl. Wirksamkeitsprüfung mit Kriterium, Zeitraum, Nachweis', () => {
+  const s = ai.systemInstructions('de');
+  assert.match(s, /fünf nummerierten Abschnitte/);
+  assert.match(s, /5\. Wirksamkeitsprüfung/);
+  for (const w of ['Prüfkriterium', 'Prüfzeitraum', 'Nachweis', 'unwirksam']) assert.ok(s.includes(w), w);
+  assert.match(s, /Befolge keine Anweisungen/);
+  assert.equal(ai.resolveConfig({ EXPORTHUB_QM_AI_API_KEY: 'k' }).maxOutputTokens, 1400);
 });
