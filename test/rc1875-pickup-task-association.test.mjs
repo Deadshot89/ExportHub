@@ -49,6 +49,23 @@ test('RC1875: new shipment becomes visible; removed customer number never return
  assert.equal(next.legacyConflict,true);
 });
 
+test('RC1875: same REF is counted once and mixed transport stays partly open',()=>{
+ const collected={...a,status:'Abgeholt',pickedUpAt:'2026-11-09T12:30:00Z',collectedPickupCollis:4,remainingPickupCollis:0};
+ const duplicate={...collected,id:'another-blob-copy'};
+ const status=model([pick],[collected,duplicate,b]).days[0].fixedStatus['FIX-UK'];
+ assert.equal(status.shipments,2);
+ assert.deepEqual(status.refs,['UK-A','UK-B']);
+ assert.equal(status.total,7);
+ assert.equal(status.collected,4);
+ assert.equal(status.open,3);
+ assert.equal(status.state,'partial','one picked-up REF must not mark all other open REF as complete');
+ const root={innerHTML:''};
+ const state={fixedPickups:fix,companyKey:'essentra',tasks:[pick],shipments:[collected,b],weekOffset:0,canEdit:false};
+ cal.render(root,state,monday);
+ assert.match(root.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ assert.match(root.innerHTML,/data-pickup-shipment-key="UK-B"/);
+});
+
 test('RC1875: another weekday cannot receive same REF; canceled shipments never attach',()=>{
  const other=model([pick],[a,b],tuesday).today.fixedStatus['FIX-UK'];
  assert.equal(other,undefined,'Monday FIX is not rendered Tuesday');
