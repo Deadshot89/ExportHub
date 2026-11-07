@@ -285,14 +285,27 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.ok(!('publicAccess' in JSON.parse(list.body).records[0]));
  assert.ok(names.some(k=>k.includes('/public-rate/')));
  assert.ok(names.some(k=>k.includes('/files/'+docId+'/')));
- // Gefaelschte X-Forwarded-For-Werte duerfen keine neuen Kontingente freischalten.
- for(let i=0;i<3;i++){
-  const other=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{'x-forwarded-for':'203.0.113.'+(i+1)});
+ // Keine der IP-Header-Varianten darf eine weitere Neuanlage mit derselben
+ // Kunden-/Sendungsnummer erlauben: max. drei pro Stunde (inklusive der ersten).
+ for(let i=0;i<2;i++){
+  const other=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{
+   'x-forwarded-for':'203.0.113.'+(i+1),
+   'x-ms-client-ip':'198.51.100.'+(i+1),
+   'x-azure-clientip':'192.0.2.'+(i+1)
+  });
   assert.equal(other.status,201,other.body);
  }
- const blocked=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{'x-forwarded-for':'203.0.113.250'});
+ const blocked=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{
+  'x-forwarded-for':'203.0.113.250','x-ms-client-ip':'198.51.100.250','x-azure-clientip':'192.0.2.250'
+ });
  assert.equal(blocked.status,429,blocked.body);
  assert.equal(JSON.parse(blocked.body).code,'PUBLIC_RATE_LIMIT');
+ // Eine echte andere Sendungsnummer ist nicht durch die unbekannte Besucher-IP auf
+ // vier Vorgänge pro Stunde beschränkt; es gilt die globale Limitierung.
+ const nextShipment=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'EXT-2026-OTHER'},website:''},'','https://www.exporthub360.de',{
+  'x-azure-clientip':'203.0.113.99'
+ });
+ assert.equal(nextShipment.status,201,nextShipment.body);
 });
 
 
