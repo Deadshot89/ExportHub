@@ -211,7 +211,7 @@ async function execute(req,user,refs){
   // Never send customer mail from an isolated TESTSERVICE or a preview environment.
   if(refs.environment!=='production')throw model.problem('URGENT_GRAPH_TESTSERVICE_BLOCKED','Der echte Microsoft-365-Versand ist im Testservice gesperrt. Es wurde keine E-Mail versendet.',409);
   const cfg=graphMail.readiness();
-  const sender=model.text(process.env.EXPORTHUB_URGENT_MAIL_SENDER||process.env.EXPORTHUB_MAIL_SENDER||cfg.sender,254);
+  const sender=model.text(process.env.EXPORTHUB_URGENT_MAIL_SENDER||process.env.EXPORTHUB_MAIL_SENDER,254);
   if(!cfg.configured||!sender)throw model.problem('URGENT_GRAPH_NOT_CONFIGURED','Microsoft-365-Direktversand ist noch nicht eingerichtet. Bitte die Mail-Einstellungen prüfen.',409);
   const permission=await graphMail.verifyAuthentication();
   if(!permission.authenticated||!permission.mailSendGranted)
