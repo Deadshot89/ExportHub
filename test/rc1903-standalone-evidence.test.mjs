@@ -61,6 +61,12 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/exporthub-rc1903-shipment-evidence/);
  assert.match(builder,/'assets\/shipment-evidence\.js'/);
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
+ assert.match(builder,/'assets\\/shipment-evidence-guest\\.js'/);
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ assert.match(guest,/data-eh1903-guest-open/);
+ assert.match(guest,/guestOpen/);
+ assert.match(guest,/public-create/);
+ assert.match(guest,/public-upload/);
  assert.match(ui,/data-exporthub-evidence-nav/);
  assert.match(ui,/replaceChildren\(app\)/);
  assert.match(ui,/data-exporthub-view','shipmentevidence'/);
@@ -171,4 +177,87 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  assert.equal(JSON.parse(listed.body).records[0].id,record.id);
  assert.ok(access.some(k=>k.includes('/files/'+record.id+'/')));
  assert.ok(access.every(k=>k.startsWith('shipment-evidence/v1/')));
+});
+
+
+test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fotos hochladen',async t=>{
+ const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ t.after(()=>{
+  if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
+  if(oldIsolation===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=oldIsolation;
+ });
+ const store=new Map(),names=[],user={role:'Export',rights:{documents:{level:'edit',edit:true,read:true}}};
+ let loggedIn=false;
+ t.mock.method(auth,'validateSession',async()=>{
+  if(!loggedIn){const e=new Error('Nicht angemeldet');e.code='SESSION_INVALID';e.status=401;throw e}
+  return{user,session:{environment:'production'},team:{state:{shipments:[]}}}
+ });
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:()=>({
+   listBlobsFlat:({prefix})=>({byPage:()=>({next:async()=>({value:{segment:{blobItems:[...store.keys()].filter(k=>k.startsWith(prefix)).map(name=>({name}))},continuationToken:null}})})}),
+   getBlockBlobClient:(name)=>{
+    names.push(name);
+    return{
+     async download(){const s=store.get(name);if(!s){const e=new Error('Missing');e.statusCode=404;throw e}return{etag:s.etag,readableStreamBody:Readable.from([s.bytes])}},
+     async uploadData(bytes,opts){
+      const old=store.get(name),cond=opts&&opts.conditions||{};
+      if(cond.ifNoneMatch==='*'&&old||cond.ifMatch&&(!old||cond.ifMatch!==old.etag)){const e=new Error('Conflict');e.statusCode=412;throw e}
+      const n=old?old.n+1:1,etag='"guest-'+n+'"';store.set(name,{bytes:Buffer.from(bytes),etag,n});return{etag}
+     },
+     async deleteIfExists(){store.delete(name)}
+    }
+   }
+  })
+ }));
+ async function call(method,input={},token='',origin='https://www.exporthub360.de'){
+  const headers={host:'www.exporthub360.de'};
+  if(origin)headers.origin=origin;
+  if(token)headers['x-exporthub-evidence-token']=token;
+  const ctx={};await doc(ctx,{method,headers,query:method==='GET'?input:{},body:method==='POST'?input:undefined});return ctx.res
+ }
+ const badOrigin=await call('POST',{action:'public-create',fields:valid},'','https://evil.example');
+ assert.equal(badOrigin.status,403,badOrigin.body);
+ const created=await call('POST',{action:'public-create',fields:valid,website:''});
+ assert.equal(created.status,201,created.body);
+ const first=JSON.parse(created.body);
+ assert.match(first.record.id,/^DOK-\d{8}-[A-F0-9]{8}$/);
+ assert.match(first.publicToken,/^[A-Za-z0-9_-]{40,60}$/);
+ assert.ok(!('publicAccess' in first.record));
+ const docId=first.record.id;
+ const privateStored=JSON.parse(store.get('shipment-evidence/v1/records/'+docId+'.json').bytes.toString());
+ assert.notEqual(privateStored.publicAccess.hash,first.publicToken);
+ const unauthorized=await call('GET',{action:'get',id:docId});
+ assert.equal(unauthorized.status,401);
+ const badToken=await call('GET',{action:'public-get',id:docId},'A'.repeat(43));
+ assert.equal(badToken.status,403);
+ const own=await call('GET',{action:'public-get',id:docId},first.publicToken);
+ assert.equal(own.status,200,own.body);
+ const returned=JSON.parse(own.body).record;
+ assert.ok(!('publicAccess' in returned));
+ const updated=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'1 Karton und Frachtpapiere'}},first.publicToken);
+ assert.equal(updated.status,200,updated.body);
+ const rev=JSON.parse(updated.body).record.revision;
+ const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:rev,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(uploaded.status,200,uploaded.body);
+ const pic=JSON.parse(uploaded.body).record.files[0];
+ const file=await call('GET',{action:'public-file',id:docId,fileId:pic.id},first.publicToken);
+ assert.equal(file.status,200);
+ assert.ok(Buffer.isBuffer(file.body));
+ const forbidden=await call('GET',{action:'public-file',id:docId,fileId:pic.id});
+ assert.equal(forbidden.status,403);
+ const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:rev,text:'ohne Sitzung'},first.publicToken);
+ assert.equal(complaint.status,401);
+ loggedIn=true;
+ const staff=await call('GET',{action:'get',id:docId});
+ assert.equal(staff.status,200);
+ assert.ok(!('publicAccess' in JSON.parse(staff.body).record));
+ const list=await call('GET',{action:'list'});
+ assert.equal(list.status,200);
+ assert.ok(!('publicAccess' in JSON.parse(list.body).records[0]));
+ assert.ok(names.some(k=>k.includes('/public-rate/')));
+ assert.ok(names.some(k=>k.includes('/files/'+docId+'/')));
 });
