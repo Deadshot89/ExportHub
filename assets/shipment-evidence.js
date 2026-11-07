@@ -64,7 +64,8 @@ function showForm(record){state.view='form';if(record!==undefined)state.record=r
  if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
  const card=make('section','eh1903-panel');card.appendChild(make('h2',null,t('edit')));
  card.appendChild(make('p','eh1903-muted',t('required')));
- const grid=make('div','eh1903-grid'),defaults={dispatchDate:new Date().toLocaleDateString('en-CA')};
+ const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ const grid=make('div','eh1903-grid'),defaults={dispatchDate:today};
  FIELDS.forEach(([key,kind])=>labelField(grid,key,kind,r&&r.fields&&r.fields[key]||defaults[key]||''));
  card.appendChild(grid);
  const act=make('div','eh1903-actions');act.appendChild(button(t('save'),async()=>{
@@ -133,7 +134,8 @@ function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;
 d.addEventListener('click',function(e){const target=e.target&&e.target.closest&&e.target.closest('[data-exporthub-evidence-nav]');if(!target)return;
  e.preventDefault();e.stopImmediatePropagation();open()},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ensureNav,{once:true});else ensureNav();
-if(w.addEventListener)['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(event=>w.addEventListener(event,ensureNav));
+function repair(){ensureNav();if(active()&&!root()&&!state.busy){if(state.view==='form')showForm(state.record);else showList()}}
+if(w.addEventListener)['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(event=>w.addEventListener(event,repair));
 if(w.setInterval)w.setInterval(()=>{if(!d.hidden&&!d.querySelector('[data-exporthub-evidence-nav]'))ensureNav()},1800);
 w.ExportHUBStandaloneEvidence=Object.freeze({open,ensureNav,version:'RC1903'});
 })(window,document);
