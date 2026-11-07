@@ -235,7 +235,7 @@ async function execute(req,user,refs){
  if(action==='prepare-mail'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails vorbereiten.',403);
   const doc=normalize((await readDoc(refs)).value),order=accessibleOrder(doc,model.text(p.id,90),user);
-  return{draft:model.draftMail(order,model.text(p.kind,30),model.language(p.language||order.language),p.note),orderId:order.id};
+  return{draft:model.draftMail(order,model.text(p.kind,30),model.language(p.language||order.language),p.note,user),orderId:order.id};
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
 }
