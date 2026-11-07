@@ -58,7 +58,7 @@ test('DE/EN templates are deterministic; shipping confirmation blocked until ent
  assert.match(orders.draftMail(o,'shipping','en').body,/confirm/);
  assert.match(orders.draftMail(o,'shipping','de').body,/bestätigen/);
 });
-test('frontend and API are dedicated, authenticated and do not automatically send mail',()=>{
+test('frontend and API are dedicated, authenticated and distinguish Graph sending from Outlook draft handoff',()=>{
  const html=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
  const api=fs.readFileSync(new URL('../api/urgent-orders/index.js',import.meta.url),'utf8');
  const config=JSON.parse(fs.readFileSync(new URL('../api/urgent-orders/function.json',import.meta.url),'utf8'));
@@ -81,5 +81,18 @@ test('frontend and API are dedicated, authenticated and do not automatically sen
  assert.match(html,/localStorage\.setItem\(EMAIL_HISTORY_KEY,JSON\.stringify\(next\)\)/);
  assert.doesNotMatch(html,/localStorage\.setItem\([^\n]*(?:authToken|sessionToken|accessToken|exporthub_rc301_tab_session)/i);
  assert.doesNotMatch(html,/api\('save-profile'/);
- assert.doesNotMatch(api,/sendTextMail|sendMail\(/);
+ // Sending an Outlook draft is not a verified send. The new optional Graph
+ // action must remain server-only, authenticated and production-scoped.
+ assert.match(api,/if\(action==='send-mail-direct'\)/);
+ assert.match(api,/if\(!model\.canManage\(user\)\)/);
+ assert.match(api,/refs\.environment!=='production'/);
+ assert.match(api,/graphMail\.verifyAuthentication\(\)/);
+ assert.match(api,/mailSendGranted/);
+ assert.match(api,/graphMail\.sendTextMail/);
+ assert.match(api,/model\.confirmGraphMailAccepted/);
+ assert.match(html,/async function mailto\(\)/);
+ assert.match(html,/async function sendDirect\(\)/);
+ assert.match(html,/api\('send-mail-direct'/);
+ assert.match(html,/api\('record-mail-handoff'/);
+ assert.doesNotMatch(html,/graph\.microsoft\.com\/v1\.0/,'Graph access must never run in the browser');
 });
