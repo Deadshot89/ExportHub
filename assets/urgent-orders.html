@@ -97,12 +97,12 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allLevels">Alle Stufen</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="" data-i18n="urgentOrderV2.allDeliveries">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directShortDelivery">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="Waved">Waved</option><option value="In Progress">In Progress</option><option value="Problem">Problem</option><option value="Loaded">Loaded</option><option value="Shipped">Shipped</option><option value="Invoiced">Invoiced</option><option value="exception">Check required</option></select></div>
 <div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
-<div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail versendet</span><span>Aktionen</span></div>
+<div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail-Verlauf</span><span>Aktionen</span></div>
 <div id="orders" aria-live="polite"><div class="empty">Aufträge werden geladen …</div></div>
 </section>
 </div>
 </main>
-<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField"><span data-i18n="urgentOrderV2.problemDescription">Problembeschreibung *</span><textarea id="mailIssue" placeholder="Was ist das Problem?" minlength="8" maxlength="2000" aria-describedby="mailIssueError"></textarea><small id="mailIssueError" class="field-error" role="alert" hidden></small></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
+<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Beim Klick auf „Im E-Mail-Programm öffnen“ speichert ExportHUB360 den genauen E-Mail-Text und übergibt ihn an dein Mailprogramm. Du versendest die E-Mail dort selbst. Eine weitere Bestätigung in ExportHUB360 ist nicht nötig; ob du tatsächlich auf „Senden“ geklickt hast, kann ExportHUB360 nicht erkennen.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField"><span data-i18n="urgentOrderV2.problemDescription">Problembeschreibung *</span><textarea id="mailIssue" placeholder="Was ist das Problem?" minlength="8" maxlength="2000" aria-describedby="mailIssueError"></textarea><small id="mailIssueError" class="field-error" role="alert" hidden></small></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
 <script>
 (function(){
 'use strict';
@@ -238,23 +238,23 @@ function mailColumnMarkup(order){
  const records=Array.isArray(order.mailHistory)?order.mailHistory:[];
  const sent=records.filter(x=>x.status==='sent_confirmed').length;
  const pending=records.length-sent;
- // A confirmed shipping email must never hide a still-unconfirmed problem email,
- // or vice versa. Only show "Yes" when every recorded email is confirmed.
+ // Handing a draft to an external email app never proves actual sending.
+ // Older explicitly confirmed records retain their historic confirmation.
  const label=!records.length?localeV2('mailColumnNone','No email')
-  :pending&&sent?localeV2('mailColumnPartial','Partially confirmed')
-  :pending?localeV2('mailColumnPending','Not confirmed')
-  :localeV2('mailColumnSent','Yes · confirmed');
+  :pending&&sent?localeV2('mailColumnPartial','Handed off · previously confirmed')
+  :pending?localeV2('mailColumnPending','Handed to email app')
+  :localeV2('mailColumnSent','Previously confirmed as sent');
  const className=!records.length?'':pending?'pending':'sent';
- const counts=records.length?'<span class="sub">'+escapeHtml(sent+' '+localeV2('mailCountConfirmed','confirmed')+' · '+pending+' '+localeV2('mailCountOpen','unconfirmed'))+'</span>':'';
+ const counts=records.length?'<span class="sub">'+escapeHtml((pending?pending+' '+localeV2('mailCountOpen','handed off'):'')+(pending&&sent?' · ':'')+(sent?sent+' '+localeV2('mailCountConfirmed','previously confirmed'):''))+'</span>':'';
  const byKind=['problem','shipping'].map(kind=>{
   const mails=records.filter(x=>x.kind===kind);
   if(!mails.length)return '';
   const complete=mails.filter(x=>x.status==='sent_confirmed').length;
   const name=localeV2(kind==='problem'?'mailKindProblem':'mailKindShipping',kind==='problem'?'Problem notification':'Shipping confirmation');
-  const state=complete===mails.length?localeV2('mailColumnSent','Yes · confirmed')
-   :complete?localeV2('mailColumnPartial','Partially confirmed')
-   :localeV2('mailColumnPending','Not confirmed');
-  return '<span class="sub">'+escapeHtml(name+': '+state+' ('+complete+'/'+mails.length+')')+'</span>';
+  const state=complete===mails.length?localeV2('mailColumnSent','Previously confirmed as sent')
+   :complete?localeV2('mailColumnPartial','Handed off · previously confirmed')
+   :localeV2('mailColumnPending','Handed to email app');
+  return '<span class="sub">'+escapeHtml(name+': '+state+' ('+mails.length+')')+'</span>';
  }).join('');
  const openHistory=records.length?'<button type="button" class="btn alt small" data-open-mail-history aria-label="'+escapeHtml(localeV2('mailHistoryButton','View history')+' · '+order.orderNumber)+'">'+escapeHtml(localeV2('mailHistoryButton','View history')+' ('+records.length+')')+'</button>':'';
  return '<span class="order-mail-state"><span class="order-mail-badge '+className+'">'+escapeHtml(label)+'</span>'+counts+byKind+openHistory+'</span>';
@@ -265,13 +265,13 @@ function mailHistoryMarkup(order){
  const rows=records.map(m=>{
   const sent=m.status==='sent_confirmed';
   const kind=m.kind==='shipping'?localeV2('mailKindShipping',"Shipping confirmation"):localeV2('mailKindProblem',"Problem notification");
-  const state=sent?localeV2('mailStatusManuallySent',"Manually confirmed as sent"):localeV2('mailStatusOpenRequested',"Mail program requested");
+  const state=sent?localeV2('mailStatusManuallySent',"Previously confirmed as sent"):localeV2('mailStatusOpenRequested',"Handed to email app");
   const creator=m.createdBy&&m.createdBy.name||m.createdBy&&m.createdBy.id||'–';
   const confirmed=m.sentConfirmedBy&&m.sentConfirmedBy.name||m.sentConfirmedBy&&m.sentConfirmedBy.id||'–';
   return '<details class="mail-entry"><summary><span>'+escapeHtml(kind)+'</span><span class="mail-chip '+(sent?'sent':'')+'">'+escapeHtml(state)+'</span><span class="mail-meta">'+escapeHtml(creator)+' · '+escapeHtml(mailDate(m.createdAt))+'</span></summary>'+
    '<div class="mail-entry-content"><p class="mail-meta">'+escapeHtml(localeV2('mailRecipient',"To"))+': '+escapeHtml(m.to)+' · '+escapeHtml(localeV2('mailLanguageLabel',"Language"))+': '+escapeHtml(m.language||'de')+'</p>'+
    '<p><strong>'+escapeHtml(localeV2('mailSubjectLabel',"Subject"))+':</strong> '+escapeHtml(m.subject)+'</p><pre>'+escapeHtml(m.body)+'</pre>'+
-   (sent?'<p class="mail-meta">'+escapeHtml(localeV2('mailConfirmedBy',"Sent confirmed by"))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(localeV2('mailConfirmButton',"Confirm actual sending"))+'</button>':'')+
+   (sent?'<p class="mail-meta">'+escapeHtml(localeV2('mailConfirmedBy',"Sent confirmed by"))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':'<p class="mail-meta">'+escapeHtml(localeV2('mailHandoffDisclaimer',"Only handed to the email app. ExportHUB360 cannot verify whether it was sent."))+'</p>')+
    '</div></details>';
  }).join('');
  return '<section class="mail-history"><h3>'+escapeHtml(localeV2('mailHistoryTitle',"Email history"))+' · '+records.length+'</h3>'+rows+'</section>';
@@ -313,16 +313,6 @@ function render(){
    history.scrollIntoView({block:'nearest',behavior:'smooth'});
   }));
 
-  details.querySelectorAll('[data-confirm-mail]').forEach(button=>button.addEventListener('click',async()=>{
-   if(!window.confirm(localeV2('mailConfirmPrompt',"Was this email actually sent in your mail application? Your account will be recorded.")))return;
-   button.disabled=true;
-   try{
-    const result=await api('confirm-mail-sent',{id:order.id,mailId:button.dataset.confirmMail});
-    const index=orders.findIndex(x=>x.id===order.id);if(index>=0)orders[index]=result.order;
-    render();const expanded=[...$('orders').querySelectorAll('details.order')].find(x=>x.querySelector('.so')?.textContent.includes(order.orderNumber));if(expanded)expanded.open=true;
-    setMessage('listMessage',localeV2('mailConfirmSaved',"Sent confirmation recorded."),'ok');
-   }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
-  }));
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
    const previous=(order.items||[]).find(x=>x.id===select.dataset.item)?.status;
    const note=select.value==='Problem'?(window.prompt(localeV2('problemPrompt','Bitte das Problem beschreiben.'))||'').trim():'';
@@ -417,7 +407,7 @@ async function mailto(){
   render();
   const uri='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
   window.location.href=uri;
-  setMessage('mailMessage',localeV2('mailSaved',"Email text saved. Confirm sending in the order history afterward."),'ok');
+  setMessage('mailMessage',localeV2('mailSaved',"Exact email saved and handed to the mail application. Sending is done there."),'ok');
  }catch(e){
   setMessage('mailMessage',localeV2('mailOpenFailed',"Email not opened: ")+e.message,'error');
  }finally{button.disabled=false;}
