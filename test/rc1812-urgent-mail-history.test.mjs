@@ -60,17 +60,20 @@ test('Urgent Order mailto flow saves the current editor text before opening the 
  assert.match(handler,/await api\('record-mail-handoff',[\s\S]*?subject:sub,body/);
  assert.ok(handler.indexOf("await api('record-mail-handoff'")<handler.indexOf('window.location.href=uri'),'server-side save must finish before opening the mail program');
  assert.match(handler,/catch\(e\)/,'failed save must be handled without opening Outlook');
- assert.match(html,/data-confirm-mail/,'audit history must expose explicit sent confirmation');
+ assert.doesNotMatch(html,/data-confirm-mail/,'no extra manual confirmation button after opening the mail program');
+ assert.doesNotMatch(html,/api\('confirm-mail-sent'/,'normal UI must not offer extra sending confirmation');
+ assert.match(html,/mailHandoffDisclaimer/,'history must state that sending is not verifiable');
 });
 
-test('Urgent Order overview has a dedicated sent-email column with one-click history',()=>{
+test('Urgent Order overview shows mail history and handoff rather than falsely claiming sending',()=>{
  const fs=require('node:fs');
  const path=require('node:path');
  const html=fs.readFileSync(path.resolve('assets/urgent-orders.html'),'utf8');
- assert.match(html,/<span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail versendet<\/span>/);
+ assert.match(html,/<span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail-Verlauf<\/span>/);
  assert.match(html,/function mailColumnMarkup\(order\)/);
  assert.match(html,/order\.mailHistory/);
- assert.match(html,/records\.filter\(x=>x\.status==='sent_confirmed'\)/,'yes can only result from a confirmed send');
+ assert.match(html,/records\.filter\(x=>x\.status==='sent_confirmed'\)/,'historical confirmations must not be lost');
+ assert.match(html,/mailColumnPending/,'unconfirmed handoffs have an explicit neutral status');
  assert.match(html,/data-open-mail-history/,'history button is in table cell');
  assert.match(html,/details\.open=true;/,'history action expands the order');
  assert.match(html,/recent\.open=true;/,'history action expands the newest email');
