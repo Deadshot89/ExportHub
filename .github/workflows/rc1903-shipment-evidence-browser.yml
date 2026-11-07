@@ -1,0 +1,64 @@
+name: RC1903 Anonymous Shipment Documentation Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/shipment-evidence/**'
+      - 'assets/shipment-evidence*'
+      - 'assets/i18n/shipment-evidence.js'
+      - 'assets/rc1579-menu-redesign.js'
+      - 'test/rc1903-standalone-evidence.test.mjs'
+      - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/rc1903-shipment-evidence-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1903-shipment-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guest_browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1903 API and rights regression
+        run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs
+
+      - name: Build ExportHUB RC1112 environments
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/packmeldungen/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify inline anonymous creation and upload in desktop and mobile browsers
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
+
+      - name: Store browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-anonymous-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
