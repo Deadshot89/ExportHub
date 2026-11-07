@@ -1,0 +1,81 @@
+/* RC1902: Neue Oberfläche "Sendung erstellen/bearbeiten" (Design "Neu"). Siehe rc1902-neue-sendungsmaske.js.
+   Steuerleiste mit Schrittnavigation über der bestehenden Maske; die Maske selbst wird neu angeordnet. */
+#rc1902ShipmentForm{display:none}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc1902ShipmentForm{display:block}
+
+#rc1902ShipmentForm#rc1902ShipmentForm{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--soft:#f6f7fb;--primary:#4f46e5;--primary2:#7c3aed;--c:#6366f1;
+  position:sticky;top:84px;z-index:90;margin:0 0 18px;font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:20px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 14px 34px rgba(15,23,42,.08);overflow:hidden}
+#rc1902ShipmentForm#rc1902ShipmentForm::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--c)}
+#rc1902ShipmentForm#rc1902ShipmentForm *{box-sizing:border-box}
+#rc1902ShipmentForm#rc1902ShipmentForm button{font:inherit;cursor:pointer;margin:0;text-transform:none;letter-spacing:normal}
+#rc1902ShipmentForm#rc1902ShipmentForm :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-bar{display:flex;align-items:center;gap:14px 28px;flex-wrap:wrap;padding:14px 20px 12px 26px}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 300px}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kicker{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--primary)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref strong{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-status{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:999px;background:color-mix(in srgb,var(--c) 13%,#fff);color:color-mix(in srgb,var(--c) 78%,#000);font-size:12.5px;font-weight:700;white-space:nowrap}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-customer{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis{display:flex;gap:0;margin:0;padding:0}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis>div{padding:0 18px;border-left:1px solid var(--line)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis dd{margin:2px 0 0;font-size:18px;font-weight:750;white-space:nowrap}
+
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions{display:flex;gap:10px;flex-wrap:wrap}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;border-radius:12px;border:1px solid transparent;font-size:14px!important;font-weight:650;white-space:nowrap;transition:background-color .15s,border-color .15s}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgba(79,70,229,.25)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn-primary:hover{background:linear-gradient(135deg,#4338ca,#6d28d9)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn-ghost{background:#fff;color:#28324a;border-color:#d6dbe8}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn-ghost:hover{background:#eef0ff;color:#3730a3;border-color:#c7cbfb}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* Schrittnavigation */
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{display:flex;align-items:center;gap:6px;padding:8px 20px 10px 26px;border-top:1px solid var(--line);background:#fbfcfe;overflow-x:auto;scrollbar-width:thin}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px 0 6px;border-radius:999px;border:1px solid transparent;background:transparent;color:#475467;font-size:13.5px;font-weight:600;white-space:nowrap}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step:hover{background:#eef0f6;color:var(--ink)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-current{background:#fff;border-color:#d6dbe8;color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.08)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step-num{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#eef0f6;color:#475467;font-size:12px;font-weight:750}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-current .rc1902-step-num{background:var(--primary);color:#fff}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step-state{width:8px;height:8px;border-radius:50%;background:#22c55e}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-warn .rc1902-step-state{background:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.18)}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary{margin-left:auto;padding-left:12px;font-size:12.5px;font-weight:650;color:#15803d;white-space:nowrap}
+#rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary.is-warn{color:#c2410c}
+
+/* Bestehende Maske neu anordnen und gestalten */
+html[data-eh-layout="top"][data-rc1902-view="form"] #content>.page-head{display:none!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout .rc363-process-block{scroll-margin-top:210px}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout .rc363-process-block{border-radius:20px!important;border:1px solid #e6e8f0!important;background:#fff!important;box-shadow:0 1px 2px rgba(16,24,40,.04)!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout .rc363-process-head{align-items:center!important;gap:12px!important;padding-bottom:12px!important;margin-bottom:14px!important;border-bottom:1px solid #f0f2f6!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout .rc363-process-number{display:grid!important;place-items:center!important;width:32px!important;height:32px!important;min-width:32px!important;border-radius:10px!important;border:0!important;background:linear-gradient(135deg,#4f46e5,#7c3aed)!important;color:#fff!important;font-size:14px!important;font-weight:800!important;box-shadow:0 4px 10px rgba(79,70,229,.25)!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout .rc363-process-head h2{font-size:18px!important;font-weight:750!important;letter-spacing:-.01em!important;color:#0f172a!important;margin:0!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout :is(input:not([type=file]):not([type=checkbox]):not([type=radio]),select,textarea){border-radius:10px!important;border-color:#d6dbe8!important;background:#fbfcfe!important}
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363FixedShipmentLayout#rc363FixedShipmentLayout :is(input,select,textarea):focus{border-color:#4f46e5!important;box-shadow:0 0 0 4px rgba(99,102,241,.14)!important;background:#fff!important}
+/* Speichern steht in der Steuerleiste; der Ausgabe-Block bleibt für Druck und QR */
+html[data-eh-layout="top"][data-rc1902-view="form"] #rc363ShipmentActions .rc363-actions-copy p{max-width:none!important}
+
+/* Laptop */
+@media (max-width:1279px){
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis{order:3;width:100%}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis>div:first-child{border-left:0;padding-left:0}
+}
+/* Handy: Leiste nicht klebend, Speichern unten fest */
+@media (max-width:760px){
+  /* kein backdrop-filter: er würde position:fixed der Speicherleiste an die Leiste statt an den Bildschirm binden */
+  #rc1902ShipmentForm#rc1902ShipmentForm{position:relative;top:auto;border-radius:18px;backdrop-filter:none;-webkit-backdrop-filter:none;background:#fff;overflow:visible}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-bar{padding:14px 14px 12px 20px}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref strong{font-size:22px}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis>div{padding:0 12px}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis dd{font-size:16px}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions{position:fixed;left:12px;right:12px;bottom:12px;z-index:4000;padding:8px;border-radius:16px;background:rgba(255,255,255,.96);border:1px solid var(--line);box-shadow:0 12px 30px rgba(15,23,42,.18)}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions{flex-wrap:nowrap}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions .rc1902-btn{flex:1 1 0;min-width:0;padding:0 10px;font-size:13px!important;white-space:normal;line-height:1.15}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{padding:8px 14px 10px 20px}
+  #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary{display:none}
+  html[data-eh-layout="top"][data-rc1902-view="form"] #content{padding-bottom:90px!important}
+}
+@media print{#rc1902ShipmentForm{display:none!important}}
