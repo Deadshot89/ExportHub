@@ -221,6 +221,7 @@ function whyFallback(p){
  if(r==='config')return T('Google hat Schlüssel oder Modell abgelehnt. Bitte Schlüssel und Modell-ID prüfen.')+code;
  if(r==='busy')return T('Das kostenlose Google-Kontingent ist gerade erschöpft. Es werden die Regeln verwendet.')+code;
  if(r==='timeout')return T('Die KI hat zu lange gebraucht. Es werden die Regeln verwendet.');
+ if(r==='empty')return T('Die KI hat keine Antwort geliefert (Grund: {detail}). Es werden die Regeln verwendet.',{detail:p.providerDetail||'?'});
  return T('Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.')+code
 }
 async function aiTips(){

@@ -139,6 +139,7 @@ var T=[
 ['Version','Version','Wersja','Versión','Version','Versione'],
 ['Neue Abweichung mit eindeutiger Nummer erfassen','Record a new deviation with a unique number','Zarejestruj nowe odchylenie z unikalnym numerem','Registrar una nueva desviación con número único','Enregistrer un nouvel écart avec un numéro unique','Registrare una nuova deviazione con numero univoco'],
 ['Sprache','Language','Język','Idioma','Langue','Lingua'],
+['Die KI hat keine Antwort geliefert (Grund: {detail}). Es werden die Regeln verwendet.','The AI returned no answer (reason: {detail}). The rules are used instead.','AI nie zwróciło odpowiedzi (powód: {detail}). Używane są reguły.','La IA no devolvió respuesta (motivo: {detail}). Se usan las reglas.','L’IA n’a pas fourni de réponse (motif : {detail}). Les règles sont utilisées.','L’IA non ha fornito risposta (motivo: {detail}). Vengono usate le regole.'],
 ['Muster-Auswertung','Pattern analysis','Analiza wzorców','Análisis de patrones','Analyse des tendances','Analisi dei modelli'],
 ['Rein rechnerische Auswertung Ihrer erfassten Fälle – keine KI, keine Kosten.','Purely calculated analysis of your recorded cases – no AI, no costs.','Czysto obliczeniowa analiza zarejestrowanych spraw – bez AI, bez kosztów.','Análisis puramente calculado de sus casos registrados: sin IA, sin costes.','Analyse purement calculée de vos cas enregistrés – sans IA, sans coûts.','Analisi puramente calcolata dei casi registrati: senza IA, senza costi.'],
 ['Zeitraum','Period','Okres','Periodo','Période','Periodo'],
