@@ -38,6 +38,21 @@ test('RC1903: Dateiupload akzeptiert nur echte PDF/JPG/PNG-Signaturen',()=>{
  assert.throws(()=>doc.rawFile({kind:'foto',fileName:'f.jpg',base64:Buffer.from('not image').toString('base64')},'DOK-20261107-ABCDEF12'),e=>e.code==='FILE_SIGNATURE');
  assert.throws(()=>doc.rawFile({kind:'foto',fileName:'f.svg',base64:jpeg()},'DOK-20261107-ABCDEF12'),e=>e.code==='BAD_EXTENSION');
  assert.throws(()=>doc.id('../ABC123'),e=>e.code==='BAD_ID');
+ assert.throws(()=>doc.rawFile({kind:'foto',fileName:'f.jpg',base64:null},'DOK-20261107-ABCDEF12'),e=>e.code==='BAD_FILE');
+ const oversized='A'.repeat(20*1024*1024+4);
+ assert.throws(()=>doc.rawFile({kind:'foto',fileName:'f.jpg',base64:oversized},'DOK-20261107-ABCDEF12'),e=>e.code==='MAX_FILE');
+});
+test('RC1903: unberechtigte und nur leseberechtigte Nutzer duerfen nicht schreiben',async t=>{
+ const user={role:'Mitarbeiter',rights:{}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ async function call(payload){const ctx={};await doc(ctx,{method:'POST',body:payload,headers:{}});return ctx.res}
+ const denied=await call({action:'create',fields:valid});
+ assert.equal(denied.status,403,denied.body);
+ assert.equal(JSON.parse(denied.body).code,'FORBIDDEN');
+ user.rights.documents={level:'view',read:true};
+ const readOnly=await call({action:'create',fields:valid});
+ assert.equal(readOnly.status,403,readOnly.body);
+ assert.equal(JSON.parse(readOnly.body).code,'READ_ONLY');
 });
 test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozess ein',()=>{
  const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
