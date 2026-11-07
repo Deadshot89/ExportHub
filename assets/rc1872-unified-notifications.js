@@ -5,7 +5,7 @@
 if(w.ExportHUBUnifiedNotifications1872)return;
 var section=null,center=null,lastSignature='',tab='all',lastWarningCount=-1,scheduled=false,observedRoot=null,rootObserver=null;
 var labels={
- de:{all:'Alle',warnings:'Warnungen',tasks:'Aufgaben',title:'Operative Warnungen',none:'Keine aktiven Sendungswarnungen.',open:'Sendungsübersicht öffnen',more:'Weitere Sendungen in der Übersicht',intro:'Hier findest du deine persönlichen Aufgaben und operative Sendungswarnungen an einem Ort. Aufgaben-Erinnerungen bleiben um 09:00, 12:00 und 15:00 Uhr aktiv.',type:['POD fehlt','Dokumente prüfen','Abholung offen']},
+ de:{all:'Alle',warnings:'Warnungen',tasks:'Aufgaben',title:'Operative Warnungen',none:'Keine aktiven Sendungswarnungen.',open:'Öffnen',more:'Weitere anzeigen',intro:'Hier findest du deine persönlichen Aufgaben und operative Sendungswarnungen an einem Ort. Aufgaben-Erinnerungen bleiben um 09:00, 12:00 und 15:00 Uhr aktiv.',type:['POD fehlt','Dokumente prüfen','Abholung offen']},
  en:{all:'All',warnings:'Warnings',tasks:'Tasks',title:'Operational warnings',none:'No active shipment warnings.',open:'Open shipment overview',more:'More shipments in overview',intro:'Personal tasks and shipment warnings are in one place. Task reminders remain active at 09:00, 12:00 and 15:00.',type:['POD missing','Check documents','Collection pending']},
  pl:{all:'Wszystkie',warnings:'Ostrzeżenia',tasks:'Zadania',title:'Ostrzeżenia operacyjne',none:'Brak aktywnych ostrzeżeń.',open:'Otwórz listę przesyłek',more:'Więcej przesyłek na liście',intro:'Zadania osobiste i ostrzeżenia dotyczące przesyłek w jednym miejscu.',type:['Brak POD','Sprawdź dokumenty','Odbiór oczekuje']},
  es:{all:'Todo',warnings:'Alertas',tasks:'Tareas',title:'Alertas operativas',none:'No hay alertas activas.',open:'Abrir lista de envíos',more:'Más envíos en la lista',intro:'Tareas personales y alertas de envío en un solo lugar.',type:['Falta POD','Revisar documentos','Recogida pendiente']},
@@ -20,6 +20,7 @@ function styles(){
  if(d.getElementById('eh1872-style'))return;
  var style=node('style');style.id='eh1872-style';
  style.textContent='html[data-eh-layout] body[data-eh-layout] #rc885WarningButton,html[data-eh-layout] body[data-eh-layout] #rc885WarningDrawer,body #rc885WarningButton,body #rc885WarningDrawer{display:none!important;pointer-events:none!important}'+
+ 'html body:has(#rc885WarningButton) .topbar .eh-topbar-actions{padding-right:20px!important}'+
  '.eh1872{border:1px solid var(--border,#d7e1ed);border-radius:16px;background:var(--card,#fff);color:inherit;padding:14px 16px;margin:14px 0;min-width:0}'+
  '.eh1872-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:0 0 12px}.eh1872-top strong{font-size:17px;font-weight:800}.eh1872-count{font-weight:800;display:inline-flex;min-width:27px;justify-content:center;border-radius:99px;background:#fef2f2;color:#991b1b;padding:3px 8px;margin-left:8px}'+
  '.eh1872-tabs{display:flex;flex-wrap:wrap;gap:6px}.eh1872-tabs button{border:1px solid #aebdcf;background:transparent;color:inherit;border-radius:9px;padding:8px 11px;cursor:pointer;font:inherit;font-weight:650}'+
