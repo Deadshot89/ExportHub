@@ -165,7 +165,7 @@ html[data-eh-skin="premium"] body[data-eh-skin="premium"] #content .quick-grid>b
    Das Menü-Skript setzt für dunkle Seitenleisten helle Farben; im hellen Premium-Theme
    waren Icon und Text dadurch unsichtbar. Nur Optik, keine Logik/Position. */
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]{
-  color:var(--pc-side-text)!important;font-size:14px!important;font-weight:650!important;background:transparent!important;
+  color:var(--pc-side-text)!important;font-size:14px!important;font-weight:500!important;background:transparent!important;
 }
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav][data-urgent-nav-design]:hover{
   background:var(--pc-nav-hover)!important;color:var(--pc-side-text)!important;
@@ -176,7 +176,25 @@ html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-e
   color:var(--menu-accent,#dc7226)!important;border-radius:14px!important;
 }
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav.nav>button[data-exporthub-urgent-nav] .urgent-orders-nav-label{
-  color:var(--pc-side-text)!important;font-weight:650!important;
+  color:var(--pc-side-text)!important;font-weight:500!important;
+}
+
+/* RC1907: Entspannte Zähler für das helle Premium-/Neu-Menü.
+   Der Status bleibt klar erkennbar, die Anzeige nicht mehr dunkelrot gefüllt.
+   Die Zählerstände und die Benachrichtigungs-Logik bleiben unverändert. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :where(.pack-internal-nav-badge,.urgent-nav-count,.eh1872-nav-warning,.index236-notification-count,.index236-nav-badge,#index236NotificationCount,.notification-count,.nav-count),
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child:not(.index308-nav-label):not(.index308-nav-icon){
+  background:#fee4e2!important;
+  color:#b42318!important;
+  border-color:#fecdca!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+}
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="false"],
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child[data-count="0"]{
+  background:#f1f5f9!important;
+  color:#475569!important;
+  border-color:#e2e8f0!important;
 }
 
 /* 13 ── Login (rc1630 v2) an Premium-System angleichen ─────────────────
