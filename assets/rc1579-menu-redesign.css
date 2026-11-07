@@ -136,7 +136,7 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 #nav#nav#nav>button :is(.pack-internal-nav-badge,.urgent-nav-count,.eh1872-nav-warning,#index236NotificationCount)[hidden]{
   display:none!important;
 }
-#nav#nav#nav>button[data-exporthub-urgent-nav]::after{display:none!important}
+#nav#nav#nav[data-rc1579-ready]>button[data-exporthub-urgent-nav]::after{display:none!important}
 /* Schlanke Desktop-Leiste und mobile Bottom-Navigation benötigen Overlay-Zähler
    statt eines horizontalen 3-Spalten-Layouts. Classic bleibt als Textmenü erhalten. */
 @media(max-width:1100px){
