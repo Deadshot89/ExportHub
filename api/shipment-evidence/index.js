@@ -110,7 +110,17 @@ async function upload(ctx,record,blob,etag,input){
   record.files.push({id:f.fileId,name:f.storedName,kind:f.kind,mime:f.mime,size:f.bytes.length,uploadedAt:new Date().toISOString(),uploadedBy:ctx.user});
   bump(record,ctx,'file-upload',{fileId:f.fileId,kind:f.kind});
   await saveRecord(blob,record,etag);
- }catch(e){try{await target.deleteIfExists()}catch(_){}throw e}
+ }catch(e){
+  // A failed response can follow a successful metadata write (for example,
+  // when the verification read fails). Never delete a referenced photo.
+  // Only clean up an unreferenced blob after reading the persisted record.
+  try{
+   const latest=await getRecord(ctx,record.id);
+   const referenced=Array.isArray(latest.record.files)&&latest.record.files.some(x=>x.id===f.fileId);
+   if(!referenced)await target.deleteIfExists();
+  }catch(_){/* Ambiguous write: retain bytes rather than risk deleting evidence. */}
+  throw e;
+ }
 }
 async function list(ctx,query){
  const continuationToken=txt(query.continuation,1200)||undefined;
