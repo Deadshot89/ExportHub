@@ -58,6 +58,15 @@ jobs:
             const response=await fetch(url,{...options,headers:{...headers,...(options.headers||{})}});
             if(!response.ok){
               const body=await response.text();
+              // Ein älterer Run kann zwischen LIST und CANCEL regulär enden.
+              // Ausschließlich diesen belegten 409-Rennfall als erledigt werten.
+              if(response.status===409&&options.method==='POST'&&
+                 /^\\/actions\\/runs\\/\\d+\\/cancel$/.test(new URL(url).pathname)){
+                let message='';
+                try{message=JSON.parse(body).message||''}catch(_){}
+                if(message==='Cannot cancel a workflow run that is completed.')
+                  return {alreadyCompleted:true};
+              }
               throw new Error(`GitHub API ${response.status}: ${body.slice(0,500)}`);
             }
             if(response.status===204)return null;
@@ -74,8 +83,11 @@ jobs:
           const runs=Array.isArray(payload&&payload.workflow_runs)?payload.workflow_runs:[];
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           for(const run of older){
-            await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/cancel`,{method:'POST'});
-            console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) beendet.`);
+            const outcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/cancel`,{method:'POST'});
+            if(outcome&&outcome.alreadyCompleted)
+              console.log(`RC1538: ältere Main Verification ${run.id} inzwischen abgeschlossen; kein Abbruch nötig.`);
+            else
+              console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) beendet.`);
           }
           console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications beendet; aktueller SHA ${currentSha}.`);
           NODE
