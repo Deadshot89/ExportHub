@@ -5,7 +5,10 @@
      vorgezogen, nachgeholt oder entfallen (Status "cancelled", Grund rc1810_holiday).
    - Jede Anpassung merkt sich den vorherigen Zustand in task.rc1810Holiday und wird zurückgenommen,
      sobald der Tag wieder ein Arbeitstag ist (z. B. Betriebsferien gelöscht).
-   - Wochenenden werden nicht angefasst, Einzelaufgaben ebenfalls nicht. */
+   - Wochenenden werden nicht angefasst, Einzelaufgaben ebenfalls nicht.
+   - RC1811: Ein Zeitraum kann auf bestimmte Aufgaben beschränkt sein (closure.match, z. B. "Gaggenau").
+     Dann gilt er nur für Routineaufgaben, deren Titel, Bereich, Kunde oder Person den Begriff enthält,
+     und die Tage bleiben für alle anderen Aufgaben normale Arbeitstage. */
 (function(root){
 'use strict';
 if(!root||root.ExportHUBTaskCalendar1810)return;
@@ -44,7 +47,8 @@ function normalizeClosure(raw){
   if(!obj(raw))return null;
   var start=dayKey(raw.startDate||raw.start||raw.from||raw.date),end=dayKey(raw.endDate||raw.end||raw.to||raw.date||start);
   if(!start||!end)return null;if(end<start){var x=start;start=end;end=x}
-  return{id:q(raw.id)||('rc1810-'+start+'-'+end),label:q(raw.label||raw.name||raw.title)||'Betriebsferien',startDate:start,endDate:end,type:q(raw.type)||'company_holiday',routineRule:normalizeRule(raw.routineRule,'skip'),createdAt:q(raw.createdAt),createdBy:q(raw.createdBy)};
+  var match=q(raw.match).slice(0,120);
+  return{id:q(raw.id)||('rc1810-'+start+'-'+end),label:q(raw.label||raw.name||raw.title)||(match||'Betriebsferien'),startDate:start,endDate:end,type:q(raw.type)||(match?'task_pause':'company_holiday'),routineRule:normalizeRule(raw.routineRule,'skip'),match:match,createdAt:q(raw.createdAt),createdBy:q(raw.createdBy)};
 }
 function calendarOf(s){
   var src=obj(s&&s.taskCalendar)?s.taskCalendar:{};
@@ -52,26 +56,30 @@ function calendarOf(s){
 }
 function engineCalendar(cal){
   var r=recurrence();if(!r||typeof r.calendar!=='function')return null;
-  return r.calendar({closures:cal.closures.map(function(c){return{startDate:c.startDate,endDate:c.endDate,type:c.type,label:c.label}})});
+  return r.calendar({closures:cal.closures.filter(function(c){return !terms(c).length}).map(function(c){return{startDate:c.startDate,endDate:c.endDate,type:c.type,label:c.label}})});
 }
-function closureFor(key,cal){return cal.closures.find(function(c){return key>=c.startDate&&key<=c.endDate})||null}
-/* null = Arbeitstag. Sonst {type:'weekend'|'holiday'|'closure',label,closure} */
-function nonWork(key,cal){
+/* RC1811: Suchbegriffe eines beschränkten Zeitraums, getrennt durch Komma oder Semikolon */
+function terms(c){return q(c&&c.match).split(/[,;]+/).map(low).filter(Boolean)}
+function taskText(t){return obj(t)?low([t.title,t.name,t.area,t.category,t.group,t.owner,t.assignee,t.customer,t.customerName,t.customerNumber].map(function(v){return typeof v==='string'||typeof v==='number'?String(v):''}).join(' | ')):''}
+function appliesTo(c,t){var list=terms(c);if(!list.length)return true;if(!t)return false;var txt=taskText(t);return list.some(function(x){return txt.indexOf(x)>=0})}
+function closureFor(key,cal,t){return cal.closures.find(function(c){return key>=c.startDate&&key<=c.endDate&&appliesTo(c,t)})||null}
+/* null = Arbeitstag. Sonst {type:'weekend'|'holiday'|'closure',label,closure}. Ohne Aufgabe zählen nur Zeiträume für alle Aufgaben */
+function nonWork(key,cal,t){
   key=dayKey(key);if(!key)return null;
   var wd=isoWeekday(key);if(wd===6||wd===7)return{type:'weekend',label:''};
-  var c=closureFor(key,cal);
+  var c=closureFor(key,cal,t);
   var r=recurrence(),reason=null;
   if(r){try{reason=r.nonWorkReason(key,engineCalendar({closures:[]}))}catch(_){reason=null}}
   if(reason&&reason.type==='nrw_holiday')return{type:'holiday',label:q(reason.label),closure:c};
   if(c)return{type:'closure',label:c.label,closure:c};
   return null;
 }
-function isWorkday(key,cal){return !nonWork(key,cal)}
+function isWorkday(key,cal,t){return !nonWork(key,cal,t)}
 function ruleFor(info,cal){if(!info)return null;if(info.closure)return info.closure.routineRule;return info.type==='holiday'?cal.holidayRoutineRule:null}
-function shiftInWeek(key,rule,cal){
+function shiftInWeek(key,rule,cal,t){
   var monday=mondayOf(key),friday=addDays(monday,4),dirs=rule==='next'?[1,-1]:[-1,1];
   for(var i=0;i<dirs.length;i++){
-    for(var d=addDays(key,dirs[i]);d>=monday&&d<=friday;d=addDays(d,dirs[i]))if(isWorkday(d,cal))return d;
+    for(var d=addDays(key,dirs[i]);d>=monday&&d<=friday;d=addDays(d,dirs[i]))if(isWorkday(d,cal,t))return d;
   }
   return '';
 }
@@ -132,11 +140,11 @@ function applyToTasks(s,opts){
     if(!current&&userFinished(t))return;
     if(current&&current.action==='skipped'&&!cancelledByUs(t)){current.action='override';out.changed++;return}
     var original=plannedDayOf(t);if(!original)return;
-    var info=nonWork(original,cal);if(info&&info.type==='weekend')info=null;
+    var info=nonWork(original,cal,t);if(info&&info.type==='weekend')info=null;
     /* von Hand wieder geöffnet: nicht erneut entfallen lassen, solange der Tag frei bleibt */
     if(current&&current.action==='override'){if(!info){delete t.rc1810Holiday;out.changed++}return}
     var desired=null;
-    if(info){var rule=ruleFor(info,cal),target=rule==='skip'?'':shiftInWeek(original,rule,cal);desired=target?{action:'moved',date:target}:{action:'skipped'}}
+    if(info){var rule=ruleFor(info,cal),target=rule==='skip'?'':shiftInWeek(original,rule,cal,t);desired=target?{action:'moved',date:target}:{action:'skipped'}}
     if(same(desired,current))return;
     if(current&&current.action==='moved'&&userFinished(t)&&!desired){delete t.rc1810Holiday;out.changed++;return}
     if(current){restore(t);if(!desired)out.restored++}
@@ -221,7 +229,7 @@ if(typeof root.addEventListener==='function'){
 root.ExportHUBTaskCalendar1810=Object.freeze({
   version:VERSION,cancelReason:CANCEL_REASON,calendar:function(s){return calendarOf(s||state()||{})},
   nonWork:function(key,s){return nonWork(key,calendarOf(s||state()||{}))},isWorkday:function(key,s){return isWorkday(key,calendarOf(s||state()||{}))},
-  holidaysBetween:holidaysBetween,isRoutine:isRoutine,plannedDayOf:plannedDayOf,applyToTasks:applyToTasks,
+  holidaysBetween:holidaysBetween,isRoutine:isRoutine,appliesTo:appliesTo,plannedDayOf:plannedDayOf,applyToTasks:applyToTasks,
   saveClosure:saveClosure,removeClosure:removeClosure,cancelTask:cancelTask,uncancelTask:uncancelTask,manualReason:MANUAL_REASON,setHolidayRule:setHolidayRule,run:run,
   _shiftInWeek:function(key,rule,s){return shiftInWeek(key,rule,calendarOf(s||{}))},weekKeyOf:weekKeyOf,mondayOf:mondayOf,addDays:addDays,dayKey:dayKey
 });
