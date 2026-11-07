@@ -227,7 +227,7 @@ async function execute(req,user,refs){
   try{
    // A transport timeout has an ambiguous outcome; never retry automatically
    // and risk sending the same message to the customer twice.
-   await graphMail.sendTextMail({to:saved.mail.to,subject:saved.mail.subject,body:saved.mail.body,sender,maxAttempts:1});
+   await graphMail.sendTextMail({to:saved.mail.to,subject:saved.mail.subject,body:saved.mail.body,sender,maxAttempts:1,preserveText:true});
   }catch(e){
    try{await write(refs,doc=>{
     const order=accessibleOrder(doc,orderId,user);
