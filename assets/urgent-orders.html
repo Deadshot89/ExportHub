@@ -360,11 +360,20 @@ async function profile(){
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('saveProfile').disabled=false;}
 }
+// Reuse real problem descriptions entered on the website, without requiring
+// staff to type the same issue into the mail composer again.
+function websiteProblemText(order){
+ const list=[
+  order.directOutbound&&order.directOutbound.exceptionReason,
+  ...(order.items||[]).flatMap(item=>[item.problemNote,item.exceptionReason])
+ ].map(value=>txt(value).replace(/\r\n?/g,'\n').trim()).filter(Boolean);
+ return [...new Set(list)].join('\n').slice(0,2000);
+}
 function openDraft(o,kind){
- modalOrder=o.id;modalKind=kind;$('mailLanguage').value=o.language||'de';$('mailIssue').value='';$('mailTo').value=o.email||'';$('mailSubject').value='';$('mailBody').value='';$('issueField').hidden=kind!=='problem';clearMailIssueError();
+ modalOrder=o.id;modalKind=kind;$('mailLanguage').value=o.language||'de';$('mailIssue').value=kind==='problem'?websiteProblemText(o):'';$('mailTo').value=o.email||'';$('mailSubject').value='';$('mailBody').value='';$('issueField').hidden=kind!=='problem';clearMailIssueError();
  $('mailTitle').textContent=kind==='problem'?'Problem melden · '+o.orderNumber:'Versandbestätigung · '+o.orderNumber;
  $('mailOverlay').hidden=false;setMessage('mailMessage',kind==='problem'?'Bitte das Problem beschreiben.':'Versandbestätigung wird vorbereitet.','');
- if(kind==='shipping')generateDraft();
+ if(kind==='shipping'||(kind==='problem'&&$('mailIssue').value.trim().length>=8))generateDraft();
  (kind==='problem'?$('mailIssue'):$('closeMail')).focus();
 }
 function closeDraft(){$('mailOverlay').hidden=true;modalOrder='';}
