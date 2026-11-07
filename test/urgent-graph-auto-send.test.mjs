@@ -57,10 +57,10 @@ test('Uncertain Graph failures must not create automatic confirmations',()=>{
 test('Graph Urgent Order flow persists before sending, retries no transport, and auto-confirms only after Graph success',async()=>{
  const apiPath=require.resolve('../api/urgent-orders/index.js');
  const sent=[];
- const runtime={configured:true,permission:true,fail:false};
+ const runtime={configured:true,authenticated:true,mailSendGranted:true,fail:false};
  const graph={
   readiness:()=>({configured:runtime.configured,sender:'mailer@example.org'}),
-  verifyAuthentication:async()=>({authenticated:runtime.permission,mailSendGranted:runtime.permission}),
+  verifyAuthentication:async()=>({authenticated:runtime.authenticated,mailSendGranted:runtime.mailSendGranted,audienceOk:true}),
   sendTextMail:async args=>{sent.push(args);if(runtime.fail)throw Error('No response');return{ok:true}}
  };
  const auth={
@@ -101,10 +101,13 @@ test('Graph Urgent Order flow persists before sending, retries no transport, and
  assert.equal(again.alreadySent,true);
  assert.equal(sent.length,1,'same click request must not send twice');
  const versionBefore=blob.version;
- runtime.permission=false;
+ runtime.authenticated=false;
+ await assert.rejects(api.execute({body:{...req.body,requestId:secondRequestId}},manager,refs),e=>e.code==='URGENT_GRAPH_AUTH_FAILED');
+ assert.equal(blob.version,versionBefore,'no reservation without Microsoft Graph authentication');
+ runtime.authenticated=true;runtime.mailSendGranted=false;
  await assert.rejects(api.execute({body:{...req.body,requestId:secondRequestId}},manager,refs),e=>e.code==='URGENT_GRAPH_PERMISSION_MISSING');
- assert.equal(blob.version,versionBefore,'no reservation without Microsoft Mail.Send');
- runtime.permission=true;
+ assert.equal(blob.version,versionBefore,'no reservation without Microsoft Mail.Send permission');
+ runtime.mailSendGranted=true;
  runtime.fail=true;
  const failedRequest={body:{...req.body,requestId:secondRequestId,subject:'Different issue'}};
  await assert.rejects(api.execute(failedRequest,manager,refs),e=>e.code==='URGENT_GRAPH_SEND_UNVERIFIED');
