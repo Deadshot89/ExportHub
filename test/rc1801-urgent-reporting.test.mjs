@@ -28,10 +28,10 @@ test('Urgent Order supports planned inbound and immediate express shipment',()=>
  const de=model.draftMail(order,'problem','de','Der Wareneingang ist verspätet.');
  // Inbound/express details remain in the order data, but the staff
  // requested a short, personal DU mail instead of an operational data dump.
- assert.match(en.body,/Hi,\\n\\nIssue: The inbound truck will arrive late/);
- assert.match(en.body,/Sales order: SO3002\\nItem: ART-101/);
- assert.match(de.body,/Hallo,\\n\\nProblem: Der Wareneingang ist verspätet/);
- assert.match(de.body,/Auftrag: SO3002\\nArtikel: ART-101/);
+ assert.match(en.body,/Hi,\n\nIssue: The inbound truck will arrive late/);
+ assert.match(en.body,/Sales order: SO3002\nItem: ART-101/);
+ assert.match(de.body,/Hallo,\n\nProblem: Der Wareneingang ist verspätet/);
+ assert.match(de.body,/Auftrag: SO3002\nArtikel: ART-101/);
  assert.doesNotMatch(en.body,/Expected arrival:|Outbound service:|EXPRESS|P1/);
  assert.doesNotMatch(de.body,/Geplante Ankunft:|Versandart:|EXPRESS|P1/);
 });
