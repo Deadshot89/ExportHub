@@ -81,10 +81,10 @@ test('RC1905: exact SHA-pinned manual Main Verification is an eligible deploymen
     workflow.indexOf('RC1505 Erfolgreiche Main Verification für Release-SHA verlangen'),
     workflow.indexOf('RC1505 Release-Verträge und Regression auf freigegebenem SHA prüfen')
   );
-  assert.match(guard, /runs\\?branch=main&status=success&head_sha=\\$\\{RELEASE_SHA\\}/);
-  assert.doesNotMatch(guard, /runs\\?[^\\n]*event=push/,
+  assert.match(guard, /runs\?branch=main&status=success&head_sha=\$\{RELEASE_SHA\}/);
+  assert.doesNotMatch(guard, /runs\?[^\n]*event=push/,
     'The query must not exclude manual verification before checking its outcome');
-  const match = /const verified=(runs\\.some\\([^\\n;]+\\));/.exec(guard);
+  const match = /const verified=(runs\.some\([^\n;]+\));/.exec(guard);
   assert.ok(match, 'The production gate must retain an explicit run-result predicate');
   const qualifies = new Function('runs', 'releaseSha', 'return ' + match[1]);
   const sha='a'.repeat(40), other='b'.repeat(40);
@@ -98,10 +98,10 @@ test('RC1905: exact SHA-pinned manual Main Verification is an eligible deploymen
   assert.equal(qualifies([{head_sha:sha,event:'pull_request',conclusion:'success'}],sha),false);
   assert.equal(qualifies([{head_sha:sha,event:'schedule',conclusion:'success'}],sha),false);
   assert.equal(qualifies([],sha),false);
-  assert.match(workflow,/github\\.actor == 'Deadshot89'/);
-  assert.match(workflow,/github\\.triggering_actor == 'Deadshot89'/);
-  assert.match(workflow,/inputs\\.release_sha == github\\.sha/);
-  assert.match(workflow,/if \\[ "\\$RELEASE_SHA" != "\\$latest_main_sha" \\]; then/);
+  assert.match(workflow,/github\.actor == 'Deadshot89'/);
+  assert.match(workflow,/github\.triggering_actor == 'Deadshot89'/);
+  assert.match(workflow,/inputs\.release_sha == github\.sha/);
+  assert.match(workflow,/if \[ "\$RELEASE_SHA" != "\$latest_main_sha" \]; then/);
   assert.match(workflow,/confirm_production == 'PRODUCTION FREIGEBEN'/);
 });
 
