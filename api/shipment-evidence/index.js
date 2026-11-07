@@ -9,6 +9,10 @@ const MAX_FILE=15*1024*1024;
 const TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'};
 const FIELDS={shipmentNumber:100,customer:200,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
 const STATES=new Set(['offen','in_pruefung','abgeschlossen']);
+const PUBLIC_ACTIONS=new Set(['public-create','public-get','public-save','public-upload','public-file']);
+const PUBLIC_TOKEN_HOURS=3;
+const PUBLIC_FILE_COUNT=12;
+const PUBLIC_MAX_BYTES=60*1024*1024;
 function fail(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;throw e}
 function txt(x,max=2000){return String(x==null?'':x).trim().slice(0,max)}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}}
@@ -33,6 +37,104 @@ function body(req){
  if(Buffer.byteLength(String(raw||''),'utf8')>23*1024*1024)fail('TOO_LARGE','Datei zu gross.',413);
  try{return JSON.parse(String(raw||'{}'))}catch(_){fail('INVALID_JSON','Ungueltige Anfrage.')}
 }
+function storageContext(req,user){
+ const env=auth.environmentFromRequest(req),cfg=isolationConfig(),isolated=env==='testservice'&&cfg.enabled;
+ const conn=isolated?cfg.connectionString:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
+ if(!conn)fail('STORAGE_UNAVAILABLE','Azure-Speicher nicht konfiguriert.',503);
+ const container=isolated?cfg.container:auth.TEAM_CONTAINER;
+ const prefix=env==='testservice'?'testservice/shipment-evidence/v1/':'shipment-evidence/v1/';
+ return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user};
+}
+function guestOrigin(req){
+ const h=req.headers||{},origin=txt(h.origin||h.Origin,300),host=txt(h.host||h.Host,300);
+ if(!origin||!host)fail('ORIGIN_REQUIRED','Bitte das Formular direkt auf ExportHUB360 öffnen.',403);
+ try{
+  const parsed=new URL(origin);
+  if(!['https:','http:'].includes(parsed.protocol)||parsed.host.toLowerCase()!==host.toLowerCase()||
+     (parsed.protocol!=='https:'&&!/^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(host)))
+    fail('BAD_ORIGIN','Dieses Formular darf nur auf ExportHUB360 verwendet werden.',403);
+ }catch(e){if(e.code==='BAD_ORIGIN')throw e;fail('BAD_ORIGIN','Ungueltiger Formularursprung.',403)}
+}
+function publicHash(secret){return crypto.createHash('sha256').update(secret).digest('hex')}
+function cleanRecord(record){const {publicAccess,...safe}=record;return safe}
+function verifyGuest(req,record){
+ const h=req.headers||{},token=txt(h['x-exporthub-evidence-token']||h['X-ExportHUB-Evidence-Token'],128);
+ if(!/^[A-Za-z0-9_-]{40,60}$/.test(token)||!record.publicAccess||
+    Date.parse(record.publicAccess.expiresAt||'')<=Date.now())fail('PUBLIC_ACCESS_DENIED','Der Zugriff auf diese Dokumentation ist abgelaufen.',403);
+ const a=Buffer.from(publicHash(token),'hex'),b=Buffer.from(record.publicAccess.hash||'','hex');
+ if(a.length!==b.length||!crypto.timingSafeEqual(a,b))fail('PUBLIC_ACCESS_DENIED','Keine Berechtigung fuer diesen Nachweis.',403);
+}
+async function ratePublicCreate(ctx,req){
+ const h=req.headers||{};
+ const ip=txt(h['x-ms-client-ip']||h['x-azure-clientip']||h['x-forwarded-for']||h['X-Forwarded-For']||'unknown',200);
+ const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
+ const buckets=[
+  {key:'global',limit:40},
+  {key:'client-'+publicHash(ip).slice(0,24),limit:12}
+ ];
+ for(const bucket of buckets){
+  const blob=ctx.container.getBlockBlobClient(ctx.prefix+'public-rate/'+hour+'/'+bucket.key+'.json');
+  let accepted=false;
+  for(let attempt=0;attempt<6;attempt++){
+   let count=0,etag=null;
+   try{
+    const current=await blob.download(0),parts=[];
+    for await(const part of current.readableStreamBody)parts.push(Buffer.from(part));
+    count=Number(JSON.parse(Buffer.concat(parts).toString('utf8')).count)||0;
+    etag=current.etag;
+   }catch(e){if(e.statusCode!==404)throw e}
+   if(count>=bucket.limit)fail('PUBLIC_RATE_LIMIT','Zu viele neue Dokumentationen. Bitte spaeter erneut versuchen.',429);
+   try{
+    await blob.uploadData(Buffer.from(JSON.stringify({count:count+1})),{
+     blobHTTPHeaders:{blobContentType:'application/json'},
+     conditions:etag?{ifMatch:etag}:{ifNoneMatch:'*'}
+    });
+    accepted=true;break;
+   }catch(e){if(e.statusCode!==409&&e.statusCode!==412)throw e}
+  }
+  if(!accepted)fail('PUBLIC_RATE_RETRY','Neuerfassung temporaer nicht verfuegbar.',503);
+ }
+}
+async function guestRequest(req,method,payload,action){
+ if(method==='POST')guestOrigin(req);
+ const ctx=storageContext(req,'Gastformular');
+ if(action==='public-create'){
+  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
+  if(txt(payload.website,200))fail('INVALID_SUBMISSION','Ungueltige Eingabe.',400);
+  const normalized=fields(payload.fields),now=new Date().toISOString();
+  // Only new records can be created without login; no existing data is exposed.
+  await ratePublicCreate(ctx,req);
+  const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
+  const token=crypto.randomBytes(32).toString('base64url');
+  const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],
+   createdAt:now,updatedAt:now,updatedBy:'Gastformular',
+   publicAccess:{hash:publicHash(token),expiresAt:new Date(Date.now()+PUBLIC_TOKEN_HOURS*3600000).toISOString()}};
+  bump(record,ctx,'public-create');
+  await saveRecord(docBlob(ctx,newId),record,null);
+  return json(201,{ok:true,record:cleanRecord(record),publicToken:token});
+ }
+ const docId=id(payload.id),{blob,record,etag}=await getRecord(ctx,docId);
+ verifyGuest(req,record);
+ if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:cleanRecord(record)});
+ if(method==='GET'&&action==='public-file')return downloadFile(ctx,docId,record,payload.fileId);
+ if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
+ if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)
+  fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
+ if(action==='public-save'){
+  const before=record.fields;record.fields=fields(payload.fields);
+  bump(record,ctx,'public-save',{before});await saveRecord(blob,record,etag);
+ }else if(action==='public-upload'){
+  if(record.files.length>=PUBLIC_FILE_COUNT)fail('PUBLIC_FILE_LIMIT','Maximal 12 Dateien ohne Anmeldung.',413);
+  const accumulated=record.files.reduce((sum,file)=>sum+(Number(file.size)||0),0);
+  if(accumulated>=PUBLIC_MAX_BYTES)fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
+  // Size is also validated by upload(); this precheck prevents oversized aggregates.
+  const encoded=payload.base64;
+  if(typeof encoded!=='string'||encoded.length>Math.ceil((PUBLIC_MAX_BYTES-accumulated)/3)*4)
+   fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
+  await upload(ctx,record,blob,etag,payload);
+ }else fail('INVALID_ACTION','Unbekannte Aktion.');
+ return json(200,{ok:true,record:cleanRecord(record)});
+}
 async function login(req,write){
  const verified=await auth.validateSession(req);
  const user=verified.user;
@@ -42,12 +144,7 @@ async function login(req,write){
  const sessionEnv=txt(verified.session&&verified.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
    fail('ENVIRONMENT_MISMATCH','Sitzung gehoert zu einer anderen Umgebung.',403);
- const cfg=isolationConfig(),isolated=env==='testservice'&&cfg.enabled;
- const conn=isolated?cfg.connectionString:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
- if(!conn)fail('STORAGE_UNAVAILABLE','Azure-Speicher nicht konfiguriert.',503);
- const container=isolated?cfg.container:auth.TEAM_CONTAINER;
- const prefix=env==='testservice'?'testservice/shipment-evidence/v1/':'shipment-evidence/v1/';
- return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user:txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)};
+ return storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120));
 }
 function docBlob(ctx,docId){return ctx.container.getBlockBlobClient(ctx.prefix+'records/'+id(docId)+'.json')}
 function fileBlob(ctx,docId,fileId){return ctx.container.getBlockBlobClient(ctx.prefix+'files/'+id(docId)+'/'+fileId)}
@@ -132,33 +229,36 @@ async function list(ctx,query){
  const page=(await pager.next()).value||{};
  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
  const records=await Promise.all(names.map(async name=>{
-  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return{...rec.record,history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return{...cleanRecord(rec.record),history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
-async function processRequest(req){
- const method=req.method,query=req.query||{},payload=method==='POST'?body(req):query;
- const action=txt(payload.action,32)||(method==='GET'?'list':'');
- const ctx=await login(req,method==='POST');
- if(method==='GET'&&action==='list')return list(ctx,payload);
- if(method==='POST'&&action==='create'){
-  const normalized=fields(payload.fields),now=new Date().toISOString();
-  const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
-  const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],createdAt:now,updatedAt:now,updatedBy:ctx.user};
-  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record});
- }
- const docId=id(payload.id);
- const{blob,record,etag}=await getRecord(ctx,docId);
- if(method==='GET'&&action==='get')return json(200,{ok:true,record});
- if(method==='GET'&&action==='file'){
-  const entry=record.files.find(x=>x.id===payload.fileId);
+async function downloadFile(ctx,docId,record,fileId){
+  const entry=record.files.find(x=>x.id===fileId);
   if(!entry)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
   const source=await fileBlob(ctx,docId,entry.id).download(0),chunks=[];
   for await(const p of source.readableStreamBody)chunks.push(Buffer.from(p));
   const bytes=Buffer.concat(chunks);
   if(bytes.length!==entry.size)fail('FILE_SIZE_MISMATCH','Datei ist nicht vollstaendig.',503);
   return{status:200,headers:{'Content-Type':entry.mime,'Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':'sandbox','Content-Disposition':'attachment; filename="'+entry.name.replace(/[^A-Za-z0-9._-]/g,'_')+'"'},body:bytes};
+
+}
+async function processRequest(req){
+ const method=req.method,query=req.query||{},payload=method==='POST'?body(req):query;
+ const action=txt(payload.action,32)||(method==='GET'?'list':'');
+ if(PUBLIC_ACTIONS.has(action))return guestRequest(req,method,payload,action);
+ const ctx=await login(req,method==='POST');
+ if(method==='GET'&&action==='list')return list(ctx,payload);
+ if(method==='POST'&&action==='create'){
+  const normalized=fields(payload.fields),now=new Date().toISOString();
+  const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
+  const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],createdAt:now,updatedAt:now,updatedBy:ctx.user};
+  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record)});
  }
+ const docId=id(payload.id);
+ const{blob,record,etag}=await getRecord(ctx,docId);
+ if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record)});
+ if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
  if(action==='save'){
@@ -181,7 +281,7 @@ async function processRequest(req){
   bump(record,ctx,'complaint-status',{complaintId:complaint.id,from,to:complaint.state});await saveRecord(blob,record,etag);
  }else if(action==='upload')await upload(ctx,record,blob,etag,payload);
  else fail('INVALID_ACTION','Unbekannte Aktion.');
- return json(200,{ok:true,record});
+ return json(200,{ok:true,record:cleanRecord(record)});
 }
 module.exports=async function(context,req){
  try{
