@@ -290,6 +290,7 @@
   "api.urgent.itemLabel": "Articolo",
   "api.urgent.qtyLabel": "Quantità",
   "api.urgent.statusLabel": "Stato",
+  "api.urgent.hostUntrusted": "Impossibile verificare l’ambiente Urgent Order. Contattare la logistica; non inviare di nuovo prima di aver verificato la connessione.",
   "api.urgent.serverError": "Impossibile elaborare l’ordine urgente. Riprovare più tardi.",
   "api.urgent.invalidRequest": "Richiesta non valida.",
   "api.urgent.arrivalAt": "Arrivo previsto:",
