@@ -298,7 +298,7 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
 
 test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',()=>{
  const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
- const workflow=fs.readFileSync('.github/workflows/rc1903-testservice-guest-live.yml','utf8');
+ const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
  assert.match(live,/ashy-grass-065b7b803-testservice\.westeurope\.6\.azurestaticapps\.net/);
  assert.match(live,/assert\.equal\(target\.hostname,HOST/);
  assert.match(live,/assert\.equal\(healthData\?\.deployment\?\.environment,'testservice'/);
@@ -308,9 +308,10 @@ test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',(
  assert.match(live,/bytesPdf/);
  assert.match(live,/GET','public-file'/);
  assert.match(live,/Incorrect token must not retrieve record/);
- assert.match(workflow,/workflow_run:/);
- assert.match(workflow,/workflow_run\.conclusion == 'success'/);
- assert.match(workflow,/head_branch == 'main'/);
+ assert.match(workflow,/RC1903 Sendungsdokumentation TESTSERVICE Live-Gate vor Production-Freigabe/);
  assert.match(workflow,/RC1903_EXPECTED_SHA:/);
- assert.doesNotMatch(workflow,/\baction:\s*upload\b|\bproduction_release\b/);
+ assert.match(workflow,/node scripts\/rc1903-testservice-guest-live\.mjs/);
+ assert.ok(workflow.indexOf('RC1553 TESTSERVICE deployment identity prüfen')<workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate'));
+ assert.ok(workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate')<workflow.indexOf('RC1810 Urgent Order TESTSERVICE'));
+ assert.match(workflow,/git diff --name-only HEAD\^ HEAD/);
 });
