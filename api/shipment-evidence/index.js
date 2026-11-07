@@ -68,9 +68,11 @@ async function ratePublicCreate(ctx,req){
  const h=req.headers||{};
  const ip=txt(h['x-ms-client-ip']||h['x-azure-clientip']||h['x-forwarded-for']||h['X-Forwarded-For']||'unknown',200);
  const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
- const buckets=[
-  {key:'global',limit:40},
-  {key:'client-'+publicHash(ip).slice(0,24),limit:12}
+ // Count the visitor first; a blocked visitor must not exhaust the shared quota.
+ // Some gateways omit the IP header; then the global quota remains the safeguard.
+ const buckets=ip==='unknown'?[{key:'global',limit:40}]:[
+  {key:'client-'+publicHash(ip).slice(0,24),limit:12},
+  {key:'global',limit:40}
  ];
  for(const bucket of buckets){
   const blob=ctx.container.getBlockBlobClient(ctx.prefix+'public-rate/'+hour+'/'+bucket.key+'.json');
