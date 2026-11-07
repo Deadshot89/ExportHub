@@ -145,7 +145,7 @@
   }
   function pickupAssociationForDate(fixed,dayShipments,doneShipments,tasks,dateKey,weekday,companyKey){
     const active=Array.isArray(fixed)?fixed:[];
-    const matched=Array.isArray(tasks)?tasks.filter(t=>t&&t.pickupTargetId&&String(t.pickupTargetCompanyKey||'')===String(companyKey||'')&&!!companyKey&&taskCustomerNumbers(t).length&&taskOnPickupDay(t,dateKey,weekday)):[];
+    const matched=Array.isArray(tasks)?tasks.filter(t=>t&&t.pickupTargetId&&String(t.pickupTargetCompanyKey||'')===String(companyKey||'')&&!!companyKey&&taskOnPickupDay(t,dateKey,weekday)):[];
     const mappings=new Map(),byCustomer=new Map();
     matched.forEach(t=>{
       const target=String(t.pickupTargetId||'').trim();
@@ -157,13 +157,27 @@
         byCustomer.get(key).add(target);
       });
     });
+    // Legacy FIX numbers are compatible only when they do not conflict with
+    // a Pick-task owner or another unmatched FIX target for the same day.
+    const legacyClaims=new Map();
+    active.forEach(item=>{
+      const id=String(item.id||'');
+      if(mappings.has(id))return;
+      customerNumberKeys(item.customerNumber).forEach(key=>{
+        if(!legacyClaims.has(key))legacyClaims.set(key,new Set());
+        legacyClaims.get(key).add(id)
+      });
+    });
     const status={};
     active.forEach(item=>{
       const id=String(item.id||'');
       const taskNumbers=mappings.get(id);
       const legacy=customerNumberKeys(item.customerNumber);
       const numbers=taskNumbers?Array.from(taskNumbers):legacy;
-      const conflicts=numbers.filter(key=>byCustomer.has(key)&&byCustomer.get(key).size>1);
+      const conflicts=numbers.filter(key=>{
+        const owners=new Set([...(byCustomer.get(key)||[]),...(legacyClaims.get(key)||[])]);
+        return owners.size>1
+      });
       const valid=numbers.filter(key=>!conflicts.includes(key));
       const usedRefs=new Set();
       const candidates=dayShipments.concat(doneShipments).filter(sh=>{
