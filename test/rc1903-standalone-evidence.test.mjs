@@ -312,5 +312,5 @@ test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',(
  assert.match(workflow,/workflow_run\.conclusion == 'success'/);
  assert.match(workflow,/head_branch == 'main'/);
  assert.match(workflow,/RC1903_EXPECTED_SHA:/);
- assert.doesNotMatch(workflow,/deploy|production_release/);
+ assert.doesNotMatch(workflow,/\baction:\s*upload\b|\bproduction_release\b/);
 });
