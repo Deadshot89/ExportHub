@@ -93,7 +93,7 @@ jobs:
             const releaseSha=process.env.RELEASE_SHA;
             const payload=JSON.parse(fs.readFileSync(process.env.RUNS_FILE,'utf8')||'{}');
             const runs=Array.isArray(payload.workflow_runs)?payload.workflow_runs:[];
-                        // A fully verified manual main run is equivalent to a push run for this exact SHA.
+            // A fully verified manual main run is equivalent to a push run for this exact SHA.
             const verified=runs.some(run=>run&&run.head_sha===releaseSha&&(run.event==='push'||run.event==='workflow_dispatch')&&run.conclusion==='success');
             if(!verified){console.error('RC1505: Für release_sha '+releaseSha+' existiert keine erfolgreiche ExportHUB RC1112 Main Verification auf main.');process.exit(1)}
             console.log('RC1505: Erfolgreiche Main Verification für '+releaseSha+' bestätigt.');
