@@ -125,11 +125,11 @@ async function consumeQuota(store, config, userKey, caseId, now = new Date()) {
     if (mine >= config.perUserLimit) return { allowed: false, reason: 'user-limit', total: today.total };
     const days = {};
     Object.keys(doc.days || {}).sort().slice(-6).forEach(k => { days[k] = doc.days[k]; });
-    days[day] = { total: today.total + 1, users: Object.assign({}, today.users, { [user]: mine + 1 }) };
+    days[day] = { total: today.total + 1, users: Object.assign({}, today.users, { [user]: mine + 1 }), fails: Object.assign({}, today.fails) };
     const log = (Array.isArray(doc.log) ? doc.log : []).concat({ at: now.toISOString(), by: user, caseId: text(caseId, 60), model: config.model }).slice(-300);
     try {
       await store.write({ schemaVersion: 1, days, log }, snapshot && snapshot.etag);
-      return { allowed: true, total: days[day].total, limit: config.dailyLimit };
+      return { allowed: true, total: days[day].total, limit: config.dailyLimit, at: now.toISOString() };
     } catch (e) {
       if (e && [409, 412].includes(e.statusCode) && attempt < 5) continue;
       throw e;
@@ -138,4 +138,31 @@ async function consumeQuota(store, config, userKey, caseId, now = new Date()) {
   return { allowed: false, reason: 'busy', total: 0 };
 }
 
-module.exports = { resolveConfig, anonymize, caseFields, buildPrompt, systemInstructions, askGemini, consumeQuota, reasonForHttp, LANGUAGES };
+/* Gutschrift für einen fehlgeschlagenen Aufruf (falsches Modell, abgelehnter Schlüssel, leere Antwort, Zeitüberschreitung),
+ * damit Einrichtung und Fehlersuche das Tageslimit nicht verbrauchen. Höchstens 10 Gutschriften je Benutzer und Tag;
+ * der Eintrag im Protokoll bleibt erhalten und wird mit outcome:'failed' markiert. */
+const MAX_REFUNDS_PER_USER = 10;
+async function refundQuota(store, config, userKey, at, now = new Date()) {
+  const day = now.toISOString().slice(0, 10), user = text(userKey, 120).toLowerCase() || 'unbekannt';
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const snapshot = await store.read();
+    const doc = snapshot && snapshot.value && snapshot.value.schemaVersion === 1 ? snapshot.value : null;
+    const today = doc && doc.days && doc.days[day];
+    if (!today || !(Number(today.users && today.users[user]) > 0) || !(today.total > 0)) return { refunded: false };
+    const fails = Object.assign({}, today.fails);
+    if ((Number(fails[user]) || 0) >= MAX_REFUNDS_PER_USER) return { refunded: false, reason: 'refund-limit' };
+    fails[user] = (Number(fails[user]) || 0) + 1;
+    const days = Object.assign({}, doc.days, { [day]: { total: today.total - 1, users: Object.assign({}, today.users, { [user]: today.users[user] - 1 }), fails } });
+    const log = (Array.isArray(doc.log) ? doc.log : []).map(e => (e && e.at === at && e.by === user && !e.outcome ? Object.assign({}, e, { outcome: 'failed' }) : e));
+    try {
+      await store.write({ schemaVersion: 1, days, log }, snapshot.etag);
+      return { refunded: true };
+    } catch (e) {
+      if (e && [409, 412].includes(e.statusCode) && attempt < 5) continue;
+      throw e;
+    }
+  }
+  return { refunded: false };
+}
+
+module.exports = { refundQuota, resolveConfig, anonymize, caseFields, buildPrompt, systemInstructions, askGemini, consumeQuota, reasonForHttp, LANGUAGES };

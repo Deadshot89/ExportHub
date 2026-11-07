@@ -161,3 +161,39 @@ test('QM-KI: leere Antwort nennt den Grund von Google für die Diagnose', async 
   assert.match(page, /r==='empty'/);
   assert.match(fs.readFileSync('api/quality-capa/index.js', 'utf8'), /providerDetail:str\(detail,40\)/);
 });
+
+test('QM-KI: fehlgeschlagener Aufruf bekommt das Limit gutgeschrieben (außer Google-Kontingent 429)', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 10, perUserLimit: 2 };
+  const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
+  const first = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
+  assert.ok(first.at, 'consumeQuota liefert den Zeitstempel des Eintrags');
+  const back = await ai.refundQuota(store, cfg, 'anna', first.at, now);
+  assert.equal(back.refunded, true);
+  assert.equal(store.value.days['2026-11-07'].total, 0);
+  assert.equal(store.value.days['2026-11-07'].users.anna, 0);
+  assert.equal(store.value.log[0].outcome, 'failed');
+  // Nach der Gutschrift stehen wieder beide Aufrufe zur Verfügung
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-2', now)).allowed, true);
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-3', now)).allowed, true);
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-4', now)).allowed, false);
+});
+
+test('QM-KI: Gutschriften sind je Benutzer und Tag begrenzt und nie negativ', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 100, perUserLimit: 50 };
+  const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
+  let refunded = 0;
+  for (let i = 0; i < 14; i++) {
+    const c = await ai.consumeQuota(store, cfg, 'ben', 'QM-' + i, now);
+    if ((await ai.refundQuota(store, cfg, 'ben', c.at + '', new Date(now.getTime() + i))).refunded) refunded++;
+  }
+  assert.equal(refunded, 10, 'höchstens 10 Gutschriften je Benutzer und Tag');
+  assert.ok(store.value.days['2026-11-07'].total >= 4);
+  const fresh = memoryStore();
+  assert.equal((await ai.refundQuota(fresh, cfg, 'nobody', 'x', now)).refunded, false, 'ohne Verbrauch keine Gutschrift');
+});
+
+test('QM-KI: API gibt bei Fehlern außer 429 gut und liefert KI-Antwort ohne Gutschrift', () => {
+  const src = fs.readFileSync('api/quality-capa/index.js', 'utf8');
+  assert.match(src, /answer\.reason!=='busy'/);
+  assert.match(src, /refundQuota/);
+});
