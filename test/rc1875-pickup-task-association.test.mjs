@@ -13,7 +13,7 @@ const fix=[
  {id:'FIX-UK',siteLabel:'Essentra UK',weekday:1,customerNumber:'00999',active:true},
  {id:'FIX-FR',siteLabel:'France',weekday:1,customerNumber:'',active:true}
 ];
-const pick={id:'task-UK',title:'Picken UK',pickupTargetId:'FIX-UK',customerNumber:'00123, 00045, 00067',recurrence:'weekly',weekdays:[1]};
+const pick={id:'task-UK',title:'Picken UK',pickupTargetId:'FIX-UK',pickupTargetCompanyKey:'essentra',customerNumber:'00123, 00045, 00067',recurrence:'weekly',weekdays:[1]};
 const shipment=(ref,customerNumber,expectedColliCount,collectedPickupCollis=0)=>({
  id:ref,reference:ref,customerNumber,plannedPickupDate:'2026-11-09',
  status:'Bereit zur Abholung',expectedColliCount,collectedPickupCollis,
@@ -21,7 +21,7 @@ const shipment=(ref,customerNumber,expectedColliCount,collectedPickupCollis=0)=>
 });
 const a=shipment('UK-A','123',4,1),b=shipment('UK-B','45',3);
 const copy=x=>JSON.parse(JSON.stringify(x));
-const model=(tasks,shipments,day=monday)=>cal.buildCalendarModel({today:day,fixedPickups:fix,tasks,shipments});
+const model=(tasks,shipments,day=monday)=>cal.buildCalendarModel({today:day,companyKey:'essentra',fixedPickups:fix,tasks,shipments});
 
 test('RC1875: linked Pick task is source of truth for FIX customer numbers and REF/Colli',()=>{
  const original=copy([a,b,pick]);
@@ -59,6 +59,14 @@ test('RC1875: another weekday cannot receive same REF; canceled shipments never 
  assert.equal(noTasks.shipments,0,'unrelated legacy FIX customer 999 cannot auto-match UK');
 });
 
+test('RC1875: linked target never leaks across company contexts',()=>{
+ const wrong=cal.buildCalendarModel({today:monday,companyKey:'another-company',fixedPickups:fix,tasks:[pick],shipments:[a,b]}).days[0].fixedStatus['FIX-UK'];
+ assert.deepEqual(wrong.refs,[]);
+ assert.equal(wrong.fromTasks,false);
+ const absent=cal.buildCalendarModel({today:monday,fixedPickups:fix,tasks:[pick],shipments:[a,b]}).days[0].fixedStatus['FIX-UK'];
+ assert.deepEqual(absent.refs,[]);
+});
+
 test('RC1875: ambiguous account assigned to two active FIX IDs is not silently linked',()=>{
  const competing={...pick,id:'task-FR',pickupTargetId:'FIX-FR',customerNumber:'45'};
  const result=model([pick,competing],[a,b]).days[0].fixedStatus;
@@ -71,10 +79,11 @@ test('RC1875: ambiguous account assigned to two active FIX IDs is not silently l
 
 test('RC1875: task editor persists stable target ID using canonical guarded task save',()=>{
  assert.match(tasksSource,/task\.pickupTargetId=q\(v\.pickupTargetId\)/);
+ assert.match(tasksSource,/task\.pickupTargetCompanyKey=v\.pickupTargetId/);
  assert.match(tasksSource,/pickupTargetId:q\(f\.pickupTargetId&&f\.pickupTargetId\.value\)/);
  assert.match(tasksSource,/task\.customerNumber=v\.customerNo/);
  assert.match(tasksSource,/await persist\(isNew\?'RC1570 task created':'RC1570 task saved'/);
- assert.match(tasksSource,/const|var template=Object\.assign\(\{\},task\)/);
+ assert.match(tasksSource,/var template=Object\.assign\(\{\},task\)/);
  assert.match(tasksSource,/fetch\('\/api\/fixed-pickups\?includeInactive=1'/);
  assert.match(tasksSource,/data\.environment!==env/);
  assert.match(tasksSource,/if\(forced==='demo'/);
