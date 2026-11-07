@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
@@ -10,6 +11,16 @@ const {BlobServiceClient}=apiRequire('@azure/storage-blob');
 const auth=require('../api/shared/auth-store.js');
 function jpeg(){return Buffer.from([0xff,0xd8,0xff,0xe0,0x12,0x34]).toString('base64')}
 const valid={customer:'Fremdkunde',shipmentNumber:'EXT-2026-123',dispatchDate:'2026-11-07',colli:'3',weightKg:'27,500',shippingMethod:'Kurier',contents:'3 Kartons'};
+test('RC1903: alle sechs Sprachen haben dieselben Formular- und Upload-Schluessel',()=>{
+ const context={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),context);
+ const packs=context.window.ExportHUBEvidenceI18n;
+ const reference=Object.keys(packs.de).sort();
+ for(const lang of ['de','en','fr','it','es','pl']){
+  assert.deepEqual(Object.keys(packs[lang]).sort(),reference,'Uebersetzung unvollstaendig: '+lang);
+  for(const key of reference)assert.ok(String(packs[lang][key]).trim(),lang+': '+key);
+ }
+});
 test('RC1903: Externe Versandnachweise verlangen keine vorhandene ExportHUB-REF',()=>{
  const normalized=doc.fields(valid);
  assert.equal(normalized.customer,'Fremdkunde');
