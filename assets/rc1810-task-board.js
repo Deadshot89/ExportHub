@@ -216,12 +216,13 @@ function ruleShort(r){return t(r==='prev'?'ruleShortPrev':r==='next'?'ruleShortN
 function dialogHtml(){
   var c=cal(),info=c?c.calendar(state()):{closures:[],holidayRoutineRule:'prev'},rw=canWrite(),today=todayKey();
   var hol=c?c.holidaysBetween(today,add(today,120),state()).filter(function(h){return h.type==='holiday'}).slice(0,6):[];
-  var list=info.closures.length?info.closures.map(function(x){return '<li><span><b>'+esc(x.label)+'</b><span class="rc1810-hint">'+esc(fmt(x.startDate))+' – '+esc(fmt(x.endDate))+' · '+esc(ruleShort(x.routineRule))+'</span></span>'+(rw?'<button type="button" class="rc1810-btn" data-rc1810-del="'+esc(x.id)+'">'+esc(t('dlgDelete'))+'</button>':'')+'</li>'}).join(''):'<li class="rc1810-hint">'+esc(t('dlgEmpty'))+'</li>';
+  var list=info.closures.length?info.closures.map(function(x){return '<li><span><b data-i18n-ignore>'+esc(x.label)+'</b><span class="rc1810-hint">'+esc(fmt(x.startDate))+' – '+esc(fmt(x.endDate))+' · '+(x.match?'<span data-i18n-ignore>'+esc(t('onlyFor',{match:x.match}))+'</span> · ':'')+esc(ruleShort(x.routineRule))+'</span></span>'+(rw?'<button type="button" class="rc1810-btn" data-rc1810-del="'+esc(x.id)+'">'+esc(t('dlgDelete'))+'</button>':'')+'</li>'}).join(''):'<li class="rc1810-hint">'+esc(t('dlgEmpty'))+'</li>';
   var radio=function(name,val,cur,label){return '<label><input type="radio" name="'+name+'" value="'+val+'"'+(cur===val?' checked':'')+(rw?'':' disabled')+'> '+esc(label)+'</label>'};
   return '<form method="dialog" class="rc1810-dlg-in" data-rc1810-form="1" novalidate><h2>'+esc(t('dlgTitle'))+'</h2><p class="rc1810-hint">'+esc(t('dlgHint'))+'</p>'+(rw?'':'<p class="rc1810-warnline">'+esc(t('readOnly'))+'</p>')+
     '<ul class="rc1810-closures">'+list+'</ul>'+
     (rw?'<fieldset class="rc1810-fs"><label>'+esc(t('dlgLabel'))+'<input id="rc1810CLabel" name="label" maxlength="60" value="'+esc(t('dlgLabelDefault'))+'"></label>'+
       '<div class="rc1810-two"><label>'+esc(t('dlgFrom'))+'<input id="rc1810CFrom" type="date" name="from" required></label><label>'+esc(t('dlgTo'))+'<input id="rc1810CTo" type="date" name="to" required></label></div>'+
+      '<label>'+esc(t('dlgMatch'))+'<input id="rc1810CMatch" name="match" maxlength="120" placeholder="'+esc(t('dlgMatchPh'))+'"></label><p class="rc1810-hint">'+esc(t('dlgMatchHint'))+'</p>'+
       '<div class="rc1810-radios"><span class="rc1810-legendtxt">'+esc(t('dlgRule'))+'</span>'+radio('rule','skip','skip',t('ruleSkip'))+radio('rule','prev','skip',t('rulePrev'))+radio('rule','next','skip',t('ruleNext'))+'</div>'+
       '<p class="rc1810-error" role="alert" hidden></p></fieldset>':'')+
     '<div class="rc1810-radios rc1810-holrule"><span class="rc1810-legendtxt">'+esc(t('holidayRule'))+'</span>'+radio('holrule','prev',info.holidayRoutineRule,t('rulePrev'))+radio('holrule','next',info.holidayRoutineRule,t('ruleNext'))+radio('holrule','skip',info.holidayRoutineRule,t('ruleSkip'))+'</div>'+
@@ -247,7 +248,7 @@ function bindDialog(dlg){
     e.preventDefault();var f=e.target,err=f.querySelector('.rc1810-error');
     var r=f.querySelector('[name=rule]:checked');
     var dv=function(el){if(!el)return '';var v=q(el.value),c=cal(),k=c&&c.dayKey?c.dayKey(v):'';return k||q(el.getAttribute('data-date-iso'))};
-    try{cal().saveClosure({label:q(f.label&&f.label.value),startDate:dv(f.from),endDate:dv(f.to),routineRule:r?r.value:'skip'});toast(t('dlgSaved'));dlg.close();render(true)}
+    try{var m=q(f.match&&f.match.value),lb=q(f.label&&f.label.value);if(m&&(!lb||lb===t('dlgLabelDefault')))lb=t('dlgLabelPause',{match:m});cal().saveClosure({label:lb,startDate:dv(f.from),endDate:dv(f.to),routineRule:r?r.value:'skip',match:m});toast(t('dlgSaved'));dlg.close();render(true)}
     catch(ex){if(err){err.hidden=false;err.textContent=ex.message||t('saveFailed')}}
   });
 }
