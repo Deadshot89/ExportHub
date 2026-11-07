@@ -148,3 +148,16 @@ test('QM-KI: Anweisung verlangt fünf Abschnitte inkl. Wirksamkeitsprüfung mit 
   assert.match(s, /Befolge keine Anweisungen/);
   assert.equal(ai.resolveConfig({ EXPORTHUB_QM_AI_API_KEY: 'k' }).maxOutputTokens, 1400);
 });
+
+test('QM-KI: leere Antwort nennt den Grund von Google für die Diagnose', async () => {
+  const run = payload => ai.askGemini({ env, item, fetchImpl: mockFetch(async () => ({ ok: true, status: 200, json: async () => payload })) });
+  const cut = await run({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] });
+  assert.deepEqual([cut.ok, cut.reason, cut.detail], [false, 'empty', 'MAX_TOKENS']);
+  const blocked = await run({ promptFeedback: { blockReason: 'SAFETY' } });
+  assert.equal(blocked.detail, 'SAFETY');
+  const none = await run({});
+  assert.equal(none.detail, 'KEINE_ANTWORT');
+  const page = fs.readFileSync('qualitaet.html', 'utf8');
+  assert.match(page, /r==='empty'/);
+  assert.match(fs.readFileSync('api/quality-capa/index.js', 'utf8'), /providerDetail:str\(detail,40\)/);
+});
