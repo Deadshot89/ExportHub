@@ -116,8 +116,9 @@ test('RC1810 Build bindet Kalender, Aufgabenseite und Styles in allen Umgebungen
 
 test('RC1810 Seite: Reiter, Menü zusammengeführt, Korrekturen in der RC971-Ebene',()=>{
   for(const tab of ['heute','woche','monat','liste'])assert.match(board,new RegExp("'"+tab+"'"));
-  assert.match(css,/nav#nav#nav > button\[data-view="planning"\]/);
-  assert.match(css,/nav#nav#nav > button\[data-view="taskdetail"\]/);
+  assert.doesNotMatch(css,/nav#nav#nav\\s*>\\s*button\\[data-view="planning"\\][^{}]*\\{display:none!important\\}/,'Aufgabenplaner muss im Menü bleiben');
+  assert.doesNotMatch(css,/nav#nav#nav\\s*>\\s*button\\[data-view="taskdetail"\\][^{}]*\\{display:none!important\\}/,'Aufgabenansicht muss im Menü bleiben');
+  assert.match(board,/data-rc1810-route="planning"/,'RC1810 Planer-Link bleibt erhalten');
   assert.match(texts,/ExportHUBTaskBoard1810I18n=/);
   assert.match(texts,/Betriebsferien & Feiertage/);
   assert.match(css,/@layer rc971\{/);
