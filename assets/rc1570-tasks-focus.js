@@ -362,8 +362,10 @@ function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='i
 // from the authorized fixed-pickup catalog. Never edit the same numbers twice.
 var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='';
 function pickupEnv(){
- var host=low(w.location&&w.location.hostname||'');
- return host.indexOf('-testservice.')>=0?'testservice':'production'
+ var host=low(w.location&&w.location.hostname||''),path=low(w.location&&w.location.pathname||''),forced=low(w.__EXPORTHUB_FORCED_ENVIRONMENT__||'');
+ if(forced==='demo'||path.indexOf('demo.html')>=0)return 'demo';
+ if(forced==='testservice'||host.indexOf('-testservice.')>=0)return 'testservice';
+ return 'production'
 }
 function pickupOptions(selected){
  var key=q(selected),rows=pickupTargets.filter(function(x){return x&&x.active!==false});
