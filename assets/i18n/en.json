@@ -626,6 +626,7 @@
   "pickupCalendar.field.customerNumber": "Customer number(s)",
   "pickupCalendar.field.customerNumberHint": "Separate several with commas. When a shipment with this customer number is picked up on that day, the pickup turns green as done.",
   "pickupCalendar.label.customerNumber": "Cust. no.",
+  "pickupCalendar.assignment.check": "Check association",
   "pickupCalendar.fix.done": "Picked up",
   "pickupCalendar.fix.partial": "Partially picked up",
   "pickupCalendar.fix.planned": "Shipment registered",

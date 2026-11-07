@@ -94,6 +94,11 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     return 'production';
   }
 
+  function tasks(){
+    const state=getState();
+    return Array.isArray(state.tasks)?state.tasks:[];
+  }
+
   function shipments(){
     const state = getState();
     return Array.isArray(state.shipments) ? state.shipments : [];
@@ -191,6 +196,7 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
       environment: environment(),
       companyId: companyId(),
       shipments: shipments(),
+      tasks: tasks(),
       onOpenShipment: openShipment
     });
     return true;
@@ -203,9 +209,9 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
       refreshTimer = 0;
       const calendar = window.ExportHubPickupCalendar;
       if (!calendar || typeof calendar.setShipments !== 'function') return;
-      try { calendar.setShipments(shipments()); } catch (_) {}
+      try { calendar.setShipments(shipments()); if(typeof calendar.setTasks==='function')calendar.setTasks(tasks()); } catch (_) {}
     };
-    ['exporthub:sync','exporthub:pickup-updated','exporthub:shipment-saved'].forEach(function(name){
+    ['exporthub:sync','exporthub:pickup-updated','exporthub:shipment-saved','exporthub:tasks-updated'].forEach(function(name){
       window.addEventListener(name,function(){ if (!refreshTimer && typeof window.setTimeout === 'function') refreshTimer = window.setTimeout(refreshShipments,300); });
     });
   }

@@ -626,6 +626,7 @@
   "pickupCalendar.field.customerNumber": "Numéro(s) client",
   "pickupCalendar.field.customerNumberHint": "Séparez plusieurs numéros par des virgules. Lorsqu’une expédition avec ce numéro client est enlevée ce jour-là, l’enlèvement passe au vert comme effectué.",
   "pickupCalendar.label.customerNumber": "N° client",
+  "pickupCalendar.assignment.check": "Vérifier l’association",
   "pickupCalendar.fix.done": "Enlevé",
   "pickupCalendar.fix.partial": "Partiellement enlevé",
   "pickupCalendar.fix.planned": "Expédition annoncée",
