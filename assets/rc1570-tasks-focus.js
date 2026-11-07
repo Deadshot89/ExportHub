@@ -360,7 +360,7 @@ function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='i
 
 // RC1875: Task stores only stable FIX transport id; displayed destinations come
 // from the authorized fixed-pickup catalog. Never edit the same numbers twice.
-var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='';
+var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='',pickupCompanyKey='';
 function pickupEnv(){
  var host=low(w.location&&w.location.hostname||''),path=low(w.location&&w.location.pathname||''),forced=low(w.__EXPORTHUB_FORCED_ENVIRONMENT__||'');
  if(forced==='demo'||path.indexOf('demo.html')>=0)return 'demo';
@@ -389,8 +389,8 @@ async function loadPickupTargets(){
   var data=await res.json();
   if(!res.ok||!data||data.ok===false||data.environment!==env||!Array.isArray(data.items))throw Error('FIX_TARGETS_UNAVAILABLE');
   pickupTargets=data.items.filter(function(x){return x&&x.active!==false&&q(x.id)});
-  pickupTargetsEnv=env;pickupTargetsState='ready';
- }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv=''}
+  pickupTargetsEnv=env;pickupCompanyKey=q(data.companyKey);pickupTargetsState=pickupCompanyKey?'ready':'error';
+ }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv='';pickupCompanyKey=''}
  // Update just the selector: never re-render the form and lose user input.
  if(tv.mode!==modeAtStart||tv.id!==taskIdAtStart)return;
  var el=w.document&&w.document.querySelector('#rc1570TaskView [name="pickupTargetId"]');
@@ -436,6 +436,7 @@ function applyForm(task,v,isNew){
   var autoDone=v.autoDone!==false;
   if(isNew||v.customerNo!==customerNo(task)||autoDone!==(task.autoDoneOnShipment!==false))task.customerNumberSetAt=now;
   task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;task.autoDoneOnShipment=autoDone;
+  task.pickupTargetCompanyKey=v.pickupTargetId?(pickupCompanyKey||q(task.pickupTargetCompanyKey)):'';
   task.pickupTargetId=q(v.pickupTargetId);task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
@@ -453,7 +454,10 @@ async function saveForm(form){
   var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
   if(!v.title){showError(t('required'));return false}
   if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
-  if(v.pickupTargetId&&pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&!pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId})){showError(t('fPickupMissing'));return false}
+  if(v.pickupTargetId){
+    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey);
+    if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
+  }
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
