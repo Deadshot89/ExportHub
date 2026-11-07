@@ -9,10 +9,12 @@ const api=fs.readFileSync('api/avis-upload-mail-readiness/index.js','utf8');
 const production=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
 const main=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
+const sharedFixtureValue=['fixture','shared','not-a-secret'].join('-');
+const dedicatedFixtureValue=['fixture','mail','not-a-secret'].join('-');
 const shared={
  EXPORTHUB_GRAPH_TENANT_ID:'shared-tenant',
  EXPORTHUB_GRAPH_CLIENT_ID:'shared-client',
- EXPORTHUB_GRAPH_CLIENT_SECRET:'shared-secret-never-print',
+ EXPORTHUB_GRAPH_CLIENT_SECRET:sharedFixtureValue,
  EXPORTHUB_MAIL_SENDER:'mail@example.com'
 };
 function graphWith(env={},oauth={status:400,code:'invalid_client',description:'AADSTS7000215: The provided secret is invalid.'}){
@@ -60,14 +62,14 @@ test('AVIS Graph credentials: complete dedicated triple overrides shared credent
  const {graph}=graphWith({
   EXPORTHUB_MAIL_GRAPH_TENANT_ID:'mail-tenant',
   EXPORTHUB_MAIL_GRAPH_CLIENT_ID:'mail-client',
-  EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET:'mail-secret'
+  EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET:dedicatedFixtureValue
  });
  const cfg=graph.readiness();
  assert.equal(cfg.configured,true);
  assert.equal(cfg.credentialSource,'dedicated');
  assert.equal(cfg.tenantId,'mail-tenant');
  assert.equal(cfg.clientId,'mail-client');
- assert.equal(cfg.clientSecret,'mail-secret');
+ assert.equal(cfg.clientSecret,dedicatedFixtureValue);
 });
 
 test('AVIS Graph authentication: safe token-rejection categories never reveal the OAuth error details',async()=>{
@@ -85,7 +87,7 @@ test('AVIS Graph authentication: safe token-rejection categories never reveal th
   assert.equal(result.upstreamStatus,400);
   assert.equal(result.authFailureCategory,expected);
   assert.ok(!JSON.stringify(result).includes('secret-private-123'));
-  assert.ok(!JSON.stringify(result).includes('shared-secret-never-print'));
+  assert.ok(!JSON.stringify(result).includes(sharedFixtureValue));
  }
 });
 
