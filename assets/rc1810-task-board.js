@@ -74,7 +74,24 @@ function ensureWeeks(dates){
 }
 /* Überfällig: Einzelaufgaben vor heute; Routine nur aus der laufenden Woche (ältere Wochen sind durch den neuen Wochenplan ersetzt) */
 function isOverdue(x,today){var d=taskDay(x);if(!d||d>=today||isDone(x)||isCancelled(x))return false;return !isRoutine(x)||d>=mondayOf(today)}
-function visible(){return allTasks().filter(function(x){return ui.who!=='mine'||isMine(x)})}
+/* Legacy-Aufgaben mit Benutzer-ID (z. B. USER-Tobias) nicht als doppelte
+   Personenzeile anzeigen, wenn fuer denselben Tag bereits die echte Person
+   mit ihren Aufgaben vorhanden ist. Die gespeicherten Aufgaben bleiben erhalten. */
+function visible(){
+  var tasks=allTasks().filter(function(x){return ui.who!=='mine'||isMine(x)});
+  var named=Object.create(null);
+  tasks.forEach(function(x){
+    var owner=ownerOf(x);
+    if(!/^USER-/i.test(owner))named[taskDay(x)+'|'+low(owner)]=true;
+  });
+  return tasks.filter(function(x){
+    var owner=ownerOf(x),alias=/^USER-([A-Za-z][A-Za-z0-9_.]*)$/i.exec(owner);
+    if(!alias)return true;
+    var names=[alias[1]],user=arr(state().users).find(function(u){return low(u.id)===low(owner)});
+    if(user)names.push(q(user.name||user.displayName||user.user||user.username||user.login));
+    return !names.some(function(name){return named[taskDay(x)+'|'+low(name)]});
+  });
+}
 
 /* Bausteine */
 function nonWork(k){var c=cal();if(!c)return null;try{var n=c.nonWork(k);return n&&n.type!=='weekend'?n:null}catch(_){return null}}
