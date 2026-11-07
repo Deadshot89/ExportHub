@@ -13960,7 +13960,10 @@ function isTaskTomb(t){return t&&low(t.collection)==='tasks'}
 function matchesMasterTomb(t,m){if(!isTaskTomb(t))return false;var id=low(t.id),ser=low(t.seriesId||t.recurringSeriesId||'');return id===low(m.id)||id===low(seriesId(m))||id.indexOf(low('M846:'+m.id+':'))===0||id.indexOf(low('M848:'+m.id+':'))===0||ser===low(m.id)||ser===low(seriesId(m))}
 /* Aufgabenplaner: Tombstones aus automatischen Bereinigungen (RC1107-Reset, RC1152-Roster vor RC1568) sind keine Löschung durch einen Benutzer und dürfen den Wochenplan (z. B. alle Pick-Aufgaben) nicht dauerhaft abschalten */
 function systemTomb(t){return /^system:/i.test(q(t&&t.deletedBy))}
-function deletedNow(s,m){return tombs(s).some(function(t){return !systemTomb(t)&&matchesMasterTomb(t,m)})}
+/* RC1840: Lösch-Markierungen aus einer Massenlöschung (viele Wochenaufgaben innerhalb weniger Sekunden vom selben Benutzer, z. B. der Kompakt-Fehler vom 06.11.) sind keine bewusste Löschung einer Serie */
+var bulkMemo=null;
+function bulkTombs(s){var list=tombs(s);if(bulkMemo&&bulkMemo.list===list&&bulkMemo.n===list.length)return bulkMemo.set;var rows=[],set=new Set();list.forEach(function(t){if(!isTaskTomb(t)||systemTomb(t))return;var m=/^m84[68]:([^:]+):/i.exec(q(t.id)),at=Date.parse(q(t.deletedAt));if(m&&isFinite(at))rows.push({t:t,who:low(t.deletedBy),at:at,master:low(m[1])})});rows.sort(function(a,b){return a.who<b.who?-1:a.who>b.who?1:a.at-b.at});var i=0;while(i<rows.length){var j=i+1;while(j<rows.length&&rows[j].who===rows[i].who&&rows[j].at-rows[j-1].at<=5000)j++;var masters={};for(var k=i;k<j;k++)masters[rows[k].master]=1;if(Object.keys(masters).length>=10)for(k=i;k<j;k++)set.add(rows[k].t);i=j}bulkMemo={list:list,n:list.length,set:set};return set}
+function deletedNow(s,m){var bulk=bulkTombs(s);return tombs(s).some(function(t){return !systemTomb(t)&&!bulk.has(t)&&matchesMasterTomb(t,m)})}
 function idTombstoned(s,id){var x=low(id);return tombs(s).some(function(t){return isTaskTomb(t)&&low(t.id)===x})}
 /* Teil-Datensätze ohne Titel (Server übernahm früher nur geänderte Felder) aus dem Wochenstamm wieder auffüllen */
 function repairMasterStubs(s){var n=0;(s.tasks||[]).forEach(function(t){if(!t||q(t.title||t.name))return;var m=/^m84[68]:(.+):(\d{4}-w\d{2})$/i.exec(q(t.id));if(!m)return;var master=MASTER.find(function(x){return low(x.id)===low(m[1])});if(!master)return;var w=m[2].toUpperCase(),ws=isoWeekMonday(w);if(!ws)return;var area=q(t.area);if(area&&low(area)!==low(master.area))t.area='';attach(t,master,w,ws);if(!q(t.originalPlannedDate))t.originalPlannedDate=dayDate(ws,master.day);if(q(t.group)==='Offene Sendungen')t.group=master.area;if(/^(shipment)$/i.test(q(t.sourceType)))t.sourceType='plan';n++});return n}
@@ -13998,7 +14001,7 @@ function attach(t,m,w,weekStart){
  if(!q(t.originalDay))t.originalDay=m.day;if(!q(t.day))t.day=m.day;if(!q(t.area))t.area=m.area;if(!q(t.owner))t.owner=m.owner;if(!q(t.title))t.title=m.title;if(!q(t.time)&&m.time)t.time=m.time;
  t.recurrence=m.recurrence;t.repeatEveryWeeks=m.repeatEveryWeeks;if(m.biweekly)t.biweekly=true;if(!q(t.priority))t.priority=m.priority||'medium';if(t.masterOrder==null)t.masterOrder=m.masterOrder;return t
 }
-function make(m,w,weekStart){var t=clone(m);t.id=instanceId(m,w);if(idTombstoned(st(),t.id))t.id+=':neu';t.status='offen';t.done=false;t.completed=false;t.createdAt=new Date().toISOString();t.note='';t.originalDay=m.day;t.originalPlannedDate=dayDate(weekStart,m.day);return attach(t,m,w,weekStart)}
+function make(m,w,weekStart){var t=clone(m),base=instanceId(m,w),n=0;t.id=base;while(idTombstoned(st(),t.id)&&n<50){n++;t.id=base+(n===1?':neu':':neu'+n)}t.status='offen';t.done=false;t.completed=false;t.createdAt=new Date().toISOString();t.note='';t.originalDay=m.day;t.originalPlannedDate=dayDate(weekStart,m.day);return attach(t,m,w,weekStart)}
 var saving=false;
 function save(reason){if(saving)return;saving=true;try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Aufgaben-Master RC848 aktualisiert');else if(typeof window.save==='function')window.save()}catch(e){console.error('RC848 Aufgaben speichern',e)}finally{setTimeout(function(){saving=false},400)}}
 /* Aufgabenplaner: die alte Wiederholungslogik legte beim Abhaken einer Wochenaufgabe eine Kopie "…:next:…" an (gleiche Woche, offen, aber done=true). Den Wochenplan legt dieses Skript selbst an, die Kopien werden gelöscht */
@@ -14872,8 +14875,11 @@ function deletionRecordId(name,item,index){
  return text(item.id||item._syncId||item.ref||item.reference||item.account||item.customerNumber||item.name||index)
 }
 function captureCollectionDeletions(name,baseList,currentList){
- const current=new Set();(Array.isArray(currentList)?currentList:[]).forEach(function(item,index){current.add(lower(deletionRecordId(name,item,index)))});
- (Array.isArray(baseList)?baseList:[]).forEach(function(item,index){const id=deletionRecordId(name,item,index);if(id&&!current.has(lower(id)))markDeleted(name,id)});
+ const current=new Set(),base=Array.isArray(baseList)?baseList:[],gone=[];(Array.isArray(currentList)?currentList:[]).forEach(function(item,index){current.add(lower(deletionRecordId(name,item,index)))});
+ base.forEach(function(item,index){const id=deletionRecordId(name,item,index);if(id&&!current.has(lower(id)))gone.push(id)});
+ /* RC1840: Wenn ein Fehler die Aufgabenliste leert (Kompakt/Detailliert im Planer, 06.11.), darf das nicht jede Aufgabe auf dem Server löschen. So viele Löschungen in einem Speichervorgang sind kein Benutzerwunsch, die Aufgaben kommen beim nächsten Abgleich zurück */
+ if(name==='tasks'&&gone.length>=10&&gone.length*2>=base.length){try{console.warn('RC1840 bulk task deletion ignored',gone.length,'of',base.length)}catch(_){}return}
+ gone.forEach(function(id){markDeleted(name,id)});
 }
 function documentDeletionMap(state){
  const out=new Map(),fields=['podFiles','abdFiles','deliveryFiles','deliveryNotes','lieferscheine','documents','files','docs','attachments'];
