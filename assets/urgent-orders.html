@@ -397,7 +397,7 @@ async function generateDraft(){
   const r=await api('prepare-mail',{id:orderId,kind,language:$('mailLanguage').value,note:$('mailIssue').value.trim(),noteLanguage:websiteLanguage});
   if(modalOrder!==orderId||modalKind!==kind||$('mailOverlay').hidden)return;
   $('mailTo').value=r.draft.to;$('mailSubject').value=r.draft.subject;$('mailBody').value=r.draft.body;
-  setMessage('mailMessage',r.translationWarning?(r.translationWarningText||'Bitte den Fehlertext vor dem Versenden prüfen.'):localeV2('mailDraftReady','Entwurf ist bereit.'),r.translationWarning?'error':'ok');
+  setMessage('mailMessage',r.translationWarning?r.translationWarningText:localeV2('mailDraftReady','Entwurf ist bereit.'),r.translationWarning?'error':'ok');
  }catch(e){
   if(modalOrder!==orderId||modalKind!==kind||$('mailOverlay').hidden)return;
   if(e.code==='URGENT_MAIL_NOTE_REQUIRED'){showMailIssueError();return;}
