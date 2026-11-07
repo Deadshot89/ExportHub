@@ -76,6 +76,28 @@ test('RC1875: another weekday cannot receive same REF; canceled shipments never 
  assert.equal(noTasks.shipments,0,'unrelated legacy FIX customer 999 cannot auto-match UK');
 });
 
+test('RC1875: clearing all Pick accounts never restores legacy FIX account',()=>{
+ const cleared={...pick,customerNumber:'',linkedAccount:'',customerNumberSetAt:'2026-11-08T08:00:00Z'};
+ const result=model([cleared],[a,b]).days[0].fixedStatus['FIX-UK'];
+ assert.equal(result.fromTasks,true);
+ assert.deepEqual(result.customerNumbers,[]);
+ assert.deepEqual(result.refs,[]);
+ assert.equal(result.shipments,0);
+ assert.equal(result.legacyConflict,true);
+});
+
+test('RC1875: duplicate legacy FIX customer never creates two silent transport matches',()=>{
+ const oldFix=[
+  {id:'FIX-1',weekday:1,customerNumber:'123',active:true},
+  {id:'FIX-2',weekday:1,customerNumber:'00123',active:true}
+ ];
+ const both=cal.buildCalendarModel({today:monday,companyKey:'essentra',fixedPickups:oldFix,tasks:[],shipments:[a]}).days[0].fixedStatus;
+ assert.deepEqual(both['FIX-1'].refs,[]);
+ assert.deepEqual(both['FIX-2'].refs,[]);
+ assert.deepEqual(both['FIX-1'].conflicts,['123']);
+ assert.deepEqual(both['FIX-2'].conflicts,['123']);
+});
+
 test('RC1875: linked target never leaks across company contexts',()=>{
  const wrong=cal.buildCalendarModel({today:monday,companyKey:'another-company',fixedPickups:fix,tasks:[pick],shipments:[a,b]}).days[0].fixedStatus['FIX-UK'];
  assert.deepEqual(wrong.refs,[]);
