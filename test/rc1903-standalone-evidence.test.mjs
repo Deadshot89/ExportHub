@@ -306,6 +306,21 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
   'x-azure-clientip':'203.0.113.99'
  });
  assert.equal(nextShipment.status,201,nextShipment.body);
+ // Auch ein Angreifer mit beliebig vielen Sendungsnummern oder Headerwerten
+ // kann das globale Stundenkontingent von 40 Erfassungen nicht ueberziehen.
+ for(let i=0;i<36;i++){
+  const made=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-GLOBAL-'+i},website:''},'','https://www.exporthub360.de',{
+   'x-forwarded-for':'192.0.2.'+(i+1),'x-ms-client-ip':'198.51.100.'+(i+1)
+  });
+  assert.equal(made.status,201,'Neuanlage '+i+': '+made.body);
+ }
+ const globallyBlocked=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-GLOBAL-EXTRA'},website:''},'','https://www.exporthub360.de',{
+  'x-ms-client-ip':'198.51.100.200'
+ });
+ assert.equal(globallyBlocked.status,429,globallyBlocked.body);
+ assert.equal(JSON.parse(globallyBlocked.body).code,'PUBLIC_RATE_LIMIT');
+ assert.ok([...store.keys()].some(key=>key.endsWith('/global.json')));
+ assert.ok(![...store.keys()].some(key=>key.includes('/client-')||key.includes('/unidentified.json')));
 });
 
 
