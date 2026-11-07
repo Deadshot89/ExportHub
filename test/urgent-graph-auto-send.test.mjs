@@ -83,6 +83,7 @@ test('Graph Urgent Order flow persists before sending, retries no transport, and
  delete require.cache[apiPath];
  let api;
  try{api=require('../api/urgent-orders/index.js')}finally{Module._load=oldLoad;}
+ process.env.EXPORTHUB_URGENT_MAIL_SENDER='mailer@example.org';
  const blob={value:{orders:[freshOrder()],profiles:{},reporterGroups:[]},version:1},refs={blob,environment:'production'};
  const req={body:{action:'send-mail-direct',...mail}};
  await assert.rejects(api.execute(req,manager,{...refs,environment:'testservice'}),e=>e.code==='URGENT_GRAPH_TESTSERVICE_BLOCKED');
