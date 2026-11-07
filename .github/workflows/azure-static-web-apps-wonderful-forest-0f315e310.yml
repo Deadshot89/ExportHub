@@ -237,6 +237,20 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1903 Sendungsdokumentation TESTSERVICE Live-Gate vor Production-Freigabe
+        shell: bash
+        env:
+          RC1903_EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Echte anonyme Testdaten ausschliesslich bei Aenderungen an RC1903 erfassen.
+          # Vor jedem Schreibzugriff validiert das Skript TESTSERVICE-Host und Deployment-SHA.
+          if git diff --name-only HEAD^ HEAD --               api/shipment-evidence/               assets/shipment-evidence.js               assets/shipment-evidence-guest.js               assets/shipment-evidence.css               assets/i18n/shipment-evidence.js               scripts/rc1903-testservice-guest-live.mjs               .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml               | grep -q .; then
+            node scripts/rc1903-testservice-guest-live.mjs
+          else
+            echo 'RC1903 unveraendert; kein anonymer Testdatensatz angelegt.'
+          fi
+
       - name: RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate
         shell: bash
         run: |
