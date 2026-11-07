@@ -234,6 +234,13 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(unauthorized.status,401);
  const badToken=await call('GET',{action:'public-get',id:docId},'A'.repeat(43));
  assert.equal(badToken.status,403);
+ const blobName='shipment-evidence/v1/records/'+docId+'.json';
+ const beforeExpiry=store.get(blobName),expired=JSON.parse(beforeExpiry.bytes.toString());
+ expired.publicAccess.expiresAt='2000-01-01T00:00:00.000Z';
+ store.set(blobName,{...beforeExpiry,bytes:Buffer.from(JSON.stringify(expired))});
+ const deniedExpired=await call('GET',{action:'public-get',id:docId},first.publicToken);
+ assert.equal(deniedExpired.status,403);
+ store.set(blobName,beforeExpiry);
  const own=await call('GET',{action:'public-get',id:docId},first.publicToken);
  assert.equal(own.status,200,own.body);
  const returned=JSON.parse(own.body).record;
