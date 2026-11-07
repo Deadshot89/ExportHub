@@ -88,7 +88,7 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 }
 /* Auch unbekannte ältere Aufgaben-Zähler der Benachrichtigungs-Navigation erfassen,
    aber niemals die Beschriftung oder das Icon als Zähler formatieren. */
-#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :is(
+#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :is(:where(
   .pack-internal-nav-badge,
   .urgent-nav-count,
   .eh1872-nav-warning,
