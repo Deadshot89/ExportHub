@@ -82,8 +82,8 @@ async function ratePublicCreate(ctx,normalized){
  const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
  // Derselbe Kunde und dieselbe Sendungsnummer koennen nicht unbegrenzt
  // neue Datensaetze erzeugen, auch nicht mit gefaelschten Proxy-Headern.
- const identity=publicHash(normalized.customer.toLocaleLowerCase('de-DE')+'\\0'+
-  normalized.shipmentNumber.toLocaleLowerCase('de-DE')).slice(0,32);
+ const identity=publicHash(JSON.stringify([normalized.customer.toLocaleLowerCase('de-DE'),
+  normalized.shipmentNumber.toLocaleLowerCase('de-DE')])).slice(0,32);
  const buckets=[{key:'shipment-'+identity,limit:3},{key:'global',limit:40}];
  for(const bucket of buckets){
   const blob=ctx.container.getBlockBlobClient(ctx.prefix+'public-rate/'+hour+'/'+bucket.key+'.json');
