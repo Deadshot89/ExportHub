@@ -2592,5 +2592,12 @@
   "rc1901.stepReady": "Listo",
   "rc1901.stepPicked": "Recogido",
   "rc1901.stepPod": "POD",
-  "rc1901.stepDone": "Cerrado"
+  "rc1901.stepDone": "Cerrado",
+  "rc1902.title": "Registro del envío",
+  "rc1902.noCustomer": "Ningún cliente seleccionado",
+  "rc1902.steps": "Pasos del envío",
+  "rc1902.stepOpen": "Aquí faltan datos",
+  "rc1902.openSteps": "{n} pasos con datos pendientes",
+  "rc1902.allComplete": "Todos los pasos completos",
+  "rc1902.openStep": "1 paso con datos pendientes"
 }

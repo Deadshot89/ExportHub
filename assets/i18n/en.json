@@ -2592,5 +2592,12 @@
   "rc1901.stepReady": "Ready",
   "rc1901.stepPicked": "Picked up",
   "rc1901.stepPod": "POD",
-  "rc1901.stepDone": "Completed"
+  "rc1901.stepDone": "Completed",
+  "rc1902.title": "Shipment entry",
+  "rc1902.noCustomer": "No customer selected yet",
+  "rc1902.steps": "Shipment steps",
+  "rc1902.stepOpen": "Information still missing here",
+  "rc1902.openSteps": "{n} steps with missing information",
+  "rc1902.allComplete": "All steps complete",
+  "rc1902.openStep": "1 step with missing information"
 }

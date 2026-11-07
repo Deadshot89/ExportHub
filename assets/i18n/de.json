@@ -2592,5 +2592,12 @@
   "rc1901.stepReady": "Bereit",
   "rc1901.stepPicked": "Abgeholt",
   "rc1901.stepPod": "POD",
-  "rc1901.stepDone": "Abgeschlossen"
+  "rc1901.stepDone": "Abgeschlossen",
+  "rc1902.title": "Sendung erfassen",
+  "rc1902.noCustomer": "Noch kein Kunde gewählt",
+  "rc1902.steps": "Schritte der Sendung",
+  "rc1902.stepOpen": "Hier fehlen noch Angaben",
+  "rc1902.openSteps": "{n} Schritte mit offenen Angaben",
+  "rc1902.allComplete": "Alle Schritte vollständig",
+  "rc1902.openStep": "1 Schritt mit offenen Angaben"
 }
