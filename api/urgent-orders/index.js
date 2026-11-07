@@ -7,7 +7,11 @@ const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
 const graphMail=require('../shared/graph-mail');
+const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
 const MAX_RETRIES=8;
+// Read-only storage calls (session check, list, counts) may be repeated after
+// a short network/Azure hiccup. Writes are never repeated by this helper.
+const READ_RETRY_DELAYS_MS=[150,450];
 const PROD_BLOB='urgent-orders/v1.json';
 const TEST_BLOB='testservice/urgent-orders/v1.json';
 
@@ -138,7 +142,7 @@ function storage(req){
 }
 async function write(storageRef,mutator){
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
-  const doc=await auth.readJson(storageRef.blob,empty(),{missingBlobOnly:true}),state=normalize(doc.value),result=mutator(state);
+  const doc=await readDoc(storageRef),state=normalize(doc.value),result=mutator(state);
   state.updatedAt=new Date().toISOString();
   try{
    const response=await auth.writeJson(storageRef.blob,state,doc.etag);
@@ -148,6 +152,23 @@ async function write(storageRef,mutator){
  }
  throw model.problem('URGENT_CONCURRENT_UPDATE','Gleichzeitige Änderung. Bitte erneut versuchen.',409);
 }
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function withReadRetry(read){
+ for(let attempt=0;;attempt++){
+  try{return await read();}
+  catch(e){
+   // Our own problems (401/403/404/409/503 ...) carry e.status and are final.
+   if(e&&e.status||!isTransientStorageError(e)||attempt>=READ_RETRY_DELAYS_MS.length)throw e;
+   await sleep(READ_RETRY_DELAYS_MS[attempt]);
+  }
+ }
+}
+function readDoc(refs){return withReadRetry(()=>auth.readJson(refs.blob,empty(),{missingBlobOnly:true}));}
+// Only codes/names, never messages: storage messages may contain account details.
+function safeCode(value){const v=String(value==null?'':value);return /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(v)?v:'';}
+function failureDetails(e){
+ return [safeCode(e&&e.code),safeCode(e&&e.name),Number(e&&e.statusCode)||'',safeCode(e&&e.cause&&e.cause.code)].filter(Boolean).join('/')||'UNEXPECTED';
+}
 function identity(user){return{id:model.text(user&&user.id,150),name:model.text(user&&(user.name||user.user||user.login),150)};}
 function requestBody(req){return auth.body(req);}
 function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
@@ -156,7 +177,7 @@ function accessibleOrder(doc,id,user){const order=findOrder(doc,id);if(!model.ca
 async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
  if(action==='list'){
-  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);
+  const doc=normalize((await readDoc(refs)).value);
   // Account-linked email profiles are deprecated; only the local browser's
   // non-authenticated address history supplies autocomplete suggestions.
   return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
@@ -164,7 +185,7 @@ async function execute(req,user,refs){
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
   // private order lines, reporter emails or exception notes.
-  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);
+  const doc=normalize((await readDoc(refs)).value);
   let open=0,closed=0;
   for(const order of doc.orders){
    if(!model.canRead(order,user))continue;
@@ -256,7 +277,7 @@ async function execute(req,user,refs){
  }
  if(action==='prepare-mail'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails vorbereiten.',403);
-  const doc=normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value),order=accessibleOrder(doc,model.text(p.id,90),user);
+  const doc=normalize((await readDoc(refs)).value),order=accessibleOrder(doc,model.text(p.id,90),user);
   return{draft:model.draftMail(order,model.text(p.kind,30),model.language(p.language||order.language),p.note),orderId:order.id};
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
@@ -265,15 +286,19 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
  try{
-  const current=await auth.validateSession(req);
+  const current=await withReadRetry(async()=>await auth.validateSession(req));
   const ref=storage(req);
   const result=await execute(req,current.user,ref);
   context.res=json(200,{ok:true,...result});
  }catch(e){
-  const status=Number(e&&e.status||e&&e.statusCode)||500;
-  context.log&&context.log.warn&&context.log.warn('urgent-orders',e&&e.code||'UNEXPECTED',status);
+  // A temporary storage/network failure without our own problem status is a
+  // controlled 503 (retry later), not an unexplained 500.
+  const transient=!(e&&e.status)&&isTransientStorageError(e);
+  const status=transient?503:Number(e&&e.status||e&&e.statusCode)||500;
+  const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
+  context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  context.res=json(status,{ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
  }
 };
 module.exports.execute=execute;
@@ -281,7 +306,8 @@ module.exports.storage=storage;
 module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
 module.exports.safeHostDiagnostic=safeHostDiagnostic;
 module.exports.deploymentEnv=deploymentEnv;
-module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);};
+module.exports.readDocument=async function(refs){return normalize((await readDoc(refs)).value);};
+module.exports.withReadRetry=withReadRetry;
 module.exports.write=write;
 module.exports.empty=empty;
 module.exports.normalize=normalize;

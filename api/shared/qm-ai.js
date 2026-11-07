@@ -74,6 +74,12 @@ function reasonForHttp(status) {
   if (status === 408) return 'timeout';
   return 'server';
 }
+/* Grund einer leeren Antwort (z. B. MAX_TOKENS, SAFETY, PROHIBITED_CONTENT) für die Diagnose in der Oberfläche. */
+function emptyReason(payload) {
+  const candidate = (((payload || {}).candidates || [])[0]) || {};
+  const block = payload && payload.promptFeedback && payload.promptFeedback.blockReason;
+  return text(block || candidate.finishReason || 'KEINE_ANTWORT', 40).replace(/[^A-Za-z0-9_ -]/g, '');
+}
 function extractText(payload) {
   const parts = (((payload || {}).candidates || [])[0] || {}).content;
   const list = parts && Array.isArray(parts.parts) ? parts.parts : [];
@@ -98,8 +104,9 @@ async function askGemini(options = {}) {
       signal: controller.signal
     });
     if (!response || response.ok !== true) return failure(reasonForHttp(Number(response && response.status)), response && response.status);
-    const answer = extractText(await response.json());
-    if (!answer) return failure('server', 200);
+    const payload = await response.json();
+    const answer = extractText(payload);
+    if (!answer) return Object.assign(failure('empty', 200), { detail: emptyReason(payload) });
     return { ok: true, text: answer.slice(0, 4000), model: config.model };
   } catch (e) {
     return failure(e && e.name === 'AbortError' ? 'timeout' : 'server', 0);

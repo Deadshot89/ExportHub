@@ -51,3 +51,11 @@ test('RC1657: sensitive response fields are never serialized in our browser diag
   assert.doesNotMatch(source,/JSON\.stringify\(payload\)|payload\.message|payload\.details/);
   assert.match(source,/\^\[A-Z\]\[A-Z0-9_\]\{1,63\}\$/);
 });
+
+test('RC1657: Urgent Order 5xx keep only the safe API code',async()=>{
+  const response={
+    url:()=> 'https://example.invalid/api/urgent-orders',
+    json:async()=>({ok:false,code:'URGENT_STORAGE_UNAVAILABLE',message:'PRIVATE'})
+  };
+  assert.equal(await stateReadErrorCodeFromResponse(response),'URGENT_STORAGE_UNAVAILABLE');
+});

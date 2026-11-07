@@ -2601,5 +2601,12 @@
   "rc1901.stepReady": "Prêt",
   "rc1901.stepPicked": "Enlevé",
   "rc1901.stepPod": "POD",
-  "rc1901.stepDone": "Clôturé"
+  "rc1901.stepDone": "Clôturé",
+  "rc1902.title": "Saisie de l’envoi",
+  "rc1902.noCustomer": "Aucun client sélectionné",
+  "rc1902.steps": "Étapes de l’envoi",
+  "rc1902.stepOpen": "Des informations manquent encore ici",
+  "rc1902.openSteps": "{n} étapes incomplètes",
+  "rc1902.allComplete": "Toutes les étapes sont complètes",
+  "rc1902.openStep": "1 étape incomplète"
 }

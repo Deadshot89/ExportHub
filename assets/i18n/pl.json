@@ -2601,5 +2601,12 @@
   "rc1901.stepReady": "Gotowa",
   "rc1901.stepPicked": "Odebrana",
   "rc1901.stepPod": "POD",
-  "rc1901.stepDone": "Zakończona"
+  "rc1901.stepDone": "Zakończona",
+  "rc1902.title": "Rejestracja przesyłki",
+  "rc1902.noCustomer": "Nie wybrano klienta",
+  "rc1902.steps": "Kroki przesyłki",
+  "rc1902.stepOpen": "Brakuje tu jeszcze danych",
+  "rc1902.openSteps": "Kroki z brakującymi danymi: {n}",
+  "rc1902.allComplete": "Wszystkie kroki kompletne",
+  "rc1902.openStep": "1 krok z brakującymi danymi"
 }
