@@ -117,8 +117,8 @@ function complaintsPanel(record){const panel=make('section','eh1903-panel');pane
 function historyPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('history')));
  if(record)(record.history||[]).slice(-25).reverse().forEach(x=>panel.appendChild(make('p','eh1903-muted',dateText(x.at)+' · '+x.by+' · '+x.action)));
  return panel}
-async function openRecord(id){state.serial++;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
- try{const res=await request('GET',{action:'get',id});if(state.view==='form'&&active())showForm(res.record)}
+async function openRecord(id){const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
+ try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active())showForm(res.record)}
  catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
 function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;
