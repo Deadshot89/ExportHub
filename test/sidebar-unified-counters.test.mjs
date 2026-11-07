@@ -17,6 +17,9 @@ test('Sidebar-Kennzahlen benutzen einen gemeinsamen lesbaren Zähler',()=>{
   assert.match(css,/color:#fff!important/);
   assert.match(css,/min-width:28px!important/);
   assert.match(css,/text-shadow:none!important/);
+  assert.match(css,/@media\(max-width:1100px\)/);
+  assert.match(css,/position:absolute!important/);
+  assert.match(css,/@media\(max-width:760px\)/);
   assert.match(css,/\[hidden\]\s*\{\s*display:none!important/);
 });
 
