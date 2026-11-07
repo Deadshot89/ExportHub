@@ -109,7 +109,7 @@ function close(){
 }
 function onKey(e){if(e.key==='Escape'){e.preventDefault();close()}}
 function open(){
- if(w.__EXPORTHUB_DEMO_MODE__===true)return false;
+ if(w.__EXPORTHUB_DEMO_MODE__===true||/\/demo(?:\.html)?$/i.test(w.location.pathname))return false;
  if(d.getElementById('eh1903-guest-overlay'))return true;
  epoch++;originFocus=d.activeElement;record=null;token='';busy=false;
  const overlay=make('div','eh1903-guest-overlay');overlay.id='eh1903-guest-overlay';
@@ -144,7 +144,7 @@ function open(){
  return true;
 }
 function ensureLoginEntry(){
- if(w.__EXPORTHUB_DEMO_MODE__===true)return false;
+ if(w.__EXPORTHUB_DEMO_MODE__===true||/\/demo(?:\.html)?$/i.test(w.location.pathname))return false;
  const login=d.getElementById('login'),card=login&&login.querySelector('.login-card');if(!card)return false;
  let action=card.querySelector('[data-eh1903-guest-open]');
  if(!action){action=btn(t('guestOpen'),open,true);action.setAttribute('data-eh1903-guest-open','');card.appendChild(action)}
@@ -158,6 +158,6 @@ function ready(){
  if(login&&w.MutationObserver){const observer=new MutationObserver(()=>{if(!login.querySelector('[data-eh1903-guest-open]'))ensureLoginEntry()});observer.observe(login,{subtree:true,childList:true})}
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
-w.addEventListener('exporthub:language-changed',ensureLoginEntry);
+['exporthub:language-changed','exporthub:ready','exporthub:rendered'].forEach(name=>w.addEventListener(name,ensureLoginEntry));
 w.ExportHUBGuestEvidence=Object.freeze({open,close,ensureLoginEntry});
 })(window,document);
