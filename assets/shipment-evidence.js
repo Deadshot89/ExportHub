@@ -58,7 +58,24 @@ async function write(action,extra,expectedId){
  const originalId=state.record&&state.record.id||null;
  if(expectedId&&expectedId!==originalId)return null;
  const serial=state.serial;state.busy=true;status(t('saving'),false);
- try{const payload={action,...extra};if(originalId){payload.id=originalId;payload.expectedRevision=state.record.revision}
+ try{
+  // A file upload or complaint submission must not discard edited shipment fields.
+  // Persist the current form first, on the same document ID and revision.
+  if(originalId&&action!=='save'&&action!=='create'){
+   const currentRoot=root();
+   if(currentRoot&&currentRoot.querySelector('[data-evidence-field]')){
+    const draft=readFields(currentRoot);
+    const stored=state.record&&state.record.fields||{};
+    const changed=FIELDS.some(([key])=>String(draft[key]||'').trim()!==String(stored[key]||'').trim());
+    if(changed){
+     const updated=await request('POST',{action:'save',id:originalId,expectedRevision:state.record.revision,fields:draft});
+     if(serial!==state.serial||state.view!=='form'||!active()||(state.record&&state.record.id)!==originalId)return null;
+     state.record=updated.record;
+    }
+   }
+  }
+  if(serial!==state.serial||state.view!=='form'||!active()||(state.record&&state.record.id||null)!==originalId)return null;
+  const payload={action,...extra};if(originalId){payload.id=originalId;payload.expectedRevision=state.record.revision}
   const result=await request('POST',payload);
   if(serial===state.serial&&state.view==='form'&&active()&&
     (state.record&&state.record.id||null)===originalId){
@@ -150,7 +167,12 @@ function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;
  node.appendChild(icon);node.appendChild(label);
  if(existing&&existing.parentNode===nav)nav.insertBefore(node,existing.nextSibling);else nav.appendChild(node);
  }else{const label=node.querySelector('.index308-nav-label');if(label)label.textContent=t('menu')}
- if(active())node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
+ if(active()){
+  // Core navigation may still carry an active marker from the previous view.
+  nav.querySelectorAll(':scope>button.active').forEach(other=>{if(other!==node)other.classList.remove('active')});
+  nav.querySelectorAll(':scope>button[aria-current="page"]').forEach(other=>{if(other!==node)other.removeAttribute('aria-current')});
+  node.classList.add('active');node.setAttribute('aria-current','page');
+ }else{node.classList.remove('active');node.removeAttribute('aria-current')}
 }
 d.addEventListener('click',function(e){const target=e.target&&e.target.closest&&e.target.closest('[data-exporthub-evidence-nav]');if(!target)return;
  e.preventDefault();e.stopImmediatePropagation();open()},true);
