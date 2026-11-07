@@ -17,16 +17,22 @@ function emailList(value){
  return out
 }
 function readiness(){
- const tenantId=text(process.env.EXPORTHUB_MAIL_GRAPH_TENANT_ID||process.env.EXPORTHUB_GRAPH_TENANT_ID);
- const clientId=text(process.env.EXPORTHUB_MAIL_GRAPH_CLIENT_ID||process.env.EXPORTHUB_GRAPH_CLIENT_ID);
- const clientSecret=text(process.env.EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET||process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
+ // Mail credentials are one atomic Entra application. Never mix a dedicated
+ // mail client ID/tenant with the shared Graph application's secret.
+ const dedicatedKeys=['EXPORTHUB_MAIL_GRAPH_TENANT_ID','EXPORTHUB_MAIL_GRAPH_CLIENT_ID','EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET'];
+ const dedicated=dedicatedKeys.some(key=>Boolean(text(process.env[key])));
+ const prefix=dedicated?'EXPORTHUB_MAIL_GRAPH_':'EXPORTHUB_GRAPH_';
+ const tenantId=text(process.env[prefix+'TENANT_ID']);
+ const clientId=text(process.env[prefix+'CLIENT_ID']);
+ const clientSecret=text(process.env[prefix+'CLIENT_SECRET']);
  const sender=text(process.env.EXPORTHUB_MAIL_SENDER||process.env.EXPORTHUB_POD_DRIVE_USER);
  const missing=[];
- if(!tenantId)missing.push('EXPORTHUB_GRAPH_TENANT_ID');
- if(!clientId)missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
- if(!clientSecret)missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
+ if(!tenantId)missing.push(prefix+'TENANT_ID');
+ if(!clientId)missing.push(prefix+'CLIENT_ID');
+ if(!clientSecret)missing.push(prefix+'CLIENT_SECRET');
  if(!sender)missing.push('EXPORTHUB_MAIL_SENDER');
- return{configured:missing.length===0,missing,sender,tenantId,clientId,clientSecret}
+ const credentialsIncomplete=dedicated&&dedicatedKeys.some(key=>missing.includes(key));
+ return{configured:missing.length===0,missing,sender,tenantId,clientId,clientSecret,credentialSource:dedicated?'dedicated':'shared',code:credentialsIncomplete?'GRAPH_MAIL_CREDENTIALS_INCOMPLETE':'GRAPH_MAIL_NOT_CONFIGURED'}
 }
 function error(code,message,statusCode){const e=new Error(message);e.code=code;e.statusCode=statusCode||500;return e}
 function request(method,url,headers,body,timeoutMs){
@@ -49,6 +55,18 @@ let tokenCache=null;
 function tokenClaims(token){try{const parts=String(token||'').split('.');if(parts.length<2)return{};return JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){return{}}}
 function mailSendGranted(claims){return Array.isArray(claims&&claims.roles)&&claims.roles.some(r=>text(r).toLowerCase()==='mail.send')}
 function permissionRequirement(){return{...MAIL_SEND_PERMISSION}}
+function safeAuthFailureCategory(e){
+ // Only bounded reason codes are exposed to the signed GitHub readiness workflow.
+ // Never return Azure's full error_description, tokens, credentials or tenant IDs.
+ const msg=text(e&&e.message),status=Number(e&&e.statusCode||0);
+ if(/AADSTS7000222/i.test(msg))return'CLIENT_SECRET_EXPIRED';
+ if(/AADSTS7000215|AADSTS7000218/i.test(msg))return'CLIENT_SECRET_REJECTED';
+ if(/AADSTS700016|AADSTS7000112/i.test(msg))return'APPLICATION_NOT_FOUND';
+ if(/AADSTS90002/i.test(msg))return'TENANT_NOT_FOUND';
+ if(status===400||status===401)return'OAUTH_CREDENTIALS_REJECTED';
+ if(status===502||status===503||status===504||status===429)return'TOKEN_ENDPOINT_UNAVAILABLE';
+ return'TOKEN_REQUEST_FAILED'
+}
 function mailAuthority(_sender,cfg){return cfg.tenantId}
 async function accessToken(force,authority){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
@@ -68,7 +86,7 @@ async function verifyAuthentication(){
   return{configured:true,authenticated:!!token,audienceOk:aud==='https://graph.microsoft.com'||aud==='00000003-0000-0000-c000-000000000000',mailSendGranted:mailSendGranted(claims),expiresInSec:exp>nowSec?exp-nowSec:0,code:'OK',upstreamStatus:200}
  }catch(e){
   tokenCache=null;
-  return{configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,expiresInSec:0,code:'GRAPH_AUTH_FAILED',upstreamStatus:Number(e&&e.statusCode||0)||0}
+  return{configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,expiresInSec:0,code:'GRAPH_AUTH_FAILED',authFailureCategory:safeAuthFailureCategory(e),upstreamStatus:Number(e&&e.statusCode||0)||0}
  }
 }
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
