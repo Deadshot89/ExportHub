@@ -165,21 +165,26 @@
       const numbers=taskNumbers?Array.from(taskNumbers):legacy;
       const conflicts=numbers.filter(key=>byCustomer.has(key)&&byCustomer.get(key).size>1);
       const valid=numbers.filter(key=>!conflicts.includes(key));
-      const candidates=dayShipments.concat(doneShipments).filter(sh=>
-        !shipmentCancelled(sh)&&shipmentCustomerNumbers(sh).some(key=>valid.includes(key)));
-      const refs=Array.from(new Set(candidates.map(shipmentRefText).filter(Boolean)));
+      const usedRefs=new Set();
+      const candidates=dayShipments.concat(doneShipments).filter(sh=>{
+        const identity=shipmentRefText(sh).toUpperCase()||shipmentIdentity(sh).toUpperCase();
+        if(!identity||usedRefs.has(identity)||shipmentCancelled(sh)||!shipmentCustomerNumbers(sh).some(key=>valid.includes(key)))return false;
+        usedRefs.add(identity);return true
+      });
+      const refs=candidates.map(shipmentRefText).filter(Boolean);
+      const matched=candidates.map(sh=>({ref:shipmentRefText(sh),key:shipmentIdentity(sh)}));
       const totals=candidates.reduce((acc,sh)=>{
         const colli=shipmentColliState(sh);
         acc.total+=colli.expected;acc.collected+=colli.collected;acc.open+=colli.remaining;
         return acc
       },{total:0,collected:0,open:0});
       const done=candidates.filter(sh=>doneShipments.includes(sh));
-      const isComplete=done.some(sh=>!shipmentColliState(sh).partial);
+      const isComplete=candidates.length>0&&done.length===candidates.length&&candidates.every(sh=>!shipmentColliState(sh).partial);
       const partial=done.length>0||candidates.some(sh=>shipmentColliState(sh).partial);
       status[id]={state:conflicts.length?'conflict':isComplete?'done':partial?'partial':candidates.length?'planned':'',
         refs,customerNumbers:numbers,fromTasks:!!taskNumbers,legacyConflict:!!taskNumbers&&legacy.length>0&&
           (legacy.length!==numbers.length||legacy.some(n=>!numbers.includes(n))),
-        conflicts,shipments:candidates.length,...totals};
+        conflicts,matched,shipments:candidates.length,...totals};
     });
     return status;
   }
@@ -369,12 +374,12 @@
     const number = numberValue ? `<div class="pickup-item-note">${esc(tr('pickupCalendar.label.customerNumber'))}: ${esc(numberValue)}</div>` : '';
     const linkState = status && status.state ? status.state : '';
     const linkKey = {done:'pickupCalendar.fix.done',partial:'pickupCalendar.fix.partial',planned:'pickupCalendar.fix.planned'}[linkState];
-    const refs = status && status.refs && status.refs.length ? ` · ${esc(status.refs.join(', '))}` : '';
+    const refButtons = status && status.matched && status.matched.length ? `<div class="pickup-item-actions">${status.matched.slice(0,60).map(sh=>`<button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(sh.key)}">${esc(sh.ref)}</button>`).join('')}</div>` : '';
     const conflict = status && (status.conflicts||[]).length || status && status.legacyConflict;
     const stats = status && status.shipments ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.badge.shipment'))}: <strong>${status.shipments}</strong></span><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${status.total}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${status.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${status.open}</strong></span></div>` : '';
-    const link = conflict ? `<div class="pickup-fix-link" data-pickup-fix-state="conflict" role="status">${esc(tr('pickupCalendar.assignment.check'))}</div>` : linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}${refs}</div>` : '';
+    const link = conflict ? `<div class="pickup-fix-link" data-pickup-fix-state="conflict" role="status">${esc(tr('pickupCalendar.assignment.check'))}</div>` : linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}</div>` : '';
     const actions = manage ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">${esc(tr('pickupCalendar.action.edit'))}</button><button type="button" class="pickup-btn" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${esc(tr(item.active === false ? 'pickupCalendar.action.reactivate' : 'pickupCalendar.action.deactivate'))}</button></div>` : '';
-    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${stats}${actions}</article>`;
+    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${stats}${refButtons}${actions}</article>`;
   }
   function renderShipmentCard(shipment){
     const collis = shipmentColliState(shipment);
