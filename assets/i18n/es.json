@@ -626,6 +626,7 @@
   "pickupCalendar.field.customerNumber": "Número(s) de cliente",
   "pickupCalendar.field.customerNumberHint": "Separe varios con comas. Cuando ese día se recoge un envío con este número de cliente, la recogida se marca en verde como hecha.",
   "pickupCalendar.label.customerNumber": "N.º cliente",
+  "pickupCalendar.assignment.check": "Verificar asociación",
   "pickupCalendar.fix.done": "Recogido",
   "pickupCalendar.fix.partial": "Recogido parcialmente",
   "pickupCalendar.fix.planned": "Envío registrado",
