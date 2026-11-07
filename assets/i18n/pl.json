@@ -2580,5 +2580,17 @@
   "rc1900.notePlaceholder": "Notatka do przesyłki",
   "rc1900.more": "Więcej",
   "rc1900.shipment": "Przesyłka",
-  "rc1900.title": "Przegląd przesyłek"
+  "rc1900.title": "Przegląd przesyłek",
+  "rc1901.title": "Widok przesyłki",
+  "rc1901.tabOverview": "Przegląd",
+  "rc1901.tabDocuments": "Dokumenty",
+  "rc1901.tabProof": "Dokumentacja wysyłki",
+  "rc1901.tabHistory": "Historia",
+  "rc1901.progress": "Postęp przesyłki",
+  "rc1901.stepCreated": "Utworzona",
+  "rc1901.stepAbd": "ABD",
+  "rc1901.stepReady": "Gotowa",
+  "rc1901.stepPicked": "Odebrana",
+  "rc1901.stepPod": "POD",
+  "rc1901.stepDone": "Zakończona"
 }

@@ -2580,5 +2580,17 @@
   "rc1900.notePlaceholder": "Nota sulla spedizione",
   "rc1900.more": "Altro",
   "rc1900.shipment": "Spedizione",
-  "rc1900.title": "Panoramica spedizioni"
+  "rc1900.title": "Panoramica spedizioni",
+  "rc1901.title": "Vista spedizione",
+  "rc1901.tabOverview": "Panoramica",
+  "rc1901.tabDocuments": "Documenti",
+  "rc1901.tabProof": "Documentazione di spedizione",
+  "rc1901.tabHistory": "Cronologia",
+  "rc1901.progress": "Avanzamento spedizione",
+  "rc1901.stepCreated": "Creata",
+  "rc1901.stepAbd": "ABD",
+  "rc1901.stepReady": "Pronta",
+  "rc1901.stepPicked": "Ritirata",
+  "rc1901.stepPod": "POD",
+  "rc1901.stepDone": "Conclusa"
 }

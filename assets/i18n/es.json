@@ -2580,5 +2580,17 @@
   "rc1900.notePlaceholder": "Nota sobre el envío",
   "rc1900.more": "Más",
   "rc1900.shipment": "Envío",
-  "rc1900.title": "Resumen de envíos"
+  "rc1900.title": "Resumen de envíos",
+  "rc1901.title": "Vista del envío",
+  "rc1901.tabOverview": "Resumen",
+  "rc1901.tabDocuments": "Documentos",
+  "rc1901.tabProof": "Documentación de envío",
+  "rc1901.tabHistory": "Historial",
+  "rc1901.progress": "Progreso del envío",
+  "rc1901.stepCreated": "Creado",
+  "rc1901.stepAbd": "ABD",
+  "rc1901.stepReady": "Listo",
+  "rc1901.stepPicked": "Recogido",
+  "rc1901.stepPod": "POD",
+  "rc1901.stepDone": "Cerrado"
 }
