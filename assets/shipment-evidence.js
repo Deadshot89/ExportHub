@@ -22,7 +22,7 @@ async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLS
 function dateText(s){try{return s?new Date(s).toLocaleDateString(language()==='de'?'de-DE':'en-GB'):''}catch(_){return s}}
 function hero(title,desc){const h=make('header','eh1903-hero');h.appendChild(make('h1',null,title));h.appendChild(make('p','eh1903-muted',desc));return h}
 function initPage(){const container=host();if(!container)return null;const app=make('main');app.id='eh1903-root';container.replaceChildren(app);d.body.setAttribute('data-exporthub-view','shipmentevidence');return app}
-function showList(){state.view='list';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
+function showList(){state.serial++;state.view='list';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));app.appendChild(actions);
  const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('list')));
  const search=make('input');search.type='search';search.placeholder=t('search');search.value=state.search;search.setAttribute('aria-label',t('search'));panel.appendChild(search);
@@ -53,11 +53,22 @@ function labelField(grid,key,kind,value){const label=make('label',key==='content
  if(kind!=='textarea')el.type=kind;if(key==='colli'||key==='weightKg'){el.min='0';el.step=key==='colli'?'1':'0.001';}
  el.value=value==null?'':value;label.appendChild(el);grid.appendChild(label);return el}
 function readFields(app){const values={};app.querySelectorAll('[data-evidence-field]').forEach(el=>values[el.getAttribute('data-evidence-field')]=String(el.value||'').trim());return values}
-async function write(action,extra){if(state.busy)return null;state.busy=true;status(t('saving'),false);
- try{const payload={action,...extra};if(state.record&&state.record.id){payload.id=state.record.id;payload.expectedRevision=state.record.revision}
-  const result=await request('POST',payload);state.record=result.record;
-  showForm(state.record);status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);return result;
- }catch(e){status(e.message,true);return null}finally{state.busy=false}}
+async function write(action,extra,expectedId){
+ if(state.busy||state.view!=='form'||!active())return null;
+ const originalId=state.record&&state.record.id||null;
+ if(expectedId&&expectedId!==originalId)return null;
+ const serial=state.serial;state.busy=true;status(t('saving'),false);
+ try{const payload={action,...extra};if(originalId){payload.id=originalId;payload.expectedRevision=state.record.revision}
+  const result=await request('POST',payload);
+  if(serial===state.serial&&state.view==='form'&&active()&&
+    (state.record&&state.record.id||null)===originalId){
+   state.record=result.record;showForm(state.record);
+   status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);
+  }
+  return result;
+ }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
+ finally{state.busy=false}
+}
 function showForm(record){state.view='form';if(record!==undefined)state.record=record;const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
@@ -78,10 +89,20 @@ function showForm(record){state.view='form';if(record!==undefined)state.record=r
 function uploadsPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('files')));panel.appendChild(make('p','eh1903-muted',t('info')));
  const grid=make('div','eh1903-uploads');
  for(const [kind,key,accept] of [['foto','uploadPhotos','image/jpeg,image/png'],['lieferschein','uploadNotes','application/pdf,image/jpeg,image/png']]){
-  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.disabled=!record;input.addEventListener('change',async()=>{const selected=[...input.files];input.value='';if(!state.record){status(t('uploadFirst'),true);return}
-   for(const file of selected){if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
-    try{status(t('uploading'),false);const base64=await asBase64(file);const uploaded=await write('upload',{kind,fileName:file.name,base64});if(!uploaded)break}
-    catch(e){status(e.message,true);break}}
+  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.disabled=!record;input.addEventListener('change',async()=>{
+   const selected=[...input.files],docId=record&&record.id;
+   input.value='';
+   if(!docId||!state.record||state.record.id!==docId){status(t('uploadFirst'),true);return}
+   for(const file of selected){
+    if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
+    if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
+    try{
+     status(t('uploading'),false);
+     const base64=await asBase64(file);
+     const uploaded=await write('upload',{kind,fileName:file.name,base64},docId);
+     if(!uploaded)break;
+    }catch(e){status(e.message,true);break}
+   }
   });label.appendChild(input);cell.appendChild(label);grid.appendChild(cell)}
  panel.appendChild(grid);
  if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
