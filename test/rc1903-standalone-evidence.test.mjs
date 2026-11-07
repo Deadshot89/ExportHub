@@ -213,8 +213,8 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
    }
   })
  }));
- async function call(method,input={},token='',origin='https://www.exporthub360.de'){
-  const headers={host:'www.exporthub360.de'};
+ async function call(method,input={},token='',origin='https://www.exporthub360.de',extraHeaders={}){
+  const headers={host:'www.exporthub360.de',...extraHeaders};
   if(origin)headers.origin=origin;
   if(token)headers['x-exporthub-evidence-token']=token;
   const ctx={};await doc(ctx,{method,headers,query:method==='GET'?input:{},body:method==='POST'?input:undefined});return ctx.res
@@ -262,9 +262,35 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  const staff=await call('GET',{action:'get',id:docId});
  assert.equal(staff.status,200);
  assert.ok(!('publicAccess' in JSON.parse(staff.body).record));
+ // Interne Beschwerden und Team-Dateien bleiben fuer den Gast unsichtbar.
+ const staffRecord=JSON.parse(staff.body).record;
+ const report=await call('POST',{action:'complaint',id:docId,expectedRevision:staffRecord.revision,text:'Interne Kundenbeschwerde'});
+ assert.equal(report.status,200,report.body);
+ const reported=JSON.parse(report.body).record;
+ const pdfBytes=Buffer.from('%PDF-1.7\\n1 0 obj\\nendobj\\n');
+ const teamFile=await call('POST',{action:'upload',id:docId,expectedRevision:reported.revision,kind:'lieferschein',fileName:'Intern.pdf',base64:pdfBytes.toString('base64')});
+ assert.equal(teamFile.status,200,teamFile.body);
+ const internalId=JSON.parse(teamFile.body).record.files.find(file=>file.uploadedBy!=='Gastformular').id;
+ const scoped=await call('GET',{action:'public-get',id:docId},first.publicToken);
+ assert.equal(scoped.status,200,scoped.body);
+ const publicView=JSON.parse(scoped.body).record;
+ assert.ok(!('complaints' in publicView));
+ assert.ok(!('history' in publicView));
+ assert.ok(!('updatedBy' in publicView));
+ assert.equal(publicView.files.length,1);
+ const forbiddenInternal=await call('GET',{action:'public-file',id:docId,fileId:internalId},first.publicToken);
+ assert.equal(forbiddenInternal.status,404);
  const list=await call('GET',{action:'list'});
  assert.equal(list.status,200);
  assert.ok(!('publicAccess' in JSON.parse(list.body).records[0]));
  assert.ok(names.some(k=>k.includes('/public-rate/')));
  assert.ok(names.some(k=>k.includes('/files/'+docId+'/')));
+ // Gefaelschte X-Forwarded-For-Werte duerfen keine neuen Kontingente freischalten.
+ for(let i=0;i<3;i++){
+  const other=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{'x-forwarded-for':'203.0.113.'+(i+1)});
+  assert.equal(other.status,201,other.body);
+ }
+ const blocked=await call('POST',{action:'public-create',fields:valid,website:''},'','https://www.exporthub360.de',{'x-forwarded-for':'203.0.113.250'});
+ assert.equal(blocked.status,429,blocked.body);
+ assert.equal(JSON.parse(blocked.body).code,'PUBLIC_RATE_LIMIT');
 });
