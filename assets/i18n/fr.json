@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Envoi confirmé",
   "urgentOrderV2.mailConfirmPrompt": "Cet e-mail a-t-il réellement été envoyé depuis votre messagerie ? La confirmation sera enregistrée avec votre compte.",
   "urgentOrderV2.mailConfirmSaved": "Confirmation d'envoi enregistrée.",
+  "urgentOrderV2.mailNoteRequired": "Veuillez décrire le problème (au moins 8 caractères).",
+  "urgentOrderV2.mailDraftReady": "Le brouillon d’e-mail est prêt.",
   "urgentOrderV2.mailRequireText": "Veuillez d'abord rédiger le texte de l'e-mail.",
   "urgentOrderV2.mailSaving": "Enregistrement du texte de l'e-mail dans la commande …",
   "urgentOrderV2.mailSaved": "Texte de l'e-mail enregistré. Confirmez ensuite l'envoi dans l'historique de la commande.",
