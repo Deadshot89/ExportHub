@@ -143,9 +143,9 @@
     return !!(x.recurrence==='weekly'||x.seriesId||x.isTemplate||x.masterTaskRC848)&&
       (name===names[weekday]||Number(name)===weekday);
   }
-  function pickupAssociationForDate(fixed,dayShipments,doneShipments,tasks,dateKey,weekday){
+  function pickupAssociationForDate(fixed,dayShipments,doneShipments,tasks,dateKey,weekday,companyKey){
     const active=Array.isArray(fixed)?fixed:[];
-    const matched=Array.isArray(tasks)?tasks.filter(t=>t&&t.pickupTargetId&&taskCustomerNumbers(t).length&&taskOnPickupDay(t,dateKey,weekday)):[];
+    const matched=Array.isArray(tasks)?tasks.filter(t=>t&&t.pickupTargetId&&String(t.pickupTargetCompanyKey||'')===String(companyKey||'')&&!!companyKey&&taskCustomerNumbers(t).length&&taskOnPickupDay(t,dateKey,weekday)):[];
     const mappings=new Map(),byCustomer=new Map();
     matched.forEach(t=>{
       const target=String(t.pickupTargetId||'').trim();
@@ -204,14 +204,14 @@
     monday.setDate(monday.getDate() + Math.trunc(number(weekOffset)) * 7);
     return monday;
   }
-  function itemsForDate(fixedPickups, shipments, tasks, date){
+  function itemsForDate(fixedPickups, shipments, tasks, companyKey, date){
     const weekday = date.getDay();
     const dateKey = dateKeyLocal(date);
     const fixed = weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [];
     const open = shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment));
     const doneShipments = shipments.filter(shipment => shipment && shipmentIsCompleted(shipment) && !shipmentCancelled(shipment) && shipmentDoneDate(shipment) === dateKey);
     const fixedStatus = {};
-    Object.assign(fixedStatus,pickupAssociationForDate(fixed,open,doneShipments,tasks,dateKey,weekday));
+    Object.assign(fixedStatus,pickupAssociationForDate(fixed,open,doneShipments,tasks,dateKey,weekday,companyKey));
     return { fixed, shipments: open, doneShipments, fixedStatus };
   }
   function buildCalendarModel(input){
@@ -221,6 +221,7 @@
     const fixedPickups = Array.isArray(options.fixedPickups) ? options.fixedPickups : [];
     const shipments = Array.isArray(options.shipments) ? options.shipments : [];
     const tasks = Array.isArray(options.tasks) ? options.tasks : [];
+    const companyKey=String(options.companyKey||'');
     const weekOffset = Math.trunc(number(options.weekOffset));
     const monday = shiftedWeekMonday(todayDate,weekOffset);
     const days = [];
@@ -228,7 +229,7 @@
     for (let weekday = 1; weekday <= 5; weekday += 1) {
       const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + weekday - 1, 12, 0, 0, 0);
       const dateKey = dateKeyLocal(date);
-      const source = itemsForDate(fixedPickups,shipments,tasks,date);
+      const source = itemsForDate(fixedPickups,shipments,tasks,companyKey,date);
       days.push({
         weekday,
         label: weekdayLabel(weekday),
@@ -243,7 +244,7 @@
 
     const jsWeekday = todayDate.getDay();
     const regular = jsWeekday >= 1 && jsWeekday <= 5;
-    const todaySource = regular ? itemsForDate(fixedPickups,shipments,tasks,todayDate) : {fixed:[],shipments:[],doneShipments:[],fixedStatus:{}};
+    const todaySource = regular ? itemsForDate(fixedPickups,shipments,tasks,companyKey,todayDate) : {fixed:[],shipments:[],doneShipments:[],fixedStatus:{}};
     const weekEnd = days.length ? days[days.length-1].date : monday;
     return {
       weekOffset,
@@ -279,6 +280,7 @@
       fixedPickups: [],
       shipments: [],
       tasks: [],
+      companyKey: '',
       weekOffset: 0,
       canEdit: false,
       fixedLoading: false,
@@ -421,7 +423,7 @@
   }
   function printCurrentWeek(){
     if (!mountedState || !root || !root.document || !root.document.body || typeof root.print !== 'function') return false;
-    const model = buildCalendarModel({today:mountedOptions && mountedOptions.today || new Date(),weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,shipments:mountedState.shipments,tasks:mountedState.tasks});
+    const model = buildCalendarModel({today:mountedOptions && mountedOptions.today || new Date(),weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,shipments:mountedState.shipments,tasks:mountedState.tasks,companyKey:mountedState.companyKey});
     const doc = root.document;
     const body = doc.body;
     const previous = body.querySelector('.pickup-print-portal');
@@ -456,7 +458,7 @@
   }
   function render(rootElement, state, today){
     if (!rootElement || !state) return;
-    const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments,tasks:state.tasks});
+    const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments,tasks:state.tasks,companyKey:state.companyKey});
     const loading = state.fixedLoading || state.shipmentLoading;
     rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>${esc(tr('pickupCalendar.title'))}</h2><p>${esc(tr('pickupCalendar.subtitle'))}</p></div>${loading?`<span class="pickup-loading">${esc(tr('pickupCalendar.updating'))}</span>`:''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">${esc(tr('pickupCalendar.badge.shipment'))}: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}${renderWeekToolbar(model)}<div class="pickup-week">${model.days.map(day=>renderDay(day,model.today.regular?model.today.dateKey:'')).join('')}</div>${renderForm(state)}</div>`;
   }
@@ -503,6 +505,7 @@
       const data = await readResponse(response);
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
       requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
+      requestState.companyKey=String(data.companyKey||'');
       requestState.canEdit = data.canEdit === true;
     } catch (e) {
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
