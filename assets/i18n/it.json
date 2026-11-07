@@ -1165,6 +1165,8 @@
   "theme.azur": "Azur",
   "theme.stahl": "Stahl",
   "theme.polar": "Polar",
+  "rc1930.userMenu": "Menu utente",
+  "rc1930.notifications": "Notifiche",
   "loadingList.documentCount": "{{count}} documenti",
   "loadingList.resultCount": "{{count}} risultati",
   "loadingList.shipmentCount": "{{count}} spedizioni",

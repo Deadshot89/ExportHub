@@ -16,7 +16,7 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-kicker{display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
 #rc1900Overview#rc1900Overview .rc1900-head h1{margin:4px 0 0!important;font-size:34px!important;line-height:1.1!important;font-weight:800!important;letter-spacing:-.03em!important;color:var(--ink)!important}
 #rc1900Overview#rc1900Overview .rc1900-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;flex:1 1 520px;min-width:0}
-#rc1900Overview#rc1900Overview .rc1900-search{display:flex;align-items:center;gap:8px;height:44px;flex:0 1 380px;min-width:220px;padding:0 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+#rc1900Overview#rc1900Overview .rc1900-search{display:flex;align-items:center;gap:8px;height:44px;flex:0 1 380px;min-width:220px;padding:0 14px;background:var(--eh-card,#fff);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 #rc1900Overview#rc1900Overview .rc1900-search span{font-size:18px;color:var(--muted)}
 #rc1900Overview#rc1900Overview .rc1900-search input{flex:1;min-width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;font:inherit;font-size:14px;color:var(--ink);height:auto!important;min-height:0!important;padding:0!important}
 #rc1900Overview#rc1900Overview .rc1900-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 4px rgb(var(--eh-p3-rgb,99 102 241)/.14)}
@@ -24,7 +24,7 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:12px;border:1px solid transparent;font-size:13.5px!important;font-weight:650;white-space:nowrap;transition:background-color .15s,border-color .15s,box-shadow .15s}
 #rc1900Overview#rc1900Overview .rc1900-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgb(var(--eh-p-rgb,79 70 229)/.25)}
 #rc1900Overview#rc1900Overview .rc1900-btn-primary:hover{background:linear-gradient(135deg,var(--eh-pd,#4338ca),var(--eh-p2,#6d28d9))}
-#rc1900Overview#rc1900Overview .rc1900-btn-ghost{background:#fff;color:#28324a;border-color:#d6dbe8}
+#rc1900Overview#rc1900Overview .rc1900-btn-ghost{background:var(--eh-card,#fff);color:#28324a;border-color:#d6dbe8}
 #rc1900Overview#rc1900Overview .rc1900-btn-ghost:hover{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#c7cbfb)}
 #rc1900Overview#rc1900Overview .rc1900-btn-soft{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#dfe2ff)}
 #rc1900Overview#rc1900Overview .rc1900-btn-soft:hover{background:var(--eh-pl,#e0e4ff)}
@@ -37,7 +37,7 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-body{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
 #rc1900Overview#rc1900Overview .rc1900-body.has-detail{grid-template-columns:240px minmax(0,1fr) minmax(380px,460px)}
 
-#rc1900Overview#rc1900Overview .rc1900-rail{position:sticky;top:92px;display:flex;flex-direction:column;gap:4px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+#rc1900Overview#rc1900Overview .rc1900-rail{position:sticky;top:92px;display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--eh-card,#fff);border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 #rc1900Overview#rc1900Overview .rc1900-rail-item{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:10px;width:100%;min-height:42px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:#344054;font-size:14px;font-weight:600;text-align:left}
 #rc1900Overview#rc1900Overview .rc1900-rail-item:hover{background:var(--soft)}
 #rc1900Overview#rc1900Overview .rc1900-rail-item.is-active{background:color-mix(in srgb,var(--c,var(--eh-p,#4f46e5)) 12%,#fff);color:var(--ink)}
@@ -45,10 +45,10 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-rail-item.is-active b{background:var(--c,var(--eh-p,#4f46e5));color:#fff}
 #rc1900Overview#rc1900Overview .rc1900-dot{width:10px;height:10px;border-radius:50%;background:var(--c,var(--eh-p,#4f46e5));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--eh-p,#4f46e5)) 20%,transparent)}
 
-#rc1900Overview#rc1900Overview .rc1900-list{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.05);overflow:hidden}
+#rc1900Overview#rc1900Overview .rc1900-list{background:var(--eh-card,#fff);border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.05);overflow:hidden}
 #rc1900Overview#rc1900Overview .rc1900-list-head,#rc1900Overview#rc1900Overview .rc1900-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) minmax(0,1fr) 70px minmax(0,1fr) 170px 20px;align-items:center;gap:14px}
 #rc1900Overview#rc1900Overview .rc1900-list-head{padding:12px 20px 12px 26px;background:var(--soft);border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-#rc1900Overview#rc1900Overview .rc1900-row{position:relative;width:100%;min-height:68px;padding:12px 20px 12px 26px;border:0;border-bottom:1px solid #eef0f5;background:#fff;color:var(--ink);text-align:left;font-size:14px}
+#rc1900Overview#rc1900Overview .rc1900-row{position:relative;width:100%;min-height:68px;padding:12px 20px 12px 26px;border:0;border-bottom:1px solid #eef0f5;background:var(--eh-card,#fff);color:var(--ink);text-align:left;font-size:14px}
 #rc1900Overview#rc1900Overview .rc1900-row:last-child{border-bottom:0}
 #rc1900Overview#rc1900Overview .rc1900-row::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:5px;border-radius:0 5px 5px 0;background:var(--c,var(--eh-p3,#6366f1))}
 #rc1900Overview#rc1900Overview .rc1900-row:hover{background:var(--eh-ps,#fafaff)}
@@ -63,12 +63,12 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-empty{padding:48px 20px;text-align:center;color:var(--muted)}
 
 /* Detailfenster */
-#rc1900Overview#rc1900Overview .rc1900-detail{position:sticky;top:92px;max-height:calc(100vh - 110px);overflow:auto;background:#fff;border:1px solid var(--line);border-top:6px solid var(--c,var(--eh-p3,#6366f1));border-radius:18px;box-shadow:0 2px 6px rgba(16,24,40,.05),0 24px 60px rgba(16,24,40,.12);padding:20px 22px 24px;animation:rc1900-in .16s ease-out}
+#rc1900Overview#rc1900Overview .rc1900-detail{position:sticky;top:92px;max-height:calc(100vh - 110px);overflow:auto;background:var(--eh-card,#fff);border:1px solid var(--line);border-top:6px solid var(--c,var(--eh-p3,#6366f1));border-radius:18px;box-shadow:0 2px 6px rgba(16,24,40,.05),0 24px 60px rgba(16,24,40,.12);padding:20px 22px 24px;animation:rc1900-in .16s ease-out}
 @keyframes rc1900-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
 #rc1900Overview#rc1900Overview .rc1900-detail-top{display:flex;justify-content:space-between;gap:12px}
 #rc1900Overview#rc1900Overview .rc1900-detail-top h2{margin:10px 0 2px!important;font-size:26px!important;font-weight:800!important;letter-spacing:-.02em!important}
 #rc1900Overview#rc1900Overview .rc1900-detail-top p{margin:0!important;color:var(--muted)!important;font-size:14px!important}
-#rc1900Overview#rc1900Overview .rc1900-close{width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:20px!important;line-height:1;color:#475467}
+#rc1900Overview#rc1900Overview .rc1900-close{width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--eh-card,#fff);font-size:20px!important;line-height:1;color:#475467}
 #rc1900Overview#rc1900Overview .rc1900-close:hover{background:var(--soft)}
 #rc1900Overview#rc1900Overview .rc1900-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 6px}
 #rc1900Overview#rc1900Overview .rc1900-facts div{padding:10px 12px;background:var(--soft);border-radius:12px}
@@ -82,7 +82,7 @@ html[data-eh-newui][data-rc1900-view="overview"][data-rc1900-classic] #content.r
 #rc1900Overview#rc1900Overview .rc1900-links strong{font-size:13.5px}
 #rc1900Overview#rc1900Overview .rc1900-links span{font-size:13px;color:var(--muted)}
 #rc1900Overview#rc1900Overview .rc1900-note{width:100%;min-height:84px;padding:10px 12px;border:1px solid #d6dbe8;border-radius:12px;background:#fbfbfe;font:inherit;font-size:14px;color:var(--ink);resize:vertical}
-#rc1900Overview#rc1900Overview .rc1900-note:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 4px rgb(var(--eh-p3-rgb,99 102 241)/.14);background:#fff}
+#rc1900Overview#rc1900Overview .rc1900-note:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 4px rgb(var(--eh-p3-rgb,99 102 241)/.14);background:var(--eh-card,#fff)}
 #rc1900Overview#rc1900Overview .rc1900-note-status{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
 
 /* mittlere Breiten: Detail über der Liste ausgeklappt rechts als Schublade */

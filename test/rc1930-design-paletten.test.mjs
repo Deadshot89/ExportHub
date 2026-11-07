@@ -85,3 +85,16 @@ test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',(
     assert.equal(pack['theme.neu'],'Horizont');
   }
 });
+
+test('RC1930: Design-Rahmen (Glocke, Benutzermenü) löst nur Original-Knöpfe aus und ist eingebunden',()=>{
+  const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
+  assert.match(builder,/rc1930-design-rahmen\.js\?v=1930/);
+  assert.match(builder,/'assets\/rc1930-design-rahmen\.js'/);
+  assert.match(builder,/RC1930 Design-Rahmen fehlt/);
+  assert.match(frame,/data-view="notifications"/);
+  assert.doesNotMatch(frame,/fetch\(|XMLHttpRequest|localStorage\.setItem|location\.(assign|href\s*=|reload)/);
+  for(const lang of ['de','en','fr','it','es','pl']){
+    const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    for(const key of ['rc1930.userMenu','rc1930.notifications'])assert.ok(String(pack[key]||'').trim(),lang+' '+key);
+  }
+});
