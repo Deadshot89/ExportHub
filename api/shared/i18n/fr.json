@@ -275,6 +275,8 @@
   "api.reference.docEmpty": "Le fichier est vide ou invalide.",
   "api.reference.docTooLarge": "Le fichier dépasse 15 Mo.",
   "api.reference.docSignatureInvalid": "Le contenu du fichier ne correspond pas au type de fichier.",
+  "api.urgent.hello": "Salut,",
+  "api.urgent.teamFallback": "Logistique",
   "api.urgent.issueDescriptionRequired": "Veuillez décrire le problème (au moins 8 caractères).",
   "api.urgent.subjectIssue": "Commande urgente – Problème / ",
   "api.urgent.subjectShipping": "Commande urgente – Confirmation d’expédition / ",
