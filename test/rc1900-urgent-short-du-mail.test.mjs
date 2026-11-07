@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 
 const require=createRequire(import.meta.url);
 const urgent=require('../api/shared/urgent-orders.js');
+const translator=require('../api/shared/urgent-mail-translation.js');
 
 function sample(status='Problem'){
  return{
@@ -63,5 +64,38 @@ test('Mail composer reuses stored problem notes and API never trusts browser sen
  assert.match(page,/function websiteProblemText\(order\)/);
  assert.match(page,/item\.problemNote,item\.exceptionReason/);
  assert.match(page,/\$\('mailIssue'\)\.value=kind==='problem'\?websiteProblemText\(o\):''/);
- assert.match(api,/model\.draftMail\(order,model\.text\(p\.kind,30\),model\.language\(p\.language\|\|order\.language\),p\.note,user\)/);
+ assert.match(api,/model\.draftMail\(order,kind,lang,translation\.text,user\)/);
+ assert.match(page,/noteLanguage:websiteLanguage/);
+ assert.match(page,/r\.translationWarningText/);
+});
+
+test('Free-text problem is translated to the chosen mail language with server-only API credentials',async()=>{
+ let url='',body='',key='';
+ const result=await translator.translateIssueNote('Artikel fehlt','de','en',{
+  config:{configured:true,endpoint:'https://api.cognitive.microsofttranslator.com',region:'westeurope',key:'server-secret'},
+  fetchImpl:async(request,opts)=>{
+   url=request;body=opts.body;key=opts.headers['Ocp-Apim-Subscription-Key'];
+   return{ok:true,json:async()=>[{detectedLanguage:{language:'de'},translations:[{to:'en',text:'Item missing'}]}]};
+  }
+ });
+ assert.match(url,/to=en/);
+ assert.deepEqual(JSON.parse(body),[{Text:'Artikel fehlt'}]);
+ assert.equal(key,'server-secret');
+ assert.deepEqual(result,{text:'Item missing',translated:true,translationWarning:false});
+});
+
+test('No translator is NOT silently treated as an already translated problem',async()=>{
+ const result=await translator.translateIssueNote('Artikel fehlt','de','en',{config:{configured:false}});
+ assert.deepEqual(result,{text:'Artikel fehlt',translated:false,translationWarning:true});
+ const same=await translator.translateIssueNote('Artikel fehlt','de','de',{config:{configured:false}});
+ assert.equal(same.translationWarning,false);
+});
+
+test('Translator outages keep editable original without claiming successful translation',async()=>{
+ const failed=await translator.translateIssueNote('Artikel fehlt','de','en',{
+  config:{configured:true,endpoint:'https://translator.example',key:'server-secret'},
+  fetchImpl:async()=>{throw Error('offline');}
+ });
+ assert.equal(failed.text,'Artikel fehlt');
+ assert.equal(failed.translationWarning,true);
 });
