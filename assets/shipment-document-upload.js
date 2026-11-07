@@ -85,7 +85,7 @@ async function uploadOne(ref,file,docKind){
   var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'upload-document',kind:docKind,reference:ref,fileName:file.name,mimeType:file.type,data:data})}),body={};
   try{body=await res.json()}catch(_){}
   if(!res.ok||body.ok===false)throw new Error(q(body.message)||('HTTP '+res.status));
-  return body.file||{};
+  var info=body.file||{};info.sharepointSaved=body.sharepointSaved;info.azureSaved=body.azureSaved;return info;
 }
 async function uploadAll(){
   var ref=refOf(currentShipment());
@@ -95,7 +95,7 @@ async function uploadAll(){
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
   for(var i=0;i<files.length;i++){
     log[i]={state:'busy',text:t('busy',{name:files[i].name})};renderList();
-    try{await uploadOne(ref,files[i],docKind);ok++;log[i]={state:'ok',text:t('saved',{name:files[i].name})}}
+    try{var info=await uploadOne(ref,files[i],docKind);ok++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
   }
