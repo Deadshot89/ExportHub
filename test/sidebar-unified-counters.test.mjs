@@ -13,11 +13,16 @@ test('Sidebar-Kennzahlen benutzen einen gemeinsamen lesbaren Zähler',()=>{
   for(const selector of ['data-pack-notifications-nav','data-exporthub-urgent-nav','data-view="notifications"','.pack-internal-nav-badge','.urgent-nav-count','.eh1872-nav-warning']){
     assert.ok(css.includes(selector),selector+' muss im gemeinsamen Zählerstil stehen');
   }
-  assert.match(css,/font:800 14px\/1\.1/);
+  assert.match(css,/font:700 12px\/1\.1/);
   assert.match(css,/background:#b42318!important/);
   assert.match(css,/color:#fff!important/);
-  assert.match(css,/min-width:28px!important/);
+  assert.match(css,/min-width:24px!important/);
   assert.match(css,/text-shadow:none!important/);
+  assert.match(css,/height:24px!important/);
+  assert.match(css,/min-height:24px!important/);
+  assert.match(css,/padding:0 6px!important/);
+  assert.match(css,/font-size:12px!important/);
+  assert.doesNotMatch(css,/font:800 14px\/1\.1/);
   assert.match(css,/@media\(max-width:1100px\)/);
   assert.match(css,/position:absolute!important/);
   assert.match(css,/@media\(max-width:760px\)/);
