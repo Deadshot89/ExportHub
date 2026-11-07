@@ -54,6 +54,7 @@ ICONS.selfcorrect='<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 
 ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
 ICONS.quality=ICONS.inspections;
 ICONS.urgentorders='<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"/>';
+ICONS.shipmentevidence=ICONS.shipmentoverview;
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -61,7 +62,7 @@ var SECTIONS=[
  // Urgent Order (pack-notification-nav.js, ohne data-view) steht direkt unter Packmeldungen
  {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','urgentorders','notifications']},
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
- {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentsearch','cmr','pickupcalendar']},
+ {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentevidence','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','quality','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
