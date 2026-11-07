@@ -32,6 +32,9 @@ jobs:
           node-version: '20'
           package-manager-cache: false
 
+      - name: Install API runtime dependencies
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+
       - name: RC1903 API and rights regression
         run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs
 
