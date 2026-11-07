@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Invio confermato",
   "urgentOrderV2.mailConfirmPrompt": "Questa e-mail è stata effettivamente inviata dal programma di posta? La conferma verrà registrata con il tuo account.",
   "urgentOrderV2.mailConfirmSaved": "Conferma di invio salvata.",
+  "urgentOrderV2.mailNoteRequired": "Descrivere il problema (almeno 8 caratteri).",
+  "urgentOrderV2.mailDraftReady": "La bozza dell’e-mail è pronta.",
   "urgentOrderV2.mailRequireText": "Prima scrivi il testo dell'e-mail.",
   "urgentOrderV2.mailSaving": "Salvataggio del testo dell'e-mail nell'ordine …",
   "urgentOrderV2.mailSaved": "Testo dell'e-mail salvato. Dopo l'invio, confermalo nella cronologia dell'ordine.",

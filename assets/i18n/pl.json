@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Wysłanie potwierdzone",
   "urgentOrderV2.mailConfirmPrompt": "Czy ta wiadomość została rzeczywiście wysłana w programie pocztowym? Potwierdzenie zostanie zapisane z Twoim kontem.",
   "urgentOrderV2.mailConfirmSaved": "Potwierdzenie wysłania zostało zapisane.",
+  "urgentOrderV2.mailNoteRequired": "Proszę opisać problem (co najmniej 8 znaków).",
+  "urgentOrderV2.mailDraftReady": "Szkic wiadomości e-mail jest gotowy.",
   "urgentOrderV2.mailRequireText": "Najpierw przygotuj treść wiadomości e-mail.",
   "urgentOrderV2.mailSaving": "Trwa zapisywanie treści wiadomości w zleceniu …",
   "urgentOrderV2.mailSaved": "Treść wiadomości została zapisana. Po wysłaniu potwierdź to w historii zlecenia.",
