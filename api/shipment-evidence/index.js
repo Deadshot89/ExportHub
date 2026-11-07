@@ -1,6 +1,7 @@
 'use strict';
 // RC1903: eigenstaendige Versandnachweise ohne ExportHUB-Sendungsdatensatz.
 const crypto=require('node:crypto');
+const net=require('node:net');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const rights=require('../shared/state-write-guard');
@@ -62,6 +63,13 @@ function guestOrigin(req){
 }
 function publicHash(secret){return crypto.createHash('sha256').update(secret).digest('hex')}
 function cleanRecord(record){const {publicAccess,...safe}=record;return safe}
+// Gastantworten duerfen weder interne Beschwerden/Verlaufsdaten noch Team-Uploads offenlegen.
+function publicRecord(record){
+ return{id:record.id,revision:record.revision,fields:record.fields,
+  files:(record.files||[]).filter(file=>file.uploadedBy==='Gastformular').map(file=>({
+   id:file.id,name:file.name,kind:file.kind,mime:file.mime,size:file.size,uploadedAt:file.uploadedAt
+  })),createdAt:record.createdAt,updatedAt:record.updatedAt};
+}
 function verifyGuest(req,record){
  const h=req.headers||{},token=txt(h['x-exporthub-evidence-token']||h['X-ExportHUB-Evidence-Token'],128);
  if(!/^[A-Za-z0-9_-]{40,60}$/.test(token)||!record.publicAccess||
@@ -71,11 +79,14 @@ function verifyGuest(req,record){
 }
 async function ratePublicCreate(ctx,req){
  const h=req.headers||{};
- const ip=txt(h['x-ms-client-ip']||h['x-azure-clientip']||h['x-forwarded-for']||h['X-Forwarded-For']||'unknown',200);
+ // X-Forwarded-For kann vom Aufrufer manipuliert werden und darf nicht die Quote umschalten.
+ // Wenn kein einzelner gueltiger Edge-IP-Header vorhanden ist, gilt eine kleine gemeinsame Gastquote.
+ const rawIp=txt(h['x-ms-client-ip']||h['X-MS-CLIENT-IP']||h['x-azure-clientip']||h['X-Azure-ClientIP'],200);
+ const ip=net.isIP(rawIp)?rawIp:'unknown';
  const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
  // Count the visitor first; a blocked visitor must not exhaust the shared quota.
  // Some gateways omit the IP header; then the global quota remains the safeguard.
- const buckets=ip==='unknown'?[{key:'global',limit:40}]:[
+ const buckets=ip==='unknown'?[{key:'unidentified',limit:4},{key:'global',limit:40}]:[
   {key:'client-'+publicHash(ip).slice(0,24),limit:12},
   {key:'global',limit:40}
  ];
@@ -118,12 +129,16 @@ async function guestRequest(req,method,payload,action){
    publicAccess:{hash:publicHash(token),expiresAt:new Date(Date.now()+PUBLIC_TOKEN_HOURS*3600000).toISOString()}};
   bump(record,ctx,'public-create');
   await saveRecord(docBlob(ctx,newId),record,null);
-  return json(201,{ok:true,record:cleanRecord(record),publicToken:token});
+  return json(201,{ok:true,record:publicRecord(record),publicToken:token});
  }
  const docId=id(payload.id),{blob,record,etag}=await getRecord(ctx,docId);
  verifyGuest(req,record);
- if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:cleanRecord(record)});
- if(method==='GET'&&action==='public-file')return downloadFile(ctx,docId,record,payload.fileId);
+ if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:publicRecord(record)});
+ if(method==='GET'&&action==='public-file'){
+  const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular');
+  if(!guestFile)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
+  return downloadFile(ctx,docId,record,payload.fileId);
+ }
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)
   fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
@@ -140,7 +155,7 @@ async function guestRequest(req,method,payload,action){
    fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
   await upload(ctx,record,blob,etag,payload);
  }else fail('INVALID_ACTION','Unbekannte Aktion.');
- return json(200,{ok:true,record:cleanRecord(record)});
+ return json(200,{ok:true,record:publicRecord(record)});
 }
 async function login(req,write){
  const verified=await auth.validateSession(req);
