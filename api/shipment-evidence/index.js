@@ -85,8 +85,12 @@ function rawFile(input,recordId){
  const kind=input.kind;
  if(kind!=='foto'&&kind!=='lieferschein')fail('BAD_KIND','Dateityp nicht erlaubt.');
  if(!ext||!TYPES[ext]||(kind==='foto'&&!['jpg','jpeg','png'].includes(ext)))fail('BAD_EXTENSION','Erlaubt: PDF, JPG, PNG.');
- if(!/^[A-Za-z0-9+/]*={0,2}$/.test(input.base64||''))fail('BAD_FILE','Datei ungueltig.');
- const bytes=Buffer.from(String(input.base64||''),'base64');
+ const encoded=input.base64;
+ // Reject oversized uploads before running a full base64 validation or allocating bytes.
+ if(typeof encoded!=='string')fail('BAD_FILE','Datei ungueltig.');
+ if(encoded.length>Math.ceil(MAX_FILE/3)*4)fail('MAX_FILE','Maximal 15 MB je Datei.',413);
+ if(!/^[A-Za-z0-9+/]*={0,2}$/.test(encoded))fail('BAD_FILE','Datei ungueltig.');
+ const bytes=Buffer.from(encoded,'base64');
  if(!bytes.length||bytes.length>MAX_FILE)fail('MAX_FILE','Maximal 15 MB je Datei.',413);
  const valid=(ext==='pdf'&&bytes.subarray(0,5).toString()==='%PDF-')||
  ((ext==='jpg'||ext==='jpeg')&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255)||
