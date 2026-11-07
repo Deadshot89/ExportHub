@@ -290,6 +290,7 @@
   "api.urgent.itemLabel": "Item",
   "api.urgent.qtyLabel": "Qty",
   "api.urgent.statusLabel": "Status",
+  "api.urgent.hostUntrusted": "The Urgent Order environment could not be verified. Contact logistics; do not submit again until the connection has been checked.",
   "api.urgent.serverError": "Urgent Order could not be processed. Please try again later.",
   "api.urgent.invalidRequest": "Invalid request.",
   "api.urgent.arrivalAt": "Expected arrival:",
