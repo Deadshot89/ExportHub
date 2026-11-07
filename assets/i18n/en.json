@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Sent confirmed",
   "urgentOrderV2.mailConfirmPrompt": "Was this email actually sent in your mail application? Your account will be recorded.",
   "urgentOrderV2.mailConfirmSaved": "Sent confirmation recorded.",
+  "urgentOrderV2.mailNoteRequired": "Please enter an issue description with at least 8 characters.",
+  "urgentOrderV2.mailDraftReady": "Email draft is ready.",
   "urgentOrderV2.mailRequireText": "Please create an email first.",
   "urgentOrderV2.mailSaving": "Saving the email text to the order …",
   "urgentOrderV2.mailSaved": "Email text saved. Confirm sending in the order history afterward.",
