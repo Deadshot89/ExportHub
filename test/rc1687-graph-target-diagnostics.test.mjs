@@ -48,6 +48,36 @@ async function fakeRequests(handler, run) {
   finally {https.request=old;}
 }
 function token(){return {body:{access_token:'rc1687-private-token-DO-NOT-LOG',expires_in:3600}};}
+test('RC1904: Entra token errors reveal only bounded cause categories, never private OAuth text',async()=>{
+  const cases=[
+    ['AADSTS7000222: Client secret expired; secret-private-123','CLIENT_SECRET_EXPIRED',400],
+    ['AADSTS7000215: Client secret rejected; secret-private-123','CLIENT_SECRET_REJECTED',400],
+    ['AADSTS700016: Application missing; secret-private-123','APPLICATION_NOT_FOUND',400],
+    ['AADSTS90002: Tenant missing; secret-private-123','TENANT_NOT_FOUND',400],
+    ['Unknown upstream error secret-private-123','OAUTH_CREDENTIALS_REJECTED',400],
+    ['Temporary endpoint response secret-private-123','TOKEN_ENDPOINT_UNAVAILABLE',429]
+  ];
+  for(const [description,expected,httpStatus] of cases){
+    const drive=fresh();
+    await fakeRequests(call=>{
+      assert.match(call.path,/\/oauth2\/v2\.0\/token$/);
+      return {status:httpStatus,body:{error:'invalid_client',error_description:description}};
+    }, async calls=>{
+      const result=await drive.diagnoseTarget({environment:'production'});
+      assert.equal(result.ok,false);
+      assert.equal(result.code,'GRAPH_DIAGNOSTIC_TOKEN_FAILED');
+      assert.equal(result.targetMode,'explicit-ids');
+      assert.deepEqual(result.checks.map(x=>x.stage),['app-token']);
+      assert.equal(result.checks[0].httpStatus,httpStatus);
+      assert.equal(result.checks[0].providerCode,expected);
+      assert.equal(calls.length,1,'The probe must stop before any Graph target access');
+      const safe=JSON.stringify(result);
+      for(const privateValue of ['secret-private-123','rc1687-test-client-secret','rc1687-private-drive','rc1687-private-folder'])
+        assert.equal(safe.includes(privateValue),false);
+    });
+  }
+});
+
 test('RC1687: exact Drive and folder metadata checked with GET only, no secrets in response',async()=>{
   const drive=fresh();
   await fakeRequests((call,n)=>{
