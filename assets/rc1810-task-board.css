@@ -117,6 +117,14 @@ html body[data-rc1810-board-tab="liste"] #rc1570Tasks#rc1570Tasks > .rc1570-head
 .rc1810-worktasks{padding:5px 4px 6px;background:color-mix(in srgb,var(--rc1810-surface) 84%,transparent);border-top:1px solid color-mix(in srgb,var(--rc1810-group-accent) 15%,var(--rc1810-line))}
 .rc1810-worktasks .rc1810-t{padding:4px 5px}
 .rc1810-worktasks .rc1810-name{font-weight:500}
+
+/* RC1812 – auch einmalige/systemgenerierte Aufgaben als Arbeitsgruppen; besser lesbar. */
+.rc1810-standalone{margin:0 0 8px;padding-top:2px}
+.rc1810-worktoggle{min-height:34px;font-size:.86rem;gap:7px;padding:7px 9px}
+.rc1810-workcount{font-size:.78rem;padding:2px 6px}
+.rc1810-worktasks .rc1810-name{font-size:.88rem;line-height:1.45}
+.rc1810-worktasks .rc1810-t{gap:7px;padding:5px 6px}
+.rc1810-worktasks .rc1810-box{width:19px;height:19px}
 /* Monat */
 .rc1810-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:8px 12px 12px}
 .rc1810-wd{font-size:.74rem;font-weight:800;color:var(--rc1810-muted);padding:0 4px}

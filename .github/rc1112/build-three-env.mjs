@@ -105,10 +105,10 @@ const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src=
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1754.1"></script>';
 const RC1650_SHIPMENT_TASKS_SCRIPT_TAG='<script id="exporthub-rc1650-shipment-tasks-script" defer src="/assets/rc1650-shipment-task-link.js?v=1650"></script>';
 // RC1810 Aufgabenseite (Heute/Woche/Monat/Liste) plus Betriebsferien und Feiertage im Wochenplan
-const RC1810_TASK_BOARD_STYLE_TAG='<link id="exporthub-rc1810-task-board-style" rel="stylesheet" href="/assets/rc1810-task-board.css?v=1811">';
-const RC1810_TASK_BOARD_I18N_TAG='<script id="exporthub-rc1810-task-board-i18n" defer src="/assets/i18n/rc1810-task-board.js?v=1811"></script>';
+const RC1810_TASK_BOARD_STYLE_TAG='<link id="exporthub-rc1810-task-board-style" rel="stylesheet" href="/assets/rc1810-task-board.css?v=1812">';
+const RC1810_TASK_BOARD_I18N_TAG='<script id="exporthub-rc1810-task-board-i18n" defer src="/assets/i18n/rc1810-task-board.js?v=1812"></script>';
 const RC1810_TASK_CALENDAR_SCRIPT_TAG='<script id="exporthub-rc1810-task-calendar-script" defer src="/assets/rc1810-task-calendar.js?v=1810"></script>';
-const RC1810_TASK_BOARD_SCRIPT_TAG='<script id="exporthub-rc1810-task-board-script" defer src="/assets/rc1810-task-board.js?v=1811"></script>';
+const RC1810_TASK_BOARD_SCRIPT_TAG='<script id="exporthub-rc1810-task-board-script" defer src="/assets/rc1810-task-board.js?v=1812"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
 const RC1660_SHIPMENT_SOP_STYLE_TAG='<link id="exporthub-rc1660-shipment-sop-style" rel="stylesheet" href="/assets/rc1660-shipment-sop-popup.css?v=1660">';
@@ -348,7 +348,7 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_CALENDAR_SCRIPT_TAG,'exporthub-rc1810-task-calendar-script');
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_I18N_TAG,'exporthub-rc1810-task-board-i18n');
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_SCRIPT_TAG,'exporthub-rc1810-task-board-script');
-  if(!html.includes('/assets/i18n/rc1810-task-board.js?v=1811')||!html.includes('/assets/rc1810-task-calendar.js?v=1810')||!html.includes('/assets/rc1810-task-board.js?v=1811')||!html.includes('rc1810-task-board.css?v=1811'))throw new Error(file+': RC1810 Aufgabenseite fehlt');
+  if(!html.includes('/assets/i18n/rc1810-task-board.js?v=1812')||!html.includes('/assets/rc1810-task-calendar.js?v=1810')||!html.includes('/assets/rc1810-task-board.js?v=1812')||!html.includes('rc1810-task-board.css?v=1812'))throw new Error(file+': RC1810 Aufgabenseite fehlt');
   // RC1577 admin POD audit (report first, regenerate / review flag only after confirmation)
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
