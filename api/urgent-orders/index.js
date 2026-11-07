@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const mailTranslation=require('../shared/urgent-mail-translation');
 const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
 const MAX_RETRIES=8;
 // Read-only storage calls (session check, list, counts) may be repeated after
@@ -235,7 +236,20 @@ async function execute(req,user,refs){
  if(action==='prepare-mail'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails vorbereiten.',403);
   const doc=normalize((await readDoc(refs)).value),order=accessibleOrder(doc,model.text(p.id,90),user);
-  return{draft:model.draftMail(order,model.text(p.kind,30),model.language(p.language||order.language),p.note),orderId:order.id};
+  const kind=model.text(p.kind,30),lang=model.language(p.language||order.language);
+  const originalNote=String(p.note==null?'':p.note);
+  // Translation is for the actual employee-entered website error text, not
+  // just for the fixed mail labels. Only server-side credentials are used.
+  // The draft remains editable and an unavailable translation is disclosed.
+  const translation=kind==='problem'&&originalNote.trim().length>=8
+   ?await mailTranslation.translateIssueNote(originalNote,model.language(p.noteLanguage||order.language),lang)
+   :{text:originalNote,translationWarning:false};
+  return{
+   draft:model.draftMail(order,kind,lang,translation.text,user),
+   orderId:order.id,
+   translationWarning:translation.translationWarning===true,
+   translationWarningText:translation.translationWarning?apiI18n.tLang(lang,'api.urgent.translationReview'):''
+  };
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
 }
