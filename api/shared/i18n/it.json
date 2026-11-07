@@ -277,6 +277,7 @@
   "api.reference.docSignatureInvalid": "Il contenuto del file non corrisponde al tipo di file.",
   "api.urgent.hello": "Ciao,",
   "api.urgent.teamFallback": "Logistica",
+  "api.urgent.translationReview": "Non è stato possibile tradurre automaticamente il problema. Controlla il testo prima dell'invio.",
   "api.urgent.issueDescriptionRequired": "Descrivere il problema (almeno 8 caratteri).",
   "api.urgent.subjectIssue": "Ordine urgente – Problema / ",
   "api.urgent.subjectShipping": "Ordine urgente – Conferma di spedizione / ",
