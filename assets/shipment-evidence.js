@@ -122,7 +122,7 @@ async function openRecord(id){const serial=++state.serial;state.view='form';stat
  catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
 function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;
- let node=nav.querySelector('[data-exporthub-evidence-nav]');if(!node){node=make('button');node.type='button';node.setAttribute('data-exporthub-evidence-nav','');node.setAttribute('data-menu-accent','#4c7cce');node.style.setProperty('--menu-accent','#4c7cce');
+ let node=nav.querySelector('[data-exporthub-evidence-nav]');if(!node){node=make('button');node.type='button';node.setAttribute('data-exporthub-evidence-nav','');node.setAttribute('data-index321-view','shipmentevidence');node.setAttribute('data-menu-accent','#4c7cce');node.style.setProperty('--menu-accent','#4c7cce');
  const existing=nav.querySelector('[data-exporthub-urgent-nav]')||nav.querySelector('[data-pack-notifications-nav]')||nav.querySelector('button');
  node.className=(existing&&existing.className||'').replace(/active|is-active|pack-notification-nav-entry|urgent-orders-nav-entry/g,'').trim();
  const icon=make('span','index308-nav-icon');icon.textContent='▣';const label=make('span','index308-nav-label');label.textContent=t('menu');
