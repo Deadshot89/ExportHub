@@ -1730,6 +1730,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload-i18n" defer src="/assets/i18n/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report-i18n" defer src="/assets/i18n/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report" defer src="/assets/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
@@ -1953,6 +1955,9 @@ for(const rel of [
   'assets/av-upload.js',
   'assets/i18n/shipment-document-upload.js',
   'assets/shipment-document-upload.js',
+  'assets/i18n/shipment-error-report.js',
+  'assets/shipment-error-report.js',
+  'assets/i18n/qualitaet.js',
   'assets/i18n/rc1860-shipment-documentation.js',
   'assets/rc1860-shipment-documentation.js',
   'assets/i18n/web-push.js',

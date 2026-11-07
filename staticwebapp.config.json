@@ -227,6 +227,33 @@
       }
     },
     {
+      "route": "/assets/i18n/shipment-error-report.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "route": "/assets/shipment-error-report.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "route": "/assets/i18n/qualitaet.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
       "route": "/task",
       "rewrite": "/task.html",
       "allowedRoles": [

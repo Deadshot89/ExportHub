@@ -52,9 +52,10 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 }
 </style>
 <link rel="stylesheet" href="/assets/rc1800-premium-standalone.css?v=1800">
+<script src="/assets/i18n/qualitaet.js?v=1"></script>
 </head>
 <body>
-<header><div class="top"><div class="mark" aria-hidden="true">EH</div><div><div class="brand">ExportHUB360</div><div class="tagline">Qualitätsmanagement · Fehler & Verbesserungen</div></div><a class="back" href="/">← Zur Hauptseite</a></div></header>
+<header><div class="top"><div class="mark" aria-hidden="true">EH</div><div><div class="brand">ExportHUB360</div><div class="tagline">Qualitätsmanagement · Fehler & Verbesserungen</div></div><a class="back" href="/">← Zur Hauptseite</a><select id="langSelect" aria-label="Sprache" title="Sprache" style="margin-left:12px"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></div></header>
 <main>
 <div class="titlebar"><div><h1>Fehler & Verbesserungen</h1><p>Abweichungen erfassen, Ursachen beheben und Wirksamkeit nachweisen.</p></div><div class="top-actions"><button id="newBtn" class="primary" type="button">+ Fehler dokumentieren</button> <button id="printBtn" class="subtle" type="button">Fall drucken</button></div></div>
 <div id="access" class="locked" hidden></div>
@@ -104,9 +105,10 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 <script>
 (function(){
 'use strict';
+var I18N=window.ExportHUBQualityI18n;function T(s,v){return I18N?I18N.t(s,v):s}var LOC={de:LOC,en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[I18N?I18N.language():'de']||LOC;
 var endpoint='/api/quality-capa',items=[],selected=null,canEdit=false,canClose=false,dirty=false,busy=false,currentAdvice=[],form=document.getElementById('caseForm');
 var fields=['title','category','severity','occurredOn','area','reference','description','impact','immediateAction','rootCause','correctiveAction','preventiveAction','owner','dueDate','status','evidence','effectivenessResult','verifiedOn','effectivenessEvidence'];
-var statusNames={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:'Abgeschlossen'};
+var statusNames={offen:T('Offen'),ursachenanalyse:T('Ursachenanalyse'),massnahme:T('Maßnahme'),wirksamkeitspruefung:T('Wirksamkeit prüfen'),abgeschlossen:T('Abgeschlossen')};
 function el(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function dateToday(){return new Date().toLocaleDateString('sv-SE')}
@@ -115,9 +117,9 @@ function token(){try{var a=JSON.parse(sessionStorage.getItem('exporthub_rc301_ta
 async function api(data){
  var headers={'Content-Type':'application/json','Accept':'application/json'},tk=token();if(tk){headers['X-ExportHUB-Token']=tk;headers.Authorization='Bearer '+tk}
  var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify(data)});
- if(r.type==='opaqueredirect'||r.redirected)throw Error('Die Sitzung wurde umgeleitet. Bitte in ExportHUB360 erneut anmelden.');
+ if(r.type==='opaqueredirect'||r.redirected)throw Error(T('Die Sitzung wurde umgeleitet. Bitte in ExportHUB360 erneut anmelden.'));
  var mime=r.headers.get('content-type')||'';if(!mime.includes('application/json'))throw Error('Keine gültige API-Antwort. Bitte Sitzung prüfen.');
- var j=await r.json();if(!r.ok||j.ok===false)throw Error(j.message||('HTTP '+r.status));return j
+ var j=await r.json();if(!r.ok||j.ok===false){var ex=Error(j.message||('HTTP '+r.status));ex.code=j.code||'';throw ex}return j
 }
 function notice(s,error){el('notice').textContent=s||'';el('notice').className=error?'error':''}
 function setBusy(v){busy=v;['saveBtn','tipsBtn','closeBtn','reopenBtn','newBtn'].forEach(function(x){el(x).disabled=v})}
@@ -128,9 +130,9 @@ function fill(item){
  var closed=item&&item.status==='abgeschlossen',readonly=!canEdit||closed;
  fields.forEach(function(f){form.elements[f].disabled=readonly});
  el('saveBtn').hidden=readonly;el('closeBtn').hidden=readonly||!canClose||!item;el('reopenBtn').hidden=!canClose||!closed;
- el('formTitle').textContent=item?item.title||item.id:'Neuer Fehler';
- el('formMeta').textContent=item?item.id+' · erstellt '+new Date(item.createdAt).toLocaleDateString('de-DE')+' · '+item.createdBy+' · Version '+item.revision:'Neue Abweichung mit eindeutiger Nummer erfassen';
- el('saveHint').textContent=closed?'Abgeschlossen':item?'Gespeichert':'Noch nicht gespeichert';
+ el('formTitle').textContent=item?item.title||item.id:T('Neuer Fehler');
+ el('formMeta').textContent=item?item.id+' · '+T('erstellt')+' '+new Date(item.createdAt).toLocaleDateString(LOC)+' · '+item.createdBy+' · '+T('Version')+' '+item.revision:T('Neue Abweichung mit eindeutiger Nummer erfassen');
+ el('saveHint').textContent=closed?T('Abgeschlossen'):item?T('Gespeichert'):T('Noch nicht gespeichert');
  dirty=false;currentAdvice=[];notice('');el('suggestions').classList.remove('show');history(item);
 }
 function fmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
@@ -138,20 +140,20 @@ function renderAttachments(item){
  el('attachBlock').hidden=!item;if(!item)return;
  var closed=item.status==='abgeschlossen',list=item.attachments||[];
  el('attachInput').disabled=closed||busy;
- el('attachList').innerHTML=list.length?list.map(function(a){return'<li><a href="#" data-att="'+esc(a.id)+'">'+esc(a.name)+'</a> · '+esc(fmtSize(a.size))+' · '+esc(a.uploadedBy||'')+' · '+esc(new Date(a.uploadedAt).toLocaleDateString('de-DE'))+'</li>'}).join(''):'<li>Noch kein Anhang</li>';
+ el('attachList').innerHTML=list.length?list.map(function(a){return'<li><a href="#" data-att="'+esc(a.id)+'">'+esc(a.name)+'</a> · '+esc(fmtSize(a.size))+' · '+esc(a.uploadedBy||'')+' · '+esc(new Date(a.uploadedAt).toLocaleDateString(LOC))+'</li>'}).join(''):'<li>Noch kein Anhang</li>';
 }
 function readBase64(file){return new Promise(function(ok,fail){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');ok(i>=0?s.slice(i+1):s)};r.onerror=function(){fail(r.error||Error('Datei nicht lesbar'))};r.readAsDataURL(file)})}
 async function attachFiles(files){
  if(!selected||busy)return;
- if(dirty){notice('Bitte den Fall zuerst speichern, danach Anhänge hinzufügen.',true);return}
+ if(dirty){notice(T('Bitte den Fall zuerst speichern, danach Anhänge hinzufügen.'),true);return}
  setBusy(true);var ok=0,failed=[];
  try{for(var i=0;i<files.length;i++){
   var f=files[i];
-  try{if(f.size>15*1024*1024)throw Error('größer als 15 MB');await api({action:'attach',id:selected.id,fileName:f.name,data:await readBase64(f)});ok++}
+  try{if(f.size>15*1024*1024)throw Error(T('größer als 15 MB'));await api({action:'attach',id:selected.id,fileName:f.name,data:await readBase64(f)});ok++}
   catch(e){failed.push(f.name+': '+(e&&e.message||e))}
  }}finally{setBusy(false)}
  try{await load(selected.id)}catch(e){failed.push('Aktualisierung: '+(e&&e.message||e))}
- notice(ok+' Anhang/Anhänge gespeichert'+(failed.length?'. Fehlgeschlagen: '+failed.join('; '):'.'),!!failed.length);
+ notice(T('{n} Anhänge gespeichert',{n:ok})+(failed.length?'. '+T('Fehlgeschlagen')+': '+failed.join('; '):'.'),!!failed.length);
 }
 async function downloadAttachment(att){
  var headers={'Content-Type':'application/json'},tk=token();if(tk){headers['X-ExportHUB-Token']=tk;headers.Authorization='Bearer '+tk}
@@ -161,9 +163,9 @@ async function downloadAttachment(att){
 }
 el('attachInput').addEventListener('change',function(){var files=Array.prototype.slice.call(this.files||[]);this.value='';if(files.length)attachFiles(files)});
 el('attachList').addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('[data-att]');if(!a||!selected)return;e.preventDefault();var att=(selected.attachments||[]).filter(function(x){return x.id===a.getAttribute('data-att')})[0];if(att)downloadAttachment(att).catch(function(err){notice(err.message,true)})});
-function integrityRow(item){var i=item&&item.historyIntegrity;if(!i)return'';return i.ok?'<div class="history-row"><span>Verlauf geprüft: lückenlos verkettet'+(i.legacy?' (die ersten '+i.legacy+' Einträge stammen aus der Zeit vor der Verkettung)':'')+'.</span></div>':'<div class="history-row" style="color:#b12438"><b>Verlauf nicht integer</b> ab Eintrag '+esc(String(i.brokenAt))+'. Der Fall ist für Änderungen gesperrt und muss von der Leitung geprüft werden.</div>'}
+function integrityRow(item){var i=item&&item.historyIntegrity;if(!i)return'';return i.ok?'<div class="history-row"><span>'+esc(T('Verlauf geprüft: lückenlos verkettet'))+(i.legacy?' '+esc(T('(die ersten {n} Einträge stammen aus der Zeit vor der Verkettung)',{n:i.legacy})):'')+'.</span></div>':'<div class="history-row" style="color:#b12438"><b>Verlauf nicht integer</b> '+esc(T('ab Eintrag {n}. Der Fall ist für Änderungen gesperrt und muss von der Leitung geprüft werden.',{n:i.brokenAt}))+'</div>'}
 function history(item){renderAttachments(item);el('historyBlock').hidden=!item||!Array.isArray(item.history)||!item.history.length;
- el('history').innerHTML=integrityRow(item)+(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString('de-DE'))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
+ el('history').innerHTML=integrityRow(item)+(item&&item.history||[]).slice().reverse().map(function(h){return'<div class="history-row"><b>'+esc(T(h.action))+'</b> · '+esc(h.actor)+'<div><span>'+esc(new Date(h.at).toLocaleString(LOC))+'</span> '+esc(h.notes||'')+'</div></div>'}).join('')}
 function list(){
  el('countOpen').textContent=items.filter(function(x){return x.status!=='abgeschlossen'}).length;
  el('countClosed').textContent=items.filter(function(x){return x.status==='abgeschlossen'}).length;
@@ -173,10 +175,10 @@ function list(){
  var visible=items.filter(function(x){return(!st||x.status===st)&&(!cat||x.category===cat)&&(!needle||[x.id,x.title,x.description,x.reference,x.area,x.rootCause].join(' ').toLowerCase().includes(needle))});
  el('caseList').innerHTML=visible.length?visible.map(function(x){
   var severity=x.severity==='kritisch'?'critical':x.severity==='hoch'?'high':'',done=x.status==='abgeschlossen'?'done':'';
-  return'<button type="button" class="case" role="listitem" data-id="'+esc(x.id)+'" aria-current="'+(selected&&selected.id===x.id?'true':'false')+'"><div class="badges"><span class="pill '+done+'">'+esc(statusNames[x.status]||x.status)+'</span><span class="pill '+severity+'">'+esc(x.severity)+'</span></div><strong>'+esc(x.title)+'</strong><small>'+esc(x.id)+' · '+esc(x.reference||x.area||x.category)+'</small></button>'
+  return'<button type="button" class="case" role="listitem" data-id="'+esc(x.id)+'" aria-current="'+(selected&&selected.id===x.id?'true':'false')+'"><div class="badges"><span class="pill '+done+'">'+esc(statusNames[x.status]||x.status)+'</span><span class="pill '+severity+'">'+esc(T(x.severity))+'</span></div><strong>'+esc(x.title)+'</strong><small>'+esc(x.id)+' · '+esc(x.reference||x.area||x.category)+'</small></button>'
  }).join(''):'<div class="empty">Keine passenden Fehlerfälle vorhanden.</div>'
 }
-function select(item){if(dirty&&!confirm('Nicht gespeicherte Änderungen verwerfen?'))return;selected=item;fill(item);list()}
+function select(item){if(dirty&&!confirm(T('Nicht gespeicherte Änderungen verwerfen?')))return;selected=item;fill(item);list()}
 async function load(preferred){
  var response=await api({action:'list'});items=response.items||[];canEdit=response.canEdit===true;canClose=response.canClose===true;el('app').hidden=false;el('access').hidden=true;
  var next=preferred?items.find(function(x){return x.id===preferred}):null;
@@ -191,7 +193,7 @@ async function save(silent){if(busy)return false;if(!form.reportValidity())retur
  var measureChanged=selected&&['rootCause','correctiveAction','preventiveAction'].some(function(k){return String(selected[k]||'')!==String(v[k]||'')});
  var proofReset=measureChanged&&['wirksam','unwirksam'].includes(selected.effectivenessResult)&&result.item.effectivenessResult==='offen';
  await load(result.item.id);
- notice(proofReset?'Maßnahme oder Ursache geändert: Die bisherige Wirksamkeitsprüfung ist ungültig. Bitte erneut prüfen und dokumentieren.':'Änderungen zentral gespeichert.');return true
+ notice(proofReset?T('Maßnahme oder Ursache geändert: Die bisherige Wirksamkeitsprüfung ist ungültig. Bitte erneut prüfen und dokumentieren.'):T('Änderungen zentral gespeichert.'));return true
  }catch(e){notice(e.message,true);return false}finally{setBusy(false)}}
 async function tips(){if(busy)return;setBusy(true);try{
  var p=await api({action:'advise',case:Object.assign({id:selected&&selected.id||''},value())});
@@ -214,11 +216,11 @@ el('suggestions').addEventListener('click',function(e){
  if(related){var found=items.find(function(i){return i.id===related.getAttribute('data-related-id')});if(found)select(found);return}
  if(!take||!canEdit||(selected&&selected.status==='abgeschlossen'))return;
  var tip=currentAdvice[Number(take.getAttribute('data-take-tip'))];if(!tip)return;
- var field=form.elements.correctiveAction,proposal='[Vorschlag – vor Umsetzung prüfen] '+tip.title+': '+tip.detail;
- if(field.value.indexOf(proposal)!==-1){notice('Der Vorschlag steht bereits in den Maßnahmen.');return}
+ var field=form.elements.correctiveAction,proposal=T('[Vorschlag – vor Umsetzung prüfen] ')+tip.title+': '+tip.detail;
+ if(field.value.indexOf(proposal)!==-1){notice(T('Der Vorschlag steht bereits in den Maßnahmen.'));return}
  field.value=(field.value.trim()?field.value.trim()+'\n\n':'')+proposal;
- dirty=true;el('saveHint').textContent='Vorschlag noch nicht gespeichert';
- notice('Vorschlag in „Abstellmaßnahme“ eingefügt. Bitte prüfen und anschließend speichern.');
+ dirty=true;el('saveHint').textContent=T('Vorschlag noch nicht gespeichert');
+ notice(T('Vorschlag in „Abstellmaßnahme“ eingefügt. Bitte prüfen und anschließend speichern.'));
  field.focus();
 });
 async function close(){if(!selected)return;if(!canClose)return;
@@ -226,8 +228,8 @@ async function close(){if(!selected)return;if(!canClose)return;
  try{await api({action:'close',id:selected.id,revision:selected.revision});await load(selected.id);notice('Fall nach dokumentierter Wirksamkeitsprüfung abgeschlossen.')}
  catch(e){notice(e.message,true)}finally{setBusy(false)}
 }
-async function reopen(){if(!selected||!canClose)return;var reason=prompt('Warum soll der abgeschlossene Fehlerfall wieder geöffnet werden?');if(reason===null)return;
- setBusy(true);try{await api({action:'reopen',id:selected.id,revision:selected.revision,reason:reason});await load(selected.id);notice('Fall wieder geöffnet.')}
+async function reopen(){if(!selected||!canClose)return;var reason=prompt(T('Warum soll der abgeschlossene Fehlerfall wieder geöffnet werden?'));if(reason===null)return;
+ setBusy(true);try{await api({action:'reopen',id:selected.id,revision:selected.revision,reason:reason});await load(selected.id);notice(T('Fall wieder geöffnet.'))}
  catch(e){notice(e.message,true)}finally{setBusy(false)}}
 form.addEventListener('input',function(){dirty=true;el('saveHint').textContent='Änderungen nicht gespeichert'});
 el('caseList').addEventListener('click',function(e){var node=e.target.closest('[data-id]');if(node)select(items.find(function(x){return x.id===node.getAttribute('data-id')})||null)});
@@ -239,40 +241,59 @@ el('closeBtn').addEventListener('click',close);
 el('reopenBtn').addEventListener('click',reopen);
 
 function renderPrintReport(){
- var v=value(),name={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:'Abgeschlossen'};
+ var v=value(),name={offen:'Offen',ursachenanalyse:'Ursachenanalyse',massnahme:'Maßnahme',wirksamkeitspruefung:'Wirksamkeit prüfen',abgeschlossen:T('Abgeschlossen')};
  var groups=[
- ['01 · Fehler und unmittelbare Folgen',[
+ [T('01 · Fehler und unmittelbare Folgen'),[
   ['Fehlerdatum',v.occurredOn],['Kategorie',v.category],['Schweregrad',v.severity],['Arbeitsbereich',v.area],
-  ['Sendungsreferenz / Bezug',v.reference],['Fehlerbeschreibung',v.description,true],
-  ['Auswirkungen',v.impact,true],['Sofortmaßnahme',v.immediateAction,true]]],
- ['02 · Ursachenanalyse und Abstellmaßnahmen',[
-  ['Festgestellte Ursache',v.rootCause,true],['Abstellmaßnahme',v.correctiveAction,true],
-  ['Vorbeugende Verbesserung / SOP',v.preventiveAction,true],['Verantwortlich',v.owner],
+  [T('Sendungsreferenz / Bezug'),v.reference],['Fehlerbeschreibung',v.description,true],
+  ['Auswirkungen',v.impact,true],[T('Sofortmaßnahme'),v.immediateAction,true]]],
+ [T('02 · Ursachenanalyse und Abstellmaßnahmen'),[
+  [T('Festgestellte Ursache'),v.rootCause,true],[T('Abstellmaßnahme'),v.correctiveAction,true],
+  [T('Vorbeugende Verbesserung / SOP'),v.preventiveAction,true],['Verantwortlich',v.owner],
   ['Frist',v.dueDate],['Nachweise / Dokumentreferenz',v.evidence,true]]],
- ['03 · Wirksamkeitsprüfung und Abschluss',[
-  ['Wirksamkeit',v.effectivenessResult],['Prüfdatum',v.verifiedOn],
-  ['Wie wurde die Wirksamkeit nachgewiesen?',v.effectivenessEvidence,true],
-  ['Freigegeben durch',selected&&selected.verifiedBy],['Abschlusszeitpunkt',selected&&selected.closedAt]]]
+ [T('03 · Wirksamkeitsprüfung und Abschluss'),[
+  ['Wirksamkeit',v.effectivenessResult],[T('Prüfdatum'),v.verifiedOn],
+  [T('Wie wurde die Wirksamkeit nachgewiesen?'),v.effectivenessEvidence,true],
+  [T('Freigegeben durch'),selected&&selected.verifiedBy],['Abschlusszeitpunkt',selected&&selected.closedAt]]]
  ];
  function valueHtml(v){return esc(String(v||'—'))}
  function rows(fields){return'<div class="pr-grid">'+fields.map(function(f){return'<div class="pr-field'+(f[2]?' wide':'')+'"><span class="pr-label">'+esc(f[0])+'</span><div class="pr-value">'+valueHtml(f[1])+'</div></div>'}).join('')+'</div>'}
  var history=selected&&Array.isArray(selected.history)?selected.history.slice().reverse():[];
  var meta=[['Fallnummer',selected&&selected.id||'ENTWURF'],['Status',name[v.status]||v.status||'Offen'],
- ['Erstellt am',selected&&selected.createdAt?new Date(selected.createdAt).toLocaleDateString('de-DE'):'Nicht gespeichert'],
- ['Gemeldet durch',selected&&selected.createdBy||'—'],['Revision',selected&&selected.revision||'—'],
- ['Bericht erstellt am',new Date().toLocaleString('de-DE')]];
- el('printReport').innerHTML='<div class="pr-top"><div><b>ExportHUB360</b><small>Qualitätsmanagement · Fehler & Verbesserungen</small></div><div><strong>ABWEICHUNGSBERICHT</strong><small style="display:block">'+(dirty||!selected?'ENTWURF – NICHT ALS FREIGEGEBEN VERWENDEN':'Gespeicherter Fallstand')+'</small></div></div>'+
- '<div class="pr-headline">'+valueHtml(v.title||'Fehler ohne Titel')+'</div>'+
+ [T('Erstellt am'),selected&&selected.createdAt?new Date(selected.createdAt).toLocaleDateString(LOC):T('Nicht gespeichert')],
+ [T('Gemeldet durch'),selected&&selected.createdBy||'—'],['Revision',selected&&selected.revision||'—'],
+ [T('Bericht erstellt am'),new Date().toLocaleString(LOC)]];
+ el('printReport').innerHTML='<div class="pr-top"><div><b>ExportHUB360</b><small>Qualitätsmanagement · Fehler & Verbesserungen</small></div><div><strong>ABWEICHUNGSBERICHT</strong><small style="display:block">'+(dirty||!selected?T('ENTWURF – NICHT ALS FREIGEGEBEN VERWENDEN'):T('Gespeicherter Fallstand'))+'</small></div></div>'+
+ '<div class="pr-headline">'+valueHtml(v.title||T('Fehler ohne Titel'))+'</div>'+
  '<div class="pr-meta">'+meta.map(function(m){return'<div><span class="pr-label">'+esc(m[0])+'</span>'+valueHtml(m[1])+'</div>'}).join('')+'</div>'+
  groups.map(function(g){return'<div class="pr-section">'+esc(g[0])+'</div>'+rows(g[1])}).join('')+
  '<div class="pr-section">04 · Nachvollziehbarer Änderungsverlauf</div>'+
- (history.length?history.map(function(h){return'<div class="pr-history"><b>'+esc(h.action)+'</b> · '+esc(h.actor)+'<small> · '+esc(new Date(h.at).toLocaleString('de-DE'))+'</small><div>'+esc(h.notes||'')+'</div>'+(h.changedFields&&h.changedFields.length?'<small>Geänderte Felder: '+esc(h.changedFields.join(', '))+'</small>':'')+'</div>'}).join(''):'<div>Noch kein Änderungsverlauf vorhanden.</div>')+
+ (history.length?history.map(function(h){return'<div class="pr-history"><b>'+esc(T(h.action))+'</b> · '+esc(h.actor)+'<small> · '+esc(new Date(h.at).toLocaleString(LOC))+'</small><div>'+esc(h.notes||'')+'</div>'+(h.changedFields&&h.changedFields.length?'<small>Geänderte Felder: '+esc(h.changedFields.join(', '))+'</small>':'')+'</div>'}).join(''):'<div>Noch kein Änderungsverlauf vorhanden.</div>')+
  '<div class="pr-note">Dokumentierter ExportHUB360-Fallstand. Die Wirksamkeit ist nur bestätigt, wenn der Status abgeschlossen ist und die verantwortliche Person die Prüfung freigegeben hat.</div>';
 }
 
 el('printBtn').addEventListener('click',function(){renderPrintReport();window.print()});
 window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
-load().catch(function(e){el('access').hidden=false;el('access').textContent='Kein Zugriff auf das Qualitätsprotokoll: '+e.message+' Bitte in ExportHUB360 anmelden und die SOP-Berechtigung prüfen.';el('app').hidden=true;el('newBtn').hidden=true});
+var refParam=(function(){try{var r=new URL(location.href).searchParams.get('ref')||'';return/^[A-Za-z0-9]{6}$/.test(r)?r.toUpperCase():''}catch(_){return''}})();
+function showReportOnly(){
+ var box=el('access');box.hidden=false;el('app').hidden=true;el('newBtn').hidden=true;
+ box.innerHTML='<h2>'+esc(T('Fehler melden'))+'</h2><p class="helper">'+esc(T('Sie haben keine Leseberechtigung für das Fehlerprotokoll. Sie können einen Fehler melden, die Leitung bearbeitet ihn.'))+'</p>'+
+  '<form id="reportForm" style="display:grid;gap:10px;max-width:640px"><label>'+esc(T('Fehlertitel *'))+'<input name="title" maxlength="180" required></label>'+
+  '<label>'+esc(T('Sendungsreferenz / Bezug'))+'<input name="reference" maxlength="120" value="'+esc(refParam)+'"></label>'+
+  '<label>'+esc(T('Was genau ist passiert? *'))+'<textarea name="description" maxlength="4000" rows="5" required></textarea></label>'+
+  '<label>'+esc(T('Was wurde sofort unternommen?'))+'<textarea name="immediateAction" maxlength="2000" rows="3"></textarea></label>'+
+  '<button class="primary" type="submit">'+esc(T('Fehler melden'))+'</button><div id="reportNotice" role="status"></div></form>';
+ el('reportForm').addEventListener('submit',async function(ev){
+  ev.preventDefault();var f=ev.target,note=el('reportNotice'),btn=f.querySelector('button');btn.disabled=true;note.textContent='';
+  try{var r=await api({action:'report',title:f.title.value,reference:f.reference.value,description:f.description.value,immediateAction:f.immediateAction.value});
+   note.textContent=T('Meldung gesendet. Nummer: {id}',{id:r.id});f.reset()}
+  catch(err){note.textContent=T('Senden fehlgeschlagen')+': '+err.message;btn.disabled=false}
+ })
+}
+load().then(function(){if(refParam&&canEdit){select(null);form.elements.reference.value=refParam;dirty=true}}).catch(function(e){
+ if(e&&e.code==='FORBIDDEN'){showReportOnly();return}
+ el('access').hidden=false;el('access').textContent=T('Kein Zugriff auf das Qualitätsprotokoll: ')+e.message+T(' Bitte in ExportHUB360 anmelden und die SOP-Berechtigung prüfen.');el('app').hidden=true;el('newBtn').hidden=true});
+(function(){var sel=el('langSelect');if(!sel||!I18N)return;sel.value=I18N.language();sel.addEventListener('change',function(){I18N.setLanguage(sel.value)})})();
 })();
 </script>
 </body></html>
