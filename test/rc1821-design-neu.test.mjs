@@ -35,3 +35,13 @@ test('RC1821: volle Breite und Builder bindet das Stylesheet ein',()=>{
   assert.match(builder,/'assets\/rc1821-design-neu\.css'/);
   assert.match(builder,/RC1821 Design Neu fehlt/);
 });
+
+test('RC1821b: Sendungsübersicht als Zeilenliste, Einklappen und Filter bleiben wirksam',()=>{
+  assert.match(css,/grid-template-areas:"head meta acts note" "chips links remind more"/);
+  assert.match(css,/grid-template-areas:"head meta acts" "chips links remind" "note note more"/);
+  for(const area of ['head','meta','acts','chips','links','remind','note','more'])assert.match(css,new RegExp(`grid-area:${area}!important`),area);
+  // display wird nur gesetzt, wenn das Element nicht hidden ist (Gruppen einklappen, Statusfilter)
+  const rules=css.replace(/\/\*[\s\S]*?\*\//g,'').match(/[^{}@]+\{[^{}]*display:(grid|flex)[^{}]*\}/g)||[];
+  assert.ok(rules.length>=2);
+  for(const r of rules)assert.match(r.slice(0,r.indexOf('{')),/:not\(\[hidden\]\)/,r.slice(0,120));
+});

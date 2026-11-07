@@ -170,3 +170,48 @@ html[data-eh-layout="top"] body[data-eh-layout="top"] #rc1705-sop-shipment{botto
 @container rc978ShipmentLayout (max-width:760px){
 #rc383TopPair#rc383TopPair.rc894-full-stack>.rc363-process-block{grid-column:1/-1!important;grid-row:auto!important}
 }
+
+/* ---------- Pilot RC1821b: Sendungsübersicht als Zeilenliste (ab 1024px) ----------
+   Jede Sendung ist eine breite Zeile: links Kennung und Status, daneben Daten, Dokumente, Notiz und Aktionen.
+   Nur Anordnung per Grid, alle Knöpfe und Felder bleiben dieselben Elemente. */
+@layer rc971{
+@media (min-width:1024px){
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view .rc543-overview-group-body:not([hidden]){
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card:not([hidden]){
+  display:grid!important;align-items:start!important;gap:12px 22px!important;
+  grid-template-columns:minmax(220px,250px) minmax(0,1fr) minmax(0,1fr)!important;
+  grid-template-areas:"head meta acts" "chips links remind" "note note more"!important;
+  border-top:1px solid #dfe3ee!important;border-left:8px solid var(--n-st,#6366f1)!important;border-radius:16px!important;
+  padding:16px 20px!important;width:auto!important;max-width:none!important;min-height:0!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card:hover{transform:none!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>*{grid-column:1/-1!important;margin:0!important;min-width:0!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-area-head{
+  grid-area:head!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;
+  flex-direction:column!important;align-items:flex-start!important;gap:8px!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-area-head>div,
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-area-head .rc524-kicker{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-area-head h2{font-size:20px!important;font-weight:800!important;letter-spacing:-.01em!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc1014-shipment-meta{grid-area:chips!important;flex-wrap:wrap!important;align-self:start!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-overview-meta{grid-area:meta!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-link-columns{grid-area:links!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-action-grid{grid-area:acts!important;flex-wrap:wrap!important;align-content:flex-start!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.index236-reminder-actions{grid-area:remind!important;flex-wrap:wrap!important;align-content:flex-start!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc403-overview-note{grid-area:note!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-dangerbar{
+  grid-area:more!important;flex-wrap:wrap!important;gap:8px!important;align-content:flex-start!important;justify-content:flex-start!important;
+  padding:0!important;border:0!important;background:transparent!important
+}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc524-dangerbar>*{width:auto!important;flex:0 0 auto!important}
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card>.rc403-overview-note textarea{min-height:44px!important;height:44px!important}
+}
+@media (min-width:1500px){
+html[data-eh-layout="top"] body[data-eh-layout="top"] #content#content#content.rc524-overview-view article.rc524-shipment-card:not([hidden]){
+  grid-template-columns:minmax(220px,250px) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr)!important;
+  grid-template-areas:"head meta acts note" "chips links remind more"!important
+}
+}
+}
