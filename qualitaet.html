@@ -215,13 +215,16 @@ function showAdvice(p,note){
  box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
 }
 function whyFallback(p){
- var r=p.fallbackReason,code=p.providerStatus?' (HTTP '+p.providerStatus+')':'';
+ var r=p.fallbackReason,code=p.providerStatus>=400?' (HTTP '+p.providerStatus+')':'';
  if(r==='not_configured')return T('Die KI ist nicht eingerichtet, es werden die Regeln verwendet.');
  if(r==='limit'||r==='user-limit')return T('Tageslimit der KI erreicht, es werden die Regeln verwendet.');
+ if(r==='quota_storage')return T('Der KI-Zähler ist vorübergehend nicht erreichbar. Es werden die Regeln verwendet.');
  if(r==='config')return T('Google hat Schlüssel oder Modell abgelehnt. Bitte Schlüssel und Modell-ID prüfen.')+code;
  if(r==='busy')return T('Das kostenlose Google-Kontingent ist gerade erschöpft. Es werden die Regeln verwendet.')+code;
  if(r==='timeout')return T('Die KI hat zu lange gebraucht. Es werden die Regeln verwendet.');
- if(r==='empty')return T('Die KI hat keine Antwort geliefert (Grund: {detail}). Es werden die Regeln verwendet.',{detail:p.providerDetail||'?'});
+ if(r==='truncated')return T('Google hat die KI-Antwort wegen des Ausgabelimits abgebrochen. Es werden die Regeln verwendet.');
+ if(r==='blocked')return T('Google hat die Anfrage oder Antwort durch einen Inhaltsfilter blockiert. Es werden die Regeln verwendet.');
+ if(r==='empty')return p.providerDetail?T('Die KI hat keine Antwort geliefert (Grund: {detail}). Es werden die Regeln verwendet.',{detail:p.providerDetail}):T('Google hat keine verwertbare KI-Antwort geliefert. Es werden die Regeln verwendet.');
  return T('Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.')+code
 }
 async function aiTips(){
