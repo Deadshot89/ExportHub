@@ -247,7 +247,9 @@ html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc15
   background:transparent!important;color:#334155!important;border-color:transparent!important;box-shadow:none!important;
   border-radius:12px!important;font-weight:500!important;
 }
-html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]) :not(.index308-nav-icon){color:inherit!important}
+/* Badges have their own contrast colours; do not inherit the dark menu label.
+   This previously turned red Packmeldungen/Benachrichtigungen counters dark in Premium/Neu. */
+html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]) :not(.index308-nav-icon):not(:is(.pack-internal-nav-badge,.eh1872-nav-warning,.index236-notification-count,.index236-nav-badge,#index236NotificationCount,.notification-count,.nav-count,.urgent-nav-count,[data-eh1872-nav-warning])){color:inherit!important}
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]):hover{background:#f5f6fa!important;color:#0f172a!important}
 html[data-eh-skin="premium"] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"]){
   background:#eef2ff!important;color:#4338ca!important;font-weight:650!important;box-shadow:inset 3px 0 0 #4f46e5!important;
