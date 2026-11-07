@@ -61,7 +61,7 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/exporthub-rc1903-shipment-evidence/);
  assert.match(builder,/'assets\/shipment-evidence\.js'/);
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
- assert.match(builder,/'assets\\/shipment-evidence-guest\\.js'/);
+ assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
  assert.match(guest,/data-eh1903-guest-open/);
  assert.match(guest,/guestOpen/);
