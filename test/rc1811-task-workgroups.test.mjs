@@ -38,7 +38,7 @@ test('RC1811: Asset-Version und Gruppendarstellung im Build',()=>{
  const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
  assert.match(css,/rc1810-workgroup/);
  for(const name of ['rc1810-task-board.css','rc1810-task-board.js'])assert.ok(build.includes(name+'?v=1812'),name);
- assert.ok(build.includes('i18n/rc1810-task-board.js?v=1811'));
+ assert.ok(build.includes('i18n/rc1810-task-board.js?v=1812'));
 });
 
 test('RC1812: einmalige Picks und ABD stehen ebenfalls in den farbigen Untergruppen',()=>{
