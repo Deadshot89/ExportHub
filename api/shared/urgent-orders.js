@@ -107,41 +107,30 @@ function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),not
 }
 function isClosed(order){return !!(order&&Array.isArray(order.items)&&order.items.length&&order.items.every(x=>CLOSED_STATUSES.includes(x.status)));}
 function summaryStatus(order){const unique=[...new Set((order.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
-function draftMail(order,kind,lang,note){
+function draftMail(order,kind,lang,note,actor){
  const l=language(lang||order.language),issue=kind==='problem';
  if(!issue&&kind!=='shipping')throw problem('URGENT_MAIL_KIND_INVALID','Unbekannter E-Mail-Typ.');
  if(!issue&&(order.items||[]).some(x=>!['Shipped','Invoiced'].includes(x.status)))throw problem('URGENT_NOT_SHIPPED','Versandbestätigung erst nach Status Shipped für alle Positionen möglich.',409);
  const t=key=>apiI18n.tLang(l,'api.urgent.'+key);
- const message=text(note,2000);
+ // A manual problem description is supplied by the editor. Preserve its meaning;
+ // no untranslated process statuses, transport details or HTML in the email.
+ const message=text(note,2000).replace(/\r\n?/g,'\n').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
  if(issue&&message.length<8)throw problem('URGENT_MAIL_NOTE_REQUIRED',t('issueDescriptionRequired'));
- const crossDock=order.orderType==='DIRECT_OUTBOUND'&&order.directOutbound||null;
- const inboundMode=crossDock?({'TRUCK':t('truck'),'PARCEL':t('parcel'),'COURIER':t('courier'),'OTHER':t('otherTransport')}[crossDock.arrivalMode]||crossDock.arrivalMode):'';
- const directDetails=crossDock?[
-  t('arrivalAt')+' '+crossDock.arrivalAt.replace('T',' ')+' (Europe/Berlin)',
-  t('arrivalMode')+' '+inboundMode,
-  t('arrivalCarrier')+' '+crossDock.arrivalProvider,
-  t('outboundMethod')+' '+t(crossDock.dispatchMethod==='EXPRESS'?'express':'specialTransport'),
-  ...(crossDock.plannedDispatchAt?[t('requestedDispatch')+' '+crossDock.plannedDispatchAt.replace('T',' ')+' (Europe/Berlin)']:[])
- ]:[];
- const itemLines=(order.items||[]).map(x=>[
-  x.line?t('lineLabel')+' '+x.line:'',
-  x.article?t('itemLabel')+' '+x.article:'',
-  t('qtyLabel')+' '+x.quantity,
-  t('statusLabel')+' '+x.status
- ].filter(Boolean).join(' · ')).join('\n');
+ // Use the employee preparing this email, never the account that created the order.
+ // The actor comes exclusively from the authenticated server session.
+ const sender=text(actor&&(actor.user||actor.login||actor.username||actor.name||actor.id),150).replace(/\s+/g,' ')||t('teamFallback');
+ const itemNames=[...new Set((order.items||[]).map(x=>text(x.article,120)||(x.line?t('lineLabel')+' '+text(x.line,70):'')).filter(Boolean))];
  return{
   to:order.email,
   language:l,
   subject:t(issue?'subjectIssue':'subjectShipping')+order.orderNumber,
   body:[
-   t(issue?'introIssue':'introShipping'),'',
+   t('hello'),'',
+   issue?t('issueLabel')+' '+message:t('introShipping'),
+   '',
    t('orderLabel')+' '+order.orderNumber,
-   t('deliveryLabel')+' '+(order.delivery==='DIRECT'?t('directDelivery'):'DRP'),
-   t('priorityLabel')+' '+order.priority,
-   ...(directDetails.length?['',...directDetails]:[]),
-   '',itemLines,
-   ...(issue?['',t('issueLabel'),message]:[]),
-   '',t('signoff')
+   t('itemLabel')+': '+itemNames.join(', '),
+   '',t('signoff'),sender
   ].join('\n')
  };
 }
