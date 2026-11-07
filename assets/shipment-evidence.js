@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,serial:0};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0};
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function make(tag,cls,value){const e=d.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
@@ -40,14 +40,14 @@ function showList(){state.serial++;state.view='list';state.record=null;const app
  }
  search.addEventListener('input',()=>{state.search=search.value;updateRows()});updateRows();
 }
-async function loadList(reset){if(state.loading)return;state.loading=true;const serial=++state.serial;if(reset){state.records=[];state.continuation=null}if(state.view==='list')status(t('loading'),false);
+async function loadList(reset){if(state.loading&&!reset)return;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){state.records=[];state.continuation=null}if(state.view==='list')status(t('loading'),false);
  try{const result=await request('GET',{action:'list',...(reset?{}:state.continuation?{continuation:state.continuation}:{})});
   if(serial!==state.serial)return;
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
   state.continuation=result.continuation||null;
   if(state.view==='list'&&active())showList();
- }catch(e){if(state.view==='list')status(e.message,true)}finally{state.loading=false}}
+ }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true)}finally{if(listToken===state.listToken)state.loading=false}}
 function labelField(grid,key,kind,value){const label=make('label',key==='contents'||key==='loadSecuring'||key==='remarks'?'eh1903-wide':'',t(key));
  const el=make(kind==='textarea'?'textarea':'input');el.setAttribute('data-evidence-field',key);
  if(kind!=='textarea')el.type=kind;if(key==='colli'||key==='weightKg'){el.min='0';el.step=key==='colli'?'1':'0.001';}
