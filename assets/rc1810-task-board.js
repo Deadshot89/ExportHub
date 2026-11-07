@@ -92,6 +92,38 @@ function taskBtn(x,opts){
     '<button type="button" class="rc1810-box" data-rc1810-check="'+esc(id)+'" role="checkbox" aria-checked="'+(isDone(x)?'true':'false')+'" aria-label="'+esc(t('markDone'))+': '+esc(title(x))+'"'+(isCancelled(x)?' disabled':'')+'>'+(isDone(x)?'✓':'')+'</button>'+
     '<button type="button" class="rc1810-tt" data-rc1810-open="'+esc(id)+'"><span class="rc1810-name">'+tags(x)+esc(title(x))+'</span>'+(meta?'<span class="rc1810-meta">'+esc(meta)+'</span>':'')+'</button></div>';
 }
+
+/* RC1811: reine Ansichtsklassifikation, keine Änderung an Aufgaben/Status. */
+var WORK_ORDER=['picks','anmeldung','abd','pod','berichte','versand','weitere'];
+function workFold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+function workGroup(x){
+  var cat=workFold([x&&x.group,x&&x.area,x&&x.category,x&&x.section,x&&x.process,x&&x.type,x&&x.sourceType].filter(Boolean).join(' '));
+  var s=cat+' '+workFold(title(x));
+  if(/\b(abd|abds|mrn|ausfuhr|customs)\b/.test(s))return'abd';
+  if(/\b(pick|picks|picken|picking|kommissionierung)\b/.test(s))return'picks';
+  if(/\b(pod|abliefernachweis|abliefernachweise)\b/.test(s))return'pod';
+  if(/anmeld|avis|spedition|carrier|registrierung|registration|kunde angemeldet/.test(s))return'anmeldung';
+  if(/report|bericht|otif|minibag|mini bag|statistik|auswert|kontrollier|pruf/.test(s))return'berichte';
+  if(/sendung|versand|shipment|collection|abhol|transport/.test(s))return'versand';
+  // Kundennamen in den historisch hinterlegten Wochenroutinen sind Anmeldungen.
+  if(isRoutine(x)&&(!cat||/^(routine|wochenplan|weekly)$/.test(cat)))return'anmeldung';
+  return'weitere';
+}
+function routineGroupsHtml(items,scope,options){
+  options=options||{};
+  var groups=Object.create(null);
+  items.forEach(function(x){var type=workGroup(x);(groups[type]=groups[type]||[]).push(x)});
+  return WORK_ORDER.filter(function(type){return groups[type]}).map(function(type){
+    var tasks=groups[type],active=tasks.filter(function(x){return !isCancelled(x)}),done=active.filter(isDone).length;
+    var key=scope+'|work|'+type,expanded=ui.open[key]!==false;
+    return '<section class="rc1810-workgroup" data-rc1810-worktype="'+type+'">'+
+      '<button type="button" class="rc1810-worktoggle" data-rc1810-worktoggle="'+esc(key)+'" aria-expanded="'+expanded+'">'+
+      '<span class="rc1810-workmark" aria-hidden="true"></span><span class="rc1810-worktitle">'+esc(t('work_'+type))+'</span>'+
+      '<span class="rc1810-workcount">'+done+'/'+active.length+'</span><span class="rc1810-workchev" aria-hidden="true">'+(expanded?'▾':'▸')+'</span></button>'+
+      (expanded?'<div class="rc1810-worktasks">'+tasks.map(function(x){return taskBtn(x,{meta:options.metaOwner?ownerOf(x):(options.showDate?fmt(taskDay(x)):'')})}).join('')+'</div>':'')+
+      '</section>';
+  }).join('');
+}
 function rowKey(x){return ui.group==='area'?areaOf(x):ownerOf(x)}
 function sortTasks(a,b){var pa=prio(a)||'P9',pb=prio(b)||'P9';if(pa!==pb)return pa<pb?-1:1;var ta=q(a.time),tb=q(b.time);if(ta!==tb)return ta<tb?-1:1;var oa=Number(a.masterOrder),ob=Number(b.masterOrder);if(isFinite(oa)&&isFinite(ob)&&oa!==ob)return oa-ob;return title(a).localeCompare(title(b))}
 
@@ -134,7 +166,7 @@ function weekHtml(){
       var imp=cell.filter(function(x){return !isRoutine(x)}),rout=cell.filter(function(x){return isRoutine(x)&&(!isCancelled(x)||isManualCancel(x))});
       if(o&&!imp.length&&!rout.length)return '<td class="is-off"><span class="rc1810-offtxt">'+esc(t('noTasks'))+'</span></td>';
       var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length,hasMoved=rout.some(function(x){return x.rc1810Holiday&&x.rc1810Holiday.action==='moved'});
-      var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):''})}).join('')+'</div>':'')+'</div>':'';
+      var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+routineGroupsHtml(rout,ck,{metaOwner:ui.group==='area'})+'</div>':'')+'</div>':'';
       return '<td class="'+(k===today?'is-today ':'')+(o?'is-off':'')+'">'+imp.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+rh+'</td>';
     }).join('');
     return '<tr><th scope="row" class="rc1810-rowh"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span><span class="rc1810-sub">'+esc(t('open',{count:openCount}))+'</span></th>'+cells+'</tr>';
@@ -156,7 +188,7 @@ function weekListHtml(days,inWeek,rows,today){
       var imp=list.filter(function(x){return !isRoutine(x)}),rout=list.filter(function(x){return isRoutine(x)&&(!isCancelled(x)||isManualCancel(x))});
       var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length;
       return '<div class="rc1810-daygroup"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span>'+imp.map(function(x){return taskBtn(x,{meta:areaOf(x)===t('noArea')?'':areaOf(x)})}).join('')+
-        (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+rout.map(function(x){return taskBtn(x)}).join('')+'</div>':'')+'</div>':'')+'</div>';
+        (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+routineGroupsHtml(rout,ck,{metaOwner:ui.group==='area'})+'</div>':'')+'</div>':'')+'</div>';
     }).join('');
     return '<section class="rc1810-day'+(o?' is-off':'')+'">'+head+(groups||'<p class="rc1810-offtxt">'+esc(t('noTasks'))+'</p>')+'</section>';
   }).join('')+'</div>';
@@ -191,8 +223,8 @@ function todayHtml(){
     var imp=l.filter(function(x){return !isRoutine(x)}),rout=l.filter(function(x){return isRoutine(x)&&taskDay(x)===today}),late=l.filter(function(x){return isRoutine(x)&&taskDay(x)<today});
     var lk=p+'|late',lo=!!ui.open[lk];
     return '<section class="rc1810-tcol"><h3>'+esc(p)+'</h3>'+imp.map(function(x){var d=taskDay(x);return taskBtn(x,{meta:d<today?t('overdueSince',{date:fmt(d)}):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+
-      (rout.length?'<div class="rc1810-routine"><div class="rc1810-hint">'+esc(t('routineDone',{done:rout.filter(isDone).length,total:rout.length}))+'</div>'+rout.map(function(x){return taskBtn(x)}).join('')+'</div>':'')+
-      (late.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle rc1810-late" data-rc1810-toggle="'+esc(lk)+'" aria-expanded="'+lo+'">'+(lo?'▾':'▸')+' '+esc(t('lateRoutine',{count:late.length}))+'</button>'+(lo?'<div class="rc1810-rlist">'+late.map(function(x){return taskBtn(x,{meta:fmt(taskDay(x))})}).join('')+'</div>':'')+'</div>':'')+'</section>';
+      (rout.length?'<div class="rc1810-routine"><div class="rc1810-hint">'+esc(t('routineDone',{done:rout.filter(isDone).length,total:rout.length}))+'</div>'+'<div class="rc1810-rlist">'+routineGroupsHtml(rout,p+'|today')+'</div></div>':'')+
+      (late.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle rc1810-late" data-rc1810-toggle="'+esc(lk)+'" aria-expanded="'+lo+'">'+(lo?'▾':'▸')+' '+esc(t('lateRoutine',{count:late.length}))+'</button>'+(lo?'<div class="rc1810-rlist">'+routineGroupsHtml(late,lk,{showDate:true})+'</div>':'')+'</div>':'')+'</section>';
   }).join('')+'</div>';
 }
 
@@ -315,6 +347,7 @@ function bindBoard(board){
     if((b=el.closest('[data-rc1810-tab]'))){e.preventDefault();setTab(b.getAttribute('data-rc1810-tab'));return}
     if((b=el.closest('[data-rc1810-group]'))){ui.group=b.getAttribute('data-rc1810-group');remember();safeRender(true);return}
     if((b=el.closest('[data-rc1810-who]'))){ui.who=b.getAttribute('data-rc1810-who')==='mine'?'mine':'alle';remember();safeRender(true);return}
+    if((b=el.closest('[data-rc1810-worktoggle]'))){var wk=b.getAttribute('data-rc1810-worktoggle');ui.open[wk]=ui.open[wk]===false;safeRender(true);return}
     if((b=el.closest('[data-rc1810-toggle]'))){var k=b.getAttribute('data-rc1810-toggle');ui.open[k]=!ui.open[k];safeRender(true);return}
     if((b=el.closest('[data-rc1810-expand-moved]'))){ui.tab='woche';ui.weekStart='';visible().forEach(function(x){if(x.rc1810Holiday&&x.rc1810Holiday.action==='moved')ui.open[rowKey(x)+'|'+taskDay(x)]=true});remember();safeRender(true);return}
     if((b=el.closest('[data-rc1810-week]'))){var n=Number(b.getAttribute('data-rc1810-week'));ui.weekStart=n?add(weekStart(),n):'';safeRender(true);return}
@@ -337,6 +370,6 @@ function install(){
   if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(check).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
 }
-w.ExportHUBTaskBoard1810=Object.freeze({version:VERSION,render:function(){safeRender(true)},setTab:setTab,openClosures:openDialog,_ui:ui,_texts:I18N});
+w.ExportHUBTaskBoard1810=Object.freeze({version:VERSION,render:function(){safeRender(true)},setTab:setTab,openClosures:openDialog,_ui:ui,_texts:I18N,_workGroup:workGroup,_routineGroupsHtml:routineGroupsHtml});
 install();
 })(window);
