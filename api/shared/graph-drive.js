@@ -1124,6 +1124,21 @@ async function verifyPdf(buffer, item) {
   throw lastError;
 }
 
+// RC1904: classify Entra token failures without exposing OAuth descriptions,
+// credentials, tenant IDs, application IDs or raw provider messages.
+// Keep this aligned with graph-mail's bounded authentication diagnostics.
+function podTokenFailureCategory(error) {
+  const message = text(error && error.message);
+  const status = Number(error && error.statusCode || 0);
+  if (/AADSTS7000222/i.test(message)) return 'CLIENT_SECRET_EXPIRED';
+  if (/AADSTS7000215|AADSTS7000218/i.test(message)) return 'CLIENT_SECRET_REJECTED';
+  if (/AADSTS700016|AADSTS7000112/i.test(message)) return 'APPLICATION_NOT_FOUND';
+  if (/AADSTS90002/i.test(message)) return 'TENANT_NOT_FOUND';
+  if (status === 400 || status === 401) return 'OAUTH_CREDENTIALS_REJECTED';
+  if ([408, 429, 500, 502, 503, 504].includes(status)) return 'TOKEN_ENDPOINT_UNAVAILABLE';
+  return 'TOKEN_REQUEST_FAILED';
+}
+
 // RC1687: OIDC-protected, READ-ONLY diagnosis of the configured Graph target.
 // Never emit tenant/user, drive/folder IDs, raw paths, tokens or Graph messages.
 // Every probe uses only GET; even a valid target is not modified.
@@ -1156,7 +1171,7 @@ async function diagnoseTarget(options) {
     token = await accessToken(false);
     success('app-token');
   } catch (error) {
-    failure('app-token', error);
+    failure('app-token', { statusCode: Number(error && error.statusCode || 0), code: podTokenFailureCategory(error) });
     return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_TOKEN_FAILED' });
   }
 
