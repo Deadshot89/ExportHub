@@ -122,7 +122,7 @@ async function list(ctx,query){
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
-async function process(req){
+async function processRequest(req){
  const method=req.method,query=req.query||{},payload=method==='POST'?body(req):query;
  const action=txt(payload.action,32)||(method==='GET'?'list':'');
  const ctx=await login(req,method==='POST');
@@ -173,7 +173,7 @@ module.exports=async function(context,req){
  try{
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'GET, POST, OPTIONS','Cache-Control':'no-store'}};return}
   if(!['GET','POST'].includes(req.method))fail('METHOD_NOT_ALLOWED','Methode nicht erlaubt.',405);
-  context.res=await process(req);
+  context.res=await processRequest(req);
  }catch(e){context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.status?e.message:'Versanddokumentation konnte nicht verarbeitet werden.'})}
 };
 module.exports.fields=fields;
