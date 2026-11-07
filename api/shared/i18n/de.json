@@ -290,6 +290,7 @@
   "api.urgent.itemLabel": "Artikel",
   "api.urgent.qtyLabel": "Menge",
   "api.urgent.statusLabel": "Status",
+  "api.urgent.hostUntrusted": "Die Urgent-Order-Umgebung ist nicht eindeutig verifiziert. Bitte die Logistik informieren; nicht erneut senden, bevor die Verbindung geprüft wurde.",
   "api.urgent.serverError": "Urgent Order konnte nicht verarbeitet werden. Bitte später erneut versuchen.",
   "api.urgent.invalidRequest": "Ungültige Anfrage.",
   "api.urgent.arrivalAt": "Geplante Ankunft:",

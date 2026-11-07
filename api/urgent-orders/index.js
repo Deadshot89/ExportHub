@@ -73,6 +73,31 @@ function unknownStaticWebAppHost(url){
   return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
  }catch(_){return false;}
 }
+
+// RC1876: Host diagnostics reveal only categories, never token, username, host or path.
+// The verified release identity remains mandatory for internal Azure worker requests.
+function safeHostClass(value){
+ try{
+  const raw=String(value||'').trim();
+  if(!raw)return'absent';
+  const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
+  if(host==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'canonical-production';
+  if(host==='exporthub360.com'||host==='www.exporthub360.com'||host==='exporthub360.de'||host==='www.exporthub360.de')return'legacy-production';
+  if(host.endsWith('.azurestaticapps.net')&&host.includes('-testservice.'))return'testservice';
+  if(host.endsWith('.azurestaticapps.net'))return'untrusted-preview';
+  if(host.endsWith('.azurewebsites.net'))return'azure-functions-worker';
+  return'other'
+ }catch(_){return'invalid'}
+}
+function safeHostDiagnostic(req){
+ const h=req&&req.headers||{};
+ return {
+  direct:safeHostClass(h.host||h.Host||''),
+  forwarded:safeHostClass(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||''),
+  origin:safeHostClass(h.origin||h.Origin||h.referer||h.Referer||''),
+  verifiedDeployment:serverDeploymentEnvironment()||'missing'
+ }
+}
 function resolveStorageEnvironment(req,serverEnvironment=serverDeploymentEnvironment()){
  const h=req&&req.headers||{};
  const direct=publicSiteEnvironment(h.host||h.Host||'');
@@ -204,12 +229,14 @@ module.exports=async function(context,req){
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
   context.log&&context.log.warn&&context.log.warn('urgent-orders',e&&e.code||'UNEXPECTED',status);
-  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
+  context.res=json(status,{ok:false,code:e&&e.code||'URGENT_ERROR',message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
  }
 };
 module.exports.execute=execute;
 module.exports.storage=storage;
 module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
+module.exports.safeHostDiagnostic=safeHostDiagnostic;
 module.exports.deploymentEnv=deploymentEnv;
 module.exports.readDocument=async function(refs){return normalize((await auth.readJson(refs.blob,empty(),{missingBlobOnly:true})).value);};
 module.exports.write=write;
