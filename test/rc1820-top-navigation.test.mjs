@@ -57,7 +57,7 @@ test('RC1820: Menü oben löst nur Original-Menüknöpfe aus und respektiert ges
 });
 
 test('RC1820: Builder bindet CSS und Skript in Produktion, TESTSERVICE und Demo ein',()=>{
-  assert.match(builder,/rc1820-top-navigation\.css\?v=1820/);
+  assert.match(builder,/rc1820-top-navigation\.css\?v=1930/);
   assert.match(builder,/rc1820-top-navigation\.js\?v=1820/);
   assert.match(builder,/'assets\/rc1820-top-navigation\.css'/);
   assert.match(builder,/'assets\/rc1820-top-navigation\.js'/);

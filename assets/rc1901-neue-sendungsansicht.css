@@ -1,12 +1,12 @@
 /* RC1901: Neue Oberfläche "Sendungsansicht" (Design "Neu"). Eigener Aufbau, siehe rc1901-neue-sendungsansicht.js.
    Die alte Ansicht bleibt im DOM (für alle Aktionen), wird aber aus dem Sichtbereich genommen. */
 #rc1901Shipment{display:none}
-html[data-eh-layout="top"][data-rc1901-view="shipment"] #rc1901Shipment{display:block}
-html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-view{
+html[data-eh-newui][data-rc1901-view="shipment"] #rc1901Shipment{display:block}
+html[data-eh-newui][data-rc1901-view="shipment"] #content.rc776-shipment-view{
   position:fixed!important;left:-10000px!important;top:0!important;width:1200px!important;height:1px!important;max-height:1px!important;overflow:hidden!important;opacity:0!important;clip-path:inset(50%)!important;pointer-events:none!important
 }
 
-#rc1901Shipment#rc1901Shipment{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--soft:#f6f7fb;--primary:#4f46e5;--primary2:#7c3aed;--c:#6366f1;font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);margin:0 0 32px}
+#rc1901Shipment#rc1901Shipment{--ink:#0f172a;--muted:#64748b;--line:#e6e8f0;--soft:#f6f7fb;--primary:var(--eh-p,#4f46e5);--primary2:var(--eh-p2,#7c3aed);--c:var(--eh-p3,#6366f1);font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);margin:0 0 32px}
 #rc1901Shipment#rc1901Shipment *{box-sizing:border-box}
 #rc1901Shipment#rc1901Shipment button{font:inherit;cursor:pointer;margin:0;text-transform:none;letter-spacing:normal}
 #rc1901Shipment#rc1901Shipment :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -14,16 +14,16 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 
 /* Knöpfe */
 #rc1901Shipment#rc1901Shipment .rc1901-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:12px;border:1px solid transparent;font-size:13.5px!important;font-weight:650;white-space:nowrap;transition:background-color .15s,border-color .15s,box-shadow .15s}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgba(79,70,229,.25)}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-primary:hover{background:linear-gradient(135deg,#4338ca,#6d28d9)}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost{background:#fff;color:#28324a;border-color:#d6dbe8}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost:hover{background:#eef0ff;color:#3730a3;border-color:#c7cbfb}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-soft{background:#eef0ff;color:#3730a3;border-color:#dfe2ff}
-#rc1901Shipment#rc1901Shipment .rc1901-btn-soft:hover{background:#e0e4ff}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 6px 16px rgb(var(--eh-p-rgb,79 70 229)/.25)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-primary:hover{background:linear-gradient(135deg,var(--eh-pd,#4338ca),var(--eh-p2,#6d28d9))}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost{background:var(--eh-card,#fff);color:#28324a;border-color:#d6dbe8}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-ghost:hover{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#c7cbfb)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-soft{background:var(--eh-ps,#eef0ff);color:var(--eh-pd,#3730a3);border-color:var(--eh-pl,#dfe2ff)}
+#rc1901Shipment#rc1901Shipment .rc1901-btn-soft:hover{background:var(--eh-pl,#e0e4ff)}
 #rc1901Shipment#rc1901Shipment .rc1901-btn:disabled{opacity:.45;cursor:not-allowed}
 
 /* Kopf mit Statusfarbe */
-#rc1901Shipment#rc1901Shipment .rc1901-top{position:relative;background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px 26px 0;box-shadow:0 1px 2px rgba(16,24,40,.04),0 12px 32px rgba(15,23,42,.05);overflow:hidden;margin-bottom:20px}
+#rc1901Shipment#rc1901Shipment .rc1901-top{position:relative;background:var(--eh-card,#fff);border:1px solid var(--line);border-radius:22px;padding:22px 26px 0;box-shadow:0 1px 2px rgba(16,24,40,.04),0 12px 32px rgba(15,23,42,.05);overflow:hidden;margin-bottom:20px}
 #rc1901Shipment#rc1901Shipment .rc1901-top::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--c)}
 #rc1901Shipment#rc1901Shipment .rc1901-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px 24px;flex-wrap:wrap}
 #rc1901Shipment#rc1901Shipment .rc1901-head-main{min-width:0;flex:1 1 420px}
@@ -42,7 +42,7 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 #rc1901Shipment#rc1901Shipment .rc1901-steps li{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 8px 0 0;font-size:12.5px;font-weight:650;color:#98a2b3;margin:0}
 #rc1901Shipment#rc1901Shipment .rc1901-steps li::after{content:"";position:absolute;top:7px;left:18px;right:4px;height:2px;border-radius:2px;background:#e4e7ec}
 #rc1901Shipment#rc1901Shipment .rc1901-steps li:last-child::after{display:none}
-#rc1901Shipment#rc1901Shipment .rc1901-step-dot{position:relative;z-index:1;width:16px;height:16px;border-radius:50%;border:2px solid #d0d5dd;background:#fff}
+#rc1901Shipment#rc1901Shipment .rc1901-step-dot{position:relative;z-index:1;width:16px;height:16px;border-radius:50%;border:2px solid #d0d5dd;background:var(--eh-card,#fff)}
 #rc1901Shipment#rc1901Shipment .rc1901-steps li.is-done{color:#344054}
 #rc1901Shipment#rc1901Shipment .rc1901-steps li.is-done .rc1901-step-dot{background:var(--c);border-color:var(--c)}
 #rc1901Shipment#rc1901Shipment .rc1901-steps li.is-done::after{background:var(--c)}
@@ -66,12 +66,12 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 #rc1901Shipment#rc1901Shipment .rc1901-tabs{display:flex;gap:4px;padding:5px;background:#eef0f6;border-radius:14px;width:max-content;max-width:100%;overflow-x:auto}
 #rc1901Shipment#rc1901Shipment .rc1901-tab{border:0;background:transparent;color:#475467;min-height:38px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:650;white-space:nowrap}
 #rc1901Shipment#rc1901Shipment .rc1901-tab:hover{color:var(--ink)}
-#rc1901Shipment#rc1901Shipment .rc1901-tab.is-active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.1)}
+#rc1901Shipment#rc1901Shipment .rc1901-tab.is-active{background:var(--eh-card,#fff);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.1)}
 #rc1901Shipment#rc1901Shipment .rc1901-panel[hidden]{display:none!important}
 #rc1901Shipment#rc1901Shipment .rc1901-panel>div{display:flex;flex-direction:column;gap:16px}
 
 /* Gruppen und Felder */
-#rc1901Shipment#rc1901Shipment .rc1901-group,#rc1901Shipment#rc1901Shipment .rc1901-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+#rc1901Shipment#rc1901Shipment .rc1901-group,#rc1901Shipment#rc1901Shipment .rc1901-card{background:var(--eh-card,#fff);border:1px solid var(--line);border-radius:18px;padding:20px 22px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 #rc1901Shipment#rc1901Shipment .rc1901-group h2,#rc1901Shipment#rc1901Shipment .rc1901-card h2{margin:0 0 14px!important;font-size:16px!important;font-weight:750!important;color:var(--ink)!important}
 #rc1901Shipment#rc1901Shipment .rc1901-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
 #rc1901Shipment#rc1901Shipment .rc1901-facts dl{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0}
@@ -95,7 +95,7 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 /* Zeitleiste */
 #rc1901Shipment#rc1901Shipment .rc1901-timeline{list-style:none;margin:6px 0 0;padding:0 0 0 20px;border-left:2px solid #e4e7ec}
 #rc1901Shipment#rc1901Shipment .rc1901-timeline li{position:relative;display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 16px;padding:0 0 16px;margin:0}
-#rc1901Shipment#rc1901Shipment .rc1901-timeline li::before{content:"";position:absolute;left:-27px;top:4px;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--c)}
+#rc1901Shipment#rc1901Shipment .rc1901-timeline li::before{content:"";position:absolute;left:-27px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--eh-card,#fff);border:2px solid var(--c)}
 #rc1901Shipment#rc1901Shipment .rc1901-timeline time{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 #rc1901Shipment#rc1901Shipment .rc1901-timeline strong{font-size:14px;color:var(--ink)}
 #rc1901Shipment#rc1901Shipment .rc1901-timeline span{grid-column:2;font-size:13px;color:var(--muted)}
@@ -119,9 +119,9 @@ html[data-eh-layout="top"][data-rc1901-view="shipment"] #content.rc776-shipment-
 #rc1901Shipment#rc1901Shipment:is([data-tab="documents"],[data-tab="proof"]) [data-rc1901-slot="docs"]{display:flex;flex-direction:column;gap:16px}
 #rc1901Shipment#rc1901Shipment[data-tab="documents"] [data-rc1901-slot="docs"]>.eh1860,
 #rc1901Shipment#rc1901Shipment[data-tab="proof"] [data-rc1901-slot="docs"]>#rc786ReferenceFilesCard{display:none!important}
-#rc1901Shipment#rc1901Shipment .rc1901-live>:is(section,.card,.rc776-card){margin:0!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:18px!important;padding:20px 22px!important;box-shadow:0 1px 2px rgba(16,24,40,.04)!important;color:var(--ink)!important}
+#rc1901Shipment#rc1901Shipment .rc1901-live>:is(section,.card,.rc776-card){margin:0!important;background:var(--eh-card,#fff)!important;border:1px solid var(--line)!important;border-radius:18px!important;padding:20px 22px!important;box-shadow:0 1px 2px rgba(16,24,40,.04)!important;color:var(--ink)!important}
 #rc1901Shipment#rc1901Shipment .rc1901-live :is(h2,h3){font-size:16px!important;font-weight:750!important;color:var(--ink)!important;margin:0 0 4px!important}
-#rc1901Shipment#rc1901Shipment .rc1901-live :is(button.ghost,button:not([class]),.eh1860-actions button){border-radius:12px!important;min-height:38px!important;padding:0 14px!important;font-size:13px!important;font-weight:650!important;background:#fff!important;color:#28324a!important;border:1px solid #d6dbe8!important;box-shadow:none!important}
+#rc1901Shipment#rc1901Shipment .rc1901-live :is(button.ghost,button:not([class]),.eh1860-actions button){border-radius:12px!important;min-height:38px!important;padding:0 14px!important;font-size:13px!important;font-weight:650!important;background:var(--eh-card,#fff)!important;color:#28324a!important;border:1px solid #d6dbe8!important;box-shadow:none!important}
 #rc1901Shipment#rc1901Shipment .rc1901-live :is(button.primary,button.btn){border-radius:12px!important;min-height:38px!important;padding:0 16px!important;font-size:13px!important;font-weight:650!important;background:linear-gradient(135deg,var(--primary),var(--primary2))!important;color:#fff!important;border:0!important}
 #rc1901Shipment#rc1901Shipment .rc1901-live :is(input:not([type=file]),textarea,select){border-radius:10px!important;border:1px solid #d6dbe8!important;background:#fbfcfe!important}
 #rc1901Shipment#rc1901Shipment .rc1901-live .rc786-doc-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
