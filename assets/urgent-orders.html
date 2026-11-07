@@ -102,7 +102,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </section>
 </div>
 </main>
-<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Beim Öffnen werden Empfänger, Betreff und der hier erfasste E-Mail-Text zuerst in der Urgent Order gespeichert. Ob die E-Mail wirklich gesendet wurde, muss anschließend bestätigt werden.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField"><span data-i18n="urgentOrderV2.problemDescription">Problembeschreibung *</span><textarea id="mailIssue" placeholder="Was ist das Problem?" minlength="8" maxlength="2000" aria-describedby="mailIssueError"></textarea><small id="mailIssueError" class="field-error" role="alert" hidden></small></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
+<div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Direkt über Microsoft 365 senden: ExportHUB speichert den aktuellen Text und bestätigt die Annahme durch Microsoft automatisch. Beim Öffnen eines externen Mailprogramms kann ExportHUB den späteren Versand nicht erkennen.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField"><span data-i18n="urgentOrderV2.problemDescription">Problembeschreibung *</span><textarea id="mailIssue" placeholder="Was ist das Problem?" minlength="8" maxlength="2000" aria-describedby="mailIssueError"></textarea><small id="mailIssueError" class="field-error" role="alert" hidden></small></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="sendDirect" data-i18n="urgentOrderV2.sendDirect">Über Microsoft 365 senden</button><button type="button" class="btn alt" id="openMailer" data-i18n="urgentOrderV2.openExternalMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
 <script>
 (function(){
 'use strict';
@@ -138,7 +138,7 @@ function rememberEmail(value){
 }
 function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
 // RC1811_INTERNAL_EMAIL_HISTORY_END
-let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open';
+let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open',directRequestId='';
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
  try{const x=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return txt(x.token)}catch(_){return''}
@@ -265,13 +265,16 @@ function mailHistoryMarkup(order){
  const rows=records.map(m=>{
   const sent=m.status==='sent_confirmed';
   const kind=m.kind==='shipping'?localeV2('mailKindShipping',"Shipping confirmation"):localeV2('mailKindProblem',"Problem notification");
-  const state=sent?localeV2('mailStatusManuallySent',"Manually confirmed as sent"):localeV2('mailStatusOpenRequested',"Mail program requested");
+  const state=sent?(m.confirmationSource==='graph_accepted'?localeV2('mailStatusGraphAccepted','Microsoft 365 hat den Versand angenommen · automatisch dokumentiert'):localeV2('mailStatusManuallySent',"Manually confirmed as sent"))
+    :m.status==='sending'?localeV2('mailStatusGraphSending','Versand an Microsoft 365 läuft')
+    :m.status==='send_unverified'?localeV2('mailStatusGraphUnverified','Versand unklar · nicht erneut senden')
+    :localeV2('mailStatusOpenRequested',"Mail program requested");
   const creator=m.createdBy&&m.createdBy.name||m.createdBy&&m.createdBy.id||'–';
   const confirmed=m.sentConfirmedBy&&m.sentConfirmedBy.name||m.sentConfirmedBy&&m.sentConfirmedBy.id||'–';
   return '<details class="mail-entry"><summary><span>'+escapeHtml(kind)+'</span><span class="mail-chip '+(sent?'sent':'')+'">'+escapeHtml(state)+'</span><span class="mail-meta">'+escapeHtml(creator)+' · '+escapeHtml(mailDate(m.createdAt))+'</span></summary>'+
    '<div class="mail-entry-content"><p class="mail-meta">'+escapeHtml(localeV2('mailRecipient',"To"))+': '+escapeHtml(m.to)+' · '+escapeHtml(localeV2('mailLanguageLabel',"Language"))+': '+escapeHtml(m.language||'de')+'</p>'+
    '<p><strong>'+escapeHtml(localeV2('mailSubjectLabel',"Subject"))+':</strong> '+escapeHtml(m.subject)+'</p><pre>'+escapeHtml(m.body)+'</pre>'+
-   (sent?'<p class="mail-meta">'+escapeHtml(localeV2('mailConfirmedBy',"Sent confirmed by"))+' '+escapeHtml(confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(localeV2('mailConfirmButton',"Confirm actual sending"))+'</button>':'')+
+   (sent?'<p class="mail-meta">'+escapeHtml(m.confirmationSource==='graph_accepted'?localeV2('mailGraphAcceptedDisclaimer','Von Microsoft 365 angenommen; Zustellung nicht garantiert.'):localeV2('mailConfirmedBy',"Sent confirmed by")+' '+confirmed)+' · '+escapeHtml(mailDate(m.sentAt))+'</p>':canManage&&m.status==='open_requested'?'<button type="button" class="btn alt small" data-confirm-mail="'+escapeHtml(m.id)+'">'+escapeHtml(localeV2('mailConfirmButton',"Confirm actual sending"))+'</button>':'')+
    '</div></details>';
  }).join('');
  return '<section class="mail-history"><h3>'+escapeHtml(localeV2('mailHistoryTitle',"Email history"))+' · '+records.length+'</h3>'+rows+'</section>';
@@ -371,7 +374,7 @@ async function profile(){
  finally{$('saveProfile').disabled=false;}
 }
 function openDraft(o,kind){
- modalOrder=o.id;modalKind=kind;$('mailLanguage').value=o.language||'de';$('mailIssue').value='';$('mailTo').value=o.email||'';$('mailSubject').value='';$('mailBody').value='';$('issueField').hidden=kind!=='problem';clearMailIssueError();
+ modalOrder=o.id;modalKind=kind;directRequestId='';$('sendDirect').disabled=false;$('openMailer').disabled=false;$('mailLanguage').value=o.language||'de';$('mailIssue').value='';$('mailTo').value=o.email||'';$('mailSubject').value='';$('mailBody').value='';$('issueField').hidden=kind!=='problem';clearMailIssueError();
  $('mailTitle').textContent=kind==='problem'?'Problem melden · '+o.orderNumber:'Versandbestätigung · '+o.orderNumber;
  $('mailOverlay').hidden=false;setMessage('mailMessage',kind==='problem'?'Bitte das Problem beschreiben.':'Versandbestätigung wird vorbereitet.','');
  if(kind==='shipping')generateDraft();
@@ -404,6 +407,29 @@ async function generateDraft(){
   setMessage('mailMessage',e.message,'error');
  }finally{button.disabled=false;}
 }
+async function sendDirect(){
+ // The browser cannot verify an Outlook click; use the server-side Graph path
+ // for a single action with a provider-accepted and auditable status.
+ const to=$('mailTo').value,sub=$('mailSubject').value,body=$('mailBody').value;
+ if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',localeV2('mailRequireText','Bitte zuerst eine E-Mail vorbereiten.'),'error');return;}
+ const button=$('sendDirect');if(button.disabled)return;
+ if(!window.crypto||typeof window.crypto.randomUUID!=='function'){
+  setMessage('mailMessage',localeV2('mailDirectUnavailable','Sicherer Direktversand ist in diesem Browser nicht verfügbar.'),'error');return;
+ }
+ if(!directRequestId)directRequestId=window.crypto.randomUUID();
+ const id=modalOrder,kind=modalKind;button.disabled=true;let accepted=false;
+ try{
+  setMessage('mailMessage',localeV2('mailDirectSending','E-Mail wird sicher über Microsoft 365 versendet …'),'');
+  const result=await api('send-mail-direct',{id,kind,to,subject:sub,body,language:$('mailLanguage').value,requestId:directRequestId});
+  if(modalOrder!==id||modalKind!==kind||$('mailOverlay').hidden)return;
+  const index=orders.findIndex(x=>x.id===id);if(index>=0)orders[index]=result.order;
+  render();accepted=true;$('openMailer').disabled=true;
+  setMessage('mailMessage',localeV2('mailDirectAccepted','Microsoft 365 hat die E-Mail angenommen. Die Bestätigung wurde automatisch gespeichert. Die Zustellung ist nicht garantiert.'),'ok');
+ }catch(e){
+  if(modalOrder!==id||modalKind!==kind||$('mailOverlay').hidden)return;
+  setMessage('mailMessage',e.message,'error');
+ }finally{if(!accepted)button.disabled=false;}
+}
 async function mailto(){
  // Save the CURRENT editor values, not the originally generated template and
  // never an unobservable later change inside Outlook.
@@ -431,7 +457,7 @@ $('newOrder').addEventListener('submit',submit);
 $('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('clearInternalEmailHistory').addEventListener('click',forgetEmails);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
-$('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
+$('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('sendDirect').addEventListener('click',sendDirect);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
 $('mailIssue').addEventListener('input',()=>{if($('mailIssue').value.trim().length>=8)clearMailIssueError();});
 $('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
