@@ -137,11 +137,44 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
   display:none!important;
 }
 #nav#nav#nav>button[data-exporthub-urgent-nav]::after{display:none!important}
+/* Schlanke Desktop-Leiste und mobile Bottom-Navigation benötigen Overlay-Zähler
+   statt eines horizontalen 3-Spalten-Layouts. Classic bleibt als Textmenü erhalten. */
+@media(max-width:1100px){
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:3px!important;
+    padding:5px!important;
+  }
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :where(.pack-internal-nav-badge,.urgent-nav-count,.eh1872-nav-warning,.index236-notification-count,.index236-nav-badge,#index236NotificationCount,.notification-count,.nav-count),
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child:not(.index308-nav-label):not(.index308-nav-icon){
+    position:absolute!important;
+    top:1px!important;
+    right:1px!important;
+    margin:0!important;
+    min-width:22px!important;
+    height:22px!important;
+    min-height:22px!important;
+    padding:0 5px!important;
+    font-size:11px!important;
+    line-height:1!important;
+  }
+}
 @media(max-width:760px){
-  #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
-    flex-direction:row!important;
-    justify-content:flex-start!important;
-    gap:8px!important;
-    min-width:0!important;
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
+    min-width:62px!important;
+    min-height:54px!important;
+    flex-direction:column!important;
+  }
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) .index308-nav-label{
+    display:block!important;
+    flex:0 1 auto!important;
+    max-width:65px!important;
+    font-size:9px!important;
+    line-height:1.1!important;
+    text-align:center!important;
   }
 }
