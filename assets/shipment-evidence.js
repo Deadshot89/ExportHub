@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false};
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function make(tag,cls,value){const e=d.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
@@ -26,10 +26,12 @@ function showList(){state.serial++;state.view='list';state.record=null;const app
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));app.appendChild(actions);
  const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('list')));
  const search=make('input');search.type='search';search.placeholder=t('search');search.value=state.search;search.setAttribute('aria-label',t('search'));panel.appendChild(search);
+ const fullSearch=button(t('searchAll'),()=>scanAll());panel.appendChild(fullSearch);
  const list=make('div','eh1903-list');panel.appendChild(list);app.appendChild(panel);
  const more=button(t('loadMore'),()=>loadList(false));more.hidden=!state.continuation;panel.appendChild(more);
+ fullSearch.hidden=!state.continuation||!state.search.trim();
  const message=make('p','eh1903-status');message.setAttribute('data-eh1903-status','');message.setAttribute('aria-live','polite');app.appendChild(message);
- function updateRows(){list.replaceChildren();const term=state.search.toLowerCase().trim();
+ function updateRows(){list.replaceChildren();more.hidden=!state.continuation;fullSearch.hidden=!state.continuation||!state.search.trim();const term=state.search.toLowerCase().trim();
   const matches=state.records.filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber].some(x=>String(x||'').toLowerCase().includes(term)));
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{const row=make('div','eh1903-row'),data=make('div');
@@ -38,16 +40,32 @@ function showList(){state.serial++;state.view='list';state.record=null;const app
     data.appendChild(make('p',null,(r.files||[]).length+' '+t('fileCount')+' · '+(r.complaints||[]).length+' '+t('complaintCount')));
     row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)});
  }
- search.addEventListener('input',()=>{state.search=search.value;updateRows()});updateRows();
+ search.addEventListener('input',()=>{state.search=search.value;state.searchRun++;updateRows()});updateRows();
 }
-async function loadList(reset){if(state.loading&&!reset)return;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){state.records=[];state.continuation=null}if(state.view==='list')status(t('loading'),false);
+async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){state.records=[];state.continuation=null}if(state.view==='list')status(t('loading'),false);
  try{const result=await request('GET',{action:'list',...(reset?{}:state.continuation?{continuation:state.continuation}:{})});
-  if(serial!==state.serial)return;
+  if(serial!==state.serial)return false;
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
   state.continuation=result.continuation||null;
   if(state.view==='list'&&active())showList();
- }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true)}finally{if(listToken===state.listToken)state.loading=false}}
+  return true;
+ }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true);return false}
+ finally{if(listToken===state.listToken)state.loading=false}}
+async function scanAll(){
+ if(state.scanning||state.loading||!state.continuation||!state.search.trim())return;
+ const run=++state.searchRun;state.scanning=true;
+ try{
+  while(run===state.searchRun&&state.view==='list'&&active()&&state.continuation){
+   const ok=await loadList(false);
+   if(!ok)break;
+   if(run===state.searchRun&&state.continuation)status(t('searching'),false);
+  }
+ }finally{
+  state.scanning=false;
+  if(run===state.searchRun&&state.view==='list'&&active()&&!state.continuation)status(t('searchFinished'),false);
+ }
+}
 function labelField(grid,key,kind,value){const label=make('label',key==='contents'||key==='loadSecuring'||key==='remarks'?'eh1903-wide':'',t(key));
  const el=make(kind==='textarea'?'textarea':'input');el.setAttribute('data-evidence-field',key);
  if(kind!=='textarea')el.type=kind;if(key==='colli'||key==='weightKg'){el.min='0';el.step=key==='colli'?'1':'0.001';}
@@ -86,7 +104,7 @@ async function write(action,extra,expectedId){
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
  finally{state.busy=false}
 }
-function showForm(record){state.view='form';if(record!==undefined)state.record=record;const app=initPage();if(!app)return;
+function showForm(record){state.searchRun++;state.view='form';if(record!==undefined)state.record=record;const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
  if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
@@ -155,7 +173,7 @@ function complaintsPanel(record){const panel=make('section','eh1903-panel');pane
 function historyPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('history')));
  if(record)(record.history||[]).slice(-25).reverse().forEach(x=>panel.appendChild(make('p','eh1903-muted',dateText(x.at)+' · '+x.by+' · '+x.action)));
  return panel}
-async function openRecord(id){const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
+async function openRecord(id){state.searchRun++;const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
  try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active())showForm(res.record)}
  catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
