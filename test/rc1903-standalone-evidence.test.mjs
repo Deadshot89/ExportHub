@@ -39,6 +39,10 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/replaceChildren\(app\)/);
  assert.match(ui,/data-exporthub-view','shipmentevidence'/);
  assert.match(ui,/action:'file'/);
+ // Editing the form before uploading must save the draft on the same document.
+ assert.match(ui,/action:'save',id:originalId,expectedRevision:state\.record\.revision,fields:draft/);
+ assert.match(ui,/expectedId&&expectedId!==originalId/);
+ assert.match(ui,/node\.classList\.add\('active'\)/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
 test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET ohne Sendungsbestand',async t=>{
@@ -81,9 +85,23 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  assert.equal(file.status,200);
  assert.ok(Buffer.isBuffer(file.body));
  assert.equal(file.body.length,6);
- const complaint=await call('POST',{action:'complaint',id:record.id,expectedRevision:uploaded.revision,text:'Beschädigter Karton',reportedDate:'2026-11-07'});
+ const pdfBytes=Buffer.from('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n');
+ const delivery=await call('POST',{action:'upload',id:record.id,expectedRevision:uploaded.revision,kind:'lieferschein',fileName:'Original Lieferschein.pdf',base64:pdfBytes.toString('base64')});
+ assert.equal(delivery.status,200,delivery.body);
+ const afterDelivery=JSON.parse(delivery.body).record;
+ const notes=afterDelivery.files.filter(f=>f.kind==='lieferschein');
+ assert.equal(notes.length,1);
+ assert.match(notes[0].name,/^Lieferschein_DOK-\d{8}-[A-F0-9]{8}_/);
+ const readPdf=await call('GET',{action:'file',id:record.id,fileId:notes[0].id});
+ assert.equal(readPdf.status,200);
+ assert.ok(readPdf.body.equals(pdfBytes));
+ const complaint=await call('POST',{action:'complaint',id:record.id,expectedRevision:afterDelivery.revision,text:'Beschädigter Karton',reportedDate:'2026-11-07'});
  assert.equal(complaint.status,200,complaint.body);
- assert.equal(JSON.parse(complaint.body).record.complaints[0].state,'offen');
+ const complaintRecord=JSON.parse(complaint.body).record;
+ assert.equal(complaintRecord.complaints[0].state,'offen');
+ const closed=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId:complaintRecord.complaints[0].id,state:'abgeschlossen'});
+ assert.equal(closed.status,200,closed.body);
+ assert.equal(JSON.parse(closed.body).record.complaints[0].state,'abgeschlossen');
  const stale=await call('POST',{action:'save',id:record.id,expectedRevision:0,fields:valid});
  assert.equal(stale.status,409);
  const listed=await call('GET',{action:'list'});
