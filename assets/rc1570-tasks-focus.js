@@ -352,11 +352,48 @@ function syncWeeklySeries(s,task,v){
  return true
 }
 function findUser(name){var n=low(name);if(!n)return null;return users().find(function(u){return [u.id,u.name,u.displayName,u.user,u.username,u.login].map(low).indexOf(n)>=0})||null}
-function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
+function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';if(mode==='edit'||mode==='new')loadPickupTargets();try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
 function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
 function edit(id){if(!findTask(id))return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
 function openForm(){if(!canWrite()){alert(t('noRights'));return}openTaskView('new','')}
 function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='in_progress'?'in_progress':'open')}
+
+// RC1875: Task stores only stable FIX transport id; displayed destinations come
+// from the authorized fixed-pickup catalog. Never edit the same numbers twice.
+var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='';
+function pickupEnv(){
+ var host=low(w.location&&w.location.hostname||'');
+ return host.indexOf('-testservice.')>=0?'testservice':'production'
+}
+function pickupOptions(selected){
+ var key=q(selected),rows=pickupTargets.filter(function(x){return x&&x.active!==false});
+ var html='<option value="">'+esc(t('fPickupNone'))+'</option>';
+ if(key&&!rows.some(function(x){return q(x.id)===key}))
+   html+='<option value="'+esc(key)+'" selected>'+esc(t('fPickupMissing'))+'</option>';
+ rows.forEach(function(x){
+  var id=q(x.id);if(!id)return;
+  html+='<option value="'+esc(id)+'"'+(key===id?' selected':'')+'>'+esc(q(x.siteLabel))+' · '+esc(dayNames(lang())[Number(x.weekday)]||'')+'</option>'
+ });
+ return html
+}
+async function loadPickupTargets(){
+ if(pickupTargetsState==='loading')return;
+ var env=pickupEnv(),taskIdAtStart=tv.id,modeAtStart=tv.mode;
+ pickupTargetsState='loading';
+ try{
+  var res=await w.fetch('/api/fixed-pickups?includeInactive=1',{
+   method:'GET',credentials:'same-origin',headers:{'Accept':'application/json','X-ExportHUB-Environment':env}
+  });
+  var data=await res.json();
+  if(!res.ok||!data||data.ok===false||data.environment!==env||!Array.isArray(data.items))throw Error('FIX_TARGETS_UNAVAILABLE');
+  pickupTargets=data.items.filter(function(x){return x&&x.active!==false&&q(x.id)});
+  pickupTargetsEnv=env;pickupTargetsState='ready';
+ }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv=''}
+ // Update just the selector: never re-render the form and lose user input.
+ if(tv.mode!==modeAtStart||tv.id!==taskIdAtStart)return;
+ var el=w.document&&w.document.querySelector('#rc1570TaskView [name="pickupTargetId"]');
+ if(el){var value=el.value;el.innerHTML=pickupOptions(value);el.value=value}
+}
 var savePending=false;
 async function persist(reason,id){
   // Queueing a change is not a confirmed server save.
@@ -397,7 +434,7 @@ function applyForm(task,v,isNew){
   var autoDone=v.autoDone!==false;
   if(isNew||v.customerNo!==customerNo(task)||autoDone!==(task.autoDoneOnShipment!==false))task.customerNumberSetAt=now;
   task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;task.autoDoneOnShipment=autoDone;
-  task.linkedShipmentRef=v.ref;task.note=v.note;
+  task.pickupTargetId=q(v.pickupTargetId);task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
   task._syncUpdatedAt=now;task._syncDeviceId='manual-task-editor';
@@ -409,10 +446,12 @@ async function saveForm(form){
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
     date:q(f.date.value),weekdays:Array.from(form.querySelectorAll('[name="weekdays"]:checked')).map(function(node){return Number(node.value)}),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
-    customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
+    customer:q(f.customer.value),customerNo:q(f.customerNo.value),pickupTargetId:q(f.pickupTargetId&&f.pickupTargetId.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
   var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
   if(!v.title){showError(t('required'));return false}
+  if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
+  if(v.pickupTargetId&&pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&!pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId})){showError(t('fPickupMissing'));return false}
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
@@ -504,6 +543,7 @@ function formHtml(task){
     field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
     field(t('fCustomer'),'<input name="customer" list="rc1570Customers" maxlength="120" autocomplete="off" value="'+esc(task?customer(x):'')+'"><datalist id="rc1570Customers">'+customers().map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.no)+'</option>'}).join('')+'</datalist>')+
     field(t('fCustomerNo'),'<input name="customerNo" maxlength="120" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    field(t('fPickupTarget'),'<select name="pickupTargetId" data-rc1875-pickup-target="1">'+pickupOptions(q(x.pickupTargetId))+'</select>')+
     '<label class="rc1570-field rc1570-wide rc1570-autodone"><span><input type="checkbox" name="autoDone"'+(x.autoDoneOnShipment===false?'':' checked')+'> '+esc(t('fAutoDone'))+'</span><small>'+esc(t('fAutoDoneHint'))+'</small></label>'+
     field(t('fRef'),'<input name="ref" maxlength="40" autocomplete="off" value="'+esc(task?ref(x):'')+'">',true)+
     field(t('fNote'),'<textarea name="note" rows="4" maxlength="2000">'+esc(task?noteOf(x):'')+'</textarea>',true)+
@@ -514,7 +554,7 @@ function detailHtml(task){
   var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),days=weeklyDays(x),rows=[
     [t('fArea'),q(x.area||x.category)||area(x)],[t('fOwner'),ownerName(x,us)],
     [t('fDue'),isWeekly(x)&&days.length?'↻ '+days.map(function(i){return dayNames(lang())[i]}).join(' + '):(d?fmtDate(d):t('noDate'))],[t('fTimeShort'),q(x.time)],
-    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
+    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fPickupTarget'),arr(pickupTargets).find(function(z){return q(z&&z.id)===q(x.pickupTargetId)})?.siteLabel||(q(x.pickupTargetId)?t('fPickupMissing'):t('fPickupNone'))],[t('fRefShort'),rf]
   ];
   if(q(x.doneByShipmentRef))rows.push([t('fDoneByShipment'),q(x.doneByShipmentRef)]);
   else if(customerNo(x)&&!isDone(x)&&x.autoDoneOnShipment!==false)rows.push([t('fAutoDoneShort'),t('autoDoneOn')]);
