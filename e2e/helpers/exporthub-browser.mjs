@@ -472,7 +472,10 @@ export async function assertRuntimeClean(state,testInfo){
     });
   }
   expect(payload.pageErrors,'Unbehandelte pageerror-Ereignisse').toEqual([]);
-  expect(payload.consoleErrors,'Unerwartete Console-Errors').toEqual([]);
+  // Show the allowlisted API codes of 5xx responses already in this message:
+  // the console error is reported first and hides the httpErrors detail.
+  const httpDetail=(payload.httpErrors||[]).length?' · HTTP: '+payload.httpErrors.join(' | '):'';
+  expect(payload.consoleErrors,'Unerwartete Console-Errors'+httpDetail).toEqual([]);
   expect(payload.requestFailures,'Fehlgeschlagene Browser-Requests').toEqual([]);
   expect(payload.httpErrors,'HTTP-5xx bei Kern-Requests').toEqual([]);
 }
