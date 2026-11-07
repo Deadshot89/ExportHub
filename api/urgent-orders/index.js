@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const graphMail=require('../shared/graph-mail');
 const MAX_RETRIES=8;
 const PROD_BLOB='urgent-orders/v1.json';
 const TEST_BLOB='testservice/urgent-orders/v1.json';
@@ -201,6 +202,46 @@ async function execute(req,user,refs){
    const order=accessibleOrder(doc,model.text(p.id,90),user);
    const mail=model.recordMailHandoff(order,p,user,now);
    return{mail,order};
+  });
+ }
+ // Graph-based direct sending is the only path that can automatically attest
+ // provider acceptance; opening an external Outlook draft is never proof.
+ if(action==='send-mail-direct'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails versenden.',403);
+  const cfg=graphMail.readiness();
+  const sender=model.text(process.env.EXPORTHUB_URGENT_MAIL_SENDER||process.env.EXPORTHUB_MAIL_SENDER||cfg.sender,254);
+  if(!cfg.configured||!sender)throw model.problem('URGENT_GRAPH_NOT_CONFIGURED','Microsoft-365-Direktversand ist noch nicht eingerichtet. Bitte die Mail-Einstellungen prüfen.',409);
+  const permission=await graphMail.verifyAuthentication();
+  if(!permission.authenticated||!permission.mailSendGranted)
+   throw model.problem('URGENT_GRAPH_PERMISSION_MISSING','Microsoft Graph benötigt die freigegebene Berechtigung Mail.Send. Es wurde nichts versendet.',409);
+  const orderId=model.text(p.id,90);
+  const saved=await write(refs,doc=>{
+   const order=accessibleOrder(doc,orderId,user);
+   const reservation=model.requestGraphMail(order,p,user,now);
+   return{mail:reservation.mail,order,existing:reservation.existing};
+  });
+  if(saved.existing){
+   if(saved.mail.status==='sent_confirmed')return{mail:saved.mail,order:saved.order,alreadySent:true};
+   throw model.problem('URGENT_GRAPH_MAIL_PENDING','Diese E-Mail wurde bereits eingereicht und ist noch nicht sicher bestätigt. Nicht erneut senden.',409);
+  }
+  try{
+   // A transport timeout has an ambiguous outcome; never retry automatically
+   // and risk sending the same message to the customer twice.
+   await graphMail.sendTextMail({to:saved.mail.to,subject:saved.mail.subject,body:saved.mail.body,sender,maxAttempts:1});
+  }catch(e){
+   try{await write(refs,doc=>{
+    const order=accessibleOrder(doc,orderId,user);
+    const mail=model.markGraphMailUnverified(order,saved.mail.id,new Date().toISOString());
+    return{mail,order};
+   });}catch(_){}
+   throw model.problem('URGENT_GRAPH_SEND_UNVERIFIED','Microsoft 365 konnte den Versand nicht sicher bestätigen. Bitte nicht erneut senden, bevor der Status geprüft wurde.',409);
+  }
+  // Only Graph's successful API acceptance can automatically confirm this mail.
+  // 202 Accepted is NOT a guarantee of delivery into the recipient mailbox.
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,orderId,user);
+   const mail=model.confirmGraphMailAccepted(order,saved.mail.id,sender,new Date().toISOString());
+   return{mail,order,providerAccepted:true};
   });
  }
  if(action==='confirm-mail-sent'){
