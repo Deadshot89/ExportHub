@@ -46,12 +46,14 @@ function storageContext(req,user){
  return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user};
 }
 function guestOrigin(req){
- const h=req.headers||{},origin=txt(h.origin||h.Origin,300),host=txt(h.host||h.Host,300);
- if(!origin||!host)fail('ORIGIN_REQUIRED','Bitte das Formular direkt auf ExportHUB360 öffnen.',403);
+ const h=req.headers||{},rawOrigin=txt(h.origin||h.Origin,300),referer=txt(h.referer||h.Referer,500),
+       host=txt(h.host||h.Host,300).toLowerCase(),forwarded=txt(h['x-forwarded-host']||h['X-Forwarded-Host'],300).toLowerCase();
+ if(!rawOrigin&&!referer||!host)fail('ORIGIN_REQUIRED','Bitte das Formular direkt auf ExportHUB360 öffnen.',403);
  try{
-  const parsed=new URL(origin);
-  if(!['https:','http:'].includes(parsed.protocol)||parsed.host.toLowerCase()!==host.toLowerCase()||
-     (parsed.protocol!=='https:'&&!/^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(host)))
+  const parsed=new URL(rawOrigin||referer);
+  const source=parsed.host.toLowerCase();
+  if(!['https:','http:'].includes(parsed.protocol)||!(source===host||source===forwarded)||
+     (parsed.protocol!=='https:'&&!/^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(source)))
     fail('BAD_ORIGIN','Dieses Formular darf nur auf ExportHUB360 verwendet werden.',403);
  }catch(e){if(e.code==='BAD_ORIGIN')throw e;fail('BAD_ORIGIN','Ungueltiger Formularursprung.',403)}
 }
