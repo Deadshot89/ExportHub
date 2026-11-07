@@ -12,7 +12,11 @@ export async function stateReadErrorCodeFromResponse(response) {
   let address;
   try { address = new URL(response.url()); }
   catch { return null; }
-  if (address.pathname !== '/api/exporthub-state' || address.searchParams.get('mode') !== 'read')
+  const stateRead = address.pathname === '/api/exporthub-state' && address.searchParams.get('mode') === 'read';
+  // Urgent Order badge/list requests are read-mostly and answer with a safe
+  // URGENT_* code; it explains intermittent 5xx in the live browser gate.
+  const urgentOrders = address.pathname === '/api/urgent-orders';
+  if (!stateRead && !urgentOrders)
     return null;
   try { return safeStateReadErrorCode(await response.json()); }
   catch { return 'UNAVAILABLE'; }
