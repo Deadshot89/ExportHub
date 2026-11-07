@@ -6,6 +6,7 @@
 const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
 const apiI18n=require('../shared/i18n');
+const qmAi=require('../shared/qm-ai');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const {isolationConfig,primaryConnection}=require('../shared/testservice-auth-isolation');
 const STATUSES=['offen','ursachenanalyse','massnahme','wirksamkeitspruefung','abgeschlossen'];
@@ -32,6 +33,10 @@ function qualityContainer(environment){
  if(!connection)throw err('STORAGE_NOT_CONFIGURED','Qualitätsspeicher nicht konfiguriert',503);
  const container=test&&isolated.enabled?isolated.container:auth.TEAM_CONTAINER;
  return {container:BlobServiceClient.fromConnectionString(connection).getContainerClient(container),prefix:test?'testservice/':''};
+}
+function aiUsageStore(environment){
+ const q=qualityContainer(environment),blob=q.container.getBlockBlobClient(q.prefix+'quality/ai-usage.json');
+ return{read:()=>auth.readJson(blob,{schemaVersion:1,days:{},log:[]},{missingBlobOnly:true}),write:(value,etag)=>auth.writeJson(blob,value,etag)}
 }
 function recordsClient(environment){const q=qualityContainer(environment);return q.container.getBlockBlobClient(q.prefix+'quality/capa-cases.json')}
 function recordsOf(doc){
@@ -276,6 +281,18 @@ module.exports=async function(context,req){
    if(!verifyAttachmentBytes(meta,buffer))throw err('ATTACH_INTEGRITY','Der Anhang stimmt nicht mehr mit dem gespeicherten Prüfwert überein',409);
    context.res={status:200,isRaw:true,headers:{'Content-Type':meta.mime,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(meta.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};return}
   if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items:items.map(withIntegrity),environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
+  if(action==='ai-case'){
+   // KI-Tipps (Gemini): nur lesend, ändert keinen Fall und speichert keinen KI-Text. Bei jedem Problem Rückfall auf die Regeln.
+   const cases=recordsOf((await readRecords(env)).value),item=cases.find(x=>x.id===str(payload.id,50));
+   if(!item)throw err('NOT_FOUND','Fall nicht gefunden',404);
+   const cfg=qmAi.resolveConfig(process.env),lang=str(payload.language,5).toLowerCase(),language=Object.prototype.hasOwnProperty.call(qmAi.LANGUAGES,lang)?lang:'de';
+   const fallback=reason=>{context.res=json(200,{ok:true,mode:'regelbasiert',fallbackReason:reason,suggestions:advice(item),relatedCases:relatedCases(item,cases),notice:'Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.'})};
+   if(!cfg.enabled){fallback('not_configured');return}
+   let quota;try{quota=await qmAi.consumeQuota(aiUsageStore(env),cfg,userKey(user),item.id)}catch(_){fallback('busy');return}
+   if(!quota.allowed){fallback(quota.reason);return}
+   const answer=await qmAi.askGemini({config:cfg,item,language});
+   if(!answer.ok){fallback(answer.reason);return}
+   context.res=json(200,{ok:true,mode:'ki',text:answer.text,model:answer.model,usedToday:quota.total,dailyLimit:quota.limit,notice:'KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);
    const p=payload.id?cases.find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});

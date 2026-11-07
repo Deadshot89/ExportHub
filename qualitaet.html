@@ -96,7 +96,7 @@ main{max-width:1500px;margin:auto;padding:29px 26px 60px}h1{font-size:clamp(25px
 <div class="field wide"><label for="effectivenessEvidence">Wie wurde die Wirkung nachgewiesen?</label><textarea id="effectivenessEvidence" name="effectivenessEvidence" maxlength="2000" placeholder="z. B. zehn weitere Verladungen ohne gleiche Abweichung geprüft"></textarea></div>
 </div>
 </form>
-<div class="form-actions"><button id="saveBtn" class="primary" type="button">Fall speichern</button><button id="tipsBtn" class="subtle" type="button">Verbesserungsvorschläge</button><button id="closeBtn" class="subtle" type="button" hidden>Wirksamkeit bestätigen & schließen</button><button id="reopenBtn" class="subtle danger" type="button" hidden>Wieder öffnen</button><span id="saveHint" class="helper">Nicht gespeichert</span></div>
+<div class="form-actions"><button id="saveBtn" class="primary" type="button">Fall speichern</button><button id="tipsBtn" class="subtle" type="button">Verbesserungsvorschläge</button><button id="aiBtn" class="subtle" type="button">KI-Vorschlag</button><button id="closeBtn" class="subtle" type="button" hidden>Wirksamkeit bestätigen & schließen</button><button id="reopenBtn" class="subtle danger" type="button" hidden>Wieder öffnen</button><span id="saveHint" class="helper">Nicht gespeichert</span></div>
 <div id="suggestions" class="suggestions" role="region" aria-label="Verbesserungsvorschläge" aria-live="polite"></div>
 <div id="historyBlock" hidden><div class="section-title" style="margin-left:21px;margin-right:21px">Änderungsverlauf</div><div id="history" class="history"></div></div>
 </article></div></div>
@@ -122,7 +122,7 @@ async function api(data){
  var j=await r.json();if(!r.ok||j.ok===false){var ex=Error(j.message||('HTTP '+r.status));ex.code=j.code||'';throw ex}return j
 }
 function notice(s,error){el('notice').textContent=s||'';el('notice').className=error?'error':''}
-function setBusy(v){busy=v;['saveBtn','tipsBtn','closeBtn','reopenBtn','newBtn'].forEach(function(x){el(x).disabled=v})}
+function setBusy(v){busy=v;['saveBtn','tipsBtn','aiBtn','closeBtn','reopenBtn','newBtn'].forEach(function(x){el(x).disabled=v})}
 function value(){var o={};fields.forEach(function(f){o[f]=form.elements[f].value});return o}
 function fill(item){
  fields.forEach(function(f){form.elements[f].value=(item&&item[f])||''});
@@ -197,6 +197,9 @@ async function save(silent){if(busy)return false;if(!form.reportValidity())retur
  }catch(e){notice(e.message,true);return false}finally{setBusy(false)}}
 async function tips(){if(busy)return;setBusy(true);try{
  var p=await api({action:'advise',case:Object.assign({id:selected&&selected.id||''},value())});
+ showAdvice(p)
+ }catch(e){notice(e.message,true)}finally{setBusy(false)}}
+function showAdvice(p,note){
  currentAdvice=p.suggestions||[];
  var box=el('suggestions');
  var suggestions=currentAdvice.map(function(t,i){
@@ -207,10 +210,27 @@ async function tips(){if(busy)return;setBusy(true);try{
   return'<button type="button" class="related-item" data-related-id="'+esc(c.id)+'"><b>'+esc(c.title)+'</b><small>'+esc(c.id)+' · '+esc(statusNames[c.status]||c.status)+'</small>'+
   (c.verifiedMeasure?'<small>Nachweislich wirksame Maßnahme: '+esc(c.verifiedMeasure)+'</small>':'')+'</button>';
  }).join('');
- box.innerHTML='<h2>Verbesserungsvorschläge</h2><p class="helper">Regelbasierte Analyse – keine generative KI. Maßnahmen fachlich prüfen und selbst freigeben.</p>'+
+ box.innerHTML='<h2>Verbesserungsvorschläge</h2><p class="helper">Regelbasierte Analyse – keine generative KI. Maßnahmen fachlich prüfen und selbst freigeben.</p>'+(note?'<p class="helper">'+esc(note)+'</p>':'')+
  suggestions+(related?'<h2 style="margin-top:14px">Ähnliche frühere Fehler</h2><p class="helper">Ähnliche Fälle dienen zur Orientierung; die tatsächliche Ursache muss neu geprüft werden.</p>'+related:'');
- box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'});
- }catch(e){notice(e.message,true)}finally{setBusy(false)}}
+ box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
+}
+async function aiTips(){
+ if(busy)return;
+ if(!selected||!selected.id){notice(T('Bitte den Fall zuerst speichern, um einen KI-Vorschlag zu erhalten.'),true);return}
+ setBusy(true);
+ try{
+  var p=await api({action:'ai-case',id:selected.id,language:I18N?I18N.language():'de'});
+  if(p.mode==='ki'){
+   currentAdvice=[];var box=el('suggestions');
+   box.innerHTML='<h2>'+esc(T('KI-Vorschlag'))+'</h2><p class="helper">'+esc(T('KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'))+' '+esc(T('Bitte keine Namen in Freitexte eintragen.'))+'</p>'+
+   '<div class="tip" style="white-space:pre-wrap">'+esc(p.text)+'</div><p class="helper">'+esc(p.model||'')+' · '+esc(T('Heute genutzt: {used} von {limit}',{used:p.usedToday,limit:p.dailyLimit}))+'</p>';
+   box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
+  }else{
+   var why=p.fallbackReason==='not_configured'?T('Die KI ist nicht eingerichtet, es werden die Regeln verwendet.'):(p.fallbackReason==='limit'||p.fallbackReason==='user-limit')?T('Tageslimit der KI erreicht, es werden die Regeln verwendet.'):T('Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.');
+   showAdvice(p,why)
+  }
+ }catch(e){notice(e.message,true)}finally{setBusy(false)}
+}
 el('suggestions').addEventListener('click',function(e){
  var take=e.target.closest('[data-take-tip]'),related=e.target.closest('[data-related-id]');
  if(related){var found=items.find(function(i){return i.id===related.getAttribute('data-related-id')});if(found)select(found);return}
@@ -237,6 +257,7 @@ el('caseList').addEventListener('click',function(e){var node=e.target.closest('[
 el('newBtn').addEventListener('click',function(){select(null)});
 el('saveBtn').addEventListener('click',function(){save(false)});
 el('tipsBtn').addEventListener('click',tips);
+el('aiBtn').addEventListener('click',aiTips);
 el('closeBtn').addEventListener('click',close);
 el('reopenBtn').addEventListener('click',reopen);
 
