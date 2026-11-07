@@ -277,6 +277,7 @@
   "api.reference.docSignatureInvalid": "The file content does not match the file type.",
   "api.urgent.hello": "Hi,",
   "api.urgent.teamFallback": "Logistics",
+  "api.urgent.translationReview": "The issue could not be translated automatically. Please review the text before sending.",
   "api.urgent.issueDescriptionRequired": "Please describe the issue (at least 8 characters).",
   "api.urgent.subjectIssue": "Issue · ",
   "api.urgent.subjectShipping": "Shipping confirmation · ",
