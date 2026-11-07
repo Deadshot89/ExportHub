@@ -63,3 +63,18 @@ test('RC1696: independently required SharePoint copies block workflow success af
     assert.doesNotMatch(section,/::warning title=POD Microsoft-365 optional archive/);
   }
 });
+
+
+test('RC1870: both environments bound generic Graph request failures without masking Azure or SharePoint errors',()=>{
+  for(const [name,section] of [['TESTSERVICE',testservice],['PRODUCTION',production]]){
+    assert.match(section,/codes\.some\(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'\|\|code==='GRAPH_REQUEST_FAILED'\)/,
+      name+' must recognize both persistent Graph failure codes');
+    assert.match(section,/if \[ "\$graph_target_failure_streak" -ge 2 \] && \[ "\$suppress_drive_backfill" != '1' \] && \[ -z "\$TARGET_REFERENCE" \]; then/,
+      name+' must pause only bulk backfill after two consecutive failures');
+    assert.match(section,/suppress_drive_backfill=1/);
+    assert.match(section,/SUPPRESS_DRIVE_BACKFILL="\$suppress_drive_backfill"/);
+    assert.match(section,/Optionaler Graph-Backfill für diesen Scan pausiert/);
+    assert.match(section,/if \[ "\$optional_drive_pending_batches" -gt 0 \]; then[\s\S]*?exit 10/,
+      name+' must still fail closed when the independent SharePoint copy is absent');
+  }
+});
