@@ -24,7 +24,7 @@ test('RC1872: exactly one visible destination, preserving both canonical data en
   assert.match(html,/id='rc885WarningButton'/);
   assert.match(html,/window\.__EXPORTHUB_WARNING_SUMMARY__/);
   assert.match(html,/id="index236NotificationCenter"/);
-  assert.match(ui,/var lastWarningCount=-1/);
+  assert.match(ui,/lastWarningCount=-1/);
   assert.doesNotMatch(ui,/\.tasks\s*=|\.shipments\s*=|\.warnings\s*=|\.notificationCenter\s*=/);
 });
 
