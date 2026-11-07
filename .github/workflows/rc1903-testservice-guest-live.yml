@@ -23,12 +23,26 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
           package-manager-cache: false
 
+      - name: Run a live write only when RC1903 was changed in this release
+        id: rc1903_changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only HEAD^ HEAD -- api/shipment-evidence/ assets/shipment-evidence.js assets/shipment-evidence-guest.js assets/shipment-evidence.css assets/i18n/shipment-evidence.js scripts/rc1903-testservice-guest-live.mjs .github/workflows/rc1903-testservice-guest-live.yml | grep -q .; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo 'No RC1903 changes in the deployed commit; skip write test.'
+          fi
+
       - name: Validate exact deployed TESTSERVICE SHA before any test write
+        if: ${{ steps.rc1903_changes.outputs.run == 'true' }}
         env:
           RC1903_EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: node scripts/rc1903-testservice-guest-live.mjs
