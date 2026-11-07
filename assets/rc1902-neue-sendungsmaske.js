@@ -82,6 +82,7 @@
     if(!active()){removeRoot();return;}
     document.documentElement.setAttribute('data-rc1902-view','form');
     var d=read();var root=ensureRoot();
+    watchSections(d.blocks);
     var sig=JSON.stringify([d.title,d.ref,d.customer,d.status,d.kpis,d.blocks.map(function(b){return [b.id,b.num,b.title,b.warn];}),ui.current,!!d.save,d.save&&d.save.disabled,!!d.docs,txt(d.save),txt(d.docs)]);
     if(sig===ui.lastSig&&root.firstChild)return;
     ui.lastSig=sig;
@@ -109,21 +110,26 @@
         }).join('')+
         '<span class="rc1902-summary'+(open?' is-warn':'')+'">'+esc(open===1?tr('rc1902.openStep'):open?tr('rc1902.openSteps').replace('{n}',open):tr('rc1902.allComplete'))+'</span>'+
       '</nav>';
-    watchSections(d.blocks);
   }
 
+  /* Ist die neue Erfassung (RC1903) aktiv, springen die Schritte zu deren Abschnitten */
+  function target(id){
+    var api=window.rc1903NeueErfassung,sec=api&&typeof api.section==='function'?api.section(id):null;
+    return sec||document.getElementById(id);
+  }
   /* Aktueller Schritt beim Scrollen */
   function watchSections(list){
     if(!('IntersectionObserver' in window))return;
-    var key=list.map(function(b){return b.id;}).join('|');
+    var key=list.map(function(b){var el=target(b.id);return b.id+(el&&el!==b.el?'+':'');}).join('|');
     if(ui.observer&&ui.observer.__key===key)return;
     if(ui.observer)ui.observer.disconnect();
     ui.observer=new IntersectionObserver(function(entries){
       var best=null;entries.forEach(function(e){if(e.isIntersecting&&(!best||e.boundingClientRect.top<best.boundingClientRect.top))best=e;});
-      if(best&&best.target.id!==ui.current){ui.current=best.target.id;schedule();}
+      var id=best&&(best.target.getAttribute('data-rc1903-section')||best.target.id);
+      if(id&&id!==ui.current){ui.current=id;schedule();}
     },{rootMargin:'-180px 0px -55% 0px',threshold:0});
     ui.observer.__key=key;
-    list.forEach(function(b){ui.observer.observe(b.el);});
+    list.forEach(function(b){var el=target(b.id);if(el)ui.observer.observe(el);});
   }
 
   /* ---------- Bedienung ---------- */
@@ -136,8 +142,8 @@
     if(!root||!t||!root.contains(t))return;
     ev.stopPropagation();
     if(t.hasAttribute('data-rc1902-goto')){
-      var el=document.getElementById(t.getAttribute('data-rc1902-goto'));
-      if(el){ui.current=el.id;el.scrollIntoView({behavior:'smooth',block:'start'});var f=el.querySelector('input:not([type=hidden]):not([disabled]),select,textarea');if(f&&f.focus)setTimeout(function(){try{f.focus({preventScroll:true});}catch(_){}},400);schedule();}
+      var id=t.getAttribute('data-rc1902-goto'),el=target(id);
+      if(el){ui.current=id;el.scrollIntoView({behavior:'smooth',block:'start'});var f=el.querySelector('input:not([type=hidden]):not([disabled]),select,textarea');if(f&&f.focus)setTimeout(function(){try{f.focus({preventScroll:true});}catch(_){}},400);schedule();}
       return;
     }
     if(t.hasAttribute('data-rc1902-proxy')){
