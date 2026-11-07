@@ -2546,6 +2546,8 @@
   "urgentOrderV2.mailSummaryConfirmed": "Envío confirmado",
   "urgentOrderV2.mailConfirmPrompt": "¿Se ha enviado realmente este correo desde el programa de correo? La confirmación se guardará con tu cuenta.",
   "urgentOrderV2.mailConfirmSaved": "Confirmación del envío guardada.",
+  "urgentOrderV2.mailNoteRequired": "Describa la incidencia (al menos 8 caracteres).",
+  "urgentOrderV2.mailDraftReady": "El borrador de correo está listo.",
   "urgentOrderV2.mailRequireText": "Primero redacta el correo electrónico.",
   "urgentOrderV2.mailSaving": "Guardando el texto del correo en el pedido …",
   "urgentOrderV2.mailSaved": "Texto del correo guardado. Confirma el envío posteriormente en el historial del pedido.",
