@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ai = require('../api/shared/qm-ai.js');
+const auth = require('../api/shared/auth-store.js');
 
 const env = { EXPORTHUB_QM_AI_API_KEY: 'test-key' };
 const item = {
@@ -22,7 +23,9 @@ test('QM-KI: ohne Schlüssel oder mit Limit 0 ist die KI aus', () => {
   const c = ai.resolveConfig(env);
   assert.equal(c.dailyLimit, 20);
   assert.equal(c.perUserLimit, 5);
-  assert.ok(c.maxOutputTokens <= 2000);
+  assert.equal(c.maxOutputTokens, 2600);
+  assert.equal(ai.resolveConfig({ ...env, EXPORTHUB_QM_AI_MAX_OUTPUT_TOKENS: '3200' }).maxOutputTokens, 3200);
+  assert.equal(ai.resolveConfig({ ...env, EXPORTHUB_QM_AI_MAX_OUTPUT_TOKENS: '9000' }).maxOutputTokens, 4096);
 });
 
 test('QM-KI: Anonymisierung entfernt E-Mail, Link, Telefon, Nummern, REF und Fallnummer', () => {
@@ -62,7 +65,7 @@ test('QM-KI: erfolgreiche Antwort, Schlüssel nur im Header, feste Google-Adress
   assert.equal(call.opts.headers['x-goog-api-key'], 'test-key');
   assert.ok(!call.url.includes('test-key'), 'Schlüssel nicht in der URL');
   const body = JSON.parse(call.opts.body);
-  assert.equal(body.generationConfig.maxOutputTokens, 1400);
+  assert.equal(body.generationConfig.maxOutputTokens, 2600);
   assert.ok(!JSON.stringify(body).includes('AB12CD'));
 });
 
@@ -81,8 +84,8 @@ test('QM-KI: Fehlerursachen werden unterschieden', async () => {
   assert.equal(aborted.reason, 'timeout');
 });
 
-function memoryStore() {
-  let value = null, etag = 0;
+function memoryStore(initial = null) {
+  let value = initial, etag = initial === null ? 0 : 1;
   return {
     async read() { return { value, etag: value ? String(etag) : null }; },
     async write(next, tag) { if ((value ? String(etag) : null) !== (tag || null)) { const e = new Error('conflict'); e.statusCode = 412; throw e; } value = next; etag++; },
@@ -90,30 +93,164 @@ function memoryStore() {
   };
 }
 
-test('QM-KI: Tageslimit gesamt und je Benutzer, Protokoll, Aufräumen alter Tage', async () => {
-  const cfg = { ...ai.resolveConfig(env), dailyLimit: 3, perUserLimit: 2 };
+test('QM-KI: Erfolg zählt, Fehler geben Reservierung frei', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 2, perUserLimit: 1 };
   const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
-  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now)).allowed, true);
-  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now)).allowed, true);
-  const third = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
-  assert.equal(third.allowed, false);
-  assert.equal(third.reason, 'user-limit');
-  assert.equal((await ai.consumeQuota(store, cfg, 'ben', 'QM-2', now)).allowed, true);
-  const total = await ai.consumeQuota(store, cfg, 'cora', 'QM-3', now);
-  assert.equal(total.allowed, false);
-  assert.equal(total.reason, 'limit');
+  const a = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
+  assert.equal(a.allowed, true);
+  assert.equal(store.value.days['2026-11-07'].total, 0);
+  assert.equal(store.value.log.length, 0);
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-2', now)).reason, 'user-limit');
+  assert.equal((await ai.finishQuota(store, a, false, now)).settled, true);
+  assert.equal(store.value.pending.length, 0);
+  assert.equal(store.value.log.length, 1);
+  assert.equal(store.value.log[0].outcome, 'failed');
+  const b = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
+  assert.equal(b.allowed, true);
+  assert.equal((await ai.finishQuota(store, b, true, now)).total, 1);
+  assert.equal((await ai.finishQuota(store, b, true, now)).settled, false);
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-3', now)).reason, 'user-limit');
+  const c = await ai.consumeQuota(store, cfg, 'ben', 'QM-4', now);
+  assert.equal(c.allowed, true);
+  assert.equal((await ai.finishQuota(store, c, true, now)).total, 2);
+  assert.equal((await ai.consumeQuota(store, cfg, 'cora', 'QM-5', now)).reason, 'limit');
   assert.equal(store.value.log.length, 3);
-  assert.deepEqual(Object.keys(store.value.log[0]).sort(), ['at', 'by', 'caseId', 'model']);
-  const next = await ai.consumeQuota(store, cfg, 'anna', 'QM-4', new Date('2026-11-08T08:00:00Z'));
-  assert.equal(next.allowed, true, 'neuer Tag, neues Kontingent');
+  assert.deepEqual(Object.keys(store.value.log[0]).sort(), ['at', 'by', 'caseId', 'model', 'outcome']);
+  assert.deepEqual(store.value.log.map(e => e.outcome), ['failed','success','success']);
+  const tomorrow = new Date('2026-11-08T08:00:00Z');
+  const next = await ai.consumeQuota(store, cfg, 'anna', 'QM-6', tomorrow);
+  assert.equal(next.allowed, true);
+  assert.equal((await ai.finishQuota(store, next, true, tomorrow)).total, 1);
 });
 
-test('QM-KI: gleichzeitige Zugriffe überschreiten das Limit nicht', async () => {
+test('QM-KI: parallele Reservierungen überschreiten kein Limit', async () => {
   const cfg = { ...ai.resolveConfig(env), dailyLimit: 5, perUserLimit: 50 };
   const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
-  const results = await Promise.all(Array.from({ length: 12 }, (_, i) => ai.consumeQuota(store, cfg, 'u' + i, 'QM', now).catch(() => ({ allowed: false }))));
-  assert.ok(results.filter(r => r.allowed).length <= 5);
+  const results = await Promise.all(Array.from({ length: 12 }, (_, i) =>
+    ai.consumeQuota(store, cfg, 'u' + i, 'QM', now).catch(() => ({ allowed: false }))));
+  const allowed = results.filter(r => r.allowed);
+  assert.ok(allowed.length <= 5);
+  assert.ok(store.value.pending.length <= 5);
+  for (const ticket of allowed) await ai.finishQuota(store, ticket, true, now);
   assert.ok(store.value.days['2026-11-07'].total <= 5);
+  assert.equal(store.value.pending.length, 0);
+});
+
+test('QM-KI: bestehende Tageskontingente bleiben nach Upgrade erhalten', async () => {
+  const now = new Date('2026-11-07T12:00:00Z');
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 5, perUserLimit: 2 };
+  const previous = {
+    schemaVersion: 1,
+    days: { '2026-11-07': { total: 3, users: { anna: 2, ben: 1 } } },
+    log: [{ at: now.toISOString(), by: 'anna', caseId: 'QM-ALT', model: cfg.model }]
+  };
+  const store = memoryStore(previous);
+  const blocked = await ai.consumeQuota(store, cfg, 'anna', 'QM-NEU', now);
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reason, 'user-limit');
+  const ticket = await ai.consumeQuota(store, cfg, 'cora', 'QM-NEU', now);
+  assert.equal(ticket.allowed, true);
+  assert.equal(store.value.days['2026-11-07'].total, 3, 'alte Zähler bleiben bis zum Erfolg unverändert');
+  assert.equal((await ai.finishQuota(store, ticket, true, now)).total, 4);
+  assert.equal(store.value.days['2026-11-07'].users.anna, 2);
+  assert.equal(store.value.log.length, 2, 'bestehendes Nutzungsprotokoll bleibt erhalten');
+  const broken = {
+    async read() { return { value: null, etag: 'existing-etag' }; },
+    async write() { throw new Error('beschädigter Blob darf nie überschrieben werden'); }
+  };
+  let prevented = false;
+  try { await ai.consumeQuota(broken, cfg, 'cora', 'QM-NEU', now); }
+  catch (error) { prevented = /usage storage invalid/.test(error.message); }
+  assert.equal(prevented, true, 'bestehende Null-Daten nicht stillschweigend neu initialisieren');
+});
+
+test('QM-KI: Azure Blob fehlt oder enthält JSON null – kein stiller Zähler-Reset', async () => {
+  const cfg = ai.resolveConfig(env), now = new Date('2026-11-07T12:00:00Z');
+  const path = 'quality/ai-usage.json';
+  const existingNull = {
+    name: path,
+    async download() {
+      return { etag: 'existing-etag', readableStreamBody: [Buffer.from('null')] };
+    }
+  };
+  const missing = {
+    name: path,
+    async download() {
+      const e = new Error('BlobNotFound');
+      e.statusCode = 404;
+      e.code = 'BlobNotFound';
+      throw e;
+    }
+  };
+  const fromExisting = await auth.readJson(existingNull, null, { missingBlobOnly: true });
+  const fromMissing = await auth.readJson(missing, null, { missingBlobOnly: true });
+  assert.deepEqual(fromExisting, { value: null, etag: 'existing-etag' });
+  assert.deepEqual(fromMissing, { value: null, etag: null });
+  const storage = {
+    read: () => auth.readJson(existingNull, null, { missingBlobOnly: true }),
+    write: async () => { throw new Error('Beschädigtes Blob darf nicht überschrieben werden'); }
+  };
+  let protectedFromReset = false;
+  try { await ai.consumeQuota(storage, cfg, 'anna', 'QM-1', now); }
+  catch (e) { protectedFromReset = /usage storage invalid/.test(e.message); }
+  assert.equal(protectedFromReset, true);
+  const src = fs.readFileSync('api/quality-capa/index.js', 'utf8');
+  assert.match(src, /auth\.readJson\(blob,null,\{missingBlobOnly:true\}\)/);
+});
+
+test('QM-KI: gleichzeitige Anfragen desselben Benutzers respektieren das persönliche Limit', async () => {
+  const now = new Date('2026-11-07T12:00:00Z');
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 20, perUserLimit: 2 };
+  const store = memoryStore();
+  const results = await Promise.all(Array.from({ length: 10 }, () =>
+    ai.consumeQuota(store, cfg, 'anna', 'QM-1', now).catch(() => ({ allowed: false }))));
+  const allowed = results.filter(r => r.allowed);
+  assert.ok(allowed.length <= 2, 'mehr parallele Aufrufe als das Benutzerlimit');
+  assert.equal(store.value.pending.length, allowed.length);
+  for (const ticket of allowed) await ai.finishQuota(store, ticket, true, now);
+  assert.equal(store.value.days['2026-11-07'].users.anna, allowed.length);
+  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-2', now)).reason, 'user-limit');
+});
+
+test('QM-KI: verwaiste Reservierungen verfallen', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 1, perUserLimit: 1 };
+  const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
+  const orphan = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
+  assert.equal(orphan.allowed, true);
+  const later = new Date('2026-11-07T10:06:00Z');
+  const next = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', later);
+  assert.equal(next.allowed, true);
+  assert.equal((await ai.finishQuota(store, orphan, true, later)).settled, false);
+  assert.equal((await ai.finishQuota(store, next, true, later)).total, 1);
+  assert.equal(store.value.log.length, 1);
+});
+
+test('QM-KI: MAX_TOKENS, Inhaltsfilter und leere Antworten klar unterscheiden', async () => {
+  const mocked = payload => ai.askGemini({ env, item, fetchImpl: mockFetch(async () =>
+    ({ ok: true, status: 200, json: async () => payload })) });
+  const limit = await mocked({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: 'unvollständig' }] } }] });
+  assert.equal(limit.ok, false);
+  assert.equal(limit.reason, 'truncated');
+  assert.equal(limit.status, 200);
+  assert.equal((await mocked({ promptFeedback: { blockReason: 'SAFETY' } })).reason, 'blocked');
+  assert.equal((await mocked({ candidates: [{ finishReason: 'SAFETY' }] })).reason, 'blocked');
+  assert.equal((await mocked({ candidates: [{ finishReason: 'STOP', content: { parts: [] } }] })).reason, 'empty');
+  assert.equal((await mocked({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Erfolg' }] } }] })).ok, true);
+});
+
+test('QM-KI: Diagnose erscheint für sechs Sprachen in der Oberfläche', () => {
+  const page = fs.readFileSync('qualitaet.html', 'utf8');
+  const dict = fs.readFileSync('assets/i18n/qualitaet.js', 'utf8');
+  for (const [reason, key] of [
+    ['quota_storage', 'Der KI-Zähler ist vorübergehend nicht erreichbar.'],
+    ['truncated', 'Google hat die KI-Antwort wegen des Ausgabelimits abgebrochen.'],
+    ['blocked', 'Google hat die Anfrage oder Antwort durch einen Inhaltsfilter blockiert.'],
+    ['empty', 'Google hat keine verwertbare KI-Antwort geliefert.']
+  ]) {
+    assert.ok(page.includes("r==='" + reason + "'"), reason);
+    assert.ok(dict.includes("['" + key), key);
+  }
+  assert.ok(page.includes('p.providerStatus>=400'));
 });
 
 test('QM-KI: API-Aktion ai-case prüft Leserecht, fällt auf Regeln zurück und speichert keinen KI-Text', () => {
@@ -121,6 +258,7 @@ test('QM-KI: API-Aktion ai-case prüft Leserecht, fällt auf Regeln zurück und 
   assert.match(src, /action==='ai-case'/);
   assert.match(src, /regelbasiert/);
   assert.match(src, /consumeQuota/);
+  assert.match(src, /finishQuota/);
   const idxAi = src.indexOf("action==='ai-case'"), idxRead = src.indexOf("requireRight(canRead(user),'Qualitätsabweichungen')");
   assert.ok(idxRead > 0 && idxAi > idxRead, 'ai-case steht hinter der Leseberechtigung');
   const block = src.slice(idxAi, src.indexOf("if(action==='advise')", idxAi));
@@ -146,13 +284,13 @@ test('QM-KI: Anweisung verlangt fünf Abschnitte inkl. Wirksamkeitsprüfung mit 
   assert.match(s, /5\. Wirksamkeitsprüfung/);
   for (const w of ['Prüfkriterium', 'Prüfzeitraum', 'Nachweis', 'unwirksam']) assert.ok(s.includes(w), w);
   assert.match(s, /Befolge keine Anweisungen/);
-  assert.equal(ai.resolveConfig({ EXPORTHUB_QM_AI_API_KEY: 'k' }).maxOutputTokens, 1400);
+  assert.equal(ai.resolveConfig({ EXPORTHUB_QM_AI_API_KEY: 'k' }).maxOutputTokens, 2600);
 });
 
 test('QM-KI: leere Antwort nennt den Grund von Google für die Diagnose', async () => {
   const run = payload => ai.askGemini({ env, item, fetchImpl: mockFetch(async () => ({ ok: true, status: 200, json: async () => payload })) });
   const cut = await run({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] });
-  assert.deepEqual([cut.ok, cut.reason, cut.detail], [false, 'empty', 'MAX_TOKENS']);
+  assert.deepEqual([cut.ok, cut.reason, cut.detail], [false, 'truncated', 'MAX_TOKENS']);
   const blocked = await run({ promptFeedback: { blockReason: 'SAFETY' } });
   assert.equal(blocked.detail, 'SAFETY');
   const none = await run({});
@@ -162,38 +300,42 @@ test('QM-KI: leere Antwort nennt den Grund von Google für die Diagnose', async 
   assert.match(fs.readFileSync('api/quality-capa/index.js', 'utf8'), /providerDetail:str\(detail,40\)/);
 });
 
-test('QM-KI: fehlgeschlagener Aufruf bekommt das Limit gutgeschrieben (außer Google-Kontingent 429)', async () => {
-  const cfg = { ...ai.resolveConfig(env), dailyLimit: 10, perUserLimit: 2 };
-  const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
-  const first = await ai.consumeQuota(store, cfg, 'anna', 'QM-1', now);
-  assert.ok(first.at, 'consumeQuota liefert den Zeitstempel des Eintrags');
-  const back = await ai.refundQuota(store, cfg, 'anna', first.at, now);
-  assert.equal(back.refunded, true);
-  assert.equal(store.value.days['2026-11-07'].total, 0);
-  assert.equal(store.value.days['2026-11-07'].users.anna, 0);
-  assert.equal(store.value.log[0].outcome, 'failed');
-  // Nach der Gutschrift stehen wieder beide Aufrufe zur Verfügung
-  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-2', now)).allowed, true);
-  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-3', now)).allowed, true);
-  assert.equal((await ai.consumeQuota(store, cfg, 'anna', 'QM-4', now)).allowed, false);
-});
 
-test('QM-KI: Gutschriften sind je Benutzer und Tag begrenzt und nie negativ', async () => {
-  const cfg = { ...ai.resolveConfig(env), dailyLimit: 100, perUserLimit: 50 };
+test('QM-KI: auch Google 429 und mehr als zehn Fehlversuche verbrauchen kein Tageslimit', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 3, perUserLimit: 2 };
   const store = memoryStore(), now = new Date('2026-11-07T10:00:00Z');
-  let refunded = 0;
-  for (let i = 0; i < 14; i++) {
-    const c = await ai.consumeQuota(store, cfg, 'ben', 'QM-' + i, now);
-    if ((await ai.refundQuota(store, cfg, 'ben', c.at + '', new Date(now.getTime() + i))).refunded) refunded++;
+  for (let i = 0; i < 15; i++) {
+    const ticket = await ai.consumeQuota(store, cfg, 'anna', 'QM-' + i, now);
+    assert.equal(ticket.allowed, true);
+    // Google 429 und andere Providerfehler werden beide als fehlgeschlagener Aufruf beendet.
+    const result = await ai.finishQuota(store, ticket, false, now);
+    assert.equal(result.settled, true);
+    assert.equal(result.total, 0);
   }
-  assert.equal(refunded, 10, 'höchstens 10 Gutschriften je Benutzer und Tag');
-  assert.ok(store.value.days['2026-11-07'].total >= 4);
-  const fresh = memoryStore();
-  assert.equal((await ai.refundQuota(fresh, cfg, 'nobody', 'x', now)).refunded, false, 'ohne Verbrauch keine Gutschrift');
+  assert.equal(store.value.days['2026-11-07'].total, 0);
+  assert.equal(store.value.log.length, 15);
+  assert.ok(store.value.log.every(e => e.outcome === 'failed'));
+  const next = await ai.consumeQuota(store, cfg, 'anna', 'QM-ERFOLG', now);
+  assert.equal(next.allowed, true);
+  assert.equal((await ai.finishQuota(store, next, true, now)).total, 1);
+  assert.equal(store.value.log.at(-1).outcome, 'success');
 });
-
-test('QM-KI: API gibt bei Fehlern außer 429 gut und liefert KI-Antwort ohne Gutschrift', () => {
-  const src = fs.readFileSync('api/quality-capa/index.js', 'utf8');
-  assert.match(src, /answer\.reason!=='busy'/);
-  assert.match(src, /refundQuota/);
+test('QM-KI: alte Refund-Protokolle und Tagesmetadaten werden beim Upgrade erhalten', async () => {
+  const cfg = { ...ai.resolveConfig(env), dailyLimit: 10, perUserLimit: 4 };
+  const now = new Date('2026-11-07T11:00:00Z');
+  const legacy = { schemaVersion: 1, days: { '2026-11-07': { total: 2, users: { anna: 2 }, fails: { anna: 7 } } },
+    log: [{ at: now.toISOString(), by: 'anna', caseId: 'QM-ALT', model: cfg.model, outcome: 'failed' }] };
+  const store = memoryStore(legacy);
+  const ticket = await ai.consumeQuota(store, cfg, 'ben', 'QM-NEU', now);
+  assert.equal(ticket.allowed, true);
+  assert.equal((await ai.finishQuota(store, ticket, true, now)).total, 3);
+  assert.equal(store.value.days['2026-11-07'].fails.anna, 7);
+  assert.equal(store.value.days['2026-11-07'].users.anna, 2);
+  assert.equal(store.value.log[0].outcome, 'failed');
+  assert.equal(store.value.log[1].outcome, 'success');
+});
+test('QM-KI: ai-case nutzt Reservierungen statt begrenzter Rückerstattungen', () => {
+  const source = fs.readFileSync('api/quality-capa/index.js', 'utf8');
+  assert.match(source, /finishQuota\(quotaStore,quota,answer\.ok\)/);
+  assert.doesNotMatch(source, /refundQuota/);
 });

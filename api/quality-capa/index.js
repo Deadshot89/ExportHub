@@ -37,7 +37,9 @@ function qualityContainer(environment){
 }
 function aiUsageStore(environment){
  const q=qualityContainer(environment),blob=q.container.getBlockBlobClient(q.prefix+'quality/ai-usage.json');
- return{read:()=>auth.readJson(blob,{schemaVersion:1,days:{},log:[]},{missingBlobOnly:true}),write:(value,etag)=>auth.writeJson(blob,value,etag)}
+ // Mit null-Fallback kann der Zähler ein fehlendes Blob (etag=null) von
+ // einer bestehenden, als JSON null beschädigten Datei (etag vorhanden) unterscheiden.
+ return{read:()=>auth.readJson(blob,null,{missingBlobOnly:true}),write:(value,etag)=>auth.writeJson(blob,value,etag)}
 }
 function recordsClient(environment){const q=qualityContainer(environment);return q.container.getBlockBlobClient(q.prefix+'quality/capa-cases.json')}
 function recordsOf(doc){
@@ -294,14 +296,24 @@ module.exports=async function(context,req){
    const cfg=qmAi.resolveConfig(process.env),lang=str(payload.language,5).toLowerCase(),language=Object.prototype.hasOwnProperty.call(qmAi.LANGUAGES,lang)?lang:'de';
    const fallback=(reason,providerStatus,detail)=>{context.res=json(200,{ok:true,mode:'regelbasiert',fallbackReason:reason,providerStatus:Number(providerStatus)||0,providerDetail:str(detail,40),suggestions:advice(item),relatedCases:relatedCases(item,cases),notice:'Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.'})};
    if(!cfg.enabled){fallback('not_configured');return}
-   let quota;try{quota=await qmAi.consumeQuota(aiUsageStore(env),cfg,userKey(user),item.id)}catch(_){fallback('busy');return}
-   if(!quota.allowed){fallback(quota.reason);return}
-   const answer=await qmAi.askGemini({config:cfg,item,language});
-   if(!answer.ok){
-    // Fehlgeschlagene Aufrufe zählen nicht aufs Limit; bei erschöpftem Google-Kontingent (429) gibt es keine Gutschrift.
-    if(answer.reason!=='busy'){try{await qmAi.refundQuota(aiUsageStore(env),cfg,userKey(user),quota.at)}catch(_){/* Gutschrift ist optional */}}
-    fallback(answer.reason,answer.status,answer.detail);return}
-   context.res=json(200,{ok:true,mode:'ki',text:answer.text,model:answer.model,usedToday:quota.total,dailyLimit:quota.limit,notice:'KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'});return}
+   // Platz vor Gemini atomar reservieren; nur erfolgreiche Antworten dauerhaft anrechnen.
+   let quota,quotaStore;
+   try{
+    quotaStore=aiUsageStore(env);
+    quota=await qmAi.consumeQuota(quotaStore,cfg,userKey(user),item.id);
+   }catch(_){fallback('quota_storage');return}
+   if(!quota.allowed){fallback(quota.reason==='busy'?'quota_storage':quota.reason);return}
+   let answer;
+   try{answer=await qmAi.askGemini({config:cfg,item,language})}
+   catch(_){answer={ok:false,reason:'server',status:0}}
+   // Auch bei Timeout / Google-Fehler die Reservierung freigeben; bei Erfolg
+   // erst die Nutzungszählung sicher speichern, dann den Vorschlag anzeigen.
+   let settled;
+   try{settled=await qmAi.finishQuota(quotaStore,quota,answer.ok)}
+   catch(_){fallback('quota_storage');return}
+   if(!settled.settled){fallback('quota_storage');return}
+   if(!answer.ok){fallback(answer.reason,answer.status,answer.detail);return}
+   context.res=json(200,{ok:true,mode:'ki',text:answer.text,model:answer.model,usedToday:settled.total,dailyLimit:quota.limit,notice:'KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);
    const p=payload.id?cases.find(x=>x.id===str(payload.id,50)):Object.assign({},payload.case||{});
