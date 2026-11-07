@@ -125,6 +125,64 @@
     if (open.length) return {state:'planned', refs:open.map(shipmentRefText)};
     return {state:'', refs:[]};
   }
+
+  // RC1875: the saved Pick task is the single source for customer numbers and an explicit FIX transport ID.
+  // A calendar association is read-only: it never changes a shipment, its pickup or its documents.
+  function taskCustomerNumbers(task){
+    const x=task&&typeof task==='object'?task:{};
+    return customerNumberKeys(x.customerNumber||x.linkedAccount||x.customerAccount||'');
+  }
+  function taskOnPickupDay(task,dateKey,weekday){
+    const x=task&&typeof task==='object'?task:{};
+    const date=plannedDateValue(x.dueDate||x.plannedDate||x.date||x.targetDate||x.dueAt);
+    if(date)return date===dateKey;
+    const days=Array.isArray(x.weekdays)?x.weekdays.map(Number):[];
+    if(days.length)return days.includes(weekday);
+    const names=['sonntag','montag','dienstag','mittwoch','donnerstag','freitag','samstag'];
+    const name=String(x.day||x.originalDay||x.weekday||'').trim().toLowerCase();
+    return !!(x.recurrence==='weekly'||x.seriesId||x.isTemplate||x.masterTaskRC848)&&
+      (name===names[weekday]||Number(name)===weekday);
+  }
+  function pickupAssociationForDate(fixed,dayShipments,doneShipments,tasks,dateKey,weekday){
+    const active=Array.isArray(fixed)?fixed:[];
+    const matched=Array.isArray(tasks)?tasks.filter(t=>t&&t.pickupTargetId&&taskCustomerNumbers(t).length&&taskOnPickupDay(t,dateKey,weekday)):[];
+    const mappings=new Map(),byCustomer=new Map();
+    matched.forEach(t=>{
+      const target=String(t.pickupTargetId||'').trim();
+      if(!active.some(f=>String(f.id)===target))return;
+      if(!mappings.has(target))mappings.set(target,new Set());
+      taskCustomerNumbers(t).forEach(key=>{
+        mappings.get(target).add(key);
+        if(!byCustomer.has(key))byCustomer.set(key,new Set());
+        byCustomer.get(key).add(target);
+      });
+    });
+    const status={};
+    active.forEach(item=>{
+      const id=String(item.id||'');
+      const taskNumbers=mappings.get(id);
+      const legacy=customerNumberKeys(item.customerNumber);
+      const numbers=taskNumbers?Array.from(taskNumbers):legacy;
+      const conflicts=numbers.filter(key=>byCustomer.has(key)&&byCustomer.get(key).size>1);
+      const valid=numbers.filter(key=>!conflicts.includes(key));
+      const candidates=dayShipments.concat(doneShipments).filter(sh=>
+        !shipmentCancelled(sh)&&shipmentCustomerNumbers(sh).some(key=>valid.includes(key)));
+      const refs=Array.from(new Set(candidates.map(shipmentRefText).filter(Boolean)));
+      const totals=candidates.reduce((acc,sh)=>{
+        const colli=shipmentColliState(sh);
+        acc.total+=colli.expected;acc.collected+=colli.collected;acc.open+=colli.remaining;
+        return acc
+      },{total:0,collected:0,open:0});
+      const done=candidates.filter(sh=>doneShipments.includes(sh));
+      const isComplete=done.some(sh=>!shipmentColliState(sh).partial);
+      const partial=done.length>0||candidates.some(sh=>shipmentColliState(sh).partial);
+      status[id]={state:conflicts.length?'conflict':isComplete?'done':partial?'partial':candidates.length?'planned':'',
+        refs,customerNumbers:numbers,fromTasks:!!taskNumbers,legacyConflict:!!taskNumbers&&legacy.length>0&&
+          (legacy.length!==numbers.length||legacy.some(n=>!numbers.includes(n))),
+        conflicts,shipments:candidates.length,...totals};
+    });
+    return status;
+  }
   function shipmentRefText(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || '').trim(); }
   function shipmentIdentity(shipment){
     const sh = shipment && typeof shipment === 'object' ? shipment : {};
@@ -146,14 +204,14 @@
     monday.setDate(monday.getDate() + Math.trunc(number(weekOffset)) * 7);
     return monday;
   }
-  function itemsForDate(fixedPickups, shipments, date){
+  function itemsForDate(fixedPickups, shipments, tasks, date){
     const weekday = date.getDay();
     const dateKey = dateKeyLocal(date);
     const fixed = weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [];
     const open = shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment));
     const doneShipments = shipments.filter(shipment => shipment && shipmentIsCompleted(shipment) && !shipmentCancelled(shipment) && shipmentDoneDate(shipment) === dateKey);
     const fixedStatus = {};
-    for (const item of fixed) fixedStatus[String(item.id)] = fixedPickupStatus(item,open,doneShipments);
+    Object.assign(fixedStatus,pickupAssociationForDate(fixed,open,doneShipments,tasks,dateKey,weekday));
     return { fixed, shipments: open, doneShipments, fixedStatus };
   }
   function buildCalendarModel(input){
@@ -162,6 +220,7 @@
     const todayDate = Number.isFinite(suppliedToday) ? new Date(suppliedToday) : new Date();
     const fixedPickups = Array.isArray(options.fixedPickups) ? options.fixedPickups : [];
     const shipments = Array.isArray(options.shipments) ? options.shipments : [];
+    const tasks = Array.isArray(options.tasks) ? options.tasks : [];
     const weekOffset = Math.trunc(number(options.weekOffset));
     const monday = shiftedWeekMonday(todayDate,weekOffset);
     const days = [];
@@ -169,7 +228,7 @@
     for (let weekday = 1; weekday <= 5; weekday += 1) {
       const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + weekday - 1, 12, 0, 0, 0);
       const dateKey = dateKeyLocal(date);
-      const source = itemsForDate(fixedPickups,shipments,date);
+      const source = itemsForDate(fixedPickups,shipments,tasks,date);
       days.push({
         weekday,
         label: weekdayLabel(weekday),
@@ -184,7 +243,7 @@
 
     const jsWeekday = todayDate.getDay();
     const regular = jsWeekday >= 1 && jsWeekday <= 5;
-    const todaySource = regular ? itemsForDate(fixedPickups,shipments,todayDate) : {fixed:[],shipments:[],doneShipments:[],fixedStatus:{}};
+    const todaySource = regular ? itemsForDate(fixedPickups,shipments,tasks,todayDate) : {fixed:[],shipments:[],doneShipments:[],fixedStatus:{}};
     const weekEnd = days.length ? days[days.length-1].date : monday;
     return {
       weekOffset,
@@ -219,6 +278,7 @@
     return {
       fixedPickups: [],
       shipments: [],
+      tasks: [],
       weekOffset: 0,
       canEdit: false,
       fixedLoading: false,
@@ -303,14 +363,16 @@
     const noteValue = item ? localized(item,'note') : '';
     const note = noteValue ? `<div class="pickup-item-note">${esc(noteValue)}</div>` : '';
     const inactive = item && item.active === false ? ` <span class="pickup-muted">${esc(tr('pickupCalendar.card.inactive'))}</span>` : '';
-    const numberValue = String(item && item.customerNumber || '').trim();
-    const number = manage && numberValue ? `<div class="pickup-item-note">${esc(tr('pickupCalendar.label.customerNumber'))}: ${esc(numberValue)}</div>` : '';
+    const numberValue = status && status.fromTasks ? (status.customerNumbers||[]).join(', ') : String(item && item.customerNumber || '').trim();
+    const number = numberValue ? `<div class="pickup-item-note">${esc(tr('pickupCalendar.label.customerNumber'))}: ${esc(numberValue)}</div>` : '';
     const linkState = status && status.state ? status.state : '';
     const linkKey = {done:'pickupCalendar.fix.done',partial:'pickupCalendar.fix.partial',planned:'pickupCalendar.fix.planned'}[linkState];
     const refs = status && status.refs && status.refs.length ? ` · ${esc(status.refs.join(', '))}` : '';
-    const link = linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}${refs}</div>` : '';
+    const conflict = status && (status.conflicts||[]).length || status && status.legacyConflict;
+    const stats = status && status.shipments ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.badge.shipment'))}: <strong>${status.shipments}</strong></span><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${status.total}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${status.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${status.open}</strong></span></div>` : '';
+    const link = conflict ? `<div class="pickup-fix-link" data-pickup-fix-state="conflict" role="status">${esc(({de:'Zuordnung prüfen',en:'Check association',fr:'Vérifier le lien',it:'Verificare associazione',es:'Verificar asociación',pl:'Sprawdź powiązanie'})[lang()]||'Zuordnung prüfen')}</div>` : linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}${refs}</div>` : '';
     const actions = manage ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">${esc(tr('pickupCalendar.action.edit'))}</button><button type="button" class="pickup-btn" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${esc(tr(item.active === false ? 'pickupCalendar.action.reactivate' : 'pickupCalendar.action.deactivate'))}</button></div>` : '';
-    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${actions}</article>`;
+    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${stats}${actions}</article>`;
   }
   function renderShipmentCard(shipment){
     const collis = shipmentColliState(shipment);
@@ -359,7 +421,7 @@
   }
   function printCurrentWeek(){
     if (!mountedState || !root || !root.document || !root.document.body || typeof root.print !== 'function') return false;
-    const model = buildCalendarModel({today:mountedOptions && mountedOptions.today || new Date(),weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,shipments:mountedState.shipments});
+    const model = buildCalendarModel({today:mountedOptions && mountedOptions.today || new Date(),weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,shipments:mountedState.shipments,tasks:mountedState.tasks});
     const doc = root.document;
     const body = doc.body;
     const previous = body.querySelector('.pickup-print-portal');
@@ -394,7 +456,7 @@
   }
   function render(rootElement, state, today){
     if (!rootElement || !state) return;
-    const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments});
+    const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments,tasks:state.tasks});
     const loading = state.fixedLoading || state.shipmentLoading;
     rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>${esc(tr('pickupCalendar.title'))}</h2><p>${esc(tr('pickupCalendar.subtitle'))}</p></div>${loading?`<span class="pickup-loading">${esc(tr('pickupCalendar.updating'))}</span>`:''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">${esc(tr('pickupCalendar.badge.shipment'))}: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}${renderWeekToolbar(model)}<div class="pickup-week">${model.days.map(day=>renderDay(day,model.today.regular?model.today.dateKey:'')).join('')}</div>${renderForm(state)}</div>`;
   }
@@ -522,9 +584,10 @@
   function mount(rootElement, options){
     if (!rootElement) return null;
     mountedRoot = rootElement;
-    mountedOptions = Object.assign({environment:'production',companyId:'',shipments:[],today:null,onOpenShipment:null},options || {});
+    mountedOptions = Object.assign({environment:'production',companyId:'',shipments:[],tasks:[],today:null,onOpenShipment:null},options || {});
     mountedState = createViewState();
     mountedState.shipments = Array.isArray(mountedOptions.shipments) ? mountedOptions.shipments : [];
+    mountedState.tasks = Array.isArray(mountedOptions.tasks) ? mountedOptions.tasks : [];
     mountedState.weekOffset = Math.trunc(number(mountedOptions.weekOffset));
     bindEvents();
     render(mountedRoot,mountedState,mountedOptions.today);
@@ -539,6 +602,11 @@
     // an open FIX form keeps what was typed; the new shipments show with the next render
     if (mountedState.editingFix) return;
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+  }
+  function setTasks(tasks){
+    if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
+    mountedState.tasks=Array.isArray(tasks)?tasks:[];
+    if(!mountedState.editingFix)render(mountedRoot,mountedState,mountedOptions&&mountedOptions.today);
   }
   function setShipmentLoading(loading){
     if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
@@ -555,6 +623,9 @@
     shipmentCustomerNumbers,
     customerNumberKeys,
     fixedPickupStatus,
+    pickupAssociationForDate,
+    taskCustomerNumbers,
+    taskOnPickupDay,
     shipmentIdentity,
     triggerOpenShipment,
     weekdayLabel,
@@ -565,6 +636,7 @@
     render,
     mount,
     setShipments,
+    setTasks,
     setShipmentLoading,
     setWeekOffset,
     loadFixedPickups
