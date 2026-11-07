@@ -275,6 +275,8 @@
   "api.reference.docEmpty": "Plik jest pusty lub nieprawidłowy.",
   "api.reference.docTooLarge": "Plik jest większy niż 15 MB.",
   "api.reference.docSignatureInvalid": "Zawartość pliku nie pasuje do typu pliku.",
+  "api.urgent.hello": "Cześć,",
+  "api.urgent.teamFallback": "Logistyka",
   "api.urgent.issueDescriptionRequired": "Proszę opisać problem (co najmniej 8 znaków).",
   "api.urgent.subjectIssue": "Pilne zamówienie – Problem / ",
   "api.urgent.subjectShipping": "Pilne zamówienie – Potwierdzenie wysyłki / ",
