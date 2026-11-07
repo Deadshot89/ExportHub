@@ -98,6 +98,25 @@ html body[data-rc1810-board-tab="liste"] #rc1570Tasks#rc1570Tasks > .rc1570-head
 .rc1810-progress{flex:1;min-width:24px;max-width:64px;height:5px;background:var(--rc1810-sunken);border-radius:9px;overflow:hidden}
 .rc1810-progress i{display:block;height:100%;background:var(--rc1810-ok)}
 .rc1810-rlist .rc1810-name{font-weight:500}
+/* RC1811: Farben der Arbeitsgruppen, auch auf schmalen Bildschirmen */
+.rc1810-rlist{display:grid;gap:6px;padding:6px 0 3px}
+.rc1810-workgroup{--rc1810-group-accent:#66788b;--rc1810-group-soft:var(--rc1810-sunken);min-width:0;border:1px solid color-mix(in srgb,var(--rc1810-group-accent) 28%,var(--rc1810-line));border-left:3px solid var(--rc1810-group-accent);border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--rc1810-group-soft) 45%,var(--rc1810-surface))}
+.rc1810-workgroup[data-rc1810-worktype="picks"]{--rc1810-group-accent:#397bb8;--rc1810-group-soft:#e7f1fc}
+.rc1810-workgroup[data-rc1810-worktype="anmeldung"]{--rc1810-group-accent:#268579;--rc1810-group-soft:#e4f3ef}
+.rc1810-workgroup[data-rc1810-worktype="abd"]{--rc1810-group-accent:#ad7b2a;--rc1810-group-soft:#fbf1de}
+.rc1810-workgroup[data-rc1810-worktype="pod"]{--rc1810-group-accent:#8363a6;--rc1810-group-soft:#f0e9f8}
+.rc1810-workgroup[data-rc1810-worktype="berichte"]{--rc1810-group-accent:#5f718d;--rc1810-group-soft:#eaf0f7}
+.rc1810-workgroup[data-rc1810-worktype="versand"]{--rc1810-group-accent:#557d99;--rc1810-group-soft:#e6eff5}
+.rc1810-worktoggle{display:flex;gap:5px;align-items:center;width:100%;padding:7px 8px;border:0;background:transparent;color:var(--rc1810-text);font:inherit;font-size:.78rem;font-weight:800;text-align:left;cursor:pointer}
+.rc1810-worktoggle:hover{background:color-mix(in srgb,var(--rc1810-group-accent) 9%,transparent)}
+.rc1810-worktoggle:focus-visible{outline:2px solid var(--rc1810-primary);outline-offset:-2px}
+.rc1810-workmark{flex:none;width:7px;height:7px;border-radius:50%;background:var(--rc1810-group-accent)}
+.rc1810-worktitle{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.25}
+.rc1810-workcount{flex:none;padding:1px 5px;border-radius:5px;background:var(--rc1810-surface);color:var(--rc1810-group-accent);font-size:.73rem;font-variant-numeric:tabular-nums}
+.rc1810-workchev{flex:none;color:var(--rc1810-muted)}
+.rc1810-worktasks{padding:5px 4px 6px;background:color-mix(in srgb,var(--rc1810-surface) 84%,transparent);border-top:1px solid color-mix(in srgb,var(--rc1810-group-accent) 15%,var(--rc1810-line))}
+.rc1810-worktasks .rc1810-t{padding:4px 5px}
+.rc1810-worktasks .rc1810-name{font-weight:500}
 /* Monat */
 .rc1810-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:8px 12px 12px}
 .rc1810-wd{font-size:.74rem;font-weight:800;color:var(--rc1810-muted);padding:0 4px}
