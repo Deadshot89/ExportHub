@@ -182,13 +182,13 @@ test('RC1371: templates differ, standard reset preserves unrelated storage',asyn
 test('RC1371: theme cycle never duplicates dashboard cards or editor controls',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openDashboard(page);
-  for(const design of ['classic','modern','glass','neon','classic']){
+  for(const design of ['classic','premium','neu','frost','graphit','azur','stahl','polar','classic']){
     await page.evaluate(value=>{
       if(!window.ExportHUBDesignSwitcher)throw new Error('ExportHUBDesignSwitcher missing');
       window.ExportHUBDesignSwitcher.apply(value);
       window.ExportHUBDashboard1371.remount();
     },design);
-    await expect(page.locator('html')).toHaveAttribute('data-eh-design',design);
+    await expect.poll(()=>page.evaluate(()=>window.ExportHUBDesignSwitcher.current())).toBe(design);
     const counts=await page.evaluate(()=>{
       const root=document.querySelector('[data-eh-dashboard-personalized="1"]');
       const ids=[...root.querySelectorAll('[data-rc1371-widget-id]')].map(node=>node.getAttribute('data-rc1371-widget-id'));
