@@ -468,7 +468,6 @@ async function saveForm(form){
   };
   var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
   if(!v.title){showError(t('required'));return false}
-  if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
   if(v.pickupTargetId){
     var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey);
     if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
