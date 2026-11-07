@@ -7,7 +7,7 @@ const FIELDS=[
  ['shippingMethod','text'],['carrier','text'],['trackingNumber','text'],
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
-let record=null,token='',busy=false,originFocus=null;
+let record=null,token='',busy=false,originFocus=null,epoch=0;
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').slice(0,2);return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function make(tag,cls,value){const el=d.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=String(value);return el}
 function btn(title,fn,primary){const b=make('button',primary?'eh1903-primary':'',title);b.type='button';b.addEventListener('click',fn);return b}
@@ -30,39 +30,43 @@ async function api(method,action,params){
 }
 async function save(){
  if(busy)return false;
- const current=readFields();
+ const current=readFields(),run=epoch;
  if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return false}
  busy=true;status(t('saving'),false);
  try{
   const isNew=!record;
   const response=await api('POST',isNew?'public-create':'public-save',
    isNew?{fields:current,website:''}:{id:record.id,expectedRevision:record.revision,fields:current});
+  if(run!==epoch)return false;
   if(isNew)token=response.publicToken;
   record=response.record;
   updateRecord();
   status(isNew?t('guestSaved'):t('saved'),false);
   return true;
- }catch(e){status(e.message,true);return false}finally{busy=false}
+ }catch(e){if(run===epoch)status(e.message,true);return false}finally{if(run===epoch)busy=false}
 }
 async function upload(files,kind){
  if(busy||!record||!token)return;
- const selected=[...files];
+ const selected=[...files],run=epoch;
  for(const file of selected){
-  if(busy)return;
+  if(busy||run!==epoch)return;
   if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
   busy=true;status(t('uploading'),false);
   try{
    const current=readFields(),changed=FIELDS.some(([key])=>String(current[key]||'')!==String(record.fields[key]||''));
    if(changed){
     const saved=await api('POST','public-save',{id:record.id,expectedRevision:record.revision,fields:current});
+    if(run!==epoch)return;
     record=saved.record;
    }
    const encoded=await base64(file);
+   if(run!==epoch)return;
    const res=await api('POST','public-upload',{id:record.id,expectedRevision:record.revision,kind,fileName:file.name,base64:encoded});
+   if(run!==epoch)return;
    record=res.record;
    updateRecord();
    status(t('uploaded'),false);
-  }catch(e){status(e.message,true);break}finally{busy=false}
+  }catch(e){if(run===epoch)status(e.message,true);break}finally{if(run===epoch)busy=false}
  }
 }
 async function download(file){
@@ -99,7 +103,7 @@ function updateRecord(){
 }
 function close(){
  const modal=d.getElementById('eh1903-guest-overlay');if(modal)modal.remove();
- token='';record=null;busy=false;
+ epoch++;token='';record=null;busy=false;
  d.removeEventListener('keydown',onKey);
  if(originFocus&&originFocus.isConnected)originFocus.focus();originFocus=null;
 }
@@ -107,7 +111,7 @@ function onKey(e){if(e.key==='Escape'){e.preventDefault();close()}}
 function open(){
  if(w.__EXPORTHUB_DEMO_MODE__===true)return false;
  if(d.getElementById('eh1903-guest-overlay'))return true;
- originFocus=d.activeElement;record=null;token='';busy=false;
+ epoch++;originFocus=d.activeElement;record=null;token='';busy=false;
  const overlay=make('div','eh1903-guest-overlay');overlay.id='eh1903-guest-overlay';
  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',t('guestOpen'));
  const page=make('main');page.id='eh1903-guest-root';
@@ -130,7 +134,7 @@ function open(){
  card.appendChild(grid);
  const action=make('div','eh1903-actions'),saveButton=btn(t('save'),save,true);
  saveButton.setAttribute('data-guest-save','');action.appendChild(saveButton);
- action.appendChild(btn(t('guestNew'),()=>{if(record) {record=null;token='';page.querySelectorAll('[data-guest-field]').forEach(el=>{el.value=el.dataset.guestField==='dispatchDate'?today:''});updateRecord();status('',false)}}));
+ action.appendChild(btn(t('guestNew'),()=>{if(record&&!busy) {epoch++;record=null;token='';page.querySelectorAll('[data-guest-field]').forEach(el=>{el.value=el.dataset.guestField==='dispatchDate'?today:''});updateRecord();status('',false)}}));
  card.appendChild(action);page.appendChild(card);
  const summary=make('section','eh1903-panel');summary.setAttribute('data-guest-summary','');page.appendChild(summary);
  const files=make('section','eh1903-panel');files.setAttribute('data-guest-files','');page.appendChild(files);
