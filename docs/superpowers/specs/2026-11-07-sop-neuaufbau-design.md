@@ -9,7 +9,10 @@ Die SOP-Funktion wird **neu und aufgeräumt** aufgebaut: ein System statt mehrer
 - Zweck: beides, erst Nachweis, dann Touren.
 - Bisherige Inhalte: die 24 Handbuch-SOPs werden **als Entwürfe übernommen**, ohne den alten Freigabestempel; jede SOP wird neu geprüft und freigegeben.
 - Ansatz B: neues Modul **neben** dem alten bauen, danach umschalten und den alten Code samt Tests entfernen (nur mit ausdrücklicher Freigabe).
-- **Vier-Augen-Prinzip:** Freigeber ist nicht der Autor.
+- **Vier-Augen-Prinzip:** Freigeber ist nicht der Autor. Die Freigabe muss **nicht** durch einen Administrator erfolgen; jede **weitere Person** mit SOP-Bearbeitungsrecht darf eine SOP freigeben, die sie nicht selbst zuletzt bearbeitet hat. Ein Ausnahmeweg ist nicht vorgesehen.
+- **Zweisprachig:** Jede SOP wird in **Deutsch und Englisch** dargestellt. Beide Sprachen sind Pflicht für die Freigabe.
+- **Menüname:** bleibt „SOP“.
+- **Training-Center-Katalog:** wird nicht als eigener Bestand importiert. Seine englischen Texte dienen höchstens als Übersetzungsvorlage; die Entfernung des Katalogs wird in Phase 4 entschieden (nur mit Freigabe).
 - Das SOP-Handbuch als eigene Listenansicht entfällt. „SOP öffnen“ im Dashboard öffnet das Dokument im neuen Editor und Leser.
 
 ## Ausgangslage (Befund auf `main`)
@@ -41,7 +44,9 @@ Neues Modul `sop2` nach dem Muster von `quality-capa`:
 SOP `SOP-EH-<nnn>`:
 - Kopf: Nummer, Titel, Bereich, `functionId` (Verweis auf das Register), Verantwortlicher (Rolle).
 - Versionen `1.0, 1.1, 2.0 …`, je Version: Status **Entwurf → In Prüfung → Freigegeben → Archiviert**, Autor, Prüfer, Freigeber, Zeitpunkte, Änderungsgrund.
-- Inhalt je Version: Zweck, Geltungsbereich, Verantwortlichkeiten, Voraussetzungen, Schritte (je Schritt Text, optionaler Screenshot, optionales Tour-Ziel), Prüfpunkte, Abweichungen, Aufzeichnungen, Verweise.
+- Inhalt je Version **in Deutsch und Englisch** (`content.de`, `content.en`): Zweck, Geltungsbereich, Verantwortlichkeiten, Voraussetzungen, Schritte (je Schritt Text, optionaler Screenshot, optionales Tour-Ziel), Prüfpunkte, Abweichungen, Aufzeichnungen, Verweise. Screenshot und Tour-Ziel sind sprachunabhängig je Schritt.
+- **Zweisprachigkeit:** Eine Version kann nur eingereicht und freigegeben werden, wenn alle Pflichtteile in beiden Sprachen befüllt sind und beide Fassungen **gleich viele Schritte** haben. Weitere Sprachen (pl, es, fr, it) sind optional; fehlt eine, zeigt der Leser Englisch.
+- Der Leser bietet einen Umschalter Deutsch/Englisch (Voreinstellung: Oberflächensprache, bei pl/es/fr/it Englisch). Ändert sich eine Sprachfassung, gilt das als neue Version beider Sprachen (eine Freigabe gilt für beide).
 - Pro SOP genau eine **gültige** Version (die letzte Freigegebene); frühere werden archiviert und bleiben lesbar.
 
 ## Rechte und Ablauf
@@ -50,10 +55,10 @@ SOP `SOP-EH-<nnn>`:
 | Lesen freigegebener SOPs | alle angemeldeten Benutzer |
 | Entwurf anlegen und bearbeiten | `rights.sop` mit Bearbeitungsrecht |
 | Zur Prüfung einreichen | Autor |
-| Freigeben oder zurückweisen | `rights.sop` Admin, **nicht der Autor der Version** (Vier-Augen) |
-| Archivieren, neue Version anlegen | Admin |
+| Freigeben oder zurückweisen | jede **weitere Person** mit `rights.sop`-Bearbeitungsrecht, **nicht der Autor der Version** (Vier-Augen) |
+| Archivieren, neue Version anlegen | Bearbeiter; Archivieren der gültigen Version braucht eine zweite Person wie die Freigabe |
 
-Der Server setzt Freigeber, Datum und Version aus der Sitzung. Es gibt **keine festen Freigabestempel im Code**. Das Vier-Augen-Prinzip wird serverseitig geprüft: Freigeber und Autor der Version dürfen nicht dieselbe Person sein. Ein Administrator ohne zweite Person kann also nicht allein freigeben; das ist gewollt und wird im Hinweistext erklärt.
+Der Server setzt Freigeber, Datum und Version aus der Sitzung. Es gibt **keine festen Freigabestempel im Code**. Das Vier-Augen-Prinzip wird serverseitig geprüft: Freigeber und Autor der Version dürfen nicht dieselbe Person sein. Pflegt nur eine Person SOPs, kann sie nicht allein freigeben; das ist gewollt und wird im Hinweistext erklärt. Eine eigene Freigaberolle ist nicht nötig, sie kann später ergänzt werden, falls nicht jeder Bearbeiter freigeben dürfen soll.
 
 ## Coverage
 Die 25 Bereiche aus dem Register `rc1505` bleiben. Die Kennzahlen werden aus echten Daten berechnet:
@@ -63,7 +68,7 @@ Die 25 Bereiche aus dem Register `rc1505` bleiben. Die Kennzahlen werden aus ech
 „SOP öffnen“ und „Schritt öffnen“ öffnen die Version im neuen Editor und Leser am betreffenden Schritt.
 
 ## Import der Altinhalte (einmalig)
-Eine Admin-Aktion `import-legacy` liest die 24 bisherigen SOPs aus dem Katalog und legt je SOP eine **Entwurfsversion 0.1** an. Der alte Freigabestempel wird nicht übernommen, im Verlauf steht „importiert aus Handbuch RC1016, nicht freigegeben“. Der Import ist wiederholbar (bereits importierte SOPs werden übersprungen) und löscht nichts.
+Eine Admin-Aktion `import-legacy` liest die 24 bisherigen SOPs aus dem Katalog und legt je SOP eine **Entwurfsversion 0.1** an. Die bisherigen Texte sind nur deutsch. Die **englischen Fassungen** werden als Entwurf vorbereitet (Übersetzungsvorschlag in einer Datei im Repository, in den Import eingelesen) und müssen vor der Freigabe fachlich geprüft werden. Der alte Freigabestempel wird nicht übernommen, im Verlauf steht „importiert aus Handbuch RC1016, nicht freigegeben“. Der Import ist wiederholbar (bereits importierte SOPs werden übersprungen) und löscht nichts.
 
 ## Phasen (je ein eigener PR, kein Merge ohne Freigabe)
 1. **Daten und Nachweis:** API, Speicher mit Hash-Kette, Rechte, Vier-Augen, Import, Editor und Leser, Coverage aus echten Daten, sechs Sprachen.
@@ -83,10 +88,10 @@ Eine Admin-Aktion `import-legacy` liest die 24 bisherigen SOPs aus dem Katalog u
 ## Risiken
 - **Umfang:** Phase 1 ist groß. Sie wird in kleinere PRs geschnitten (Speicher und API, Editor, Coverage, Import).
 - **Doppelter Zustand bis Phase 4:** Zwei Systeme existieren parallel. Die Oberfläche zeigt bis zur Umschaltung genau ein System (Feature-Schalter je Umgebung).
-- **Vier-Augen bei einer einzigen Pflegeperson:** Ohne zweite Person kann nichts freigegeben werden. Ein bewusst dokumentierter Ausnahmeweg (Freigabe durch Admin mit Begründung im Verlauf) kann ergänzt werden, falls das nötig ist.
+- **Vier-Augen bei einer einzigen Pflegeperson:** Ohne zweite Person mit SOP-Recht kann nichts freigegeben werden. Es gibt bewusst keinen Ausnahmeweg.
+- **Zweisprachigkeit:** Aufwand für die englischen Fassungen der 24 Altinhalte und jeder neuen SOP; eine Übersetzung ersetzt keine fachliche Prüfung.
 - **Screenshots:** Bilder für Schritte brauchen echte Aufnahmen am TESTSERVICE; ich kann sie ohne Anmeldung dort nicht erzeugen.
 
 ## Offene Punkte für die Prüfung
-- Soll es für das Vier-Augen-Prinzip einen dokumentierten Ausnahmeweg geben (siehe Risiken)?
-- Soll der Training-Center-Katalog (30 SOPs) in Phase 4 entfernt oder zusätzlich importiert werden?
-- Bleibt der Menüpunkt „SOP“ so benannt, oder soll er „SOPMaster“ heißen?
+- Reicht das SOP-Bearbeitungsrecht für die Freigabe, oder soll es ein eigenes Freigaberecht geben?
+- Training-Center-Katalog: Ist die Annahme richtig, dass er nicht importiert, sondern nur als Übersetzungsvorlage genutzt und später entfernt wird?
