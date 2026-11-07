@@ -2578,5 +2578,17 @@
   "rc1900.notePlaceholder": "Note on shipment",
   "rc1900.more": "More",
   "rc1900.shipment": "Shipment",
-  "rc1900.title": "Shipment overview"
+  "rc1900.title": "Shipment overview",
+  "rc1901.title": "Shipment view",
+  "rc1901.tabOverview": "Overview",
+  "rc1901.tabDocuments": "Documents",
+  "rc1901.tabProof": "Shipping record",
+  "rc1901.tabHistory": "History",
+  "rc1901.progress": "Shipment progress",
+  "rc1901.stepCreated": "Created",
+  "rc1901.stepAbd": "ABD",
+  "rc1901.stepReady": "Ready",
+  "rc1901.stepPicked": "Picked up",
+  "rc1901.stepPod": "POD",
+  "rc1901.stepDone": "Completed"
 }

@@ -71,6 +71,9 @@ const RC1821_DESIGN_NEU_STYLE_TAG='<link id="exporthub-rc1821-design-neu-style" 
 // RC1900: neue Oberfläche Sendungsübersicht (nur Design "Neu", html[data-eh-layout="top"])
 const RC1900_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1900-overview-style" rel="stylesheet" href="/assets/rc1900-neue-sendungsuebersicht.css?v=1900">';
 const RC1900_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1900-overview-script" defer src="/assets/rc1900-neue-sendungsuebersicht.js?v=1900"><\/script>';
+// RC1901: neue Oberfläche Sendungsansicht (nur Design "Neu", html[data-eh-layout="top"])
+const RC1901_SHIPMENT_STYLE_TAG='<link id="exporthub-rc1901-shipment-style" rel="stylesheet" href="/assets/rc1901-neue-sendungsansicht.css?v=1901">';
+const RC1901_SHIPMENT_SCRIPT_TAG='<script id="exporthub-rc1901-shipment-script" defer src="/assets/rc1901-neue-sendungsansicht.js?v=1901"><\/script>';
 const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=1820"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
@@ -193,6 +196,9 @@ function patchRc1800PremiumDesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1900_OVERVIEW_STYLE_TAG,'exporthub-rc1900-overview-style');
   html=injectDeferredRuntimeInHead(html,RC1900_OVERVIEW_SCRIPT_TAG,'exporthub-rc1900-overview-script');
   if(!html.includes('rc1900-neue-sendungsuebersicht.js?v=1900'))throw new Error(file+': RC1900 neue Sendungsübersicht fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1901_SHIPMENT_STYLE_TAG,'exporthub-rc1901-shipment-style');
+  html=injectDeferredRuntimeInHead(html,RC1901_SHIPMENT_SCRIPT_TAG,'exporthub-rc1901-shipment-script');
+  if(!html.includes('rc1901-neue-sendungsansicht.js?v=1901'))throw new Error(file+': RC1901 neue Sendungsansicht fehlt');
   if(!html.includes('rc1820-top-navigation.css?v=1820')||!html.includes('rc1820-top-navigation.js?v=1820'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }
@@ -1918,6 +1924,8 @@ for(const rel of [
   'assets/rc1821-design-neu.css', // RC1821: Design "Neu" Stufe 2
   'assets/rc1900-neue-sendungsuebersicht.css', // RC1900: neue Oberfläche Sendungsübersicht
   'assets/rc1900-neue-sendungsuebersicht.js',
+  'assets/rc1901-neue-sendungsansicht.css', // RC1901: neue Oberfläche Sendungsansicht
+  'assets/rc1901-neue-sendungsansicht.js',
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',
