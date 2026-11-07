@@ -112,15 +112,16 @@ function sendFailure(e,sender){
 
 function delay(e,n){const h=e&&e.responseHeaders||{},ra=Number(h['retry-after']||0);return ra>0?Math.min(5000,ra*1000):Math.min(2500,350*Math.pow(2,n-1))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-async function sendTextMail({to,subject,body,sender,cc,html=false}){
+async function sendTextMail({to,subject,body,sender,cc,html=false,maxAttempts=3}){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
  const actualSender=text(sender)||cfg.sender,email=text(to),sub=text(subject),content=text(body),ccEmails=emailList(cc).filter(x=>x.toLowerCase()!==email.toLowerCase()&&x.toLowerCase()!==actualSender.toLowerCase());
  if(!validEmail(email))throw error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
  if(!sub||sub.length>200)throw error('MAIL_SUBJECT_INVALID','Der Mailbetreff ist ungültig.',400);
  if(!content||content.length>12000)throw error('MAIL_BODY_INVALID','Der Mailtext ist ungültig.',400);
  const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:html?'HTML':'Text',content},toRecipients:[{emailAddress:{address:email}}],ccRecipients:ccEmails.map(address=>({emailAddress:{address}}))},saveToSentItems:true}),'utf8');
+ const allowedAttempts=Number.isInteger(maxAttempts)?Math.max(1,Math.min(3,maxAttempts)):3;
  let force=false,last=null,lastClaims={},lastToken='';
- for(let attempt=1;attempt<=3;attempt++){
+ for(let attempt=1;attempt<=allowedAttempts;attempt++){
   try{
    const token=await accessToken(force,mailAuthority(actualSender,cfg)),claims=tokenClaims(token);
    lastToken=token;lastClaims=claims;
@@ -129,8 +130,8 @@ async function sendTextMail({to,subject,body,sender,cc,html=false}){
    return{ok:true,sender:actualSender,to:email,cc:ccEmails,attempts:attempt}
   }catch(e){
    last=e;
-   if(e&&e.statusCode===401&&!force){tokenCache=null;force=true;continue}
-   if(attempt<3&&transient(e)){await sleep(delay(e,attempt));force=false;continue}
+   if(e&&e.statusCode===401&&!force&&attempt<allowedAttempts){tokenCache=null;force=true;continue}
+   if(attempt<allowedAttempts&&transient(e)){await sleep(delay(e,attempt));force=false;continue}
    if(e&&e.statusCode===401&&lastToken){try{e.diagnostics=await authFailureDiagnostics(e,actualSender,lastClaims,lastToken,cfg)}catch(_){}}
    throw sendFailure(e,actualSender)
   }
