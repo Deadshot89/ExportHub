@@ -74,6 +74,39 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
+test('RC1903: TESTSERVICE-Dokumentationen landen nur unter getrenntem Test-Prefix',async t=>{
+ const previous={storage:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,isolation:process.env.EXPORTHUB_TEST_AUTH_ISOLATION};
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ t.after(()=>{
+  if(previous.storage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous.storage;
+  if(previous.isolation===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+  else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=previous.isolation;
+ });
+ const used=[],stored=new Map();
+ const user={role:'Export',rights:{documents:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'testservice');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:(container)=>({
+   getBlockBlobClient:(name)=>{
+    used.push({container,name});
+    return{
+     async uploadData(bytes){stored.set(name,Buffer.from(bytes));return{etag:'"test-etag"'}},
+     async download(){if(!stored.has(name))throw new Error('Unexpected missing record');return{etag:'"test-etag"',readableStreamBody:Readable.from([stored.get(name)])}}
+    };
+   }
+  })
+ }));
+ const ctx={};
+ await doc(ctx,{method:'POST',headers:{},body:{action:'create',fields:valid}});
+ assert.equal(ctx.res.status,201,ctx.res.body);
+ assert.ok(used.length>0);
+ assert.ok(used.every(({container,name})=>container===auth.TEAM_CONTAINER&&name.startsWith('testservice/shipment-evidence/v1/records/')));
+ assert.ok([...stored.keys()].every(name=>!name.startsWith('shipment-evidence/v1/records/')));
+});
 test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET ohne Sendungsbestand',async t=>{
  const oldConnection=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
  const oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
