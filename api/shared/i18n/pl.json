@@ -290,6 +290,7 @@
   "api.urgent.itemLabel": "Artykuł",
   "api.urgent.qtyLabel": "Ilość",
   "api.urgent.statusLabel": "Stan",
+  "api.urgent.hostUntrusted": "Nie udało się zweryfikować środowiska pilnego zamówienia. Skontaktuj się z logistyką; nie wysyłaj ponownie przed sprawdzeniem połączenia.",
   "api.urgent.serverError": "Nie udało się przetworzyć pilnego zamówienia. Spróbuj ponownie później.",
   "api.urgent.invalidRequest": "Nieprawidłowe żądanie.",
   "api.urgent.arrivalAt": "Planowany przyjazd:",
