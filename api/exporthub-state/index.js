@@ -42,7 +42,7 @@ function localizedError(req,e,fallbackKey){const raw=text(e&&e.message);return /
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
 function timingHeaders(t={}){const h={'X-ExportHUB-Server-Ms':String(Math.max(0,Number(t.serverMs||0)||0)),'X-ExportHUB-Auth-Ms':String(Math.max(0,Number(t.authMs||0)||0)),'X-ExportHUB-Auth-Cache':text(t.authCache||'none')||'none','X-ExportHUB-Team-Ms':String(Math.max(0,Number(t.teamMs||0)||0)),'X-ExportHUB-Team-Cache':text(t.teamCache||'none')||'none'};if(t.mergeMs!==undefined)h['X-ExportHUB-Merge-Ms']=String(Math.max(0,Number(t.mergeMs||0)||0));if(t.uploadMs!==undefined)h['X-ExportHUB-Upload-Ms']=String(Math.max(0,Number(t.uploadMs||0)||0));if(t.retryReadMs!==undefined)h['X-ExportHUB-Retry-Read-Ms']=String(Math.max(0,Number(t.retryReadMs||0)||0));if(t.uploadBytes!==undefined)h['X-ExportHUB-Upload-Bytes']=String(Math.max(0,Number(t.uploadBytes||0)||0));if(t.conflictCount!==undefined)h['X-ExportHUB-Save-Conflicts']=String(Math.max(0,Number(t.conflictCount||0)||0));return h}
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
-function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
+function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
 function requestHost(req){
  const h=req&&req.headers||{};
  return lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||h['X-Original-Host']||h.host||h.Host||'');
@@ -63,7 +63,7 @@ function requestedEnvironment(req,payload){
 function teamBlobForEnvironment(env){return env==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
 function recoveryPrefixForEnvironment(env){return env==='testservice'?'testservice/recovery-backups/':'recovery-backups/'}
 function diagnosticsBlobForEnvironment(env){return env==='testservice'?TEST_DIAGNOSTICS_BLOB:DIAGNOSTICS_BLOB_BASE}
-function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; if(process.env.AzureWebJobsStorage)return 'AzureWebJobsStorage'; return ''; }
+function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; return ''; }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
 function hasAnyEditRight(user){
