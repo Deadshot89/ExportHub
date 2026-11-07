@@ -342,6 +342,21 @@ function syncWeeklySeries(s,task,v){
    rule:{type:'weekly',intervalWeeks:1,weekdays:days},task:template});
  if(index>=0)s.taskSeries[index]=entry;else s.taskSeries.push(entry);
  retireSeriesDays(s,id,days);
+ // Keep eligible future series instances in sync with the confirmed saved Pick task.
+ // Never rewrite historic, completed, in-progress or manually overridden occurrences.
+ var today=dayKey(new Date());
+ arr(s.tasks).forEach(function(row){
+  if(!row||row===task||q(row.seriesId)!==id||!q(row.occurrenceKey)||row.manualOverride===true||isDone(row)||statusOf(row)==='in_progress')return;
+  var date=q(row.originalOccurrenceDate)||q(row.occurrenceKey).split('|').pop();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today)return;
+  row.customerNumber=task.customerNumber;
+  row.linkedAccount=task.linkedAccount;
+  row.customerNumberSetAt=task.customerNumberSetAt;
+  row.pickupTargetId=task.pickupTargetId;
+  row.pickupTargetCompanyKey=task.pickupTargetCompanyKey;
+  row.updatedAt=task.updatedAt;
+  row._syncUpdatedAt=task._syncUpdatedAt;
+ });
  task.seriesId=id;task.weekdays=days;if(!q(task.occurrenceKey))task.isTemplate=true;
  var engine=w.ExportHUBTaskRecurrenceV2,cal=engine&&typeof engine.calendar==='function'?engine.calendar(s.taskCalendar||{}):null;
  if(engine&&typeof engine.materialize==='function'&&cal){
