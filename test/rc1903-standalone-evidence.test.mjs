@@ -54,6 +54,9 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/action:'save',id:originalId,expectedRevision:state\.record\.revision,fields:draft/);
  assert.match(ui,/expectedId&&expectedId!==originalId/);
  assert.match(ui,/node\.classList\.add\('active'\)/);
+ assert.match(ui,/async function scanAll\(\)/);
+ assert.match(ui,/const ok=await loadList\(false\)/);
+ assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
 test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET ohne Sendungsbestand',async t=>{
