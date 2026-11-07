@@ -120,7 +120,7 @@ function routineGroupsHtml(items,scope,options){
       '<button type="button" class="rc1810-worktoggle" data-rc1810-worktoggle="'+esc(key)+'" aria-expanded="'+expanded+'">'+
       '<span class="rc1810-workmark" aria-hidden="true"></span><span class="rc1810-worktitle">'+esc(t('work_'+type))+'</span>'+
       '<span class="rc1810-workcount">'+done+'/'+active.length+'</span><span class="rc1810-workchev" aria-hidden="true">'+(expanded?'▾':'▸')+'</span></button>'+
-      (expanded?'<div class="rc1810-worktasks">'+tasks.map(function(x){return taskBtn(x,{meta:options.metaOwner?ownerOf(x):(options.showDate?fmt(taskDay(x)):'')})}).join('')+'</div>':'')+
+      (expanded?'<div class="rc1810-worktasks">'+tasks.map(function(x){var date=taskDay(x),meta=options.metaOwner?ownerOf(x):(options.overdueSince&&date&&date<options.overdueSince?t('overdueSince',{date:fmt(date)}):(options.showDate?fmt(date):''));return taskBtn(x,{meta:meta})}).join('')+'</div>':'')+
       '</section>';
   }).join('');
 }
@@ -167,7 +167,7 @@ function weekHtml(){
       if(o&&!imp.length&&!rout.length)return '<td class="is-off"><span class="rc1810-offtxt">'+esc(t('noTasks'))+'</span></td>';
       var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length,hasMoved=rout.some(function(x){return x.rc1810Holiday&&x.rc1810Holiday.action==='moved'});
       var rh=rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span>'+(hasMoved?'<span class="rc1810-tag rc1810-mv">'+esc(t('plusMoved'))+'</span>':'')+'</button>'+(isOpen?'<div class="rc1810-rlist">'+routineGroupsHtml(rout,ck,{metaOwner:ui.group==='area'})+'</div>':'')+'</div>':'';
-      return '<td class="'+(k===today?'is-today ':'')+(o?'is-off':'')+'">'+imp.map(function(x){return taskBtn(x,{meta:ui.group==='area'?ownerOf(x):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+rh+'</td>';
+      return '<td class="'+(k===today?'is-today ':'')+(o?'is-off':'')+'">'+(imp.length?'<div class="rc1810-rlist rc1810-standalone">'+routineGroupsHtml(imp,ck+'|single',{metaOwner:ui.group==='area'})+'</div>':'')+rh+'</td>';
     }).join('');
     return '<tr><th scope="row" class="rc1810-rowh"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span><span class="rc1810-sub">'+esc(t('open',{count:openCount}))+'</span></th>'+cells+'</tr>';
   }).join('');
@@ -187,7 +187,7 @@ function weekListHtml(days,inWeek,rows,today){
       var list=cell.filter(function(x){return rowKey(x)===r}).sort(sortTasks);if(!list.length)return '';
       var imp=list.filter(function(x){return !isRoutine(x)}),rout=list.filter(function(x){return isRoutine(x)&&(!isCancelled(x)||isManualCancel(x))});
       var ck=r+'|'+k,isOpen=!!ui.open[ck],act=rout.filter(function(x){return !isCancelled(x)}),dn=act.filter(isDone).length;
-      return '<div class="rc1810-daygroup"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span>'+imp.map(function(x){return taskBtn(x,{meta:areaOf(x)===t('noArea')?'':areaOf(x)})}).join('')+
+      return '<div class="rc1810-daygroup"><span class="rc1810-who" data-i18n-ignore>'+esc(r)+'</span>'+(imp.length?'<div class="rc1810-rlist rc1810-standalone">'+routineGroupsHtml(imp,ck+'|single',{metaOwner:ui.group==='area'})+'</div>':'')+
         (rout.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle" data-rc1810-toggle="'+esc(ck)+'" aria-expanded="'+isOpen+'">'+(isOpen?'▾':'▸')+' '+esc(t('routine'))+' '+dn+'/'+act.length+'<span class="rc1810-progress"><i style="width:'+(act.length?Math.round(dn/act.length*100):0)+'%"></i></span></button>'+(isOpen?'<div class="rc1810-rlist">'+routineGroupsHtml(rout,ck,{metaOwner:ui.group==='area'})+'</div>':'')+'</div>':'')+'</div>';
     }).join('');
     return '<section class="rc1810-day'+(o?' is-off':'')+'">'+head+(groups||'<p class="rc1810-offtxt">'+esc(t('noTasks'))+'</p>')+'</section>';
@@ -222,7 +222,7 @@ function todayHtml(){
     var l=groups[p].sort(function(a,b){var da=taskDay(a),db=taskDay(b);return da!==db?(da<db?-1:1):sortTasks(a,b)});
     var imp=l.filter(function(x){return !isRoutine(x)}),rout=l.filter(function(x){return isRoutine(x)&&taskDay(x)===today}),late=l.filter(function(x){return isRoutine(x)&&taskDay(x)<today});
     var lk=p+'|late',lo=!!ui.open[lk];
-    return '<section class="rc1810-tcol"><h3>'+esc(p)+'</h3>'+imp.map(function(x){var d=taskDay(x);return taskBtn(x,{meta:d<today?t('overdueSince',{date:fmt(d)}):(areaOf(x)===t('noArea')?'':areaOf(x))})}).join('')+
+    return '<section class="rc1810-tcol"><h3>'+esc(p)+'</h3>'+(imp.length?'<div class="rc1810-rlist rc1810-standalone">'+routineGroupsHtml(imp,p+'|single',{overdueSince:today})+'</div>':'')+
       (rout.length?'<div class="rc1810-routine"><div class="rc1810-hint">'+esc(t('routineDone',{done:rout.filter(isDone).length,total:rout.length}))+'</div>'+'<div class="rc1810-rlist">'+routineGroupsHtml(rout,p+'|today')+'</div></div>':'')+
       (late.length?'<div class="rc1810-routine"><button type="button" class="rc1810-rtoggle rc1810-late" data-rc1810-toggle="'+esc(lk)+'" aria-expanded="'+lo+'">'+(lo?'▾':'▸')+' '+esc(t('lateRoutine',{count:late.length}))+'</button>'+(lo?'<div class="rc1810-rlist">'+routineGroupsHtml(late,lk,{showDate:true})+'</div>':'')+'</div>':'')+'</section>';
   }).join('')+'</div>';
@@ -371,6 +371,6 @@ function install(){
   if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(check).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
 }
-w.ExportHUBTaskBoard1810=Object.freeze({version:VERSION,render:function(){safeRender(true)},setTab:setTab,openClosures:openDialog,_ui:ui,_texts:I18N,_workGroup:workGroup,_routineGroupsHtml:routineGroupsHtml});
+w.ExportHUBTaskBoard1810=Object.freeze({version:VERSION,render:function(){safeRender(true)},setTab:setTab,openClosures:openDialog,_ui:ui,_texts:I18N,_workGroup:workGroup,_routineGroupsHtml:routineGroupsHtml,_weekHtml:weekHtml,_weekListHtml:weekListHtml,_todayHtml:todayHtml});
 install();
 })(window);

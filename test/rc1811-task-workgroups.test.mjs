@@ -37,5 +37,36 @@ test('RC1811: Asset-Version und Gruppendarstellung im Build',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
  assert.match(css,/rc1810-workgroup/);
- for(const name of ['rc1810-task-board.css','i18n/rc1810-task-board.js','rc1810-task-board.js'])assert.ok(build.includes(name+'?v=1811'),name);
+ for(const name of ['rc1810-task-board.css','rc1810-task-board.js'])assert.ok(build.includes(name+'?v=1812'),name);
+ assert.ok(build.includes('i18n/rc1810-task-board.js?v=1811'));
+});
+
+test('RC1812: einmalige Picks und ABD stehen ebenfalls in den farbigen Untergruppen',()=>{
+ const now=new Date(),monday=new Date(now);
+ monday.setDate(now.getDate()-((now.getDay()+6)%7));
+ const d=[monday.getFullYear(),String(monday.getMonth()+1).padStart(2,'0'),String(monday.getDate()).padStart(2,'0')].join('-');
+ const tasks=[
+  {id:'pick-single',title:'Heute Picks prüfen',group:'Picks',assignedToName:'Sevastian',dueDate:d,status:'open'},
+  {id:'abd-single',title:'ABD erstellen',assignedToName:'Sevastian',dueDate:d,status:'open'},
+  {id:'routine-uk',title:'UK',masterTaskRC848:true,assignedToName:'Sevastian',dueDate:d,status:'open'}
+ ];
+ state.tasks=tasks;board._ui.tab='woche';board._ui.group='person';board._ui.who='alle';board._ui.weekStart=d;
+ // Bereits bestehende Routine-Sektion gezielt öffnen; Einmaliges ist unabhängig davon sichtbar.
+ board._ui.open['Sevastian|'+d]=false;
+ const week=board._weekHtml();
+ assert.match(week,/data-rc1810-worktype="picks"/);
+ assert.match(week,/data-rc1810-worktype="abd"/);
+ assert.match(week,/data-rc1810-check="pick-single"/);
+ assert.match(week,/data-rc1810-check="abd-single"/);
+ assert.doesNotMatch(week,/data-rc1810-check="routine-uk"/,'Routine geschlossen, aber einmalige Aufgaben sichtbar');
+ const mobile=board._weekListHtml([d],tasks,['Sevastian'],d);
+ assert.match(mobile,/data-rc1810-worktype="picks"/);
+ assert.match(mobile,/data-rc1810-check="pick-single"/);
+ state.tasks=[];
+});
+test('RC1812: Arbeitsgruppennamen und Checkboxen bleiben groß genug',()=>{
+ const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
+ assert.match(css,/\.rc1810-worktoggle\{min-height:34px;font-size:\.86rem/);
+ assert.match(css,/\.rc1810-worktasks \.rc1810-name\{font-size:\.88rem/);
+ assert.match(css,/\.rc1810-worktasks \.rc1810-box\{width:19px;height:19px/);
 });
