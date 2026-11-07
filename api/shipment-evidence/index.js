@@ -52,7 +52,10 @@ function guestOrigin(req){
  try{
   const parsed=new URL(rawOrigin||referer);
   const source=parsed.host.toLowerCase();
-  if(!['https:','http:'].includes(parsed.protocol)||!(source===host||source===forwarded)||
+  const official=/^(?:www\.)?exporthub360\.(?:de|com)$/.test(parsed.hostname.toLowerCase())||
+    parsed.hostname.toLowerCase().endsWith('.azurestaticapps.net')||
+    /^(?:localhost|127\.0\.0\.1)$/.test(parsed.hostname.toLowerCase());
+  if(!official||!['https:','http:'].includes(parsed.protocol)||!(source===host||source===forwarded)||
      (parsed.protocol!=='https:'&&!/^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(source)))
     fail('BAD_ORIGIN','Dieses Formular darf nur auf ExportHUB360 verwendet werden.',403);
  }catch(e){if(e.code==='BAD_ORIGIN')throw e;fail('BAD_ORIGIN','Ungueltiger Formularursprung.',403)}
