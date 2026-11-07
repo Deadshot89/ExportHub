@@ -297,7 +297,10 @@ module.exports=async function(context,req){
    let quota;try{quota=await qmAi.consumeQuota(aiUsageStore(env),cfg,userKey(user),item.id)}catch(_){fallback('busy');return}
    if(!quota.allowed){fallback(quota.reason);return}
    const answer=await qmAi.askGemini({config:cfg,item,language});
-   if(!answer.ok){fallback(answer.reason,answer.status,answer.detail);return}
+   if(!answer.ok){
+    // Fehlgeschlagene Aufrufe zählen nicht aufs Limit; bei erschöpftem Google-Kontingent (429) gibt es keine Gutschrift.
+    if(answer.reason!=='busy'){try{await qmAi.refundQuota(aiUsageStore(env),cfg,userKey(user),quota.at)}catch(_){/* Gutschrift ist optional */}}
+    fallback(answer.reason,answer.status,answer.detail);return}
    context.res=json(200,{ok:true,mode:'ki',text:answer.text,model:answer.model,usedToday:quota.total,dailyLimit:quota.limit,notice:'KI-Vorschlag – fachlich prüfen. Gesendet wurden nur anonymisierte Fachfelder.'});return}
   if(action==='advise'){
    const cases=recordsOf((await readRecords(env)).value);
