@@ -58,7 +58,7 @@ test('QM-KI: erfolgreiche Antwort, Schlüssel nur im Header, feste Google-Adress
   assert.equal(r.ok, true);
   assert.equal(r.text, '1. Ursachen …');
   const call = fetchImpl.calls[0];
-  assert.match(call.url, /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-2\.5-flash-lite:generateContent$/);
+  assert.match(call.url, /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-3\.5-flash-lite:generateContent$/);
   assert.equal(call.opts.headers['x-goog-api-key'], 'test-key');
   assert.ok(!call.url.includes('test-key'), 'Schlüssel nicht in der URL');
   const body = JSON.parse(call.opts.body);

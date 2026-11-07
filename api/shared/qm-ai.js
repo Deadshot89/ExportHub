@@ -15,7 +15,7 @@ function int(v, fallback, min, max) {
 function resolveConfig(env) {
   env = env && typeof env === 'object' ? env : {};
   const apiKey = text(env.EXPORTHUB_QM_AI_API_KEY, 400);
-  const model = text(env.EXPORTHUB_QM_AI_MODEL || 'gemini-2.5-flash-lite', 60);
+  const model = text(env.EXPORTHUB_QM_AI_MODEL || 'gemini-3.5-flash-lite', 60);
   const dailyLimit = int(env.EXPORTHUB_QM_AI_DAILY_LIMIT, 20, 0, 200);
   const perUserLimit = int(env.EXPORTHUB_QM_AI_USER_LIMIT, 5, 0, 50);
   const modelOk = /^[a-z0-9][a-z0-9.-]{2,59}$/.test(model);

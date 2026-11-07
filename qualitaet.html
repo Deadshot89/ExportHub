@@ -214,6 +214,15 @@ function showAdvice(p,note){
  suggestions+(related?'<h2 style="margin-top:14px">Ähnliche frühere Fehler</h2><p class="helper">Ähnliche Fälle dienen zur Orientierung; die tatsächliche Ursache muss neu geprüft werden.</p>'+related:'');
  box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
 }
+function whyFallback(p){
+ var r=p.fallbackReason,code=p.providerStatus?' (HTTP '+p.providerStatus+')':'';
+ if(r==='not_configured')return T('Die KI ist nicht eingerichtet, es werden die Regeln verwendet.');
+ if(r==='limit'||r==='user-limit')return T('Tageslimit der KI erreicht, es werden die Regeln verwendet.');
+ if(r==='config')return T('Google hat Schlüssel oder Modell abgelehnt. Bitte Schlüssel und Modell-ID prüfen.')+code;
+ if(r==='busy')return T('Das kostenlose Google-Kontingent ist gerade erschöpft. Es werden die Regeln verwendet.')+code;
+ if(r==='timeout')return T('Die KI hat zu lange gebraucht. Es werden die Regeln verwendet.');
+ return T('Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.')+code
+}
 async function aiTips(){
  if(busy)return;
  if(!selected||!selected.id){notice(T('Bitte den Fall zuerst speichern, um einen KI-Vorschlag zu erhalten.'),true);return}
@@ -226,7 +235,7 @@ async function aiTips(){
    '<div class="tip" style="white-space:pre-wrap">'+esc(p.text)+'</div><p class="helper">'+esc(p.model||'')+' · '+esc(T('Heute genutzt: {used} von {limit}',{used:p.usedToday,limit:p.dailyLimit}))+'</p>';
    box.classList.add('show');box.scrollIntoView({block:'nearest',behavior:'smooth'})
   }else{
-   var why=p.fallbackReason==='not_configured'?T('Die KI ist nicht eingerichtet, es werden die Regeln verwendet.'):(p.fallbackReason==='limit'||p.fallbackReason==='user-limit')?T('Tageslimit der KI erreicht, es werden die Regeln verwendet.'):T('Regelbasierte Entscheidungshilfe – die KI ist gerade nicht verfügbar.');
+   var why=whyFallback(p);
    showAdvice(p,why)
   }
  }catch(e){notice(e.message,true)}finally{setBusy(false)}
