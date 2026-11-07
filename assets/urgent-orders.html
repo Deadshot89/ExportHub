@@ -411,7 +411,7 @@ async function sendDirect(){
  // The browser cannot verify an Outlook click; use the server-side Graph path
  // for a single action with a provider-accepted and auditable status.
  const to=$('mailTo').value,sub=$('mailSubject').value,body=$('mailBody').value;
- if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',localeV2('mailRequireText','Bitte zuerst eine E-Mail vorbereiten.'),'error');return;}
+ if(!to||!sub.trim()||!body.trim()){setMessage('mailMessage',localeV2('mailRequireText','Please create an email first.'),'error');return;}
  const button=$('sendDirect');if(button.disabled)return;
  if(!window.crypto||typeof window.crypto.randomUUID!=='function'){
   setMessage('mailMessage',localeV2('mailDirectUnavailable','Sicherer Direktversand ist in diesem Browser nicht verfügbar.'),'error');return;
