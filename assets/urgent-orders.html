@@ -393,10 +393,11 @@ async function generateDraft(){
  const button=$('generateMail');if(button.disabled)return;
  const orderId=modalOrder,kind=modalKind;button.disabled=true;
  try{
-  const r=await api('prepare-mail',{id:orderId,kind,language:$('mailLanguage').value,note:$('mailIssue').value.trim()});
+  const websiteLanguage=(()=>{try{return window.ExportHUBI18n&&window.ExportHUBI18n.language()==='en'?'en':'de';}catch(_){return'de';}})();
+  const r=await api('prepare-mail',{id:orderId,kind,language:$('mailLanguage').value,note:$('mailIssue').value.trim(),noteLanguage:websiteLanguage});
   if(modalOrder!==orderId||modalKind!==kind||$('mailOverlay').hidden)return;
   $('mailTo').value=r.draft.to;$('mailSubject').value=r.draft.subject;$('mailBody').value=r.draft.body;
-  setMessage('mailMessage',localeV2('mailDraftReady','Entwurf ist bereit.'),'ok');
+  setMessage('mailMessage',r.translationWarning?(r.translationWarningText||'Bitte den Fehlertext vor dem Versenden prüfen.'):localeV2('mailDraftReady','Entwurf ist bereit.'),r.translationWarning?'error':'ok');
  }catch(e){
   if(modalOrder!==orderId||modalKind!==kind||$('mailOverlay').hidden)return;
   if(e.code==='URGENT_MAIL_NOTE_REQUIRED'){showMailIssueError();return;}
