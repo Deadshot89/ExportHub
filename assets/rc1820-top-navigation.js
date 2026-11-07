@@ -82,7 +82,7 @@
   if(!m)return '';
   return [lang(),m.start.map(function(i){return viewOf(i.el)+(isActive(i.el)?'*':'')+labelOf(i.el)}).join(','),
    m.sections.map(function(s){return s.key+':'+s.label+':'+s.items.map(function(i){return viewOf(i.el)+(isActive(i.el)?'*':'')+labelOf(i.el)}).join('.')}).join('|'),
-   m.notifications?(m.notifications.getAttribute('data-index236-notification-count')||'0'):'-',m.shipment?labelOf(m.shipment):'-',openKey].join('#');
+   m.notifications?(m.notifications.getAttribute('data-index236-notification-count')||'0'):'-',Math.max(0,Number(w.__EXPORTHUB_WARNING_SUMMARY__&&w.__EXPORTHUB_WARNING_SUMMARY__.total)||0),m.shipment?labelOf(m.shipment):'-',openKey].join('#');
  }
 
  function svg(path){return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
@@ -150,7 +150,7 @@
   // Glocke = Benachrichtigungen, mit Zähler
   bell.hidden=!m.notifications;
   if(m.notifications){
-   var c=parseInt(m.notifications.getAttribute('data-index236-notification-count')||'0',10)||0,badge=bell.querySelector('.rc1820-bell-count');
+   var tasks=parseInt(m.notifications.getAttribute('data-index236-notification-count')||'0',10)||0,warningCount=Math.max(0,Number(w.__EXPORTHUB_WARNING_SUMMARY__&&w.__EXPORTHUB_WARNING_SUMMARY__.total)||0),c=tasks+warningCount,badge=bell.querySelector('.rc1820-bell-count');
    badge.hidden=!c;badge.textContent=c>99?'99+':String(c);
    bell.setAttribute('aria-label',labelOf(m.notifications)+(c?' ('+c+')':''));bell.title=labelOf(m.notifications);
    bell.classList.toggle('is-active',isActive(m.notifications));
