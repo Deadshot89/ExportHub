@@ -66,6 +66,19 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
  assert.doesNotThrow(()=>new Function(guest),'Public form JavaScript must be parsable before browser tests');
+ assert.match(guest,/eh1903-photo-grid/,'Public gallery must render inside documentation');
+ assert.match(guest,/public-file/,'Guest image must use token-protected public-file API');
+ assert.match(guest,/data\.evidencePhotoDialog/,'Guest image must open in-page');
+ assert.match(guest,/URL\.revokeObjectURL/,'Guest preview object URLs must be released');
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ assert.doesNotThrow(()=>new Function(staff),'Internal photo gallery script must parse');
+ assert.match(staff,/eh1903-photo-grid/,'Internal gallery must render in shipment documentation');
+ assert.match(staff,/fileRequest\(id,file\)/,'Internal gallery must use authenticated file endpoint');
+ assert.match(staff,/downloadEvidence/,'Internal gallery needs a direct download');
+ assert.match(staff,/URL\.revokeObjectURL/,'Internal preview object URLs must be released');
+ const styles=fs.readFileSync('assets/shipment-evidence.css','utf8');
+ assert.match(styles,/\.eh1903-photo-frame\{[^}]*height:126px/,'Thumbnail must stay compact');
+
  assert.doesNotMatch(guest,/ensureLoginEntry|data-eh1903-guest-open/);
  assert.match(guest,/eh1903-guest-root/);
  assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
