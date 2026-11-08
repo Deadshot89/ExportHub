@@ -348,6 +348,30 @@ async function list(ctx,query){
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
+// Authenticated, exact-REF lookup: independent DOK records are never matched by customer name
+// or an approximate shipment number (both can belong to another shipment).
+async function recordsForReference(ctx,query){
+ const ref=txt(query.reference,30).toUpperCase();
+ if(!/^[A-Z0-9]{6}$/.test(ref))fail('BAD_LINK','Ungueltige ExportHUB-Referenz.',400);
+ let continuation,scanned=0;
+ const linked=[];
+ do{
+  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'}).byPage({continuationToken:continuation,maxPageSize:50});
+  const page=(await pager.next()).value||{};
+  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
+  const records=await Promise.all(names.map(async name=>{
+   try{return(await getRecord(ctx,name.split('/').pop().slice(0,-5))).record}
+   catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  }));
+  for(const record of records){
+   if(!record||record.deletedAt||txt(record.fields&&record.fields.exporthubRef,20).toUpperCase()!==ref)continue;
+   linked.push({id:record.id,files:(record.files||[]).map(f=>({id:f.id,name:f.name,kind:f.kind,mime:f.mime,size:f.size,uploadedAt:f.uploadedAt}))});
+  }
+  continuation=page.continuationToken||null;
+  scanned++;
+ }while(continuation&&scanned<40);
+ return json(200,{ok:true,reference:ref,records:linked,incomplete:!!continuation});
+}
 async function downloadFile(ctx,docId,record,fileId){
   const entry=record.files.find(x=>x.id===fileId);
   if(!entry)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
@@ -364,6 +388,7 @@ async function processRequest(req){
  if(PUBLIC_ACTIONS.has(action))return guestRequest(req,method,payload,action);
  const ctx=await login(req,method==='POST');
  if(method==='GET'&&action==='list')return list(ctx,payload);
+  if(method==='GET'&&action==='for-reference')return recordsForReference(ctx,payload);
  if(method==='POST'&&action==='create'){
   const normalized=fields(payload.fields),now=new Date().toISOString();
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
