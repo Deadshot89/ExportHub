@@ -35,7 +35,7 @@ test('RC1900: Rechte und Filter der alten Übersicht gelten weiter',()=>{
 
 test('RC1900: Builder bindet Skript und Stylesheet ein',()=>{
   assert.match(builder,/rc1900-neue-sendungsuebersicht\.css\?v=1930/);
-  assert.match(builder,/rc1900-neue-sendungsuebersicht\.js\?v=1930/);
+  assert.match(builder,/rc1900-neue-sendungsuebersicht\.js\?v=1933/);
   assert.match(builder,/'assets\/rc1900-neue-sendungsuebersicht\.js'/);
   assert.match(builder,/RC1900 neue Sendungsübersicht fehlt/);
 });

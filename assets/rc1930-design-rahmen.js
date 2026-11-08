@@ -34,11 +34,11 @@
     if(!html.hasAttribute('data-rc1930-frame'))html.setAttribute('data-rc1930-frame','');
     var bell=top.querySelector('.rc1930-bell'),user=d.querySelector('.rc1930-user');
     if(!bell){
-      bell=d.createElement('button');bell.type='button';bell.className='rc1930-topbtn rc1930-bell';bell.innerHTML=BELL;
+      bell=d.createElement('button');bell.type='button';bell.className='rc1930-topbtn rc1930-bell';bell.setAttribute('data-rc739-no-loading','1');bell.innerHTML=BELL;
       top.appendChild(bell);
     }
     if(!user){
-      user=d.createElement('button');user.type='button';user.className='rc1930-topbtn rc1930-user';user.setAttribute('aria-haspopup','true');user.setAttribute('aria-expanded','false');
+      user=d.createElement('button');user.type='button';user.className='rc1930-topbtn rc1930-user';user.setAttribute('data-rc739-no-loading','1');user.setAttribute('aria-haspopup','true');user.setAttribute('aria-expanded','false');
       top.appendChild(user);
     }
     // Reihenfolge wie im Entwurf: Suche … Glocke, Benutzer ganz rechts.

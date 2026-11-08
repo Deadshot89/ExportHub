@@ -44,7 +44,7 @@ test('RC1902: Texte kommen aus den Sprachdateien',()=>{
 
 test('RC1902: Builder bindet Skript und Stylesheet ein',()=>{
   assert.match(builder,/rc1902-neue-sendungsmaske\.css\?v=1930/);
-  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1932/);
+  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1933/);
   assert.match(builder,/'assets\/rc1902-neue-sendungsmaske\.js'/);
   assert.match(builder,/RC1902 neue Sendungsmaske fehlt/);
 });

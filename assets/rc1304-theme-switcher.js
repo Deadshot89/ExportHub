@@ -461,7 +461,7 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
   function isPalette(value){return PALETTES.indexOf(value)>=0}
   function baseDesign(value){return value===PREMIUM||value===NEU||isPalette(value)?CLASSIC:value}
   function skinOf(value){return value===PREMIUM||value===NEU||isPalette(value)?PREMIUM:''}
-  function layoutOf(value){return value===NEU||value===FROST||value===STAHL?'top':(value===POLAR?'rail':'')}
+  function layoutOf(value){return value===NEU?'top':(isPalette(value)?'rail':'')}  // RC1933: alle neuen Designs mit der einklappbaren Leiste (Wunsch Tobias 08.11.)
   function setAttr(node,name,value){
     if(!node)return;
     if(value){if(node.getAttribute(name)!==value)node.setAttribute(name,value)}
