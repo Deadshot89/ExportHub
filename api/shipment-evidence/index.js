@@ -9,9 +9,9 @@ const rights=require('../shared/state-write-guard');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const MAX_FILE=15*1024*1024;
 const TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'};
-const FIELDS={shipmentNumber:100,customer:200,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
+const FIELDS={shipmentNumber:100,customer:200,customerNumber:40,customerId:120,customerMode:16,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
 const STATES=new Set(['offen','in_pruefung','abgeschlossen']);
-const PUBLIC_ACTIONS=new Set(['public-create','public-get','public-upload','public-file','public-submit']);
+const PUBLIC_ACTIONS=new Set(['public-create','public-get','public-upload','public-file','public-submit','public-customer-lookup']);
 const PUBLIC_TOKEN_HOURS=14*24; // Eigener Nachweis 14 Tage lesbar; Bearbeitung nach Abschluss verboten.
 const PUBLIC_FILE_COUNT=12;
 const PUBLIC_MAX_BYTES=60*1024*1024;
@@ -137,13 +137,78 @@ async function ratePublicCreate(ctx,normalized){
   if(!accepted)fail('PUBLIC_RATE_RETRY','Neuerfassung temporaer nicht verfuegbar.',503);
  }
 }
+function customerAccount(value){
+ const account=txt(value,41).toUpperCase();
+ if(!/^[A-Z0-9][A-Z0-9._/-]{2,39}$/.test(account))fail('BAD_CUSTOMER_NUMBER','Bitte eine gültige Kundennummer eingeben.',400);
+ return account;
+}
+async function lookupMasterCustomer(req,number){
+ // Strictly one exact account: no customer directory, contacts or broad search exposed.
+ const environment=verifiedDeploymentEnvironment()||auth.environmentFromRequest(req);
+ const clients=await auth.clientsForEnvironment(environment);
+ const read=await auth.readJson(clients.team,{state:{customers:[]}});
+ const customers=read.value&&read.value.state&&read.value.state.customers;
+ const target=customerAccount(number);
+ const matches=(Array.isArray(customers)?customers:[]).filter(c=>c&&c.disabled!==true&&c.deleted!==true&&
+  [c.account,c.customerNumber,c.kundennummer].some(v=>txt(v,40).toUpperCase()===target));
+ if(matches.length>1)fail('CUSTOMER_AMBIGUOUS','Die Kundennummer ist mehrfach vergeben.',409);
+ const c=matches[0];
+ return c?{id:txt(c.id||c.customerId,120),number:target,name:txt(c.name||c.customerName||c.companyName,200)}:null;
+}
+async function ratePublicCustomerLookup(ctx,number){
+ const hour=new Date().toISOString().slice(0,13).replace(/[-T:]/g,'');
+ const buckets=[{name:'customer-lookup-global',limit:100},
+  {name:'customer-lookup-'+publicHash(customerAccount(number)).slice(0,24),limit:8}];
+ for(const bucket of buckets){
+  const blob=ctx.container.getBlockBlobClient(ctx.prefix+'public-rate/'+hour+'/'+bucket.name+'.json');
+  let stored=false;
+  for(let attempt=0;attempt<6;attempt++){
+   let count=0,etag=null;
+   try{
+    const previous=await blob.download(0),chunks=[];
+    for await(const part of previous.readableStreamBody)chunks.push(Buffer.from(part));
+    count=Number(JSON.parse(Buffer.concat(chunks).toString('utf8')).count)||0;etag=previous.etag;
+   }catch(e){if(e.statusCode!==404)throw e}
+   if(count>=bucket.limit)fail('CUSTOMER_LOOKUP_LIMIT','Zu viele Kundensuchen. Bitte später erneut versuchen.',429);
+   try{
+    await blob.uploadData(Buffer.from(JSON.stringify({count:count+1})),{
+     blobHTTPHeaders:{blobContentType:'application/json'},conditions:etag?{ifMatch:etag}:{ifNoneMatch:'*'}
+    });stored=true;break;
+   }catch(e){if(e.statusCode!==409&&e.statusCode!==412)throw e}
+  }
+  if(!stored)fail('CUSTOMER_LOOKUP_RETRY','Kundensuche vorübergehend nicht verfügbar.',503);
+ }
+}
 async function guestRequest(req,method,payload,action){
  if(method==='POST')guestOrigin(req);
  const ctx=storageContext(req,'Gastformular');
+ if(action==='public-customer-lookup'){
+  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
+  if(txt(payload.website,100))fail('INVALID_SUBMISSION','Ungültige Anfrage.',400);
+  const number=customerAccount(payload.customerNumber);
+  await ratePublicCustomerLookup(ctx,number);
+  const customer=await lookupMasterCustomer(req,number);
+  if(!customer)fail('CUSTOMER_NOT_FOUND','Diese Kundennummer wurde nicht gefunden.',404);
+  return json(200,{ok:true,customer});
+ }
  if(action==='public-create'){
   if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
   if(txt(payload.website,200))fail('INVALID_SUBMISSION','Ungueltige Eingabe.',400);
   const normalized=fields(payload.fields),now=new Date().toISOString();
+  if(normalized.customerMode==='existing'){
+   const customer=await lookupMasterCustomer(req,normalized.customerNumber);
+   if(!customer||!customer.name)fail('CUSTOMER_NOT_FOUND','Bitte eine gültige Kundennummer auswählen.',404);
+   normalized.customer=customer.name;
+   normalized.customerNumber=customer.number;
+   normalized.customerId=customer.id;
+  }else if(normalized.customerMode==='pending'){
+   normalized.customerNumber=customerAccount(normalized.customerNumber);
+   normalized.customerId='';
+   const existing=await lookupMasterCustomer(req,normalized.customerNumber);
+   if(existing)fail('CUSTOMER_ALREADY_EXISTS','Kundennummer existiert bereits. Bitte vorhandenen Kunden auswählen.',409);
+  }else if(normalized.customerMode){
+   fail('BAD_CUSTOMER_MODE','Ungültige Kundenauswahl.',400);
+  }
   // Only new records can be created without login; no existing data is exposed.
   await ratePublicCreate(ctx,normalized);
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -193,7 +258,8 @@ async function login(req,write){
  const sessionEnv=txt(verified.session&&verified.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
    fail('ENVIRONMENT_MISMATCH','Sitzung gehoert zu einer anderen Umgebung.',403);
- return {...storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)),isAdmin:auth.isAdmin(user)};
+ return {...storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)),
+  isAdmin:auth.isAdmin(user),canRegisterCustomer:rights.canEditAny(user,['customers'])};
 }
 function docBlob(ctx,docId){return ctx.container.getBlockBlobClient(ctx.prefix+'records/'+id(docId)+'.json')}
 function fileBlob(ctx,docId,fileId){return ctx.container.getBlockBlobClient(ctx.prefix+'files/'+id(docId)+'/'+fileId)}
@@ -302,15 +368,41 @@ async function processRequest(req){
   const normalized=fields(payload.fields),now=new Date().toISOString();
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
   const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],createdAt:now,updatedAt:now,updatedBy:ctx.user};
-  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
+  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  }
  const docId=id(payload.id);
  const{blob,record,etag}=await getRecord(ctx,docId);
  if(record.deletedAt)fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
- if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
+ if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
+ if(action==='register-customer'){
+  if(!ctx.canRegisterCustomer)fail('CUSTOMER_WRITE_FORBIDDEN','Keine Berechtigung zum Anlegen von Kunden.',403);
+  if(record.fields.customerMode!=='pending')fail('CUSTOMER_NOT_PENDING','Dieser Nachweis enthält keinen neuen Kunden.',409);
+  const number=customerAccount(record.fields.customerNumber),name=txt(record.fields.customer,200);
+  if(!name)fail('REQUIRED_FIELDS','Kundenname fehlt.');
+  const registered=await auth.mutateTeamForEnvironment(verifiedDeploymentEnvironment()||auth.environmentFromRequest(req),team=>{
+   team.state=team.state&&typeof team.state==='object'?team.state:{};
+   const customers=Array.isArray(team.state.customers)?team.state.customers:[];
+   const existing=customers.find(c=>c&&[c.account,c.customerNumber,c.kundennummer].some(v=>txt(v,40).toUpperCase()===number));
+   if(existing){
+    if(existing.sourceEvidenceId!==record.id)fail('CUSTOMER_ALREADY_EXISTS','Diese Kundennummer wurde inzwischen vergeben.',409);
+    return{customer:{id:existing.id,number,name:existing.name}};
+   }
+   const customer={id:'CUST-'+crypto.randomUUID(),customerNumber:number,account:number,name,
+    createdAt:new Date().toISOString(),createdBy:ctx.user,sourceEvidenceId:record.id,
+    customerHistory:[{id:crypto.randomUUID(),type:'customer-created',label:'customer-created-from-shipment-evidence',
+      at:new Date().toISOString(),actor:{name:ctx.user},source:'server',version:'RC1903'}]};
+   customers.push(customer);team.state.customers=customers;
+   return{customer:{id:customer.id,number,name}};
+  });
+  const created=registered.result.customer;
+  record.fields.customerId=created.id;record.fields.customerMode='existing';record.fields.customer=created.name;
+  bump(record,ctx,'register-customer',{customerNumber:number});
+  await saveRecord(blob,record,etag);
+  return json(200,{ok:true,record:cleanRecord(record),canRegisterCustomer:true,canDelete:ctx.isAdmin===true});
+ }
  if(action==='delete'){
   if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren dürfen Dokumentationen löschen.',403);
   record.deletedAt=new Date().toISOString();

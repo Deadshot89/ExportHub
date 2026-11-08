@@ -7,7 +7,8 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false,canRegisterCustomer:false};
+let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function make(tag,cls,value){const e=d.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
@@ -19,10 +20,36 @@ function status(message,error){const el=root()&&root().querySelector('[data-eh19
 function headers(){const r=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},token=r.authToken||r.token||r.sessionToken||'';const h={'Accept':'application/json','Content-Type':'application/json'};if(token)h['X-ExportHUB-Token']=String(token);return h}
 async function request(method,params){let url='/api/shipment-evidence',options={method,headers:headers(),credentials:'same-origin',cache:'no-store'};if(method==='GET')url+='?'+new URLSearchParams(params);else options.body=JSON.stringify(params);const response=await fetch(url,options);let value;try{value=await response.json()}catch(_){value={}}if(!response.ok||value.ok!==true)throw new Error(value.message||'HTTP '+response.status);return value}
 async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLSearchParams({action:'file',id,fileId:file.id});const response=await fetch(url,{headers:headers(),credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);return response.blob()}
+const isPhoto=file=>/^image\/(jpeg|png)$/.test(String(file&&file.mime||'').toLowerCase());
+function syncGallery(recordId){
+ const scope=recordId||'';if(scope===galleryRecord)return;
+ if(closeGalleryDialog)closeGalleryDialog();
+ galleryUrls.forEach(url=>URL.revokeObjectURL(url));galleryUrls.clear();galleryLoads.clear();galleryRecord=scope;
+}
+function inlinePhoto(id,file,img){
+ const scope=galleryRecord;
+ if(galleryUrls.has(file.id)){img.src=galleryUrls.get(file.id);return}
+ let job=galleryLoads.get(file.id);
+ if(!job){
+  job=fileRequest(id,file).then(blob=>{
+   if(scope!==galleryRecord||!/^image\/(jpeg|png)$/.test(blob.type))return null;
+   const url=URL.createObjectURL(blob);galleryUrls.set(file.id,url);return url;
+  }).catch(()=>null);
+  galleryLoads.set(file.id,job);
+ }
+ job.then(url=>{if(scope===galleryRecord&&img.isConnected&&url)img.src=url});
+}
+async function downloadEvidence(id,file){
+ try{
+  const blob=await fileRequest(id,file),url=URL.createObjectURL(blob),link=make('a');
+  link.href=url;link.download=file.name;d.body.appendChild(link);link.click();link.remove();
+  w.setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(e){status(e.message,true)}
+}
 function dateText(s){try{return s?new Date(s).toLocaleDateString(language()==='de'?'de-DE':'en-GB'):''}catch(_){return s}}
 function hero(title,desc){const h=make('header','eh1903-hero');h.appendChild(make('h1',null,title));h.appendChild(make('p','eh1903-muted',desc));return h}
 function initPage(){const container=host();if(!container)return null;const app=make('main');app.id='eh1903-root';container.replaceChildren(app);d.body.setAttribute('data-exporthub-view','shipmentevidence');return app}
-function showList(){state.serial++;state.view='list';state.record=null;state.canDelete=false;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
+function showList(){syncGallery('');state.serial++;state.view='list';state.record=null;state.canDelete=false;state.canRegisterCustomer=false;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));
  const publicLink=make('a','eh1903-public-link',t('publicPage'));
  publicLink.href='/sendungsdokumentation';publicLink.target='_self';actions.appendChild(publicLink);
@@ -105,17 +132,34 @@ async function write(action,extra,expectedId){
   const result=await request('POST',payload);
   if(serial===state.serial&&state.view==='form'&&active()&&
     (state.record&&state.record.id||null)===originalId){
-   state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;showForm(state.record);
+   state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;if(typeof result.canRegisterCustomer==='boolean')state.canRegisterCustomer=result.canRegisterCustomer;showForm(state.record);
    status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);
   }
   return result;
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
  finally{state.busy=false}
 }
-function showForm(record){state.searchRun++;state.view='form';if(record!==undefined){state.record=record;if(!record)state.canDelete=false;}const app=initPage();if(!app)return;
+function showForm(record){state.searchRun++;state.view='form';if(record!==undefined){state.record=record;if(!record){state.canDelete=false;state.canRegisterCustomer=false;}}const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
  if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
+ if(r&&r.fields&&r.fields.customerMode==='pending'){
+  const pending=make('p','eh1903-muted',t('customerPendingMessage'));
+  app.appendChild(pending);
+  if(state.canRegisterCustomer){
+   actions.appendChild(button(t('registerCustomer'),async()=>{
+    if(state.busy||!w.confirm(t('registerCustomerConfirm')))return;
+    state.busy=true;status(t('saving'),false);
+    try{
+     const response=await request('POST',{action:'register-customer',id:r.id,expectedRevision:r.revision});
+     if(state.record&&state.record.id===r.id){
+      state.record=response.record;state.canRegisterCustomer=response.canRegisterCustomer===true;
+      showForm(state.record);status(t('customerRegistered'),false);
+     }
+    }catch(e){status(e.message,true)}finally{state.busy=false}
+   },true));
+  }
+ }
  if(r&&state.canDelete){
   actions.appendChild(button(t('deleteRecord'),async()=>{
    if(state.busy||!w.confirm(t('deleteConfirm')))return;
@@ -159,22 +203,62 @@ function uploadsPanel(record){const panel=make('section','eh1903-panel');panel.a
   });label.appendChild(input);cell.appendChild(label);grid.appendChild(cell)}
  panel.appendChild(grid);
  if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
- (record.files||[]).forEach(file=>{const row=make('div','eh1903-file');row.appendChild(make('span',null,file.name));
- row.appendChild(button(t('preview'),()=>preview(record.id,file)));panel.appendChild(row)});
+ syncGallery(record.id);
+ const gallery=make('div','eh1903-photo-grid');
+ (record.files||[]).forEach(file=>{
+  if(isPhoto(file)){
+   const card=make('div','eh1903-photo-card'),trigger=button(t('preview'),()=>preview(record.id,file));
+   trigger.classList.add('eh1903-photo-trigger');trigger.setAttribute('aria-label',t('preview')+': '+file.name);
+   trigger.dataset.evidencePhotoOpen=file.id;
+   const frame=make('div','eh1903-photo-frame'),img=make('img','eh1903-photo-thumb');
+   img.alt=file.name;img.loading='lazy';img.decoding='async';
+   img.addEventListener('load',()=>frame.classList.add('eh1903-photo-loaded'));
+   frame.appendChild(make('span','eh1903-photo-placeholder',t('loading')));frame.appendChild(img);
+   trigger.replaceChildren(frame);card.appendChild(trigger);
+   const name=make('span','eh1903-photo-caption',file.name);name.title=file.name;card.appendChild(name);
+   card.appendChild(button(t('download'),()=>downloadEvidence(record.id,file)));
+   gallery.appendChild(card);inlinePhoto(record.id,file,img);
+  }else{
+   const row=make('div','eh1903-file');row.appendChild(make('span',null,file.name));
+   row.appendChild(button(t('preview'),()=>preview(record.id,file)));
+   row.appendChild(button(t('download'),()=>downloadEvidence(record.id,file)));
+   panel.appendChild(row);
+  }
+ });
+ if(gallery.childElementCount)panel.insertBefore(gallery,panel.querySelector('.eh1903-file'));
  return panel}
 function asBase64(file){return file.arrayBuffer().then(buffer=>{const bytes=new Uint8Array(buffer);let out='';for(let i=0;i<bytes.length;i+=16384)out+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(out)})}
-async function preview(id,file){const currentRoot=root();if(!currentRoot)return;status(t('loading'),false);
- try{const blob=await fileRequest(id,file),url=URL.createObjectURL(blob);
-  const overlay=make('div','eh1903-dialog'),inner=make('div','eh1903-dialog-inner'),actions=make('div','eh1903-actions');
-  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',t('preview'));
-  const close=()=>{URL.revokeObjectURL(url);overlay.remove()};
-  actions.appendChild(button(t('download'),()=>{const a=make('a');a.href=url;a.download=file.name;a.click()}));
-  actions.appendChild(button(t('close'),close,true));inner.appendChild(actions);
-  const media=make(file.mime==='application/pdf'?'iframe':'img');media.src=url;if(media.tagName==='IMG')media.alt=file.name;else media.title=file.name;
-  inner.appendChild(media);overlay.appendChild(inner);overlay.addEventListener('click',e=>{if(e.target===overlay)close()});currentRoot.appendChild(overlay);
-  actions.querySelector('button:last-child').focus();const onKey=e=>{if(e.key==='Escape'){close();d.removeEventListener('keydown',onKey)}};d.addEventListener('keydown',onKey);
-  status('',false);
- }catch(e){status(e.message,true)}}
+async function preview(id,file){
+ const currentRoot=root();if(!currentRoot)return;status(t('loading'),false);
+ const scope=galleryRecord;
+ try{
+  const blob=await fileRequest(id,file);
+  if(scope!==galleryRecord||!currentRoot.isConnected)return;
+  const url=URL.createObjectURL(blob),overlay=make('div','eh1903-dialog');
+  const inner=make('div','eh1903-dialog-inner'),actions=make('div','eh1903-actions');
+  const previous=d.activeElement;
+  let closed=false;
+  function close(){
+   if(closed)return;closed=true;d.removeEventListener('keydown',onKey);
+   overlay.remove();URL.revokeObjectURL(url);if(closeGalleryDialog===close)closeGalleryDialog=null;
+   if(previous&&previous.isConnected)previous.focus();
+  }
+  function onKey(e){if(e.key==='Escape'){e.preventDefault();close()}}
+  if(closeGalleryDialog)closeGalleryDialog();
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+  overlay.setAttribute('aria-label',t('preview')+': '+file.name);overlay.dataset.evidencePhotoDialog='';
+  actions.appendChild(button(t('download'),()=>{
+   const link=make('a');link.href=url;link.download=file.name;d.body.appendChild(link);link.click();link.remove()
+  }));
+  const closeButton=button(t('close'),close,true);actions.appendChild(closeButton);inner.appendChild(actions);
+  const media=make(file.mime==='application/pdf'?'iframe':'img');
+  media.src=url;if(media.tagName==='IMG')media.alt=file.name;else media.title=file.name;
+  inner.appendChild(media);overlay.appendChild(inner);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+  currentRoot.appendChild(overlay);d.addEventListener('keydown',onKey);closeGalleryDialog=close;
+  closeButton.focus();status('',false);
+ }catch(e){status(e.message,true)}
+}
 function complaintsPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('complaints')));
  if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
  const complaints=record.complaints||[];
@@ -192,7 +276,7 @@ function historyPanel(record){const panel=make('section','eh1903-panel');panel.a
  if(record)(record.history||[]).slice(-25).reverse().forEach(x=>panel.appendChild(make('p','eh1903-muted',dateText(x.at)+' · '+x.by+' · '+x.action)));
  return panel}
 async function openRecord(id){state.searchRun++;const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
- try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active()){state.canDelete=res.canDelete===true;showForm(res.record)}}
+ try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active()){state.canDelete=res.canDelete===true;state.canRegisterCustomer=res.canRegisterCustomer===true;showForm(res.record)}}
  catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
 function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;

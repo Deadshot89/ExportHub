@@ -65,6 +65,20 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
  assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ assert.doesNotThrow(()=>new Function(guest),'Public form JavaScript must be parsable before browser tests');
+ assert.match(guest,/eh1903-photo-grid/,'Public gallery must render inside documentation');
+ assert.match(guest,/public-file/,'Guest image must use token-protected public-file API');
+ assert.match(guest,/dataset\.evidencePhotoDialog/,'Guest image must open in-page');
+ assert.match(guest,/URL\.revokeObjectURL/,'Guest preview object URLs must be released');
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ assert.doesNotThrow(()=>new Function(staff),'Internal photo gallery script must parse');
+ assert.match(staff,/eh1903-photo-grid/,'Internal gallery must render in shipment documentation');
+ assert.match(staff,/fileRequest\(id,file\)/,'Internal gallery must use authenticated file endpoint');
+ assert.match(staff,/downloadEvidence/,'Internal gallery needs a direct download');
+ assert.match(staff,/URL\.revokeObjectURL/,'Internal preview object URLs must be released');
+ const styles=fs.readFileSync('assets/shipment-evidence.css','utf8');
+ assert.match(styles,/\.eh1903-photo-frame\{[^}]*height:126px/,'Thumbnail must stay compact');
+
  assert.doesNotMatch(guest,/ensureLoginEntry|data-eh1903-guest-open/);
  assert.match(guest,/eh1903-guest-root/);
  assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
@@ -210,6 +224,14 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
   fs.rmSync(metadataDir,{recursive:true,force:true});
  });
  const store=new Map(),names=[],user={role:'Export',rights:{documents:{level:'edit',edit:true,read:true}}};
+ const masterCustomers=[{id:'CUST-D1001',customerNumber:'D1001',account:'D1001',name:'Bestandskunde GmbH'}];
+ t.mock.method(auth,'clientsForEnvironment',async()=>({team:{name:'team-state.json'}}));
+ t.mock.method(auth,'readJson',async()=>({value:{state:{customers:masterCustomers}}}));
+ t.mock.method(auth,'mutateTeamForEnvironment',async(environment,mutator)=>{
+  const team={state:{customers:masterCustomers}};
+  const result=await mutator(team);
+  return{team,result};
+ });
  let loggedIn=false;
  t.mock.method(auth,'validateSession',async()=>{
   if(!loggedIn){const e=new Error('Nicht angemeldet');e.code='SESSION_INVALID';e.status=401;throw e}
@@ -242,6 +264,12 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  }
  const badOrigin=await call('POST',{action:'public-create',fields:valid},'','https://evil.example');
  assert.equal(badOrigin.status,403,badOrigin.body);
+ const unknownCustomer=await call('POST',{action:'public-customer-lookup',customerNumber:'D9999'});
+ assert.equal(unknownCustomer.status,404,unknownCustomer.body);
+ const foundCustomer=await call('POST',{action:'public-customer-lookup',customerNumber:'D1001'});
+ assert.equal(foundCustomer.status,200,foundCustomer.body);
+ assert.deepEqual(JSON.parse(foundCustomer.body).customer,{id:'CUST-D1001',number:'D1001',name:'Bestandskunde GmbH'});
+ assert.ok(!foundCustomer.body.includes('customers":['));
  // Azure Functions may expose its internal host instead of the public SWA host.
  // Accept only the exact TESTSERVICE Origin in the matching environment.
  const testHost='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
@@ -250,7 +278,29 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
   builtAt:new Date().toISOString(),environment:'testservice'};
  fs.writeFileSync(metadataPath,JSON.stringify(deployment));
  process.env.EXPORTHUB_RELEASE_METADATA_PATH=metadataPath;
+ const existingCustomer=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'MASTER-123',
+  customerMode:'existing',customerNumber:'D1001',customer:'Falscher Name'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(existingCustomer.status,201,existingCustomer.body);
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customer,'Bestandskunde GmbH');
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customerId,'CUST-D1001');
  // This reproduces the browser request: NO X-ExportHUB-Environment client header.
+ const pending=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'NEW-CUST-001',
+  customerMode:'pending',customerNumber:'NEW900',customer:'Neukunde GmbH'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(pending.status,201,pending.body);
+ const pendingRecord=JSON.parse(pending.body).record;
+ loggedIn=true;
+ const rejected=await call('POST',{action:'register-customer',id:pendingRecord.id,expectedRevision:pendingRecord.revision},'',testHost,azureProxyHeaders);
+ assert.equal(rejected.status,403,rejected.body);
+ assert.equal(JSON.parse(rejected.body).code,'CUSTOMER_WRITE_FORBIDDEN');
+ user.rights.customers={level:'edit',read:true,edit:true};
+ const adopted=await call('POST',{action:'register-customer',id:pendingRecord.id,expectedRevision:pendingRecord.revision},'',testHost,azureProxyHeaders);
+ assert.equal(adopted.status,200,adopted.body);
+ assert.equal(JSON.parse(adopted.body).record.fields.customerMode,'existing');
+ assert.equal(masterCustomers.filter(x=>x.account==='NEW900').length,1);
+ const duplicate=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'NEW-CUST-002',
+  customerMode:'pending',customerNumber:'D1001',customer:'Fake'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(duplicate.status,409,duplicate.body);
+ loggedIn=false;
  const viaProxy=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-AZURE-PROXY'},website:''},'',testHost,azureProxyHeaders);
  assert.equal(viaProxy.status,201,viaProxy.body);
  assert.ok([...store.keys()].some(name=>name.startsWith('testservice/shipment-evidence/v1/records/')));
