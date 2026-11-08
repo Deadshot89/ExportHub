@@ -265,7 +265,7 @@ async function openFilePreview(ref,file,box){
   inner.setAttribute('aria-label','Dateivorschau: '+q(file.name));
   inner.appendChild(el('h3',null,q(file.name)));
   var media=el(isPhoto(file)?'img':'iframe','eh1860-preview-media');
-  if(isPhoto(file))media.alt=q(file.name);else media.title=q(file.name);
+  if(isPhoto(file))media.alt=q(file.name);else{media.title=q(file.name);media.setAttribute('sandbox','');}
   media.src=url;inner.appendChild(media);
   var actions=el('div','eh1860-preview-dialog-actions'),download=el('button',null,'Datei herunterladen'),closeButton=el('button',null,'Schließen');
   download.type='button';closeButton.type='button';actions.appendChild(download);actions.appendChild(closeButton);inner.appendChild(actions);overlay.appendChild(inner);d.body.appendChild(overlay);
@@ -346,9 +346,10 @@ async function loadFiles(box,ref){
 function ensure(){
  scheduled=false;
  var host=d.getElementById('rc786ReferenceFilesCard'),shipment=sh(),ref=refOf(shipment);
- if(!host||!/^[A-Z0-9]{6}$/.test(ref)){if(activeCard&&activeCard.isConnected)activeCard.remove();activeCard=null;activeRef='';return}
+ if(!host||!/^[A-Z0-9]{6}$/.test(ref)){if(activeCard&&activeCard.isConnected)activeCard.remove();if(activeRef)clearGallery();activeCard=null;activeRef='';return}
  if(activeRef===ref&&activeCard&&activeCard.isConnected&&activeCard.previousElementSibling===host)return;
  if(activeCard&&activeCard.isConnected)activeCard.remove();
+ clearGallery();
  activeRef=ref;activeRecord=null;busy=false;
  activeCard=build(ref);
  host.insertAdjacentElement('afterend',activeCard);
