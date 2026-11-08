@@ -37,7 +37,11 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/shipment-evidence-guest\.js\?v=1903/,'Guest form missing from deployed TESTSERVICE HTML');
+assert.match(html,/shipment-evidence-guest\.js\?v=1904/,'Guest login-free runtime missing from TESTSERVICE HTML');
+const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
+assert.equal(publicPage.status,200,'Public submission URL not reachable');
+const publicHtml=await publicPage.text();
+assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
 const unique=crypto.randomBytes(5).toString('hex');
@@ -65,6 +69,13 @@ for(const [kind,name,bytes] of [['foto','Test-Versandfoto.jpg',bytesJpg],['liefe
  assert.equal(read.status,200,'TESTSERVICE file readback '+kind);
  assert.deepEqual(read.data,bytes,'TESTSERVICE bytes changed for '+kind);
 }
+const submitted=await request('POST','public-submit',{id:initial.id,expectedRevision:current.revision},token);
+assert.equal(submitted.status,200,'Public submission finalization failed: '+safeError(submitted.payload));
+assert.ok(submitted.payload.record.submittedAt,'Submission status not persisted');
+const locked=await request('POST','public-upload',{id:initial.id,expectedRevision:submitted.payload.record.revision,kind:'foto',fileName:'After-submit.jpg',base64:bytesJpg.toString('base64')},token);
+assert.equal(locked.status,403,'Submitted public record must reject further uploads');
+const withoutToken=await request('GET','public-get',{id:initial.id});
+assert.equal(withoutToken.status,403,'Guest listing requires receipt token');
 const fetched=await request('GET','public-get',{id:initial.id},token);
 assert.equal(fetched.status,200);
 assert.equal(fetched.payload.record.files.length,2);
