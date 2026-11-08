@@ -13,6 +13,8 @@ on:
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
       - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
+      - 'e2e/specs/rc1903-testservice-visual-proof.spec.mjs'
+      - 'playwright.rc1903-testservice-visual.config.mjs'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1903-shipment-evidence-browser.yml'
       - '.github/workflows/rc1538-testservice-main-supersession.yml'
@@ -63,6 +65,22 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: production
         run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
+
+      - name: Verify real TESTSERVICE frontend with mocked customer and photo APIs
+        run: |
+          set -euo pipefail
+          # The browser downloads actual deployed HTML/JS/CSS, but all /api requests are intercepted.
+          # No customer search or shipment upload ever reaches the Azure backend.
+          npx playwright test e2e/specs/rc1903-testservice-visual-proof.spec.mjs --config playwright.rc1903-testservice-visual.config.mjs
+
+      - name: Store TESTSERVICE proof screenshots (synthetic data only)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-testservice-visual-proof
+          path: test-results/**/rc1903-testservice-*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Store browser diagnostics on failure
         if: failure()
