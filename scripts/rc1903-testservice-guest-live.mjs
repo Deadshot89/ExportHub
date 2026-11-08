@@ -65,6 +65,16 @@ for(const [kind,name,bytes] of [['foto','Test-Versandfoto.jpg',bytesJpg],['liefe
  assert.equal(read.status,200,'TESTSERVICE file readback '+kind);
  assert.deepEqual(read.data,bytes,'TESTSERVICE bytes changed for '+kind);
 }
+// Verify the anonymously created documentation cannot be retrieved without its token.
+const noToken=await request('GET','public-get',{id:initial.id});
+assert.equal(noToken.status,403,'Missing guest token must not retrieve the created document');
+// The anonymous update route must reject a foreign Origin before any write.
+const wrongOrigin=await fetch(api,{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),
+ headers:{...noStore,'Origin':'https://invalid-test-origin.example','Content-Type':'application/json',
+  'X-ExportHUB-Evidence-Token':token},
+ body:JSON.stringify({action:'public-save',id:initial.id,expectedRevision:current.revision,fields})
+});
+assert.equal(wrongOrigin.status,403,'Cross-origin anonymous update must be forbidden');
 const fetched=await request('GET','public-get',{id:initial.id},token);
 assert.equal(fetched.status,200);
 assert.equal(fetched.payload.record.files.length,2);
