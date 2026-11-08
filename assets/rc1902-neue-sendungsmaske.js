@@ -148,8 +148,9 @@
     }
     if(t.hasAttribute('data-rc1902-proxy')){
       var which=t.getAttribute('data-rc1902-proxy');
-      var target=which==='save'?document.getElementById('rc363SaveShipment'):document.getElementById('rc363OpenDocuments');
-      if(target&&!target.disabled){target.click();schedule();}
+      // eigener Name: eine lokale Variable namens target würde die Funktion target() im ganzen onClick überdecken (Sprung zu Schritt kaputt)
+      var proxyBtn=which==='save'?document.getElementById('rc363SaveShipment'):document.getElementById('rc363OpenDocuments');
+      if(proxyBtn&&!proxyBtn.disabled){proxyBtn.click();schedule();}
     }
   }
   function schedule(){

@@ -75,7 +75,7 @@ test('RC1930: Paletten-CSS greift nur bei data-eh-palette bzw. Polar-Leiste, Red
 });
 
 test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',()=>{
-  assert.match(builder,/rc1930-design-paletten\.css\?v=1931/);
+  assert.match(builder,/rc1930-design-paletten\.css\?v=1932/);
   assert.match(builder,/'assets\/rc1930-design-paletten\.css'/);
   for(const lang of ['de','en','fr','it','es','pl']){
     const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
@@ -113,4 +113,12 @@ test('RC1931: Frost folgt dem Entwurf (Menü mit Icons, Benutzerknopf im Menü, 
     const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
     for(const key of ['rc1930.ready','rc1930.ctrl'])assert.ok(String(pack[key]||'').trim(),lang+' '+key);
   }
+});
+
+test('RC1932: Schritt-Sprung der Sendungsmaske wird nicht von einer lokalen Variable überdeckt, Felder schneiden keine Schrift ab',()=>{
+  const form=fs.readFileSync('assets/rc1902-neue-sendungsmaske.js','utf8');
+  const click=form.slice(form.indexOf('function onClick(ev){'),form.indexOf('function schedule(){'));
+  assert.doesNotMatch(click,/var target\b/);
+  assert.match(click,/el=target\(id\)/);
+  assert.match(css,/#rc1903Capture#rc1903Capture :is\(input[^{]*select\)\{min-height:34px!important;height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important/);
 });
