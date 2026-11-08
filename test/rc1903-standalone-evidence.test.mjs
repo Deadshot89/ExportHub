@@ -68,7 +68,7 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.doesNotThrow(()=>new Function(guest),'Public form JavaScript must be parsable before browser tests');
  assert.match(guest,/eh1903-photo-grid/,'Public gallery must render inside documentation');
  assert.match(guest,/public-file/,'Guest image must use token-protected public-file API');
- assert.match(guest,/data\.evidencePhotoDialog/,'Guest image must open in-page');
+ assert.match(guest,/dataset\.evidencePhotoDialog/,'Guest image must open in-page');
  assert.match(guest,/URL\.revokeObjectURL/,'Guest preview object URLs must be released');
  const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
  assert.doesNotThrow(()=>new Function(staff),'Internal photo gallery script must parse');
