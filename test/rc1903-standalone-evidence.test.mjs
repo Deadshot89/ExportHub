@@ -65,6 +65,7 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
  assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ assert.doesNotThrow(()=>new Function(guest),'Public form JavaScript must be parsable before browser tests');
  assert.doesNotMatch(guest,/ensureLoginEntry|data-eh1903-guest-open/);
  assert.match(guest,/eh1903-guest-root/);
  assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
