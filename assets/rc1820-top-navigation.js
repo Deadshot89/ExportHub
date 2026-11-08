@@ -145,7 +145,7 @@
    var act=s.items.some(function(i){return isActive(i.el)});
    html+='<button type="button" class="rc1820-pill rc1820-pill-menu'+(act?' is-active':'')+(openKey===s.key?' is-open':'')+'" data-rc1820-section="'+esc(s.key)+'" aria-expanded="'+(openKey===s.key)+'" aria-haspopup="true" style="'+esc(iconVars(s.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(s.label)+'<span class="rc1820-chev" aria-hidden="true"></span></button>';
   });
-  pills.innerHTML=html;
+  if(pills.__rc1820Html!==html){pills.innerHTML=html;pills.__rc1820Html=html}
   pills.setAttribute('aria-label',tx('menu'));
   // Glocke = Benachrichtigungen, mit Zähler
   bell.hidden=!m.notifications;

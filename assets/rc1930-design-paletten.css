@@ -166,7 +166,7 @@ html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button{min-heigh
   /* Kopfzeile: nur Suche, Glocke und Benutzerknopf; Sprache, Design, Mehr und Abmelden im Benutzermenü */
   html[data-eh-palette] body[data-eh-skin="premium"] header.topbar.topbar{min-height:52px!important;padding:8px 10px!important;border-radius:16px!important;gap:10px!important;position:relative!important;z-index:40!important}
   html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .search{max-width:460px!important;height:36px!important;border-radius:12px!important}
-  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .search input{height:34px!important;font-size:13px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .search input{height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important}
   html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .eh-topbar-main{flex:1 1 auto!important}
   html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools{
     position:absolute!important;right:8px;top:calc(100% + 8px);z-index:1300;display:none!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;
@@ -175,7 +175,7 @@ html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button{min-heigh
   }
   html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar[data-rc1930-open] .eh-topbar-tools{display:flex!important}
   html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools :is(.eh-topbar-options,.eh-topbar-actions){display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;width:100%!important}
-  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools :is(select,button,summary,#ehThemeSwitch){width:100%!important;height:34px!important;min-height:34px!important;font-size:13px!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools :is(select,button,summary,#ehThemeSwitch){width:100%!important;height:34px!important;min-height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important}
   html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools .eh-topbar-more-menu{position:static!important;box-shadow:none!important;margin-top:6px!important}
   html[data-eh-palette] .rc1930-topbtn{display:none}
   html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-bell{margin-left:auto!important}
@@ -191,7 +191,7 @@ html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button{min-heigh
   html[data-eh-palette][data-eh-layout="top"] header.topbar .rc1930-bell{display:none!important}
 
   /* Karten der neuen Oberfläche: kompakter */
-  html[data-eh-palette] #rc1903Capture#rc1903Capture :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select){min-height:34px!important;height:34px!important;font-size:13px!important;border-radius:9px!important}
+  html[data-eh-palette] #rc1903Capture#rc1903Capture :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select){min-height:34px!important;height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important;border-radius:9px!important}
   html[data-eh-palette] #rc1903Capture#rc1903Capture textarea{font-size:13px!important;border-radius:9px!important}
 }
 
