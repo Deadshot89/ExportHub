@@ -109,6 +109,72 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
+test('RC1931: Sendungsansicht zeigt REF- und DOK-Dateien als sichere Galerie',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ const modern=fs.readFileSync('assets/rc1901-neue-sendungsansicht.js','utf8');
+ assert.doesNotThrow(()=>new Function(ui));
+ assert.match(ui,/eh1860-preview-grid/);
+ assert.match(ui,/eh1860-preview-frame/);
+ assert.match(ui,/function openFilePreview\(/);
+ assert.match(ui,/function downloadFile\(/);
+ assert.match(ui,/action:'for-reference',reference:ref/);
+ assert.match(ui,/action:'file',id:file.recordId,fileId:file.id/);
+ assert.match(ui,/IntersectionObserver/);
+ assert.match(ui,/URL\.revokeObjectURL/);
+ assert.match(ui,/isCurrent\(box,ref\)/);
+ assert.match(ui,/media\.setAttribute\('sandbox',''\)/);
+ assert.doesNotMatch(ui,/w\.open\(/,'The image/PDF preview must remain in the same page');
+ assert.match(modern,/data-rc1901-slot="docs"/);
+ assert.match(modern,/if\(proof\)adopt\(root,'docs',proof,files\)/);
+});
+test('RC1931: nur exakt verknuepfte, nicht geloeschte DOK-Nachweise aus der gesicherten API',async t=>{
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ t.after(()=>{if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous});
+ const user={role:'Export',rights:{shipment:{level:'view',read:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ const docs=[
+  {id:'DOK-20261108-11111111',fields:{exporthubRef:'ABC123',customer:'Kunde A'},files:[{id:'f1',name:'Versandfoto_A.jpg',kind:'foto',mime:'image/jpeg',size:200}]},
+  {id:'DOK-20261108-22222222',fields:{exporthubRef:'XYZ999',customer:'Kunde B'},files:[{id:'f2',name:'Privat.pdf',mime:'application/pdf',size:200}]},
+  {id:'DOK-20261108-33333333',fields:{shipmentNumber:'ABC123',customer:'Kunde A'},files:[{id:'f3',name:'Nicht_verknuepft.pdf'}]},
+  {id:'DOK-20261108-44444444',fields:{exporthubRef:'ABC123'},deletedAt:'2026-11-08',files:[{id:'f4',name:'Geloescht.pdf'}]}
+ ];
+ const stored=new Map(docs.map(r=>[r.id,Buffer.from(JSON.stringify({...r,revision:1}))]));
+ let calls=0;
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:()=>({
+   listBlobsFlat:()=>({byPage:({continuationToken})=>({next:async()=>{
+    calls++;
+    const page=continuationToken?docs.slice(2):docs.slice(0,2);
+    return {value:{segment:{blobItems:page.map(v=>({name:'shipment-evidence/v1/records/'+v.id+'.json'}))},continuationToken:continuationToken?null:'page2'}};
+   }})}),
+   getBlockBlobClient:name=>({
+    download:async()=>{
+     const id=(name.match(/DOK-\d{8}-[A-F0-9]{8}/)||[])[0];
+     if(!id||!stored.has(id)){const e=new Error('Missing');e.statusCode=404;throw e}
+     return {etag:'"test"',readableStreamBody:Readable.from([stored.get(id)])};
+    }
+   })
+  })
+ }));
+ const ctx={};
+ await doc(ctx,{method:'GET',query:{action:'for-reference',reference:'abc123'},headers:{}});
+ assert.equal(ctx.res.status,200,ctx.res.body);
+ const body=JSON.parse(ctx.res.body);
+ assert.equal(body.reference,'ABC123');
+ assert.equal(body.records.length,1);
+ assert.equal(body.records[0].id,'DOK-20261108-11111111');
+ assert.equal(body.records[0].files[0].name,'Versandfoto_A.jpg');
+ assert.equal(body.records[0].fields,undefined,'Only file metadata is returned');
+ assert.equal(body.incomplete,false);
+ assert.equal(calls,2,'Pagination must not omit later records');
+ const invalid={};
+ await doc(invalid,{method:'GET',query:{action:'for-reference',reference:'ABC-123'},headers:{}});
+ assert.equal(invalid.res.status,400);
+ assert.equal(JSON.parse(invalid.res.body).code,'BAD_LINK');
+});
 test('RC1903: TESTSERVICE-Dokumentationen landen nur unter getrenntem Test-Prefix',async t=>{
  const previous={storage:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,isolation:process.env.EXPORTHUB_TEST_AUTH_ISOLATION};
  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';

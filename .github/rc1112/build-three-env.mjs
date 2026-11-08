@@ -1766,8 +1766,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report-i18n" defer src="/assets/i18n/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report" defer src="/assets/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation-i18n');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1931"></script>','exporthub-rc1860-shipment-documentation-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1931"></script>','exporthub-rc1860-shipment-documentation');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1903-shipment-evidence-css" rel="stylesheet" href="/assets/shipment-evidence.css?v=1906">','exporthub-rc1903-shipment-evidence-css');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-i18n" defer src="/assets/i18n/shipment-evidence.js?v=1906"></script>','exporthub-rc1903-shipment-evidence-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence" defer src="/assets/shipment-evidence.js?v=1906"></script>','exporthub-rc1903-shipment-evidence');
