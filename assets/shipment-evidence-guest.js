@@ -10,19 +10,15 @@ const FIELDS=[
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
 const languages=['de','en','pl','es','fr','it'];
-const ownText={
- de:{new:'Neue Sendung',mine:'Meine Nachweise',next:'Weiter zu Fotos und Lieferscheinen',finish:'Dokumentation abschließen',finished:'Gespeichert – nur ExportHUB-Mitarbeiter können diesen Nachweis jetzt bearbeiten.',draft:'Entwurf – bitte Fotos hochladen und abschließen.',readonly:'Nur ansehen',mineIntro:'Nur Nachweise, die mit diesem Browser erstellt wurden. Kein Zugriff auf fremde Sendungen.',empty:'Hier wurden noch keine Nachweise erstellt.',missing:'Dieser Nachweis ist nicht mehr zugänglich. Bitte wende dich an ExportHUB.',finalConfirm:'Dokumentation jetzt abschließen? Danach ist sie öffentlich nur noch lesbar.',start:'Neuen Nachweis erfassen',uploadHelp:'Optional Fotos und Lieferscheine hinzufügen und danach endgültig abschließen.',link:'Öffentlicher Erfassungslink',privacy:'Nachweise sind nicht öffentlich gelistet. Du siehst nur deine eigenen, solange dein Zugriff gültig ist.',saveDraft:'Daten übernommen. Jetzt können Dateien ergänzt werden.',access:'Zugriff auf eigene Nachweise ist 14 Tage möglich. Nach Abschluss nur noch ansehen.',status:'Status'},
- en:{new:'New shipment',mine:'My records',next:'Continue to photos and delivery notes',finish:'Submit documentation',finished:'Submitted – only ExportHUB staff can now edit this record.',draft:'Draft – upload files and submit.',readonly:'View only',mineIntro:'Records created on this browser only. No access to other shipments.',empty:'No records created here yet.',missing:'This record is no longer available. Please contact ExportHUB.',finalConfirm:'Submit now? Afterwards the public page is read-only.',start:'Record another shipment',uploadHelp:'Optionally add photos and delivery notes, then submit.',link:'Public entry link',privacy:'Records are not publicly listed. Only your own records are accessible while authorized.',saveDraft:'Details saved. You can now attach files.',access:'Access to your records is available for 14 days. Viewing only after submission.',status:'Status'}
-};
 let record=null,token='',busy=false,mode='new',lang='de',session=0;
 function t(k){const p=w.ExportHUBEvidenceI18n||{};return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
-function x(k){return ownText[lang]&&ownText[lang][k]||ownText.en[k]||k}
+function x(k){const p=w.ExportHUBEvidenceI18n||{},key='public'+k[0].toUpperCase()+k.slice(1);return p[lang]&&p[lang][key]||p.en&&p.en[key]||key}
 function make(tag,cls,text){const el=d.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el}
 function button(label,fn,primary){const el=make('button',primary?'eh1903-primary':'',label);el.type='button';el.addEventListener('click',fn);return el}
 function root(){return d.getElementById('eh1903-guest-root')}
 function status(message,error){const r=root(),el=r&&r.querySelector('[data-guest-status]');if(el){el.textContent=message||'';el.dataset.error=error?'true':'false'}}
 function records(){try{const value=JSON.parse(w.localStorage.getItem(STORAGE)||'[]');return Array.isArray(value)?value.filter(v=>v&&/^DOK-\d{8}-[A-F0-9]{8}$/.test(v.id)&&/^[A-Za-z0-9_-]{40,60}$/.test(v.token)).slice(0,40):[]}catch(_){return[]}}
-function remember(rec,key){try{const all=records().filter(v=>v.id!==rec.id);all.unshift({id:rec.id,token:key,customer:rec.fields.customer,shipmentNumber:rec.fields.shipmentNumber,createdAt:rec.createdAt});w.localStorage.setItem(STORAGE,JSON.stringify(all.slice(0,40)))}catch(_){status('Bitte die Dokumentationsnummer notieren.',true)}}
+function remember(rec,key){try{const all=records().filter(v=>v.id!==rec.id);all.unshift({id:rec.id,token:key,customer:rec.fields.customer,shipmentNumber:rec.fields.shipmentNumber,createdAt:rec.createdAt});w.localStorage.setItem(STORAGE,JSON.stringify(all.slice(0,40)))}catch(_){status(x('localSaveError'),true)}}
 function readFields(){const values={};root().querySelectorAll('[data-guest-field]').forEach(el=>values[el.dataset.guestField]=String(el.value||'').trim());return values}
 async function base64(file){const bytes=new Uint8Array(await file.arrayBuffer());let out='';for(let i=0;i<bytes.length;i+=16384)out+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(out)}
 async function api(method,action,params,key=token){
@@ -47,7 +43,7 @@ function navbar(page){
  const mineBtn=button(x('mine'),()=>{session++;record=null;token='';mode='mine';render()},page==='mine');
  newBtn.setAttribute('aria-current',page==='new'?'page':'false');mineBtn.setAttribute('aria-current',page==='mine'?'page':'false');
  row.appendChild(newBtn);row.appendChild(mineBtn);
- const select=make('select');select.setAttribute('aria-label','Sprache / Language');
+ const select=make('select');select.setAttribute('aria-label',x('language'));
  for(const code of languages){const op=make('option',null,code.toUpperCase());op.value=code;op.selected=code===lang;select.appendChild(op)}
  select.addEventListener('change',()=>{lang=select.value;render()});row.appendChild(select);
  top.appendChild(row);return top;
