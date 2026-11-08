@@ -75,7 +75,7 @@ test('RC1930: Paletten-CSS greift nur bei data-eh-palette bzw. Polar-Leiste, Red
 });
 
 test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',()=>{
-  assert.match(builder,/rc1930-design-paletten\.css\?v=1930/);
+  assert.match(builder,/rc1930-design-paletten\.css\?v=1931/);
   assert.match(builder,/'assets\/rc1930-design-paletten\.css'/);
   for(const lang of ['de','en','fr','it','es','pl']){
     const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
@@ -88,7 +88,7 @@ test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',(
 
 test('RC1930: Design-Rahmen (Glocke, Benutzermenü) löst nur Original-Knöpfe aus und ist eingebunden',()=>{
   const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
-  assert.match(builder,/rc1930-design-rahmen\.js\?v=1930/);
+  assert.match(builder,/rc1930-design-rahmen\.js\?v=1931/);
   assert.match(builder,/'assets\/rc1930-design-rahmen\.js'/);
   assert.match(builder,/RC1930 Design-Rahmen fehlt/);
   assert.match(frame,/data-view="notifications"/);
@@ -96,5 +96,21 @@ test('RC1930: Design-Rahmen (Glocke, Benutzermenü) löst nur Original-Knöpfe a
   for(const lang of ['de','en','fr','it','es','pl']){
     const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
     for(const key of ['rc1930.userMenu','rc1930.notifications'])assert.ok(String(pack[key]||'').trim(),lang+' '+key);
+  }
+});
+
+test('RC1931: Frost folgt dem Entwurf (Menü mit Icons, Benutzerknopf im Menü, Startklar-Leiste)',()=>{
+  const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
+  const topnav=fs.readFileSync('assets/rc1820-top-navigation.js','utf8');
+  assert.match(topnav,/rc1820-pill-icon/);
+  assert.match(topnav,/rc1820-pill-home/);
+  assert.match(frame,/#rc1820TopNav \.rc1820-actions/);
+  assert.match(frame,/getElementById\('globalSearch'\)/);
+  assert.match(frame,/data-rc1930-title/);
+  assert.match(css,/html\[data-eh-palette="frost"\]\[data-rc1903-view="capture"\] main\.main\{grid-template-columns:/);
+  assert.match(css,/\.rc1902-steps\{\s*grid-column:3;grid-row:4\/span 7;[^}]*position:sticky/);
+  for(const lang of ['de','en','fr','it','es','pl']){
+    const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    for(const key of ['rc1930.ready','rc1930.ctrl'])assert.ok(String(pack[key]||'').trim(),lang+' '+key);
   }
 });

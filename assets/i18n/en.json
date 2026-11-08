@@ -2625,5 +2625,7 @@
   "rc1903.ok": "Complete",
   "rc1903.showClassic": "Show previous form",
   "rc1903.showNew": "Show new form",
-  "rc1903.editMailText": "Edit mail text"
+  "rc1903.editMailText": "Edit mail text",
+  "rc1930.ready": "Ready to ship",
+  "rc1930.ctrl": "Ctrl"
 }
