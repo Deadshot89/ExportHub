@@ -207,7 +207,7 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
   if(!loggedIn){const e=new Error('Nicht angemeldet');e.code='SESSION_INVALID';e.status=401;throw e}
   return{user,session:{environment:'production'},team:{state:{shipments:[]}}}
  });
- t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'environmentFromRequest',(req)=>req?.headers?.['x-exporthub-environment']==='testservice'?'testservice':'production');
  t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
  t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
   getContainerClient:()=>({
@@ -234,6 +234,19 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  }
  const badOrigin=await call('POST',{action:'public-create',fields:valid},'','https://evil.example');
  assert.equal(badOrigin.status,403,badOrigin.body);
+ // Azure Functions may expose its internal host instead of the public SWA host.
+ // Accept only the exact TESTSERVICE Origin in the matching environment.
+ const testHost='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ const azureProxyHeaders={host:'exporthub-functions.internal.azurewebsites.net','x-exporthub-environment':'testservice'};
+ const viaProxy=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-AZURE-PROXY'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(viaProxy.status,201,viaProxy.body);
+ assert.ok([...store.keys()].some(name=>name.startsWith('testservice/shipment-evidence/v1/records/')));
+ const spoofedOrigin=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-SPOOF'},website:''},'','https://attacker.example',azureProxyHeaders);
+ assert.equal(spoofedOrigin.status,403,spoofedOrigin.body);
+ const otherSwa=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-OTHER-SWA'},website:''},'','https://different-tenant.azurestaticapps.net',azureProxyHeaders);
+ assert.equal(otherSwa.status,403,otherSwa.body);
+ const wrongEnvironment=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-PROD-ORIGIN'},website:''},'',testHost,{host:'exporthub-functions.internal.azurewebsites.net'});
+ assert.equal(wrongEnvironment.status,403,wrongEnvironment.body);
  const created=await call('POST',{action:'public-create',fields:valid,website:''});
  assert.equal(created.status,201,created.body);
  const first=JSON.parse(created.body);
