@@ -254,6 +254,21 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  const viaProxy=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-AZURE-PROXY'},website:''},'',testHost,azureProxyHeaders);
  assert.equal(viaProxy.status,201,viaProxy.body);
  assert.ok([...store.keys()].some(name=>name.startsWith('testservice/shipment-evidence/v1/records/')));
+ const proxied=JSON.parse(viaProxy.body);
+ const proxiedGet=await call('GET',{action:'public-get',id:proxied.record.id},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedGet.status,200,proxiedGet.body);
+ const proxiedUpload=await call('POST',{action:'public-upload',id:proxied.record.id,expectedRevision:proxied.record.revision,
+  kind:'foto',fileName:'Proxy-Upload.jpg',base64:jpeg()},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedUpload.status,200,proxiedUpload.body);
+ const uploadedProxyRecord=JSON.parse(proxiedUpload.body).record;
+ const proxiedSubmit=await call('POST',{action:'public-submit',id:proxied.record.id,expectedRevision:uploadedProxyRecord.revision},
+  proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedSubmit.status,200,proxiedSubmit.body);
+ const lockedProxy=await call('POST',{action:'public-upload',id:proxied.record.id,
+  expectedRevision:JSON.parse(proxiedSubmit.body).record.revision,
+  kind:'foto',fileName:'After-Submit.jpg',base64:jpeg()},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(lockedProxy.status,403,lockedProxy.body);
+ assert.equal(JSON.parse(lockedProxy.body).code,'PUBLIC_READ_ONLY');
  const spoofedOrigin=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-SPOOF'},website:''},'','https://attacker.example',azureProxyHeaders);
  assert.equal(spoofedOrigin.status,403,spoofedOrigin.body);
  const otherSwa=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-OTHER-SWA'},website:''},'','https://different-tenant.azurestaticapps.net',azureProxyHeaders);
