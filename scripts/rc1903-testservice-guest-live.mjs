@@ -14,7 +14,8 @@ const timeoutMs=20000;
 const bytesJpg=Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x00]);
 const bytesPdf=Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n');
 const api=new URL('/api/shipment-evidence',BASE);
-const noStore={'Accept':'application/json','Cache-Control':'no-store','X-ExportHUB-Environment':'testservice'};
+// Match real browser API calls: no client-controlled environment header.
+const noStore={'Accept':'application/json','Cache-Control':'no-store'};
 const safeError=(body)=>String(body?.code||body?.message||'NO_RESPONSE').slice(0,140);
 async function request(method,action,data={},token=''){
  const headers={...noStore,'Origin':BASE};
