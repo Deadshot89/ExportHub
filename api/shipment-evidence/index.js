@@ -258,7 +258,8 @@ async function login(req,write){
  const sessionEnv=txt(verified.session&&verified.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
    fail('ENVIRONMENT_MISMATCH','Sitzung gehoert zu einer anderen Umgebung.',403);
- return {...storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)),isAdmin:auth.isAdmin(user)};
+ return {...storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)),
+  isAdmin:auth.isAdmin(user),canRegisterCustomer:rights.canEditAny(user,['customers'])};
 }
 function docBlob(ctx,docId){return ctx.container.getBlockBlobClient(ctx.prefix+'records/'+id(docId)+'.json')}
 function fileBlob(ctx,docId,fileId){return ctx.container.getBlockBlobClient(ctx.prefix+'files/'+id(docId)+'/'+fileId)}
@@ -367,15 +368,41 @@ async function processRequest(req){
   const normalized=fields(payload.fields),now=new Date().toISOString();
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
   const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],createdAt:now,updatedAt:now,updatedBy:ctx.user};
-  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
+  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  }
  const docId=id(payload.id);
  const{blob,record,etag}=await getRecord(ctx,docId);
  if(record.deletedAt)fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
- if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
+ if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
+ if(action==='register-customer'){
+  if(!ctx.canRegisterCustomer)fail('CUSTOMER_WRITE_FORBIDDEN','Keine Berechtigung zum Anlegen von Kunden.',403);
+  if(record.fields.customerMode!=='pending')fail('CUSTOMER_NOT_PENDING','Dieser Nachweis enthält keinen neuen Kunden.',409);
+  const number=customerAccount(record.fields.customerNumber),name=txt(record.fields.customer,200);
+  if(!name)fail('REQUIRED_FIELDS','Kundenname fehlt.');
+  const registered=await auth.mutateTeamForEnvironment(verifiedDeploymentEnvironment()||auth.environmentFromRequest(req),team=>{
+   team.state=team.state&&typeof team.state==='object'?team.state:{};
+   const customers=Array.isArray(team.state.customers)?team.state.customers:[];
+   const existing=customers.find(c=>c&&[c.account,c.customerNumber,c.kundennummer].some(v=>txt(v,40).toUpperCase()===number));
+   if(existing){
+    if(existing.sourceEvidenceId!==record.id)fail('CUSTOMER_ALREADY_EXISTS','Diese Kundennummer wurde inzwischen vergeben.',409);
+    return{customer:{id:existing.id,number,name:existing.name}};
+   }
+   const customer={id:'CUST-'+crypto.randomUUID(),customerNumber:number,account:number,name,
+    createdAt:new Date().toISOString(),createdBy:ctx.user,sourceEvidenceId:record.id,
+    customerHistory:[{id:crypto.randomUUID(),type:'customer-created',label:'Kunde aus Sendungsdokumentation angelegt',
+      at:new Date().toISOString(),actor:{name:ctx.user},source:'server',version:'RC1903'}]};
+   customers.push(customer);team.state.customers=customers;
+   return{customer:{id:customer.id,number,name}};
+  });
+  const created=registered.result.customer;
+  record.fields.customerId=created.id;record.fields.customerMode='existing';record.fields.customer=created.name;
+  bump(record,ctx,'register-customer',{customerNumber:number});
+  await saveRecord(blob,record,etag);
+  return json(200,{ok:true,record:cleanRecord(record),canRegisterCustomer:true,canDelete:ctx.isAdmin===true});
+ }
  if(action==='delete'){
   if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren dürfen Dokumentationen löschen.',403);
   record.deletedAt=new Date().toISOString();
