@@ -9,8 +9,8 @@ const MAX_FILE=15*1024*1024;
 const TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'};
 const FIELDS={shipmentNumber:100,customer:200,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
 const STATES=new Set(['offen','in_pruefung','abgeschlossen']);
-const PUBLIC_ACTIONS=new Set(['public-create','public-get','public-save','public-upload','public-file']);
-const PUBLIC_TOKEN_HOURS=3;
+const PUBLIC_ACTIONS=new Set(['public-create','public-get','public-upload','public-file','public-submit']);
+const PUBLIC_TOKEN_HOURS=14*24; // Eigener Nachweis 14 Tage lesbar; Bearbeitung nach Abschluss verboten.
 const PUBLIC_FILE_COUNT=12;
 const PUBLIC_MAX_BYTES=60*1024*1024;
 function fail(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;throw e}
@@ -67,7 +67,7 @@ function publicRecord(record){
  return{id:record.id,revision:record.revision,fields:record.fields,
   files:(record.files||[]).filter(file=>file.uploadedBy==='Gastformular').map(file=>({
    id:file.id,name:file.name,kind:file.kind,mime:file.mime,size:file.size,uploadedAt:file.uploadedAt
-  })),createdAt:record.createdAt,updatedAt:record.updatedAt};
+  })),createdAt:record.createdAt,updatedAt:record.updatedAt,submittedAt:record.submittedAt||null};
 }
 function verifyGuest(req,record){
  const h=req.headers||{},token=txt(h['x-exporthub-evidence-token']||h['X-ExportHUB-Evidence-Token'],128);
@@ -128,6 +128,7 @@ async function guestRequest(req,method,payload,action){
  }
  const docId=id(payload.id),{blob,record,etag}=await getRecord(ctx,docId);
  verifyGuest(req,record);
+ if(record.deletedAt)fail('NOT_FOUND','Versandnachweis nicht gefunden.',404);
  if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:publicRecord(record)});
  if(method==='GET'&&action==='public-file'){
   const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular');
@@ -135,12 +136,10 @@ async function guestRequest(req,method,payload,action){
   return downloadFile(ctx,docId,record,payload.fileId);
  }
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
+ if(record.submittedAt)fail('PUBLIC_READ_ONLY','Diese Dokumentation ist abgeschlossen. Änderungen sind nur in ExportHUB360 möglich.',403);
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)
   fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
- if(action==='public-save'){
-  const before=record.fields;record.fields=fields(payload.fields);
-  bump(record,ctx,'public-save',{before});await saveRecord(blob,record,etag);
- }else if(action==='public-upload'){
+ if(action==='public-upload'){
   if(record.files.length>=PUBLIC_FILE_COUNT)fail('PUBLIC_FILE_LIMIT','Maximal 12 Dateien ohne Anmeldung.',413);
   const accumulated=record.files.reduce((sum,file)=>sum+(Number(file.size)||0),0);
   if(accumulated>=PUBLIC_MAX_BYTES)fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
@@ -149,6 +148,10 @@ async function guestRequest(req,method,payload,action){
   if(typeof encoded!=='string'||encoded.length>Math.ceil((PUBLIC_MAX_BYTES-accumulated)/3)*4)
    fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
   await upload(ctx,record,blob,etag,payload);
+ }else if(action==='public-submit'){
+  record.submittedAt=new Date().toISOString();
+  bump(record,ctx,'public-submit');
+  await saveRecord(blob,record,etag);
  }else fail('INVALID_ACTION','Unbekannte Aktion.');
  return json(200,{ok:true,record:publicRecord(record)});
 }
@@ -161,7 +164,7 @@ async function login(req,write){
  const sessionEnv=txt(verified.session&&verified.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
    fail('ENVIRONMENT_MISMATCH','Sitzung gehoert zu einer anderen Umgebung.',403);
- return storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120));
+ return {...storageContext(req,txt(auth.usernameOf(verified.user)||user&&user.name||'Mitarbeiter',120)),isAdmin:auth.isAdmin(user)};
 }
 function docBlob(ctx,docId){return ctx.container.getBlockBlobClient(ctx.prefix+'records/'+id(docId)+'.json')}
 function fileBlob(ctx,docId,fileId){return ctx.container.getBlockBlobClient(ctx.prefix+'files/'+id(docId)+'/'+fileId)}
@@ -246,7 +249,7 @@ async function list(ctx,query){
  const page=(await pager.next()).value||{};
  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
  const records=await Promise.all(names.map(async name=>{
-  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return{...cleanRecord(rec.record),history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:{...cleanRecord(rec.record),history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
@@ -274,10 +277,19 @@ async function processRequest(req){
  }
  const docId=id(payload.id);
  const{blob,record,etag}=await getRecord(ctx,docId);
- if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record)});
+ if(record.deletedAt)fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
+ if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
  if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
+ if(action==='delete'){
+  if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren dürfen Dokumentationen löschen.',403);
+  record.deletedAt=new Date().toISOString();
+  record.deletedBy=ctx.user;
+  bump(record,ctx,'admin-delete'); // Originaldateien und Audit bleiben als Nachweis gespeichert.
+  await saveRecord(blob,record,etag);
+  return json(200,{ok:true,deleted:true,id:record.id});
+ }
  if(action==='save'){
   const before=record.fields;record.fields=fields(payload.fields);
   bump(record,ctx,'save',{before});
