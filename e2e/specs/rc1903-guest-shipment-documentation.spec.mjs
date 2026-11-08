@@ -13,6 +13,17 @@ test('RC1903 public link creates, uploads and submits read-only records without 
   const action=payload.action||new URL(req.url()).searchParams.get('action')||'list';
   requests.push({method,action,hasToken:req.headers()['x-exporthub-evidence-token']===token});
   let status=200,result={ok:true,record};
+  if(action==='public-file'){
+   // The public thumbnail and lightbox use exactly the same guest-token GET.
+   const photo=record?.files?.find(f=>f.id===new URL(req.url()).searchParams.get('fileId'));
+   if(!photo||photo.kind!=='foto'||req.headers()['x-exporthub-evidence-token']!==token){
+    await route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({ok:false,code:'FORBIDDEN'})});
+   }else{
+    const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pXcAAAAASUVORK5CYII=','base64');
+    await route.fulfill({status:200,contentType:'image/png',body:png});
+   }
+   return;
+  }
   if(action==='public-customer-lookup'){
    result={ok:true,customer:{id:'DEMO-CUST-1001',number:'D1001',name:'Beispielkunde'}};
   }else if(action==='public-create'){
@@ -51,9 +62,21 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  const files=page.locator('.eh1903-uploads input[type="file"]');
  await expect(files).toHaveCount(2);
  await files.nth(0).setInputFiles({name:'Abfahrt.jpg',mimeType:'image/jpeg',buffer:Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x00])});
- await expect(page.locator('.eh1903-file')).toHaveCount(1);
+ await expect(page.locator('.eh1903-photo-card')).toHaveCount(1);
+ await expect(page.locator('.eh1903-photo-thumb')).toHaveAttribute('src',/^blob:/);
+ await page.locator('[data-evidence-photo-open]').click();
+ const lightbox=page.locator('[data-evidence-photo-dialog]');
+ await expect(lightbox).toBeVisible();
+ await expect(lightbox.locator('img')).toHaveAttribute('src',/^blob:/);
+ const downloadPromise=page.waitForEvent('download');
+ await lightbox.getByRole('button',{name:'Datei herunterladen'}).click();
+ const original=await downloadPromise;
+ expect(original.suggestedFilename()).toMatch(/^Versandfoto_/);
+ await lightbox.getByRole('button',{name:'Schließen'}).click();
+ await expect(lightbox).toHaveCount(0);
  await files.nth(1).setInputFiles({name:'Lieferschein.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n')});
- await expect(page.locator('.eh1903-file')).toHaveCount(2);
+ await expect(page.locator('.eh1903-photo-card')).toHaveCount(1);
+ await expect(page.locator('.eh1903-file')).toHaveCount(1);
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Dokumentation abschließen'}).click();
  await expect(publicRoot).toContainText('Gespeichert – nur ExportHUB-Mitarbeiter');
@@ -66,6 +89,8 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  expect(requests.filter(r=>r.action==='public-customer-lookup')).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-create')).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-upload'&&r.hasToken)).toHaveLength(2);
+ expect(requests.filter(r=>r.action==='public-file'&&r.hasToken).length).toBeGreaterThanOrEqual(2);
+ expect(requests.some(r=>r.action==='public-file'&&!r.hasToken)).toBe(false);
  expect(requests.filter(r=>r.action==='public-submit'&&r.hasToken)).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(1);
  expect(requests.some(r=>r.action==='public-save')).toBe(false);
