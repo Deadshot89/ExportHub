@@ -1771,7 +1771,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1903-shipment-evidence-css" rel="stylesheet" href="/assets/shipment-evidence.css?v=1903">','exporthub-rc1903-shipment-evidence-css');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-i18n" defer src="/assets/i18n/shipment-evidence.js?v=1903"></script>','exporthub-rc1903-shipment-evidence-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence" defer src="/assets/shipment-evidence.js?v=1903"></script>','exporthub-rc1903-shipment-evidence');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-guest" defer src="/assets/shipment-evidence-guest.js?v=1903"></script>','exporthub-rc1903-shipment-evidence-guest');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-guest" defer src="/assets/shipment-evidence-guest.js?v=1904"></script>','exporthub-rc1903-shipment-evidence-guest');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1872-unified-notifications" defer src="/assets/rc1872-unified-notifications.js?v=1872"></script>','exporthub-rc1872-unified-notifications');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
@@ -2014,6 +2014,7 @@ for(const rel of [
   'assets/i18n/shipment-evidence.js',
   'assets/shipment-evidence.js',
   'assets/shipment-evidence-guest.js',
+  'assets/sendungsdokumentation.html',
   'assets/rc1872-unified-notifications.js',
   'assets/i18n/web-push.js',
   'assets/web-push/client.js',

@@ -38,8 +38,6 @@
 @media(max-width:850px){:is(#eh1903-root,#eh1903-guest-root) .eh1903-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){:is(#eh1903-root,#eh1903-guest-root) .eh1903-grid,:is(#eh1903-root,#eh1903-guest-root) .eh1903-uploads{grid-template-columns:1fr}:is(#eh1903-root,#eh1903-guest-root) .eh1903-row{align-items:flex-start;flex-direction:column}:is(#eh1903-root,#eh1903-guest-root) .eh1903-panel{padding:13px}:is(#eh1903-root,#eh1903-guest-root) .eh1903-wide{grid-column:1}}
 @media(prefers-color-scheme:dark){:is(#eh1903-root,#eh1903-guest-root) .eh1903-panel,:is(#eh1903-root,#eh1903-guest-root) .eh1903-hero,:is(#eh1903-root,#eh1903-guest-root) .eh1903-row{background:var(--card,#1e2b3b)}:is(#eh1903-root,#eh1903-guest-root) button{background:#2d4460;color:#e5f1ff;border-color:#526b88}:is(#eh1903-root,#eh1903-guest-root) button.eh1903-primary{background:#236db8}:is(#eh1903-root,#eh1903-guest-root) input:not([type=file]),:is(#eh1903-root,#eh1903-guest-root) textarea,:is(#eh1903-root,#eh1903-guest-root) select{background:#223248;color:#ecf4fd;border-color:#536985}}
-#login .login-card [data-eh1903-guest-open]{display:block!important;width:100%;margin:14px 0 0;padding:12px 15px;border:1px solid #236db8;border-radius:10px;background:#236db8;color:#fff;font:700 14px/1.35 inherit;cursor:pointer}
-#login .login-card [data-eh1903-guest-open]:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
 .eh1903-guest-overlay{position:fixed;inset:0;z-index:2147483000;overflow-y:auto;overscroll-behavior:contain;background:var(--bg,#f1f5f9);color:var(--text,#152e49);padding:clamp(12px,2vw,24px)}
 .eh1903-guest-overlay :is(#eh1903-guest-root){max-width:1180px;width:100%;margin:0 auto;padding:0}
 .eh1903-guest-overlay .eh1903-guest-top{display:flex;gap:16px;align-items:center;justify-content:space-between}
@@ -48,3 +46,8 @@
 .eh1903-guest-overlay [data-guest-status][data-error=true]{color:#bc302d}
 .eh1903-guest-overlay [data-guest-status][data-error=false]{color:#087c52}
 @media(max-width:600px){.eh1903-guest-overlay .eh1903-guest-top{align-items:flex-start}.eh1903-guest-overlay .eh1903-guest-top h1{font-size:24px}}
+
+
+#eh1903-root .eh1903-public-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border-radius:9px;padding:9px 13px;border:1px solid #b5c5d7;background:var(--card,#fff);color:#164d86;text-decoration:none;font:700 13px/1.3 inherit}
+#eh1903-root .eh1903-public-link:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+#eh1903-root .eh1903-actions button:last-child{white-space:normal}

@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false};
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function make(tag,cls,value){const e=d.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e}
@@ -22,8 +22,16 @@ async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLS
 function dateText(s){try{return s?new Date(s).toLocaleDateString(language()==='de'?'de-DE':'en-GB'):''}catch(_){return s}}
 function hero(title,desc){const h=make('header','eh1903-hero');h.appendChild(make('h1',null,title));h.appendChild(make('p','eh1903-muted',desc));return h}
 function initPage(){const container=host();if(!container)return null;const app=make('main');app.id='eh1903-root';container.replaceChildren(app);d.body.setAttribute('data-exporthub-view','shipmentevidence');return app}
-function showList(){state.serial++;state.view='list';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
- const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));app.appendChild(actions);
+function showList(){state.serial++;state.view='list';state.record=null;state.canDelete=false;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
+ const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));
+ const publicLink=make('a','eh1903-public-link',t('publicPage'));
+ publicLink.href='/sendungsdokumentation';publicLink.target='_self';actions.appendChild(publicLink);
+ actions.appendChild(button(t('copyPublicLink'),async()=>{
+  const url=new URL('/sendungsdokumentation',w.location.href).href;
+  try{await w.navigator.clipboard.writeText(url);status(t('linkCopied'),false)}
+  catch(_){status(url,false)}
+ }));
+ app.appendChild(actions);
  const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('list')));
  const search=make('input');search.type='search';search.placeholder=t('search');search.value=state.search;search.setAttribute('aria-label',t('search'));panel.appendChild(search);
  const fullSearch=button(t('searchAll'),()=>scanAll());panel.appendChild(fullSearch);
@@ -97,17 +105,27 @@ async function write(action,extra,expectedId){
   const result=await request('POST',payload);
   if(serial===state.serial&&state.view==='form'&&active()&&
     (state.record&&state.record.id||null)===originalId){
-   state.record=result.record;showForm(state.record);
+   state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;showForm(state.record);
    status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);
   }
   return result;
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
  finally{state.busy=false}
 }
-function showForm(record){state.searchRun++;state.view='form';if(record!==undefined)state.record=record;const app=initPage();if(!app)return;
+function showForm(record){state.searchRun++;state.view='form';if(record!==undefined){state.record=record;if(!record)state.canDelete=false;}const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
  if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
+ if(r&&state.canDelete){
+  actions.appendChild(button(t('deleteRecord'),async()=>{
+   if(state.busy||!w.confirm(t('deleteConfirm')))return;
+   const current=r.id;state.busy=true;status(t('saving'),false);
+   try{
+    await request('POST',{action:'delete',id:current,expectedRevision:r.revision});
+    if(state.record&&state.record.id===current){showList();await loadList(true);status(t('deletedRecord'),false)}
+   }catch(e){status(e.message,true)}finally{state.busy=false}
+  }));
+ }
  const card=make('section','eh1903-panel');card.appendChild(make('h2',null,t('edit')));
  card.appendChild(make('p','eh1903-muted',t('required')));
  const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -174,7 +192,7 @@ function historyPanel(record){const panel=make('section','eh1903-panel');panel.a
  if(record)(record.history||[]).slice(-25).reverse().forEach(x=>panel.appendChild(make('p','eh1903-muted',dateText(x.at)+' · '+x.by+' · '+x.action)));
  return panel}
 async function openRecord(id){state.searchRun++;const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
- try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active())showForm(res.record)}
+ try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active()){state.canDelete=res.canDelete===true;showForm(res.record)}}
  catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
 function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;

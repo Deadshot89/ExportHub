@@ -63,8 +63,21 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
  assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
- assert.match(guest,/data-eh1903-guest-open/);
- assert.match(guest,/guestOpen/);
+ assert.doesNotMatch(guest,/ensureLoginEntry|data-eh1903-guest-open/);
+ assert.match(guest,/eh1903-guest-root/);
+ assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
+ assert.ok(fs.readFileSync('assets/sendungsdokumentation.html','utf8').includes('id="eh1903-guest-root"'));
+ assert.match(guest,/guestIntro/);
+ assert.match(guest,/public-submit/);
+ assert.doesNotMatch(guest,/public-save/);
+ const prod=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+ const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ for(const cfg of [prod,testservice]){
+  const route=cfg.routes.find(v=>v.route==='/sendungsdokumentation');
+  assert.equal(route?.rewrite,'/assets/sendungsdokumentation.html');
+  assert.deepEqual(route.allowedRoles,['anonymous']);
+  assert.equal(route.headers['Referrer-Policy'],'no-referrer');
+ }
  assert.match(guest,/public-create/);
  assert.match(guest,/public-upload/);
  assert.match(ui,/data-exporthub-evidence-nav/);
@@ -245,18 +258,24 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(own.status,200,own.body);
  const returned=JSON.parse(own.body).record;
  assert.ok(!('publicAccess' in returned));
- const updated=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'1 Karton und Frachtpapiere'}},first.publicToken);
- assert.equal(updated.status,200,updated.body);
- const rev=JSON.parse(updated.body).record.revision;
- const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:rev,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
+ const deniedPublicEdit=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'Anders'}},first.publicToken);
+ assert.equal(deniedPublicEdit.status,401,'Öffentliche Feldänderung wird nicht mehr angeboten');
+ const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:returned.revision,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
  assert.equal(uploaded.status,200,uploaded.body);
- const pic=JSON.parse(uploaded.body).record.files[0];
+ const uploadedRecord=JSON.parse(uploaded.body).record;
+ const pic=uploadedRecord.files[0];
+ const submitted=await call('POST',{action:'public-submit',id:docId,expectedRevision:uploadedRecord.revision},first.publicToken);
+ assert.equal(submitted.status,200,submitted.body);
+ assert.ok(JSON.parse(submitted.body).record.submittedAt);
+ const afterSubmit=await call('POST',{action:'public-upload',id:docId,expectedRevision:JSON.parse(submitted.body).record.revision,kind:'foto',fileName:'Nachtrag.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(afterSubmit.status,403,afterSubmit.body);
+ assert.equal(JSON.parse(afterSubmit.body).code,'PUBLIC_READ_ONLY');
  const file=await call('GET',{action:'public-file',id:docId,fileId:pic.id},first.publicToken);
  assert.equal(file.status,200);
  assert.ok(Buffer.isBuffer(file.body));
  const forbidden=await call('GET',{action:'public-file',id:docId,fileId:pic.id});
  assert.equal(forbidden.status,403);
- const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:rev,text:'ohne Sitzung'},first.publicToken);
+ const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:JSON.parse(submitted.body).record.revision,text:'ohne Sitzung'},first.publicToken);
  assert.equal(complaint.status,401);
  loggedIn=true;
  const staff=await call('GET',{action:'get',id:docId});
@@ -321,6 +340,23 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(JSON.parse(globallyBlocked.body).code,'PUBLIC_RATE_LIMIT');
  assert.ok([...store.keys()].some(key=>key.endsWith('/global.json')));
  assert.ok(![...store.keys()].some(key=>key.includes('/client-')||key.includes('/unidentified.json')));
+ // Eine normale Mitarbeiterberechtigung reicht ausdrücklich NICHT zum Löschen.
+ const nonAdminDelete=await call('POST',{action:'delete',id:docId,expectedRevision:JSON.parse(teamFile.body).record.revision});
+ assert.equal(nonAdminDelete.status,403,nonAdminDelete.body);
+ assert.equal(JSON.parse(nonAdminDelete.body).code,'ADMIN_REQUIRED');
+ user.globalAdmin=true;
+ const adminView=await call('GET',{action:'get',id:docId});
+ assert.equal(JSON.parse(adminView.body).canDelete,true);
+ const deleted=await call('POST',{action:'delete',id:docId,expectedRevision:JSON.parse(adminView.body).record.revision});
+ assert.equal(deleted.status,200,deleted.body);
+ const afterDelete=await call('GET',{action:'list'});
+ assert.ok(!JSON.parse(afterDelete.body).records.some(x=>x.id===docId));
+ assert.equal((await call('GET',{action:'get',id:docId})).status,404);
+ assert.equal((await call('GET',{action:'public-get',id:docId},first.publicToken)).status,404);
+ const retained=JSON.parse(store.get('shipment-evidence/v1/records/'+docId+'.json').bytes.toString());
+ assert.ok(retained.deletedAt);
+ assert.ok(retained.history.some(event=>event.action==='admin-delete'));
+ assert.ok([...store.keys()].some(k=>k.includes('/files/'+docId+'/')));
 });
 
 

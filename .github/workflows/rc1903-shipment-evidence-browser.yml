@@ -6,6 +6,9 @@ on:
     paths:
       - 'api/shipment-evidence/**'
       - 'assets/shipment-evidence*'
+      - 'assets/sendungsdokumentation.html'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
       - 'assets/i18n/shipment-evidence.js'
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
@@ -55,7 +58,7 @@ jobs:
           npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
 
-      - name: Verify inline anonymous creation and upload in desktop and mobile browsers
+      - name: Verify public link, own read-only records and upload on desktop and mobile
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: production
