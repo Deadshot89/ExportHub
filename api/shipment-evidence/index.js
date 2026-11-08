@@ -55,7 +55,14 @@ function guestOrigin(req){
   const official=/^(?:www\.)?exporthub360\.(?:de|com)$/.test(parsed.hostname.toLowerCase())||
     parsed.hostname.toLowerCase().endsWith('.azurestaticapps.net')||
     /^(?:localhost|127\.0\.0\.1)$/.test(parsed.hostname.toLowerCase());
-  if(!official||!['https:','http:'].includes(parsed.protocol)||!(source===host||source===forwarded)||
+  // Azure Static Web Apps -> Functions can expose its internal API host rather
+  // than the public SWA host. This narrow exception trusts only the exact
+  // TESTSERVICE site, and only when the deployment environment is TESTSERVICE.
+  // It does not trust arbitrary forwarded-host headers or other SWA subdomains.
+  const canonicalTestservice=source==='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'&&
+    parsed.protocol==='https:'&&auth.environmentFromRequest(req)==='testservice';
+  if(!official||!['https:','http:'].includes(parsed.protocol)||
+     !(source===host||source===forwarded||canonicalTestservice)||
      (parsed.protocol!=='https:'&&!/^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(source)))
     fail('BAD_ORIGIN','Dieses Formular darf nur auf ExportHUB360 verwendet werden.',403);
  }catch(e){if(e.code==='BAD_ORIGIN')throw e;fail('BAD_ORIGIN','Ungueltiger Formularursprung.',403)}
