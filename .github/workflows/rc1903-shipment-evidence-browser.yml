@@ -9,13 +9,15 @@ on:
       - 'assets/sendungsdokumentation.html'
       - 'staticwebapp.config.json'
       - 'staticwebapp.testservice.config.json'
-      - 'scripts/rc1903-testservice-guest-live.mjs'
       - 'assets/i18n/shipment-evidence.js'
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
       - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1903-shipment-evidence-browser.yml'
+      - '.github/workflows/rc1538-testservice-main-supersession.yml'
+      - 'scripts/rc1903-testservice-guest-live.mjs'
+      - 'test/rc1538-testservice-supersession-race.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -38,6 +40,9 @@ jobs:
 
       - name: Install API runtime dependencies
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+
+      - name: RC1538 supersession race and RC1903 live authorization contract
+        run: node --test test/rc1538-testservice-supersession-race.test.mjs
 
       - name: RC1903 API and rights regression
         run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs

@@ -2625,5 +2625,7 @@
   "rc1903.ok": "Kompletne",
   "rc1903.showClassic": "Pokaż poprzedni formularz",
   "rc1903.showNew": "Pokaż nowy formularz",
-  "rc1903.editMailText": "Edytuj treść maila"
+  "rc1903.editMailText": "Edytuj treść maila",
+  "rc1930.ready": "Gotowe",
+  "rc1930.ctrl": "Ctrl"
 }

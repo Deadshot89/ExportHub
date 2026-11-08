@@ -2625,5 +2625,7 @@
   "rc1903.ok": "Completo",
   "rc1903.showClassic": "Mostra modulo precedente",
   "rc1903.showNew": "Mostra nuovo modulo",
-  "rc1903.editMailText": "Modifica testo mail"
+  "rc1903.editMailText": "Modifica testo mail",
+  "rc1930.ready": "Pronto",
+  "rc1930.ctrl": "Ctrl"
 }

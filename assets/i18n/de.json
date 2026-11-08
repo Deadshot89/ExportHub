@@ -2625,5 +2625,7 @@
   "rc1903.ok": "Vollständig",
   "rc1903.showClassic": "Bisherige Maske anzeigen",
   "rc1903.showNew": "Neue Erfassung anzeigen",
-  "rc1903.editMailText": "Mailtext bearbeiten"
+  "rc1903.editMailText": "Mailtext bearbeiten",
+  "rc1930.ready": "Startklar",
+  "rc1930.ctrl": "Strg"
 }
