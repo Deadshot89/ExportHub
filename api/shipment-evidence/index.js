@@ -273,7 +273,7 @@ async function processRequest(req){
   const normalized=fields(payload.fields),now=new Date().toISOString();
   const newId='DOK-'+now.slice(0,10).replace(/-/g,'')+'-'+crypto.randomBytes(4).toString('hex').toUpperCase();
   const record={id:newId,revision:0,fields:normalized,files:[],complaints:[],history:[],createdAt:now,updatedAt:now,updatedBy:ctx.user};
-  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record)});
+  bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true});
  }
  const docId=id(payload.id);
  const{blob,record,etag}=await getRecord(ctx,docId);
