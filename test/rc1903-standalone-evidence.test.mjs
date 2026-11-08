@@ -67,7 +67,17 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(guest,/eh1903-guest-root/);
  assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
  assert.ok(fs.readFileSync('assets/sendungsdokumentation.html','utf8').includes('id="eh1903-guest-root"'));
- assert.match(guest,/guestOpen/);
+ assert.match(guest,/guestIntro/);
+ assert.match(guest,/public-submit/);
+ assert.doesNotMatch(guest,/public-save/);
+ const prod=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+ const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ for(const cfg of [prod,testservice]){
+  const route=cfg.routes.find(v=>v.route==='/sendungsdokumentation');
+  assert.equal(route?.rewrite,'/assets/sendungsdokumentation.html');
+  assert.deepEqual(route.allowedRoles,['anonymous']);
+  assert.equal(route.headers['Referrer-Policy'],'no-referrer');
+ }
  assert.match(guest,/public-create/);
  assert.match(guest,/public-upload/);
  assert.match(ui,/data-exporthub-evidence-nav/);
