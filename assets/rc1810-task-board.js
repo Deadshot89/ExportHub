@@ -50,7 +50,9 @@ function isDone(x){return !!(x&&(x.done===true||x.completed===true))||/^(erledig
 function isTemplate(x){return !!(x&&(x.isTemplate||x.template||x.recurringTemplate||x.repeatTemplate||x.isRecurringTemplate||x.seriesTemplate))}
 function isRoutine(x){var c=cal();if(c&&c.isRoutine(x))return true;return !!(x&&(x.masterTaskRC848||x.weeklySeriesId||/week|woch/i.test(q(x.recurrence))))}
 function taskDay(x){var f=focus();if(f&&typeof f.taskDate==='function'){try{return dayKey(f.taskDate(x))}catch(_){}}var v=q(x&&(x.dueDate||x.plannedDate||x.date||x.dueAt));return /^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):''}
-function ownerOf(x){return q(x&&(x.assignedToName||x.owner||x.effectiveAssignee||x.assignee||x.responsible))||t('noOwner')}
+function rawOwner(x){return q(x&&(x.assignedToName||x.owner||x.effectiveAssignee||x.assignee||x.responsible))}
+/* RC1814: interne Benutzer-ID (USER-Tobias) immer unter dem echten Namen zeigen, nie als eigene Zeile */
+function ownerOf(x){var o=rawOwner(x);if(!o)return t('noOwner');var m=/^USER-([A-Za-z][A-Za-z0-9_.]*)$/i.exec(o);if(!m)return o;var u=arr(state().users).find(function(u){return u&&low(u.id)===low(o)});return q(u&&(u.name||u.displayName||u.user||u.username||u.login))||m[1]}
 function areaOf(x){return q(x&&(x.area||x.category||x.section||x.group))||t('noArea')}
 function prio(x){var p=q(x&&x.priority).toUpperCase();if(/^P[0-4]$/.test(p))return p;if(/^(critical|kritisch|urgent|dringend)$/i.test(q(x&&x.priority)))return 'P0';if(/^(high|hoch)$/i.test(q(x&&x.priority)))return 'P1';return ''}
 function isMine(x){var f=focus();if(f&&typeof f.isMine==='function'){try{return !!f.isMine(x,currentUser(),arr(state().users))}catch(_){}}var u=currentUser(),me=[u.name,u.displayName,u.user,u.id].map(low).filter(Boolean);return me.indexOf(low(ownerOf(x)))>=0}
@@ -81,11 +83,11 @@ function visible(){
   var tasks=allTasks().filter(function(x){return ui.who!=='mine'||isMine(x)});
   var named=Object.create(null);
   tasks.forEach(function(x){
-    var owner=ownerOf(x);
+    var owner=rawOwner(x)||t('noOwner');
     if(!/^USER-/i.test(owner))named[taskDay(x)+'|'+low(owner)]=true;
   });
   return tasks.filter(function(x){
-    var owner=ownerOf(x),alias=/^USER-([A-Za-z][A-Za-z0-9_.]*)$/i.exec(owner);
+    var owner=rawOwner(x),alias=/^USER-([A-Za-z][A-Za-z0-9_.]*)$/i.exec(owner);
     if(!alias)return true;
     var names=[alias[1]],user=arr(state().users).find(function(u){return low(u.id)===low(owner)});
     if(user)names.push(q(user.name||user.displayName||user.user||user.username||user.login));
