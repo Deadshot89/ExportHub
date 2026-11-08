@@ -38,7 +38,7 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/shipment-evidence-guest\.js\?v=1904/,'Guest login-free runtime missing from TESTSERVICE HTML');
+assert.match(html,/shipment-evidence-guest\.js\?v=1905/,'Guest login-free runtime missing from TESTSERVICE HTML');
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
