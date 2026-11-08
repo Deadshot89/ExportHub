@@ -13,7 +13,9 @@ test('RC1903 public link creates, uploads and submits read-only records without 
   const action=payload.action||new URL(req.url()).searchParams.get('action')||'list';
   requests.push({method,action,hasToken:req.headers()['x-exporthub-evidence-token']===token});
   let status=200,result={ok:true,record};
-  if(action==='public-create'){
+  if(action==='public-customer-lookup'){
+   result={ok:true,customer:{id:'DEMO-CUST-1001',number:'D1001',name:'Beispielkunde'}};
+  }else if(action==='public-create'){
    record={id,revision:1,fields:payload.fields,files:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),submittedAt:null};
    result={ok:true,record,publicToken:token};status=201;
   }else if(action==='public-upload'&&!record.submittedAt){
@@ -35,7 +37,11 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  await expect(page.getByRole('heading',{name:'Neue Sendung'})).toBeVisible();
  await expect(page.locator('[data-eh1903-guest-open]')).toHaveCount(0);
  await expect(page.locator('#login')).toHaveCount(0);
- await page.locator('[data-guest-field="customer"]').fill('Beispielkunde');
+ for(const removed of ['packaging','shippingMethod','contents','loadSecuring'])
+  await expect(page.locator('[data-guest-field="'+removed+'"]')).toHaveCount(0);
+ await page.locator('[data-guest-customer-lookup]').fill('D1001');
+ await page.getByRole('button',{name:'Kunde suchen'}).click();
+ await expect(publicRoot).toContainText('D1001 · Beispielkunde');
  await page.locator('[data-guest-field="shipmentNumber"]').fill('EXT-2026-123');
  await page.locator('[data-guest-field="dispatchDate"]').fill('2026-11-07');
  await page.locator('[data-guest-field="colli"]').fill('3');
@@ -52,15 +58,46 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  await page.getByRole('button',{name:'Dokumentation abschließen'}).click();
  await expect(publicRoot).toContainText('Gespeichert – nur ExportHUB-Mitarbeiter');
  await expect(page.locator('.eh1903-uploads input[type=file]')).toHaveCount(0);
- await expect(page.locator('[data-guest-field="customer"]')).toHaveAttribute('readonly','');
+ await expect(publicRoot).toContainText('D1001 · Beispielkunde');
  await page.getByRole('button',{name:'Meine Nachweise'}).click();
  await expect(publicRoot).toContainText(id);
  await page.getByRole('button',{name:'Nur ansehen'}).click();
  await expect(publicRoot).toContainText('Gespeichert – nur ExportHUB-Mitarbeiter');
+ expect(requests.filter(r=>r.action==='public-customer-lookup')).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-create')).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-upload'&&r.hasToken)).toHaveLength(2);
  expect(requests.filter(r=>r.action==='public-submit'&&r.hasToken)).toHaveLength(1);
  expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(1);
  expect(requests.some(r=>r.action==='public-save')).toBe(false);
  expect(context.pages()).toHaveLength(1);
+});
+
+
+test('RC1903: new customer can be proposed without writing the official customer master',async({page},testInfo)=>{
+ test.skip(process.env.EXPORTHUB_E2E_LIVE==='1','Mocked browser contract only.');
+ test.skip(!['laptop','mobile-small'].includes(testInfo.project.name),'Desktop and mobile only.');
+ let posted=null;
+ await page.route('**/api/shipment-evidence*',async route=>{
+  const body=route.request().postDataJSON();
+  posted=body;
+  await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({
+   ok:true,record:{id:'DOK-20261108-1111ABCD',revision:1,fields:body.fields,files:[],
+    submittedAt:null,createdAt:'2026-11-08T00:00:00Z'},
+   publicToken:'T'.repeat(43)
+  })});
+ });
+ await page.goto('/assets/sendungsdokumentation.html',{waitUntil:'domcontentloaded'});
+ await page.getByRole('button',{name:'Neuen Kunden anlegen'}).click();
+ await expect(page.getByText(/Neukunde.*Prüfung|Neukunde.*erfasst/i)).toBeVisible();
+ await page.locator('[data-guest-customer-number]').fill('N12345');
+ await page.locator('[data-guest-customer-name]').fill('Neuer Testkunde GmbH');
+ await page.locator('[data-guest-field="shipmentNumber"]').fill('TEST-NEU-001');
+ await page.getByRole('button',{name:'Weiter zu Fotos und Lieferscheinen'}).click();
+ await expect(page.getByText('DOK-20261108-1111ABCD')).toBeVisible();
+ expect(posted?.action).toBe('public-create');
+ expect(posted?.fields?.customerMode).toBe('pending');
+ expect(posted?.fields?.customerNumber).toBe('N12345');
+ expect(posted?.fields?.customer).toBe('Neuer Testkunde GmbH');
+ for(const removed of ['packaging','shippingMethod','contents','loadSecuring'])
+  expect(posted?.fields?.[removed]).toBeUndefined();
 });
