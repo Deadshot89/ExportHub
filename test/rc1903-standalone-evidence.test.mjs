@@ -256,11 +256,6 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(foundCustomer.status,200,foundCustomer.body);
  assert.deepEqual(JSON.parse(foundCustomer.body).customer,{id:'CUST-D1001',number:'D1001',name:'Bestandskunde GmbH'});
  assert.ok(!foundCustomer.body.includes('customers":['));
- const existingCustomer=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'MASTER-123',
-  customerMode:'existing',customerNumber:'D1001',customer:'Falscher Name'},website:''});
- assert.equal(existingCustomer.status,201,existingCustomer.body);
- assert.equal(JSON.parse(existingCustomer.body).record.fields.customer,'Bestandskunde GmbH');
- assert.equal(JSON.parse(existingCustomer.body).record.fields.customerId,'CUST-D1001');
  // Azure Functions may expose its internal host instead of the public SWA host.
  // Accept only the exact TESTSERVICE Origin in the matching environment.
  const testHost='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
@@ -269,6 +264,11 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
   builtAt:new Date().toISOString(),environment:'testservice'};
  fs.writeFileSync(metadataPath,JSON.stringify(deployment));
  process.env.EXPORTHUB_RELEASE_METADATA_PATH=metadataPath;
+ const existingCustomer=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'MASTER-123',
+  customerMode:'existing',customerNumber:'D1001',customer:'Falscher Name'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(existingCustomer.status,201,existingCustomer.body);
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customer,'Bestandskunde GmbH');
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customerId,'CUST-D1001');
  // This reproduces the browser request: NO X-ExportHUB-Environment client header.
  const pending=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'NEW-CUST-001',
   customerMode:'pending',customerNumber:'NEW900',customer:'Neukunde GmbH'},website:''},'',testHost,azureProxyHeaders);
