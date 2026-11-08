@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import vm from 'node:vm';
 import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
@@ -194,12 +196,18 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
 
 
 test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fotos hochladen',async t=>{
- const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,
+       oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION,
+       oldMetadataPath=process.env.EXPORTHUB_RELEASE_METADATA_PATH;
+ const metadataDir=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1903-'));
+ const metadataPath=path.join(metadataDir,'release-metadata.json');
  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
  delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
  t.after(()=>{
   if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
   if(oldIsolation===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=oldIsolation;
+  if(oldMetadataPath===undefined)delete process.env.EXPORTHUB_RELEASE_METADATA_PATH;else process.env.EXPORTHUB_RELEASE_METADATA_PATH=oldMetadataPath;
+  fs.rmSync(metadataDir,{recursive:true,force:true});
  });
  const store=new Map(),names=[],user={role:'Export',rights:{documents:{level:'edit',edit:true,read:true}}};
  let loggedIn=false;
@@ -237,7 +245,12 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  // Azure Functions may expose its internal host instead of the public SWA host.
  // Accept only the exact TESTSERVICE Origin in the matching environment.
  const testHost='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
- const azureProxyHeaders={host:'exporthub-functions.internal.azurewebsites.net','x-exporthub-environment':'testservice'};
+ const azureProxyHeaders={host:'exporthub-functions.internal.azurewebsites.net'};
+ const deployment={buildId:'a'.repeat(40),visibleRelease:'RC1903',technicalBuild:'RC1903-ci',
+  builtAt:new Date().toISOString(),environment:'testservice'};
+ fs.writeFileSync(metadataPath,JSON.stringify(deployment));
+ process.env.EXPORTHUB_RELEASE_METADATA_PATH=metadataPath;
+ // This reproduces the browser request: NO X-ExportHUB-Environment client header.
  const viaProxy=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-AZURE-PROXY'},website:''},'',testHost,azureProxyHeaders);
  assert.equal(viaProxy.status,201,viaProxy.body);
  assert.ok([...store.keys()].some(name=>name.startsWith('testservice/shipment-evidence/v1/records/')));
@@ -245,8 +258,18 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(spoofedOrigin.status,403,spoofedOrigin.body);
  const otherSwa=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-OTHER-SWA'},website:''},'','https://different-tenant.azurestaticapps.net',azureProxyHeaders);
  assert.equal(otherSwa.status,403,otherSwa.body);
- const wrongEnvironment=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-PROD-ORIGIN'},website:''},'',testHost,{host:'exporthub-functions.internal.azurewebsites.net'});
+ // Spoofed client environment must never change verified server deployment identity.
+ fs.writeFileSync(metadataPath,JSON.stringify({...deployment,environment:'production'}));
+ const wrongEnvironment=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-PROD-ORIGIN'},website:''},'',testHost,{
+  ...azureProxyHeaders,'x-exporthub-environment':'testservice'
+ });
  assert.equal(wrongEnvironment.status,403,wrongEnvironment.body);
+ assert.equal(JSON.parse(wrongEnvironment.body).code,'BAD_ORIGIN');
+ // Missing trusted deployment metadata must also fail closed for internal hosts.
+ fs.writeFileSync(metadataPath,JSON.stringify({environment:'testservice'}));
+ const unverified=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-UNVERIFIED'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(unverified.status,403,unverified.body);
+ delete process.env.EXPORTHUB_RELEASE_METADATA_PATH;
  const created=await call('POST',{action:'public-create',fields:valid,website:''});
  assert.equal(created.status,201,created.body);
  const first=JSON.parse(created.body);
