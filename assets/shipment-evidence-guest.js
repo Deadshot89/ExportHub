@@ -10,7 +10,7 @@ const FIELDS=[
 ];
 const languages=['de','en','pl','es','fr','it'];
 let record=null,token='',busy=false,mode='new',lang='de',session=0;
-let customerChoice=null,customerPending=false,draftFields={},customerNumberDraft='',customerNameDraft=';
+let customerChoice=null,customerPending=false,draftFields={},customerNumberDraft='',customerNameDraft='';
 function t(k){const p=w.ExportHUBEvidenceI18n||{};return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
 function x(k){const p=w.ExportHUBEvidenceI18n||{},key='public'+k[0].toUpperCase()+k.slice(1);return p[lang]&&p[lang][key]||p.en&&p.en[key]||key}
 function make(tag,cls,text){const el=d.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el}
