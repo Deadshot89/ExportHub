@@ -106,7 +106,7 @@ test('RC1810 Datumseingabe: TT-MM-JJJJ und TT.MM.JJJJ werden verstanden',()=>{
 
 test('RC1810 Build bindet Kalender, Aufgabenseite und Styles in allen Umgebungen ein',()=>{
   assert.match(build,/rc1810-task-calendar\.js\?v=1810/);
-  assert.match(build,/rc1810-task-board\.js\?v=1813/);
+  assert.match(build,/rc1810-task-board\.js\?v=1814/);
   assert.match(build,/rc1810-task-board\.css\?v=1812/);
   assert.match(build,/i18n\/rc1810-task-board\.js\?v=1812/);
   assert.ok(build.indexOf("'exporthub-rc1810-task-board-i18n'")<build.indexOf("injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_SCRIPT_TAG"),'Texte laden vor der Aufgabenseite');

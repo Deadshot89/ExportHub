@@ -38,7 +38,7 @@ test('RC1811: Asset-Version und Gruppendarstellung im Build',()=>{
  const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
  assert.match(css,/rc1810-workgroup/);
  assert.ok(build.includes('rc1810-task-board.css?v=1812'));
- assert.ok(build.includes('rc1810-task-board.js?v=1813'));
+ assert.ok(build.includes('rc1810-task-board.js?v=1814'));
  assert.ok(build.includes('i18n/rc1810-task-board.js?v=1812'));
 });
 
@@ -90,7 +90,8 @@ test('RC1813: doppelte USER-Tobias-Zeile nicht mehr zeigen, Aufgaben unveraender
  assert.equal(JSON.stringify(entries),before,'keine Daten oder Bearbeitungsstaende veraendern');
  state.tasks=[entries[1]];
  const solo=board._weekHtml();
- assert.match(solo,/USER-Tobias/,'Aufgabe sichtbar lassen, falls kein persoenlicher Plan vorhanden');
+ assert.doesNotMatch(solo,/USER-Tobias/,'RC1814: interne ID nie als Zeilenname');
+ assert.match(solo,/>Tobias</,'RC1814: Aufgabe unter dem echten Namen sichtbar lassen');
  assert.match(solo,/data-rc1810-check="tobias-legacy"/);
  state.tasks=[];delete state.users;
 });

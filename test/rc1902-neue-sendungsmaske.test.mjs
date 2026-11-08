@@ -19,7 +19,7 @@ test('RC1902: Speichern und Ausgabe laufen über die bestehenden Knöpfe',()=>{
   assert.doesNotMatch(js,/fetch\(|XMLHttpRequest|localStorage|sessionStorage/);
   assert.match(js,/getElementById\('rc363SaveShipment'\)/);
   assert.match(js,/getElementById\('rc363OpenDocuments'\)/);
-  assert.match(js,/if\(target&&!target\.disabled\)\{target\.click\(\)/);
+  assert.match(js,/if\(proxyBtn&&!proxyBtn\.disabled\)\{proxyBtn\.click\(\)/);
   // die Maske bleibt sichtbar und an ihrem Platz
   assert.doesNotMatch(js,/appendChild\(\w*block|insertBefore\(\w*block/i);
   assert.doesNotMatch(css,/#rc363FixedShipmentLayout[^{]*\{[^}]*display:none/);
@@ -44,7 +44,7 @@ test('RC1902: Texte kommen aus den Sprachdateien',()=>{
 
 test('RC1902: Builder bindet Skript und Stylesheet ein',()=>{
   assert.match(builder,/rc1902-neue-sendungsmaske\.css\?v=1930/);
-  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1930/);
+  assert.match(builder,/rc1902-neue-sendungsmaske\.js\?v=1932/);
   assert.match(builder,/'assets\/rc1902-neue-sendungsmaske\.js'/);
   assert.match(builder,/RC1902 neue Sendungsmaske fehlt/);
 });
