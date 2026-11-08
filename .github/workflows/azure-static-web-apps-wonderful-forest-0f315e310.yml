@@ -251,6 +251,34 @@ jobs:
             echo 'RC1903 unveraendert; kein anonymer Testdatensatz angelegt.'
           fi
 
+      - name: RC1903 TESTSERVICE deployed visual proof (customer and photos, no real API writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run only for RC1903 changes or visual proof updates.
+          if git diff --name-only HEAD^ HEAD -- \
+               api/shipment-evidence/ assets/shipment-evidence.js assets/shipment-evidence-guest.js \
+               assets/shipment-evidence.css assets/i18n/shipment-evidence.js \
+               assets/sendungsdokumentation.html \
+               e2e/specs/rc1903-testservice-visual-proof.spec.mjs \
+               playwright.rc1903-testservice-visual.config.mjs \
+               .github/workflows/rc1903-shipment-evidence-browser.yml \
+               .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml \
+               | grep -q .; then
+            npx playwright test e2e/specs/rc1903-testservice-visual-proof.spec.mjs --config playwright.rc1903-testservice-visual.config.mjs
+          else
+            echo 'RC1903 unveraendert; keine zusaetzliche visuelle Live-Pruefung.'
+          fi
+
+      - name: RC1903 TESTSERVICE visual proof screenshots (synthetic data only)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-testservice-visual-proof
+          path: test-results/**/rc1903-testservice-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate
         shell: bash
         run: |
