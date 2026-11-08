@@ -37,7 +37,8 @@ test('RC1811: Asset-Version und Gruppendarstellung im Build',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const css=fs.readFileSync('assets/rc1810-task-board.css','utf8');
  assert.match(css,/rc1810-workgroup/);
- for(const name of ['rc1810-task-board.css','rc1810-task-board.js'])assert.ok(build.includes(name+'?v=1812'),name);
+ assert.ok(build.includes('rc1810-task-board.css?v=1812'));
+ assert.ok(build.includes('rc1810-task-board.js?v=1813'));
  assert.ok(build.includes('i18n/rc1810-task-board.js?v=1812'));
 });
 
@@ -69,4 +70,27 @@ test('RC1812: Arbeitsgruppennamen und Checkboxen bleiben groß genug',()=>{
  assert.match(css,/\.rc1810-worktoggle\{min-height:34px;font-size:\.86rem/);
  assert.match(css,/\.rc1810-worktasks \.rc1810-name\{font-size:\.88rem/);
  assert.match(css,/\.rc1810-worktasks \.rc1810-box\{width:19px;height:19px/);
+});
+
+test('RC1813: doppelte USER-Tobias-Zeile nicht mehr zeigen, Aufgaben unveraendert behalten',()=>{
+ const monday=new Date(),wd=monday.getDay()||7;
+ monday.setDate(monday.getDate()-wd+1);
+ const d=[monday.getFullYear(),String(monday.getMonth()+1).padStart(2,'0'),String(monday.getDate()).padStart(2,'0')].join('-');
+ const entries=[
+  {id:'tobias-routine',title:'Gaggenau',assignedToName:'Tobias',dueDate:d,status:'open'},
+  {id:'tobias-legacy',title:'Gaggenau anmelden',owner:'USER-Tobias',dueDate:d,status:'open'}
+ ];
+ const before=JSON.stringify(entries);
+ state.tasks=entries;state.users=[{id:'USER-Tobias',name:'Tobias'}];
+ board._ui.tab='woche';board._ui.group='person';board._ui.who='alle';board._ui.weekStart=d;
+ const week=board._weekHtml();
+ assert.match(week,/data-rc1810-check="tobias-routine"/);
+ assert.doesNotMatch(week,/USER-Tobias/,'interne Benutzer-ID darf keine zweite Zeile erzeugen');
+ assert.doesNotMatch(week,/data-rc1810-check="tobias-legacy"/,'keine Duplikate in der Wochenansicht');
+ assert.equal(JSON.stringify(entries),before,'keine Daten oder Bearbeitungsstaende veraendern');
+ state.tasks=[entries[1]];
+ const solo=board._weekHtml();
+ assert.match(solo,/USER-Tobias/,'Aufgabe sichtbar lassen, falls kein persoenlicher Plan vorhanden');
+ assert.match(solo,/data-rc1810-check="tobias-legacy"/);
+ state.tasks=[];delete state.users;
 });
