@@ -239,13 +239,13 @@ function fileUrl(ref,file){
 }
 async function secureBlob(ref,file){
  var response=await fetch(fileUrl(ref,file),{headers:headers(),credentials:'same-origin',cache:'no-store'});
- if(!response.ok)throw new Error('Datei konnte nicht geladen werden (HTTP '+response.status+').');
+ if(!response.ok)throw new Error(tr('fileLoadFailed')+response.status+')');
  return response.blob();
 }
 function saveBlob(blob,name){
  var url=URL.createObjectURL(blob),link=el('a');
- link.href=url;link.download=name||'Dokument';d.body.appendChild(link);link.click();link.remove();
- w.setTimeout(function(){URL.revokeObjectURL(url)},1000);
+ link.href=url;link.download=name||tr('documentFallback');d.body.appendChild(link);link.click();link.remove();
+ w.setTimeout(function(){URL.revokeObjectURL(url)},60000);
 }
 async function downloadFile(ref,file,box){
  try{var blob=await secureBlob(ref,file);if(!isCurrent(box,ref))return;saveBlob(blob,q(file.name));}
@@ -253,7 +253,7 @@ async function downloadFile(ref,file,box){
 }
 async function openFilePreview(ref,file,box){
  var generation=galleryGeneration,previous=d.activeElement;
- status(box,'Datei wird geöffnet …','',true);
+ status(box,tr('previewLoading'),'',true);
  try{
   var blob=await secureBlob(ref,file);
   if(generation!==galleryGeneration||!isCurrent(box,ref))return;
@@ -262,12 +262,12 @@ async function openFilePreview(ref,file,box){
   var url=URL.createObjectURL(blob),overlay=el('div','eh1860-preview-dialog');
   overlay.setAttribute('role','presentation');
   var inner=el('div','eh1860-preview-dialog-inner');inner.setAttribute('role','dialog');inner.setAttribute('aria-modal','true');
-  inner.setAttribute('aria-label','Dateivorschau: '+q(file.name));
+  inner.setAttribute('aria-label',tr('previewAria')+': '+q(file.name));
   inner.appendChild(el('h3',null,q(file.name)));
   var media=el(isPhoto(file)?'img':'iframe','eh1860-preview-media');
   if(isPhoto(file))media.alt=q(file.name);else{media.title=q(file.name);media.setAttribute('sandbox','');}
   media.src=url;inner.appendChild(media);
-  var actions=el('div','eh1860-preview-dialog-actions'),download=el('button',null,'Datei herunterladen'),closeButton=el('button',null,'Schließen');
+  var actions=el('div','eh1860-preview-dialog-actions'),download=el('button',null,tr('download')),closeButton=el('button',null,tr('close'));
   download.type='button';closeButton.type='button';actions.appendChild(download);actions.appendChild(closeButton);inner.appendChild(actions);overlay.appendChild(inner);d.body.appendChild(overlay);
   var closed=false;
   function close(){if(closed)return;closed=true;d.removeEventListener('keydown',onKey);overlay.remove();URL.revokeObjectURL(url);if(closeGalleryDialog===close)closeGalleryDialog=null;if(previous&&previous.isConnected)previous.focus();}
@@ -283,7 +283,7 @@ async function openFilePreview(ref,file,box){
 }
 function galleryCard(box,ref,file,generation){
  var card=el('div','eh1860-preview-card'),opener=el('button','eh1860-preview-open');
- opener.type='button';opener.setAttribute('aria-label','Vorschau: '+q(file.name));opener.addEventListener('click',function(){openFilePreview(ref,file,box)});
+ opener.type='button';opener.setAttribute('aria-label',tr('preview')+': '+q(file.name));opener.addEventListener('click',function(){openFilePreview(ref,file,box)});
  var frame=el('div','eh1860-preview-frame'),name=el('span','eh1860-preview-name',q(file.name));
  name.title=q(file.name);
  if(isPhoto(file)){
@@ -295,13 +295,13 @@ function galleryCard(box,ref,file,generation){
     if(generation!==galleryGeneration||!isCurrent(box,ref)||!img.isConnected)return;
     if(!/^image\/(?:jpeg|png)$/i.test(blob.type))return;
     var url=URL.createObjectURL(blob);thumbnailUrls.push(url);img.src=url;
-   }).catch(function(){frame.textContent='Vorschau nicht verfügbar'});
+   }).catch(function(){frame.textContent=tr('previewUnavailable')});
   }
   if('IntersectionObserver' in w){var observer=new IntersectionObserver(function(entries){if(entries.some(function(entry){return entry.isIntersecting})){observer.disconnect();loadThumb()}},{rootMargin:'250px'});observer.observe(frame)}
   else loadThumb();
- }else frame.textContent=isPdf(file)?'PDF':'Dokument';
+ }else frame.textContent=isPdf(file)?'PDF':tr('documentFallback');
  opener.appendChild(frame);card.appendChild(opener);card.appendChild(name);
- var download=el('button','eh1860-download','Datei herunterladen');download.type='button';download.addEventListener('click',function(){downloadFile(ref,file,box)});card.appendChild(download);
+ var download=el('button','eh1860-download',tr('download'));download.type='button';download.addEventListener('click',function(){downloadFile(ref,file,box)});card.appendChild(download);
  return card;
 }
 function appendGallery(host,title,box,ref,files,generation){
@@ -310,7 +310,7 @@ function appendGallery(host,title,box,ref,files,generation){
  section.appendChild(heading);section.appendChild(grid);
  files.slice(0,60).forEach(function(file){grid.appendChild(galleryCard(box,ref,file,generation))});
  host.appendChild(section);
- if(files.length>60)host.appendChild(el('p','eh1860-status','Weitere Dateien vorhanden. Bitte direkt im REF-Ordner oder der Dokumentation öffnen.'));
+ if(files.length>60)host.appendChild(el('p','eh1860-status',tr('moreFiles')));
 }
 async function loadFiles(box,ref){
  var host=box.querySelector('[data-proof-files]');if(!host)return;
@@ -322,8 +322,8 @@ async function loadFiles(box,ref){
   if(!isCurrent(box,ref)||generation!==galleryGeneration)return;
   var photos=(data.files||[]).filter(function(f){return /^Dokument_[A-Z0-9]{6}_\d{8}-\d{6}_Versandfoto_/i.test(q(f.name))}).map(function(f){return Object.assign({source:'reference'},f)});
   var notes=(data.files||[]).filter(function(f){return /^Lieferschein_[A-Z0-9]{6}_\d{8}-\d{6}_/i.test(q(f.name))}).map(function(f){return Object.assign({source:'reference'},f)});
-  appendGallery(host,'Fotos ('+photos.length+')',box,ref,photos,generation);
-  appendGallery(host,'Lieferscheine ('+notes.length+')',box,ref,notes,generation);
+  appendGallery(host,tr('photosSection')+' ('+photos.length+')',box,ref,photos,generation);
+  appendGallery(host,tr('notesSection')+' ('+notes.length+')',box,ref,notes,generation);
  }catch(e){if(isCurrent(box,ref))host.appendChild(el('p','eh1860-status',tr('refListError')+q(e.message)))}
  if(!isCurrent(box,ref)||generation!==galleryGeneration)return;
  // The standalone DOK store is separate. Show only explicitly linked evidence.
@@ -337,11 +337,11 @@ async function loadFiles(box,ref){
    var entry=Object.assign({source:'evidence',recordId:record.id},file);
    if(isPhoto(entry))photos.push(entry);else notes.push(entry);
   })});
-  appendGallery(host,'Verknüpfte Dokumentation · Fotos ('+photos.length+')',box,ref,photos,generation);
-  appendGallery(host,'Verknüpfte Dokumentation · Dateien ('+notes.length+')',box,ref,notes,generation);
-  if(data.incomplete)host.appendChild(el('p','eh1860-status','Die Suche war nicht vollständig. Weitere Dokumentationen können vorhanden sein.'));
- }catch(e){if(isCurrent(box,ref))host.appendChild(el('p','eh1860-status','Verknüpfte DOK-Nachweise konnten nicht geladen werden: '+q(e.message)))}
- if(!host.childElementCount)host.appendChild(el('p','eh1860-status','Noch keine Fotos oder Lieferscheine zu dieser Referenz gespeichert.'));
+  appendGallery(host,tr('linkedPhotosSection')+' ('+photos.length+')',box,ref,photos,generation);
+  appendGallery(host,tr('linkedFilesSection')+' ('+notes.length+')',box,ref,notes,generation);
+  if(data.incomplete)host.appendChild(el('p','eh1860-status',tr('incomplete')));
+ }catch(e){if(isCurrent(box,ref))host.appendChild(el('p','eh1860-status',tr('linkedError')+q(e.message)))}
+ if(!host.childElementCount)host.appendChild(el('p','eh1860-status',tr('noFiles')));
 }
 function ensure(){
  scheduled=false;
