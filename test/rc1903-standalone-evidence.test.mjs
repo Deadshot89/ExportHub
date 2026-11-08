@@ -275,7 +275,7 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.ok(Buffer.isBuffer(file.body));
  const forbidden=await call('GET',{action:'public-file',id:docId,fileId:pic.id});
  assert.equal(forbidden.status,403);
- const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:rev,text:'ohne Sitzung'},first.publicToken);
+ const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:JSON.parse(submitted.body).record.revision,text:'ohne Sitzung'},first.publicToken);
  assert.equal(complaint.status,401);
  loggedIn=true;
  const staff=await call('GET',{action:'get',id:docId});
