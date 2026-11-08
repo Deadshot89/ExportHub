@@ -17,9 +17,9 @@ async function openPublished(page){
  await expect(page.locator('link[href*="shipment-evidence.css?v=1906-gallery"]')).toHaveCount(1);
  await expect(page.locator('#login')).toHaveCount(0);
 }
-function protectEveryApi(page,respond){
+async function protectEveryApi(page,respond){
  const calls=[];
- page.route('**/api/**',async route=>{
+ await page.route('**/api/**',async route=>{
   const req=route.request(),url=new URL(req.url());
   const payload=req.method()==='POST'?req.postDataJSON()||{}:{};
   const action=payload.action||url.searchParams.get('action')||'';
@@ -50,7 +50,7 @@ function syntheticPhotoBase64(page){
 }
 test('RC1903 published TESTSERVICE: actual customer selector and visible downloadable photo gallery',async({page,context},testInfo)=>{
  let record=null,photoBytes=Buffer.alloc(0);
- const calls=protectEveryApi(page,async(route,{action,payload,authorized,url})=>{
+ const calls=await protectEveryApi(page,async(route,{action,payload,authorized,url})=>{
   const send=(status,data)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   if(action==='public-customer-lookup'){
    expect(payload.customerNumber).toBe('D1001');
@@ -141,7 +141,7 @@ test('RC1903 published TESTSERVICE: actual customer selector and visible downloa
 
 test('RC1903 published TESTSERVICE: pending new customer form does not write to Azure API',async({page})=>{
  let submitted=null;
- const calls=protectEveryApi(page,async(route,{action,payload})=>{
+ const calls=await protectEveryApi(page,async(route,{action,payload})=>{
   if(action!=='public-create'){
    return route.fulfill({status:403,contentType:'application/json',
     body:JSON.stringify({ok:false,code:'MOCK_ONLY'})});
