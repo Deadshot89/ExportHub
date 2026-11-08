@@ -392,7 +392,7 @@ async function processRequest(req){
    }
    const customer={id:'CUST-'+crypto.randomUUID(),customerNumber:number,account:number,name,
     createdAt:new Date().toISOString(),createdBy:ctx.user,sourceEvidenceId:record.id,
-    customerHistory:[{id:crypto.randomUUID(),type:'customer-created',label:'Kunde aus Sendungsdokumentation angelegt',
+    customerHistory:[{id:crypto.randomUUID(),type:'customer-created',label:'customer-created-from-shipment-evidence',
       at:new Date().toISOString(),actor:{name:ctx.user},source:'server',version:'RC1903'}]};
    customers.push(customer);team.state.customers=customers;
    return{customer:{id:customer.id,number,name}};
