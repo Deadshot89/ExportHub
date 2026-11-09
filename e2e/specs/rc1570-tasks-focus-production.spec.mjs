@@ -4,9 +4,9 @@ import {test,expect} from '@playwright/test';
 // served by production. No login, customer records, persistent writes or API writes.
 test('RC1570 production: task roster, overdue POD/AV, weekly and deletion safety',async({page,request},info)=>{
   test.skip(info.project.name!=='laptop','One deterministic browser profile.');
-  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||
-    String(process.env.EXPORTHUB_E2E_PUBLIC_ENV||'').toLowerCase()!=='production',
-    'Explicit production read-only gate only.');
+  const live=process.env.EXPORTHUB_E2E_LIVE==='1';
+  test.skip(live&&String(process.env.EXPORTHUB_E2E_PUBLIC_ENV||'').toLowerCase()!=='production',
+    'Live use is permitted only for production.');
 
   const marker=Date.now();
   const [translations,script]=await Promise.all([
