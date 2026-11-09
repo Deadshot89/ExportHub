@@ -161,6 +161,19 @@ function registrationMailLanguage(){
  v=q(v).toLowerCase().replace('_','-');
  var m=v.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'
 }
+var CLOSURE_MAIL_FALLBACK=Object.freeze({
+ de:{title:'Wichtige Information zu unseren Betriebsferien',last:'Letzte Abholung',closed:'Geschlossen',resume:'Wieder geöffnet ab'},
+ en:{title:'Important notice – Holiday closure',last:'Last collection',closed:'Closed',resume:'Reopening'},
+ pl:{title:'Ważna informacja – Przerwa w pracy',last:'Ostatni odbiór',closed:'Zamknięte',resume:'Ponowne otwarcie'},
+ es:{title:'Información importante – Cierre temporal',last:'Última recogida',closed:'Cerrado',resume:'Reapertura'},
+ fr:{title:'Information importante – Fermeture',last:'Dernier enlèvement',closed:'Fermé',resume:'Réouverture'},
+ it:{title:'Informazione importante – Chiusura',last:'Ultimo ritiro',closed:'Chiuso',resume:'Riapertura'}
+});
+function closureMailLabel(key,lang){
+ var value=tr('closureMail.mail'+({title:'Title',last:'Last',closed:'Closed',resume:'Resume'}[key]||''),null,lang);
+ if(value&&value!=='closureMail.mail'+({title:'Title',last:'Last',closed:'Closed',resume:'Resume'}[key]||''))return value;
+ return (CLOSURE_MAIL_FALLBACK[lang]||CLOSURE_MAIL_FALLBACK.de)[key]||''
+}
 function registrationClosureNotices(language){
  var m=q(language).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);
  var rows=closureEntries(),lang=m?m[1]:registrationMailLanguage(),locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
@@ -187,10 +200,10 @@ function registrationClosureNotices(language){
  if(!out.length)return'';
  var body=out.slice(0,3).map(function(c){
   return [
-   tr('closureMail.mailTitle',null,lang),
-   tr('closureMail.mailLast',null,lang)+': '+mailDate(c.last)+', '+c.time,
-   tr('closureMail.mailClosed',null,lang)+': '+mailDate(c.start)+' – '+mailDate(c.end),
-   tr('closureMail.mailResume',null,lang)+': '+mailDate(c.reopen)
+   closureMailLabel('title',lang),
+   closureMailLabel('last',lang)+': '+mailDate(c.last)+', '+c.time,
+   closureMailLabel('closed',lang)+': '+mailDate(c.start)+' – '+mailDate(c.end),
+   closureMailLabel('resume',lang)+': '+mailDate(c.reopen)
   ].join('\n')
  }).join('\n\n');
  return marker+'\n'+body+'\n'+'===================='
