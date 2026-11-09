@@ -50,7 +50,8 @@ function runClamscan(filePath,timeoutMs=DEFAULT_TIMEOUT_MS){
     '--no-summary','--infected','--alert-exceeds-max=yes',
     '--alert-encrypted=yes','--alert-macros=yes',
     '--max-filesize=20M','--max-scansize=80M',
-    '--max-recursion=8','--max-files=1000','--max-scantime=90000',
+    // Disable ClamAV's internal skip-as-clean scan timer: the external watchdog kills the process.
+    '--max-recursion=8','--max-files=1000','--max-scantime=0',
     '--',filePath
    ],{stdio:['ignore','ignore','ignore'],shell:false,env:{PATH:process.env.PATH||'/usr/bin:/bin'}});
    child.once('error',()=>settle({exitCode:null,timedOut:false}));
