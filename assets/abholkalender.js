@@ -186,7 +186,7 @@
         const identity=shipmentRefText(sh).toUpperCase()||shipmentIdentity(sh).toUpperCase();
         if(!identity||usedRefs.has(identity)||shipmentCancelled(sh)||!shipmentCustomerNumbers(sh).some(key=>valid.includes(key)))return false;
         usedRefs.add(identity);return true
-      });
+      }).sort((a,b)=>shipmentRefText(a).localeCompare(shipmentRefText(b),undefined,{numeric:true,sensitivity:'base'}));
       const refs=candidates.map(shipmentRefText).filter(Boolean);
       const matched=candidates.map(sh=>({ref:shipmentRefText(sh),key:shipmentIdentity(sh)}));
       const totals=candidates.reduce((acc,sh)=>{
@@ -393,7 +393,9 @@
     const refButtons = status && status.matched && status.matched.length ? `<div class="pickup-item-actions">${status.matched.slice(0,60).map(sh=>`<button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(sh.key)}">${esc(sh.ref)}</button>`).join('')}</div>` : '';
     const conflict = status && (status.conflicts||[]).length || status && status.legacyConflict;
     const stats = status && status.shipments ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.badge.shipment'))}: <strong>${status.shipments}</strong></span><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${status.total}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${status.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${status.open}</strong></span></div>` : '';
-    const link = conflict ? `<div class="pickup-fix-link" data-pickup-fix-state="conflict" role="status">${esc(tr('pickupCalendar.assignment.check'))}</div>` : linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}</div>` : '';
+    // Preserve the legacy compact REF summary; the buttons below provide individual navigation.
+    const refSummary = status && status.refs && status.refs.length ? ' · '+esc(status.refs.slice(0,5).join(', '))+(status.refs.length>5?' …':'') : '';
+    const link = conflict ? `<div class="pickup-fix-link" data-pickup-fix-state="conflict" role="status">${esc(tr('pickupCalendar.assignment.check'))}</div>` : linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}${refSummary}</div>` : '';
     const actions = manage ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">${esc(tr('pickupCalendar.action.edit'))}</button><button type="button" class="pickup-btn" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${esc(tr(item.active === false ? 'pickupCalendar.action.reactivate' : 'pickupCalendar.action.deactivate'))}</button></div>` : '';
     return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${stats}${refButtons}${actions}</article>`;
   }
