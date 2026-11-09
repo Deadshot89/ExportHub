@@ -201,12 +201,12 @@
     dialog.className='rc1259-photo-preview-dialog';
     dialog.setAttribute('role','dialog');
     dialog.setAttribute('aria-modal','true');
-    dialog.setAttribute('aria-label','Containerfoto ansehen');
+    dialog.setAttribute('aria-label',q(photo&&photo.name||photo&&photo.label)||tr('common.open'));
     header.className='rc1259-photo-preview-header';
     title.textContent=q(photo&&photo.name)||'Containerfoto';
     closeButton.type='button';
-    closeButton.textContent='Schließen';
-    closeButton.setAttribute('aria-label','Fotovorschau schließen');
+    closeButton.textContent=tr('common.close');
+    closeButton.setAttribute('aria-label',tr('common.close'));
     image.className='rc1259-photo-preview-image';
     image.alt=q(photo&&photo.label||photo&&photo.name)||'Containerfoto';
     image.src=url;
