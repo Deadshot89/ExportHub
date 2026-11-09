@@ -47,11 +47,17 @@ test('server rejects invalid and past shipping dates but supports older API clie
  }
 });
 
-test('both forms send the requested shipping day and display a non-blocking warning',()=>{
+test('both forms show a two-action choice only on late submission',()=>{
  for(const file of ['urgent-orders.html','urgent-order-report.html']){
   const html=fs.readFileSync(new URL('../assets/'+file,import.meta.url),'utf8');
   assert.match(html,/name="requestedDispatchDate"/);
-  assert.match(html,/cutoffWarning|internalCutoffWarning/);
+  assert.match(html,/lateCutoffChoice|internalLateCutoffChoice/);
+  assert.match(html,/cutoffSubmitToday/);
+  assert.match(html,/cutoffMoveTomorrow/);
+  assert.match(html,/requestSubmit\(\)/);
+  assert.match(html,/if\(lateToday&&!approved\)/);
+  assert.match(html,/const late=control.value===clock.date&&clock.minutes>15\*60\+15/);
+  assert.doesNotMatch(html,/id="(?:cutoffWarning|internalCutoffWarning)"/);
   assert.match(html,/15:15 Uhr/);
   assert.match(html,/requestedDispatchDate:/);
   assert.match(html,/lateSameDay/);
@@ -61,4 +67,57 @@ test('both forms send the requested shipping day and display a non-blocking warn
  const publicApi=fs.readFileSync(new URL('../api/urgent-order-public/index.js',import.meta.url),'utf8');
  assert.match(publicApi,/requestedDispatchDate:order\.requestedDispatchDate/);
  assert.match(publicApi,/cutoff:order\.cutoff/);
+});
+
+
+test('late cutoff choices stay hidden until a late same-day submit and tomorrow is calculated from Berlin date',()=>{
+ for(const [file,ids,begin,end,sync,apply] of [
+  ['urgent-orders.html',['internalRequestedDispatchDate','internalLateCutoffChoice','internalLateCutoffText','createButton','internalLateMoveTomorrow','internalWizardReview','newOrder'],
+   'function berlinCutoffClock(){','async function submit(ev){','syncInternalCutoff','internalLateChoice'],
+  ['urgent-order-report.html',['requestedDispatchDate','lateCutoffChoice','lateCutoffText','submitOrder','lateMoveTomorrow','reportForm'],
+   'function berlinCutoffClock(){','function buildPayload(){','syncCutoff','applyLateCutoffChoice']
+ ]){
+  const html=fs.readFileSync(new URL('../assets/'+file,import.meta.url),'utf8');
+  const start=html.indexOf(begin),end=html.indexOf(end,start);
+  assert.ok(start>=0&&end>start,file+' cutoff helpers found');
+  const controls=Object.fromEntries(ids.map(id=>[id,{value:'',hidden:false,textContent:'',min:'',focus(){}}]));
+  const isInternal=file==='urgent-orders.html';
+  const dateId=isInternal?'internalRequestedDispatchDate':'requestedDispatchDate';
+  const panelId=isInternal?'internalLateCutoffChoice':'lateCutoffChoice';
+  const buttonId=isInternal?'createButton':'submitOrder';
+  const textId=isInternal?'internalLateCutoffText':'lateCutoffText';
+  const formId=isInternal?'newOrder':'reportForm';
+  let submits=0;
+  controls[panelId].hidden=true;
+  controls[dateId].value='2026-11-09';
+  controls[formId].elements={language:{value:'de'},plannedDispatchAt:{value:'2026-11-09T18:00'}};
+  controls[formId].requestSubmit=()=>{submits++};
+  let clock='2026-11-09T14:15:59Z'; // 15:15:59 Berlin
+  class ClockDate extends Date{
+   constructor(...args){super(...(args.length?args:[clock]));}
+  }
+  const context=vm.createContext({
+   Intl,Date:ClockDate,
+   $:id=>controls[id],
+   localeV2:(_key,fallback)=>fallback,
+   showWizardStep:()=>{},
+  });
+  vm.runInContext(html.slice(start,end),context);
+  assert.equal(context[sync](),false,file+' at 15:15:59');
+  assert.equal(controls[panelId].hidden,true,'warning starts hidden');
+  clock='2026-11-09T14:16:00Z'; // 15:16 Berlin
+  assert.equal(context[sync](),true,'same-day cutoff crossed');
+  assert.equal(controls[panelId].hidden,true,'warning is not shown before user submits');
+  const show=isInternal?'showInternalCutoffChoice':'showLateCutoffChoice';
+  context[show]();
+  assert.equal(controls[panelId].hidden,false,'two actions are visible after attempted late submit');
+  assert.equal(controls[buttonId].hidden,true,'ordinary submit hidden while decision needed');
+  assert.match(controls[textId].textContent,/15:15/);
+  context[apply](true);
+  assert.equal(controls[dateId].value,'2026-11-10');
+  assert.equal(controls[panelId].hidden,true);
+  assert.equal(controls[buttonId].hidden,false);
+  assert.equal(submits,1,'moving to tomorrow submits exactly once');
+  if(!isInternal)assert.equal(controls[formId].elements.plannedDispatchAt.value,'2026-11-10T18:00','linked dispatch time follows new date');
+ }
 });
