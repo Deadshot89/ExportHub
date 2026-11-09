@@ -33,7 +33,7 @@ function memory(){
          }
        };
      }}}};
-   }}
+   }
  };
 }
 function loadStore(mem){
