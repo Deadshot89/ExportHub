@@ -36,6 +36,7 @@ test('RC1950: only distinct identifiable Azure accounts prove separate-account m
 test('RC1950: opaque or inconsistent connection strings remain unverified',()=>{
   assert.equal(classifyPodArchiveStorage(primary,'UseDevelopmentStorage=true'),'unverified');
   assert.equal(classifyPodArchiveStorage(primary,'BlobEndpoint=https://storage.example.com;SharedAccessSignature=abc'),'unverified');
+  assert.equal(classifyPodArchiveStorage(primary,'AccountName=backupstore;BlobEndpoint=https://proxy.example.com/;AccountKey=secret'),'unverified');
   assert.equal(classifyPodArchiveStorage(primary,'AccountName=backupstore;BlobEndpoint=https://mainstore.blob.core.windows.net/;AccountKey=secret'),'unverified');
 });
 
