@@ -94,7 +94,13 @@ async function scanLocalQuarantine({filePath,rootDir,runner=runClamscan,timeoutM
  }catch(_){return fail('io-error')}
  finally{
   // No temporary quarantine data survives a completed or failed scan.
-  if(stageDir)await fs.promises.rm(stageDir,{recursive:true,force:true}).catch(()=>{});
+  if(stageDir){
+   try{await fs.promises.rm(stageDir,{recursive:true,force:true});}
+   catch(_){
+    // Unremoved customer bytes must never be reported as a successful scan.
+    return fail('cleanup-failed');
+   }
+  }
  }
 }
 
