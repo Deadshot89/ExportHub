@@ -41,6 +41,7 @@ test('RC1940: invoice/proforma and delivery-note generation no longer mount unde
  assert.doesNotMatch(invoice,/function invoicePanel\(\)\{var h=host\(\)/);
  assert.doesNotMatch(delivery,/function host\(\)\{var h=root\.document&&root\.document\.getElementById\('rc1294AbdAnalysis'\)/);
  assert.match(invoice,/ExportHUBDocuments1940/);
+ assert.match(invoice,/var snapshot=api&&typeof api\.snapshot==='function'\?api\.snapshot\(i\):null;/);
  assert.match(invoice,/data-rc1549-import/);
 });
 
