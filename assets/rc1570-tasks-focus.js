@@ -488,6 +488,47 @@ async function changeTaskStatus(status){
   }finally{savePending=false}
 }
 
+async function deleteManagedTask(id){
+  if(savePending||!canWrite())return false;
+  var s=state(),task=arr(s.tasks).find(function(x){return taskId(x)===q(id)});
+  if(!task)return false;
+  if(isSystemManagedTask(task)){
+    if(typeof w.alert==='function')w.alert(t('managedByShipment'));
+    return false;
+  }
+  var seriesId=q(task.seriesId),entireSeries=seriesId.indexOf('rc1570-series:')===0;
+  var message=t(entireSeries?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
+  if(typeof w.confirm==='function'&&!w.confirm(message))return false;
+  var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta};
+  var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)});
+  var ids=new Set(targets.map(taskId).filter(Boolean));
+  if(!ids.size)return false;
+  var now=new Date().toISOString(),user=q(currentUser().name||currentUser().displayName||currentUser().user)||'Benutzer';
+  var deletedSeries=entireSeries?arr(s.taskSeries).filter(function(row){return q(row&&row.id)===seriesId}):[];
+  var meta=Object.assign({fields:{},tombstones:[]},s._teamSyncMeta||{});
+  var deletions=targets.map(function(row){return{collection:'tasks',id:taskId(row),deletedAt:now,deletedBy:user,explicitUserAction:true}});
+  if(entireSeries&&deletedSeries.length)deletions.push({collection:'taskSeries',id:seriesId,deletedAt:now,deletedBy:user,explicitUserAction:true});
+  var keys=new Set(deletions.map(function(row){return row.collection+':'+low(row.id)}));
+  meta.tombstones=arr(meta.tombstones).filter(function(row){return row&&!keys.has(q(row.collection)+':'+low(row.id))}).concat(deletions);
+  s.tasks=arr(s.tasks).filter(function(row){return !ids.has(taskId(row))});
+  if(entireSeries)s.taskSeries=arr(s.taskSeries).filter(function(row){return q(row&&row.id)!==seriesId});
+  s._teamSyncMeta=meta;
+  savePending=true;
+  try{
+    await persist('RC1570 task permanently deleted',q(id));
+    tv.mode='list';tv.id='';tv.error='';tv.saved=t('taskDeleted');
+    lastHtml='';lastView='';renderTaskView(true);
+    return true;
+  }catch(err){
+    s.tasks=originals.tasks;s.taskSeries=originals.series;s._teamSyncMeta=originals.meta;
+    tv.error=t('deleteFailed');tv.saved='';
+    if(typeof w.alert==='function')w.alert(t('deleteFailed'));
+    try{console.error('RC1570 delete was not confirmed by server',err)}catch(_){}
+    lastView='';renderTaskView(true);
+    return false;
+  }finally{savePending=false}
+}
+
 function field(label,html,wide){return'<label class="rc1570-field'+(wide?' rc1570-wide':'')+'"><span>'+esc(label)+'</span>'+html+'</label>'}
 function formHtml(task){
   var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?(low(x.recurrence)==='weekly'||(isWeekly(x)&&(!q(x.plannedDate||x.dueDate||x.dueAt)||arr(state().taskSeries).some(function(s){return q(s&&s.id)===q(x.seriesId)&&s.rule&&s.rule.type==='weekly'})))):false;
@@ -555,8 +596,8 @@ function managedRows(){
   return{rows:rows,counts:counters,users:us,today:today}
 }
 function isSystemManagedTask(x){
-  if(low(x&&x.sourceType)==='manual')return false;
   if(x&&(x.masterTaskRC848||x.masterTaskRC846))return true;
+  if(low(x&&x.sourceType)==='manual'&&!/^(m848:|task:av-missing:)/i.test(taskId(x)))return false;
   if(/^(m848:|task:av-missing:)/i.test(taskId(x)))return true;
   var source=low(x&&x.sourceType);
   if(source&&source!=='user'&&source!=='custom')return true;
