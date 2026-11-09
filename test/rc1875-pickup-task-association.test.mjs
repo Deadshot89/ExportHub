@@ -186,6 +186,30 @@ test('RC1875: wrong-environment FIX response and failed refresh cannot retain ol
  assert.match(element.innerHTML,/data-pickup-shipment-ref="UK-A"/,'standalone shipment stays independently openable');
 });
 
+test('RC1875: FIX response from another company cannot bind to current task and REF',async()=>{
+ const source=fs.readFileSync('assets/abholkalender.js','utf8');
+ const replies=[
+  {ok:true,environment:'testservice',companyKey:'other-company',items:fix,canEdit:true},
+  {ok:true,environment:'testservice',companyKey:'essentra',items:fix,canEdit:true}
+ ];
+ const element={innerHTML:'',addEventListener(){},querySelector(s){return s==='.pickup-calendar'&&this.innerHTML.includes('pickup-calendar')?{}:null}};
+ const context=vm.createContext({Date,Intl,Math,Number,String,Array,Object,JSON,Promise,console,
+  fetch:async()=>({ok:true,status:200,json:async()=>replies.shift()})});
+ vm.runInContext(source,context,{filename:'assets/abholkalender.js'});
+ const view=context.ExportHubPickupCalendar.mount(element,{environment:'testservice',companyId:'essentra',today:monday,tasks:[pick],shipments:[a]});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(view.state.companyKey,'');
+ assert.deepEqual(Array.from(view.state.fixedPickups),[]);
+ assert.equal(view.state.canEdit,false);
+ assert.match(view.state.fixedError,/FIX_COMPANY_MISMATCH/);
+ assert.doesNotMatch(element.innerHTML,/pickup-item pickup-item-fix/);
+ assert.match(element.innerHTML,/pickup-item pickup-item-shipment/);
+ await view.refresh();
+ assert.equal(view.state.companyKey,'essentra');
+ assert.equal(view.state.fixedPickups.length,2);
+ assert.equal(view.state.fixedError,null);
+});
+
 test('RC1875: late first FIX response cannot overwrite a newer successful refresh',async()=>{
  const source=fs.readFileSync('assets/abholkalender.js','utf8');
  const pending=[];
