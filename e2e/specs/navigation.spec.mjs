@@ -321,31 +321,28 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
 });
 
 
-test('RC1294 P2: ABD-Bereich routet sicher in PDF/XLSX/CSV-Rechnungsanalyse',async({page},testInfo)=>{
-  test.skip(testInfo.project.name!=='laptop','ABD-Datenimport wird einmal auf dem Laptop-Profil geprüft.');
-  const runtime=attachRuntimeGuards(page,testInfo);
-  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
-  await waitReady(page);
-  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
-
-  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
-  await expect(panel).toBeVisible({timeout:10_000});
-  await expect(panel).toContainText(/Arbeitsbereich auswählen|Choose a workspace|Zgłoszenia eksportowe|Solicitudes guardadas|Rechnung analysieren/i);
-  const invoicePanel=panel.locator('[data-rc1294-invoice-panel]');
-  const invoiceMode=panel.locator('[data-rc1294-mode="invoice"]');
-  const input=panel.locator('[data-rc1294-files]');
-  await expect(invoiceMode).toBeVisible();
-  await expect(invoiceMode).toHaveAttribute('aria-pressed','false');
-  await expect(invoicePanel).toBeHidden();
-  await invoiceMode.click();
-  await expect(invoiceMode).toHaveAttribute('aria-pressed','true');
-  await expect(invoicePanel).toBeVisible();
-  await expect(input).toHaveAttribute('multiple','');
-  await expect(input).toHaveAttribute('accept',/\.pdf.*\.xlsx.*\.csv/i);
-  await expect(panel.locator('[data-rc1294-start]')).toBeVisible();
-  await expect(page.locator('#rc626Abd .rc626-head h2')).toContainText(/ABD & Rechnungen|Export declarations & invoices/i);
-  await expect(page.locator('#rc1294AbdForm')).toBeHidden();
-  await assertNoSourceLeak(page);
-  await assertNoHorizontalOverflow(page);
-  await assertRuntimeClean(runtime,testInfo);
+test('RC1942: ABD ohne Rechnungsanalyse; Dokumente erstellen mit Excel/PDF/CSV-Upload',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='laptop','Chromium Laptop');
+ const runtime=attachRuntimeGuards(page,testInfo);
+ await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+ await waitReady(page);
+ await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+ const panel=page.locator('[data-rc1294-abd-analysis="1"]');
+ await expect(panel).toBeVisible({timeout:10000});
+ await expect(panel.locator('[data-rc1294-mode]')).toHaveCount(3);
+ await expect(panel.locator('[data-rc1294-mode="invoice"]')).toHaveCount(0);
+ await expect(panel.locator('[data-rc1294-invoice-panel]')).toHaveCount(0);
+ await expect(page.locator('#rc1294AbdForm')).toBeVisible();
+ await expect(page.locator('#rc626Abd .rc626-head h2')).toContainText(/ABD erstellen|Create export declaration/i);
+ const menu=page.locator('#nav > [data-exporthub-documents-nav]');
+ await expect(menu).toBeVisible();
+ await menu.click();
+ const workspace=page.locator('#rc1940Documents');
+ const picker=workspace.locator('[data-rc1940-files]');
+ await expect(picker).toHaveAttribute('multiple','');
+ await expect(picker).toHaveAttribute('accept',/\\.pdf.*\\.xlsx.*\\.csv/i);
+ await expect(workspace.locator('[data-rc1940-analyze]')).toBeVisible();
+ await assertNoSourceLeak(page);
+ await assertNoHorizontalOverflow(page);
+ await assertRuntimeClean(runtime,testInfo);
 });
