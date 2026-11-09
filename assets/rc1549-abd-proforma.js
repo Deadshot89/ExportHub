@@ -473,6 +473,18 @@ function enhance(){
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
+// RC1940: delegated capture handler survives rebuilt ABD result cards and works for all uploaded invoices.
+if(root.document&&typeof root.document.addEventListener==='function')root.document.addEventListener('click',function(event){
+ var button=event.target&&event.target.closest&&event.target.closest('[data-rc1549-import]');
+ if(!button||button.disabled)return;
+ var card=button.closest('.rc1294-document'),box=button.closest('[data-rc1294-results]');
+ if(!card||!box)return;
+ var cards=box.querySelectorAll('.rc1294-document'),index=Array.prototype.indexOf.call(cards,card);
+ if(index<0)return;
+ event.preventDefault();event.stopPropagation();
+ if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();
+ importUploaded(index)
+},true);
 root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed','exporthub:abd-analysis-results'].forEach(function(name){root.addEventListener(name,activate)});
