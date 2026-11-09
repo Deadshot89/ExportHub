@@ -170,13 +170,14 @@
     const kept=[],removed=[];
     const initialCleanup=!state.rc1152TaskRosterAt;
     const activeManagedKeys=new Set(MANAGED_TASKS.map(spec=>q(spec&&spec.key)).filter(Boolean));
+    const disabledManagedKeys=new Set(Object.keys(state.taskManagedDisabled&&typeof state.taskManagedDisabled==='object'?state.taskManagedDisabled:{}));
     const tombstoned=new Set(arr(state._teamSyncMeta&&state._teamSyncMeta.tombstones)
       .filter(item=>q(item&&item.collection).toLowerCase()==='tasks')
       .map(item=>q(item&&item.id).toLowerCase())
       .filter(Boolean));
     tasks.forEach(task=>{
       const managed=q(task&&task.managedBy)==='RC1152';
-      const managedCurrent=managed&&activeManagedKeys.has(q(task&&task.managedKey));
+      const managedCurrent=managed&&activeManagedKeys.has(q(task&&task.managedKey))&&!disabledManagedKeys.has(q(task&&task.managedKey));
       const type=q(task&&task.sourceType).toLowerCase();
       const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
       const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
@@ -201,7 +202,7 @@
     }
     const day=localDay(ctx.now||new Date());
     if(day){
-      const specs=managedOwnerMatches(ctx)?MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday)):[];
+      const specs=managedOwnerMatches(ctx)?MANAGED_TASKS.filter(spec=>!disabledManagedKeys.has(q(spec.key))&&(spec.referenceArea||arr(spec.weekdays).includes(day.weekday))):[];
       specs.forEach(spec=>{
         const candidate=managedTaskForSpec(spec,day.date,ctx);
         if(tasks.some(t=>q(t&&t.id)===candidate.id))return;
