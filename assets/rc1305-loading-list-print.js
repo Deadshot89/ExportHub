@@ -55,6 +55,12 @@ function shrinkInlineFonts(root,deltaPt){
  });
  root.setAttribute('data-rc1326-font-reduced',String(deltaPt));
 }
+function rc1935DocumentGridRows(count){
+ var n=Math.max(0,Math.floor(Number(count)||0));
+ if(!n)return 0;
+ var columns=Math.min(8,Math.max(1,Math.ceil(n/10)));
+ return Math.max(Math.min(n,10),Math.ceil(n/columns));
+}
 function rc1547ApplySinglePageFit(root){
  if(!root)return 1;
  var rows=Array.from(root.querySelectorAll('tbody tr'));
@@ -63,9 +69,10 @@ function rc1547ApplySinglePageFit(root){
   positionCount=root.querySelectorAll('[data-position-row],[data-colli-row],[data-package-row],.rc390-load-row,.rc352-load-row').length
  }
  var documentCount=root.querySelectorAll('[data-rc1293-packing-slip]').length;
- // Delivery notes stand ten per column side by side, so the list is never
- // taller than ten rows; counting every note made long lists print tiny.
- var documentRows=Math.ceil(Math.min(documentCount,10)/2);
+ // Match actual RC1504 column-major grid: up to ten delivery notes in EACH
+ // column. The old /2 heuristic undercounted ten names as five rows and
+ // could cause a signature/footer overlap on the fitted A4 document.
+ var documentRows=rc1935DocumentGridRows(documentCount);
  var effective=positionCount+documentRows,extra=Math.max(0,effective-5);
  var scale=extra?Math.max(.34,1/(1+extra*.045)):1;
  root.setAttribute('data-rc1547-single-page','1');
