@@ -8,6 +8,7 @@ const packStore=require('../shared/pack-notification-store');
 const {MODULES,normalizeUser,publicUser}=require('../shared/user-policy');
 const {collectTestserviceTeamInventory}=require('../shared/testservice-team-inventory');
 const {collectTestserviceMultiScopeInventory}=require('../shared/testservice-multi-scope-inventory');
+const {collectTestserviceAbdDefenderDiagnostics}=require('../shared/rc1945-abd-defender-diagnostics');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -339,6 +340,28 @@ module.exports=async function(context,req){
   const payload=body(req);requireTestservice(req,payload);
   if(!await githubOidcAuthorized(req))throw error('E2E_FIXTURE_FORBIDDEN','RC1139 Fixture darf nur vom signierten GitHub-Releaseworkflow aufgerufen werden.',403);
   const action=lower(payload.action),runId=safeRunId(payload.runId);
+  if(action==='diagnose-abd-defender'){
+   // RC1945: OIDC and both TESTSERVICE environment checks already passed.
+   // Same storage selection as /api/abd-analysis, fixed testservice/ prefix.
+   // No scan requests, content reads, secret disclosure or storage changes.
+   const cs=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
+   let diagnostics;
+   try{
+    if(!cs)diagnostics=await collectTestserviceAbdDefenderDiagnostics();
+    else{
+     const {BlobServiceClient}=require('@azure/storage-blob');
+     const account=BlobServiceClient.fromConnectionString(cs);
+     const name=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
+     diagnostics=await collectTestserviceAbdDefenderDiagnostics({service:account,containerName:name});
+    }
+   }catch(_){
+    // SDK configuration/parser errors can contain connection-string details.
+    // Never pass them to the generic fixture logger or HTTP response.
+    diagnostics=await collectTestserviceAbdDefenderDiagnostics();
+   }
+   context.res=json(200,{ok:true,action:'diagnose-abd-defender',...diagnostics});
+   return;
+  }
   if(action==='inventory-blob-policy'){
    // RC1639: signed TESTSERVICE OIDC gate already passed. This setting
    // belongs to the Azure storage ACCOUNT, which may also serve production.
@@ -372,7 +395,7 @@ module.exports=async function(context,req){
   }
   if(action==='prepare'){context.res=json(200,await prepare(runId));return}
   if(action==='cleanup'){context.res=json(200,await cleanup(runId));return}
-  throw error('ACTION_INVALID','Erlaubt sind prepare, cleanup, inventory-team, inventory-scopes und inventory-blob-policy.',400);
+  throw error('ACTION_INVALID','Erlaubt sind prepare, cleanup, inventory-team, inventory-scopes, inventory-blob-policy und diagnose-abd-defender.',400);
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1139 E2E fixture error',e&&e.code,e&&e.message)}catch(_){}
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'RC1139 Fixture fehlgeschlagen.'});

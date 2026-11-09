@@ -670,6 +670,61 @@ jobs:
             echo "RC1631: Multi-Container-LIST nicht verfügbar; keine Speicherfreigabe." >&2
           fi
 
+          # RC1945: aggregate GET of existing Defender scan-result tags only.
+          # The already-verified OIDC fixture restricts this to the TESTSERVICE
+          # quarantine prefix. Never upload, rescan, download or modify a blob.
+          if defender_payload="$(fixture diagnose-abd-defender)"; then
+            if ! printf '%s' "$defender_payload" | node -e '
+              let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{
+                let v;try{v=JSON.parse(raw)}catch(_){process.exitCode=1;return}
+                if(v.ok!==true||v.action!=="diagnose-abd-defender"||v.version!=="RC1945"||
+                   v.environment!=="testservice"||v.scope!=="abd-quarantine"||
+                   v.resourceOwnershipVerified!==false||v.billingVerified!==false||
+                   v.configurationChangeApproved!==false){process.exitCode=2;return}
+                const states=["clean","pending","malicious","not-scanned","error"];
+                const reasons=["unknown","configuration","client-unavailable","incomplete",
+                  "access-denied","not-found","transport-error","other"];
+                const safe=n=>Number.isSafeInteger(n)&&n>=0;
+                let report;
+                if(v.status==="verified"&&v.reason===null&&safe(v.recordCount)&&v.states&&
+                   states.every(k=>safe(v.states[k]))&&
+                   states.reduce((sum,k)=>sum+v.states[k],0)===v.recordCount&&
+                   safe(v.pendingOver120Seconds)&&safe(v.pendingOverTwoHours)&&
+                   v.pendingOverTwoHours<=v.pendingOver120Seconds&&
+                   v.pendingOver120Seconds<=v.states.pending){
+                  report={status:"verified",records:v.recordCount,states:v.states,
+                    pendingOver120Seconds:v.pendingOver120Seconds,
+                    pendingOverTwoHours:v.pendingOverTwoHours};
+                }else if(v.status==="unverified"&&reasons.includes(v.reason)&&
+                         v.recordCount===null&&v.states===null&&
+                         v.pendingOver120Seconds===null&&v.pendingOverTwoHours===null){
+                  report={status:"unverified",reason:v.reason};
+                }else{process.exitCode=3;return}
+                console.log("RC1945 Defender-Scan-Diagnose "+JSON.stringify(report));
+                if(process.env.GITHUB_STEP_SUMMARY){
+                  require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                    "\n## RC1945 · Defender-XLSX-Scan (nur lesend)\n\n"+
+                    "TESTSERVICE Quarantäne, nur aggregierte Statuszahlen; keine Dateiinhalte oder Namen.\n\n"+
+                    "Status: "+report.status+
+                    (report.status==="verified"?
+                      "\n- Dateien: "+report.records+
+                      "\n- Sauber: "+report.states.clean+
+                      "\n- Noch offen: "+report.states.pending+
+                      "\n- Offen über 120 s: "+report.pendingOver120Seconds+
+                      "\n- Offen über 2 h: "+report.pendingOverTwoHours+
+                      "\n- Blockiert (Malware/ungescannt/Fehler): "+
+                      (report.states.malicious+report.states["not-scanned"]+report.states.error):
+                      "\n- Ungeprüfter Grund: "+report.reason)+
+                    "\n\nKeine verifizierte Defender-Plan-Konfiguration oder Kostenfreigabe.\n");
+                }
+              });
+            '; then
+              echo "RC1945: Defender-Diagnoseantwort nicht vertrauenswürdig; keine Freigabe." >&2
+            fi
+          else
+            echo "RC1945: Defender-Tags im TESTSERVICE nicht überprüfbar; Quarantäne bleibt gesperrt." >&2
+          fi
+
           cleanup() { fixture cleanup >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           prepared="$(fixture prepare)"
