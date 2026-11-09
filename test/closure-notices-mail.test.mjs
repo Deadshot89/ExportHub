@@ -87,12 +87,12 @@ test('Issue 1328: Ungültige oder ausgeschaltete Konfiguration versendet keinen 
 
 test('Issue 1328: pickup closure lookup is inclusive, independent of announcement lead, and rejects invalid setups',()=>{
  const enabled=settings([closure]);
- for(const day of ['2026-12-21','2026-12-31','2027-01-01']){
+ for(const day of ['2026-12-21','2026-12-31','2027-01-01','2027-01-02','2027-01-03']){
   const result=closureForPickupDate(enabled,day);
   assert.ok(result,'Closed date must be denied: '+day);
   assert.equal(result.reopenDate,'2027-01-04');
  }
- for(const day of ['2026-12-20','2027-01-02','2027-01-04','2026-02-30','2026/12/25','']){
+ for(const day of ['2026-12-20','2027-01-04','2026-02-30','2026/12/25','']){
   assert.equal(closureForPickupDate(enabled,day),null,'Open/invalid date: '+day);
  }
  assert.equal(closureForPickupDate(settings([{...closure,enabled:false}]),'2026-12-25'),null);
