@@ -216,9 +216,8 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- return localeV2('cutoffLateWarning',$('reportForm').elements.language.value==='en'
-  ?'After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.'
-  :'Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.';
+ const fallback=$('reportForm').elements.language.value==='en'?"After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.":"Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.";
+ return localeV2('cutoffLateWarning',fallback);
 }
 function syncCutoff(){
  const control=$('requestedDispatchDate'),clock=berlinCutoffClock();
