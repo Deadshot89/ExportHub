@@ -23,7 +23,17 @@ function findCard(root,re){return cardFor(findLabel(root,re),root)}
 function innermost(root,re){var all=Array.from(root.querySelectorAll('div,span'));return all.find(function(el){var t=q(el.textContent);if(!t||!re.test(t))return false;return !Array.from(el.children||[]).some(function(ch){return re.test(q(ch.textContent))})})||null}
 function existingFiles(body){var raw=q(body&&body.textContent),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[],out=[],seen={};hits.forEach(function(name){name=q(name);var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))});return out}
 function splitPdfNames(v){var raw=fileName(v),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[];return hits.length?hits.map(q):(raw?[raw]:[])}
-function deliveryReference(v){var ref=q(v&&typeof v==='object'&&v.documentReference).toUpperCase();return /^(?:DNC|SIDE)[0-9]{6,20}$/.test(ref)?ref:''}
+function deliveryReference(v){
+ if(!v||typeof v!=='object')return'';
+ // Uploaded PDFs can carry the same verified reference under different metadata
+ // keys. Never try to guess a DNC/SIDE from a technical ERP filename.
+ var fields=['documentReference','normalizedName','canonicalName'];
+ for(var i=0;i<fields.length;i++){
+  var raw=q(v[fields[i]]).toUpperCase(),match=/^(DNC|SIDE)[ _-]*([0-9]{6,20})(?:\.PDF)?$/.exec(raw);
+  if(match)return match[1]+match[2];
+ }
+ return'';
+}
 function isReferenceName(v){return /^(?:DNC|SIDE)[0-9]{6,20}(?:\.pdf)?$/i.test(q(v))}
 // Invoices are not delivery notes, and ERP file names only repeat what the
 // DNC/SIDE references already say, so neither belongs on the print list.
@@ -33,7 +43,24 @@ function printableDeliveryFiles(files){
  if(!list.some(isReferenceName))return list;
  return list.filter(function(name){return !/^Sales(?:PackingSlip|Invoice)[-_ ]/i.test(q(name))});
 }
-function deliveryFiles(sh){var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};function push(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))}function add(v){var ref=deliveryReference(v);if(ref){push(ref);return}splitPdfNames(v).forEach(push)}fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});if(!out.length)arr(sh&&sh.documents).forEach(function(item){var kind=q(item&&(item.type||item.category||item.group||item.documentType)).toLowerCase();if(kind&&!/delivery|lieferschein|dnc/.test(kind))return;add(item)});return printableDeliveryFiles(out)}
+function deliveryFiles(sh){
+ var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};
+ function push(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))}
+ function add(v){var ref=deliveryReference(v);if(ref){push(ref);return}splitPdfNames(v).forEach(push)}
+ fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});
+ // AVIS/Packmeldung also save normalized attachments in the general document
+ // collections. A legacy deliveryFiles entry must not suppress these authoritative
+ // DNC/SIDE names on the Ladeliste and Deckblatt.
+ ['documents','files'].forEach(function(field){arr(sh&&sh[field]).forEach(function(item){
+  var kind=q(item&&typeof item==='object'&&(item.documentType||item.category||item.group||item.kind||item.type)).toLowerCase();
+  if(/^(?:application\/pdf|application\/x-pdf|pdf|document|file)$/.test(kind))kind='';
+  var name=fileName(item),ref=deliveryReference(item);
+  if(kind&&!/delivery|lieferschein|packing.?slip|dnc|side/.test(kind))return;
+  if(!kind&&!ref&&!isReferenceName(name)&&!/lieferschein|delivery[ _-]*note|^SalesPackingSlip[-_ ]/i.test(name))return;
+  add(item);
+ })});
+ return printableDeliveryFiles(out)
+}
 // Pack notifications already carry the authoritative, stored PDF list.
 // Do not re-append a stale technical SalesPackingSlip name from the old
 // HTML field: it is not an independent, downloadable delivery note.
