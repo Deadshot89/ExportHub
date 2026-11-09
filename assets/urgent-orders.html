@@ -55,6 +55,11 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:8px 0 13px}.stat{padding:11px 15px;border-radius:11px}.stat b{font-size:23px}
 .workspace-nav{position:sticky;top:0;z-index:12;backdrop-filter:blur(12px);margin:13px 0}.workspace-nav .workspace-tab{flex:1 1 175px}
 .layout>.panel{padding:clamp(18px,2.6vw,27px)}.form-grid{gap:10px}.filters{gap:7px}
+.cutoff-choice{border:1px solid #e4c58c;background:#fff8eb;border-radius:13px;padding:16px;margin-top:13px;color:#644513}
+.cutoff-choice h3{font-size:16px;margin:0 0 8px}.cutoff-choice p{margin:0 0 14px;line-height:1.6}
+.cutoff-choice .btn-row{display:flex;flex-wrap:wrap;gap:10px}
+@media(max-width:550px){.cutoff-choice .btn-row button{flex:1 1 100%}}
+@media(prefers-color-scheme:dark){.cutoff-choice{background:#392d1d;border-color:#80683f;color:#f5deb0}}
 .wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;border-bottom:1px solid var(--line);padding-bottom:17px}.wizard-track>span{display:flex;align-items:center;gap:10px;border-radius:11px;padding:9px;color:var(--muted);font-size:12px;font-weight:800}
 .wizard-track b{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;background:var(--bg);border:1px solid var(--line)}.wizard-track>span[aria-current="step"]{background:#1e61c3;color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff22;border-color:#ffffff55}
 [data-internal-step]{padding-top:16px}[data-internal-step][hidden]{display:none!important}.wizard-review{padding:17px 19px;border-radius:14px;border:1px solid #bad4f1;background:#eef6ff}
@@ -87,11 +92,15 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
 <datalist id="internalUrgentEmailHistory"></datalist>
 </div>
-<div class="hintbar" id="internalCutoffWarning" role="alert" hidden></div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <div id="lineFields"></div>
-</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div>
+<section id="internalLateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="internalLateCutoffHeading" hidden>
+<h3 id="internalLateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
+<p id="internalLateCutoffText"></p>
+<div class="btn-row"><button class="btn alt" id="internalLateSubmitToday" type="button" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button class="btn" id="internalLateMoveTomorrow" type="button" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
@@ -197,6 +206,7 @@ function formItems(){
 let internalStep=1;
 function showInternalStep(step){
  internalStep=Math.max(1,Math.min(3,step));
+ if(internalStep!==3)hideInternalCutoffChoice();
  for(const block of document.querySelectorAll('[data-internal-step]'))block.hidden=Number(block.dataset.internalStep)!==internalStep;
  for(const mark of document.querySelectorAll('[data-internal-mark]')){if(Number(mark.dataset.internalMark)===internalStep)mark.setAttribute('aria-current','step');else mark.removeAttribute('aria-current');}
  $('internalWizardBack').hidden=internalStep===1;$('internalWizardNext').hidden=internalStep===3;
@@ -350,26 +360,57 @@ function cutoffText(){
  const fallback=$('newOrder').elements.language.value==='en'?"A quick note about today's deadline: Please report orders for today by 3:15 pm. If it's later, it's best to choose tomorrow as the shipping date. You can still report the order for today. If the system doesn't release it automatically, we'll take care of it tomorrow.":"Hinweis zur heutigen Meldefrist: Bitte melde Aufträge für heute bis 15:15 Uhr. Ist es später, wähle am besten morgen als Versandtag. Du kannst den Auftrag trotzdem für heute melden. Wenn das System ihn nicht automatisch freigibt, kümmern wir uns morgen darum.";
  return localeV2('cutoffLateWarning',fallback);
 }
+let internalCutoffApproved=false;
+function hideInternalCutoffChoice(){
+ $('internalLateCutoffChoice').hidden=true;
+ $('createButton').hidden=false;
+}
+function showInternalCutoffChoice(){
+ $('internalLateCutoffText').textContent=cutoffText();
+ $('internalLateCutoffChoice').hidden=false;
+ $('createButton').hidden=true;
+ $('internalLateMoveTomorrow').focus();
+}
 function syncInternalCutoff(){
  const control=$('internalRequestedDispatchDate'),clock=berlinCutoffClock();
  if(!control.value)control.value=clock.date;
  control.min=clock.date;
  const late=control.value===clock.date&&clock.minutes>15*60+15;
- $('internalCutoffWarning').hidden=!late;
- $('internalCutoffWarning').textContent=late?cutoffText():'';
+ if(!late)hideInternalCutoffChoice();
+ else if(!$('internalLateCutoffChoice').hidden)$('internalLateCutoffText').textContent=cutoffText();
  return late;
+}
+function internalTomorrow(){
+ const [y,m,d]=berlinCutoffClock().date.split('-').map(Number);
+ return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10);
+}
+function internalLateChoice(moveTomorrow){
+ const control=$('internalRequestedDispatchDate');
+ if(moveTomorrow){
+  control.value=internalTomorrow();
+  syncInternalCutoff();
+  const review=$('internalWizardReview');
+  if(review)review.textContent=review.textContent+' · '+control.value;
+ }else{
+  internalCutoffApproved=true;
+ }
+ hideInternalCutoffChoice();
+ $('newOrder').requestSubmit();
 }
 async function submit(ev){
  ev.preventDefault();const form=$('newOrder');
  if(internalStep!==3){showInternalStep(1);return;}
- syncInternalCutoff();
+ const approved=internalCutoffApproved;internalCutoffApproved=false;
+ const lateToday=syncInternalCutoff();
  if(!form.reportValidity()){showInternalStep(1);return;}
  const items=formItems();
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
+ if(lateToday&&!approved){showInternalCutoffChoice();return;}
+ hideInternalCutoffChoice();
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.')+(r.order.cutoff&&r.order.cutoff.lateSameDay?' '+cutoffText():''),r.order.cutoff&&r.order.cutoff.lateSameDay?'warning':'ok');}
+ try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
@@ -449,6 +490,8 @@ async function copyDraft(){
 }
 $('newOrder').addEventListener('submit',submit);
 $('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
+$('internalLateSubmitToday').addEventListener('click',()=>internalLateChoice(false));
+$('internalLateMoveTomorrow').addEventListener('click',()=>internalLateChoice(true));
 $('csLanguage').addEventListener('change',syncInternalCutoff);
 $('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('clearInternalEmailHistory').addEventListener('click',forgetEmails);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
