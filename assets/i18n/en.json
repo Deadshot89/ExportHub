@@ -2662,5 +2662,6 @@
   "closureMail.mailClosed": "Closed",
   "closureMail.mailResume": "Reopening",
   "closureMail.htmlPreview": "Preview HTML email",
-  "closureMail.previewFailed": "Could not load the email preview."
+  "closureMail.previewFailed": "Could not load the email preview.",
+  "closureMail.pickupWarning": "Warning: Pickup on {{date}} falls within our closure ({{from}} – {{to}}). We reopen on {{reopen}}. Please review the pickup date."
 }
