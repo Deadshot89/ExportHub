@@ -2,15 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-import {verifyUploadAsset,verifyUnauthenticatedApi,verifyLiveUploadRoute} from '../scripts/rc1787-abd-upload-route-smoke.mjs';
+import {verifyUploadAsset,verifyExportAsset,verifyUnauthenticatedApi,verifyLiveUploadRoute} from '../scripts/rc1787-abd-upload-route-smoke.mjs';
 const SHA='a'.repeat(40);
 const ASSET="function authToken(){} exporthub_rc301_tab_session data-rc1294-files ABD_UPLOAD_ROUTE_UNAVAILABLE";
+const EXPORT_ASSET="function authToken(){} getItem('exporthub_rc301_tab_session') function headers(){}";
 const NO_SESSION=JSON.stringify({ok:false,code:'AUTH_REQUIRED',message:'Anmeldung erforderlich.'});
 
 test('RC1787: deployed invoice upload UI contains the canonical session and file input',()=>{
  assert.equal(verifyUploadAsset(200,ASSET),true);
  assert.throws(()=>verifyUploadAsset(404,ASSET),/not served/);
  assert.throws(()=>verifyUploadAsset(200,ASSET.replace('data-rc1294-files','')),/outdated/);
+});
+
+test('RC1932: deployed invoice/Proforma export UI uses the canonical session only',()=>{
+ assert.equal(verifyExportAsset(200,EXPORT_ASSET,'rc1549-abd-proforma.js'),true);
+ assert.throws(()=>verifyExportAsset(404,EXPORT_ASSET,'rc1549-abd-proforma.js'),/not served/);
+ assert.throws(()=>verifyExportAsset(200,EXPORT_ASSET.replace("getItem('exporthub_rc301_tab_session')",''),'rc1549-abd-proforma.js'),/outdated/);
+ assert.throws(()=>verifyExportAsset(200,EXPORT_ASSET+'sessionStorage.length','rc1499-abd-export.js'),/unsafe arbitrary-token/);
 });
 
 test('RC1787: live upload route rejects unauthenticated POST with JSON/401, not login HTML',()=>{
@@ -30,17 +38,21 @@ test('RC1787: integration checks asset and API route without credentials or real
  const calls=[];
  const mock=async(url,init)=>{
   calls.push({url,method:init.method,headers:init.headers,body:init.body});
-  if(init.method==='GET')return{status:200,text:async()=>ASSET};
+  if(init.method==='GET')return{status:200,text:async()=>url.includes('rc1294-abd-self-service.js')?ASSET:EXPORT_ASSET};
   return{status:401,headers:{get:()=> 'application/json'},text:async()=>NO_SESSION};
  };
  const r=await verifyLiveUploadRoute('testservice',SHA,mock);
- assert.deepEqual(r,{environment:'testservice',uploadUi:'verified',apiRoute:'verified',authGuard:'AUTH_REQUIRED'});
- assert.equal(calls.length,2);
+ assert.deepEqual(r,{environment:'testservice',uploadUi:'verified',exportUi:'verified',apiRoute:'verified',authGuard:'AUTH_REQUIRED'});
+ assert.equal(calls.length,4);
  assert.equal(calls[0].method,'GET');
- assert.equal(calls[1].method,'POST');
- assert.deepEqual(JSON.parse(calls[1].body),{action:'status',uploadId:'rc1787-nonexistent'});
- assert.ok(!Object.keys(calls[1].headers).some(k=>/authorization|token|cookie/i.test(k)),'No credentials may be sent');
- assert.ok(!calls[1].body.includes('base64'),'Never send uploaded files');
+ assert.equal(calls[1].method,'GET');
+ assert.equal(calls[2].method,'GET');
+ assert.match(calls[1].url,/rc1549-abd-proforma\.js/);
+ assert.match(calls[2].url,/rc1499-abd-export\.js/);
+ assert.equal(calls[3].method,'POST');
+ assert.deepEqual(JSON.parse(calls[3].body),{action:'status',uploadId:'rc1787-nonexistent'});
+ assert.ok(!Object.keys(calls[3].headers).some(k=>/authorization|token|cookie/i.test(k)),'No credentials may be sent');
+ assert.ok(!calls[3].body.includes('base64'),'Never send uploaded files');
 });
 
 test('RC1787: environment/commit validation fails closed',async()=>{
