@@ -10,6 +10,9 @@ function setup(options={}){
    error(code,message,status){return Object.assign(new Error(message),{code,status})},
    async validateSession(req){if(!req.headers||req.headers.authorization!=='Bearer valid')throw auth.error('AUTH_REQUIRED','Login fehlt',401);return{user:req.user||baseUser,team:{state:{shipments:[{id:'MAIN-UK',reference:'UK-REF'}]}}}}
  };
+ auth.clientsForEnvironment=async environment=>({team:{environment}});
+ auth.readJson=async()=>({value:{state:{shipments:[{id:'MAIN-UK',reference:'UK-REF'}]}}});
+ auth.emptyTeam=()=>({state:{}});
  const fast={isSource:()=>true,validateSession:auth.validateSession};
  const ledger={async read(scope,readOptions){reads.push({scope,options:readOptions});if(options.storageError)throw options.storageError;return{
    environment:scope.environment,companyKey:scope.companyKey,revision:4,
@@ -22,7 +25,7 @@ function setup(options={}){
        pickupDate:'2026-11-09',reference:'UK-REF',companyKey:args.companyKey,
        environment:args.environment,registered:true};
    }};
- const pickupAccess={};const pickupStore={};
+ const pickupAccess={};const pickupStore={};const bindingStore={};
  const original=Module._load;
  Module._load=function(request,parent,isMain){
    if(parent&&parent.filename===source){
@@ -32,6 +35,7 @@ function setup(options={}){
      if(request==='../shared/pickup-transport-registration-proof')return registrationProof;
      if(request==='../shared/public-access-store')return pickupAccess;
      if(request==='../shared/pickup-store')return pickupStore;
+     if(request==='../shared/pickup-transport-binding-store')return bindingStore;
    }
    return original.call(this,request,parent,isMain);
  };
@@ -43,7 +47,7 @@ function setup(options={}){
    query:{},user:baseUser,...overrides
  });
  const invoke=async req=>{const ctx={};await handler(ctx,req);return {...ctx.res,data:JSON.parse(ctx.res.body)}};
- return{reads,request,invoke,proofCalls,pickupAccess,pickupStore};
+ return{reads,request,invoke,proofCalls,pickupAccess,pickupStore,bindingStore};
 }
 test('GET reads only own testservice tenant and no-store response',async()=>{
  const {reads,request,invoke}=setup(),r=await invoke(request());
@@ -114,6 +118,7 @@ test('read-only verification consults authoritative server evidence without expo
  assert.equal(proofCalls[0].team.state.shipments[0].id,'MAIN-UK');
  assert.equal(proofCalls[0].accessStore,pickupAccess);
  assert.equal(proofCalls[0].pickupStore,pickupStore);
+ assert.equal(proofCalls[0].bindingStore,bindingStore);
 });
 test('unverified request requires calendar rights before reading registration',async()=>{
  const {request,invoke,proofCalls}=setup();

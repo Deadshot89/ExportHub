@@ -13,6 +13,7 @@ const apiI18n=require('../shared/i18n');
 const registrationProof=require('../shared/pickup-transport-registration-proof');
 const pickupAccess=require('../shared/public-access-store');
 const pickupStore=require('../shared/pickup-store');
+const bindingStore=require('../shared/pickup-transport-binding-store');
 
 async function session(req){
  if(fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth))
@@ -39,10 +40,14 @@ module.exports=async function(context,req){
      if(!shipmentId||shipmentId.length>256||!pickupTargetId||pickupTargetId.length>128||
        !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate))
        throw auth.error('TRANSPORT_SCOPE_INVALID',apiI18n.t(req,'api.pickupLinks.loadFailed'),400);
+     // Always consult the requested environment's saved team state. Login
+     // credentials may be shared with production during TESTSERVICE migration.
+     const clients=await auth.clientsForEnvironment(environment);
+     const doc=await auth.readJson(clients.team,auth.emptyTeam());
      const transport=await registrationProof.inspect({
        environment,companyKey:tenant.companyKey,pickupDate,pickupTargetId,
-       shipmentId,team:current.team,accessStore:pickupAccess,
-       pickupStore,fixedStore:fixed
+       shipmentId,team:doc.value||auth.emptyTeam(),accessStore:pickupAccess,
+       pickupStore,fixedStore:fixed,bindingStore
      });
      context.res=auth.json(200,{ok:true,verified:true,transport});
      return;
