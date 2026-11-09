@@ -521,8 +521,17 @@
     if(!dates.length)return false;
     const opts=mountedOptions;
     const key=environmentOf(opts)+'|'+String(mountedState.companyKey||'')+'|'+dates.join(',');
+    const elapsed=Date.now()-rc1878At;
+    // Avoid repeated full team-state reads from rapid local render cycles.
+    // A fresh shipment event inside the 5s guard is delayed, not discarded.
+    if(key===rc1878Key&&elapsed<(force?5000:30000)){
+      if(force&&!rc1878Timer&&typeof root.setTimeout==='function')
+        rc1878Timer=root.setTimeout(()=>{
+          rc1878Timer=0;rc1878At=0;schedulePickupReconcile(true);
+        },Math.max(1000,5000-elapsed));
+      return false;
+    }
     if(rc1878Timer){if(root.clearTimeout)root.clearTimeout(rc1878Timer);rc1878Timer=0}
-    if(!force&&key===rc1878Key&&Date.now()-rc1878At<30000)return false;
     rc1878Key=key;rc1878At=Date.now();
     const run=async()=>{
       rc1878Timer=0;

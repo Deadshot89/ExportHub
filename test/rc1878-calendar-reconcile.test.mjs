@@ -11,7 +11,8 @@ test('calendar remains valid JavaScript and schedules a bounded server reconcile
  assert.doesNotThrow(()=>new vm.Script(calendar));
  assert.match(calendar,/function schedulePickupReconcile\(force\)/);
  assert.match(calendar,/\.slice\(0,5\)/);
- assert.match(calendar,/rc1878At<30000/);
+ assert.match(calendar,/elapsed<\(force\?5000:30000\)/);
+ assert.match(calendar,/schedulePickupReconcile\(true\)/);
  assert.match(calendar,/setTimeout\(run,650\)/);
 });
 test('the request sends only pickup dates and uses existing same-origin credentials',()=>{
