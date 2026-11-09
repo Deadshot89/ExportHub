@@ -282,3 +282,34 @@ test('RC1093: bestätigte Pflicht-CC-Fallbacks machen die Anmeldung unabhängig 
   assert.match(decoded,/sevastianmarcu@essentra\.com/);
   assert.match(decoded,/danielollmann@essentra\.com/);
 });
+
+test('Issue #1328: Sendungsanmeldung erhält einen sprachrichtigen, idempotenten Schließhinweis im Outlook-Klartext',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  class FixedDate extends Date {
+    constructor(...args){super(...(args.length?args:['2026-12-14T12:00:00.000Z']))}
+    static now(){return Date.parse('2026-12-14T12:00:00.000Z')}
+  }
+  const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+    lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
+  for(const [lang,title] of [['de','Wichtige Information'],['en','Important notice'],['pl','Ważna informacja'],['es','Información importante'],['fr','Information importante'],['it','Informazione importante']]){
+    const state={settings:{closureNotices:[closure]}};
+    const window={__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:createTestI18n(lang)};
+    const sandbox={window,Date:FixedDate,Intl,URLSearchParams,console};
+    vm.runInNewContext(source,sandbox);
+    const api=window.ExportHUBRC1065RegistrationCC;
+    const mail='mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&body=Hello%2C%20please%20collect';
+    const result=api.prepare(mail);
+    assert.equal(result.ok,true,lang);
+    const query=new URL(result.url).searchParams;
+    assert.match(query.get('body'),/Hello, please collect/);
+    assert.match(query.get('body'),/=== ExportHUB360 ===/);
+    assert.ok(query.get('body').includes(title),lang);
+    assert.match(query.get('body'),/15:00/);
+    assert.doesNotMatch(query.get('body'),/<table|<strong/i);
+    assert.match(query.get('cc'),/danielollmann@essentra.com/i);
+    assert.equal(api.prepare(result.url).url,result.url,'zweiter Aufruf darf nicht doppelt anhängen');
+    assert.equal(api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123').url,'mailto:carrier@example.com?subject=Lieferavis%20ABC123');
+    state.settings.closureNotices[0].enabled=false;
+    assert.doesNotMatch(new URL(api.prepare(mail).url).searchParams.get('body'),/=== ExportHUB360 ===/);
+  }
+});
