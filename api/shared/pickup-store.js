@@ -279,7 +279,7 @@ function mergeContainerPhotos(a,b){
 function positiveColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0}
 function physicalColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.ceil(n)):0}
 function expectedCollis(source){
- const src=source&&typeof source==='object'?source:{},lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];let best=0;
+ const src=source&&typeof source==='object'?source:{},lists=['rows','colli','collis','packages','packageRows','packagingRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];let best=0;
  for(const key of lists){if(!Array.isArray(src[key]))continue;let sum=0;for(const row of src[key]){let n=0;for(const f of rowFields){n=physicalColliCount(row&&row[f]);if(n>0)break}sum+=n}if(sum>best)best=sum}
  if(best>0)return best;
  for(const f of trusted){const n=positiveColliCount(src[f]);if(n>0)return n}
