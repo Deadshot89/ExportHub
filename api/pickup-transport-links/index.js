@@ -9,6 +9,7 @@ const company=require('../shared/company-context');
 const rights=require('../shared/state-write-guard');
 const fixed=require('../shared/fixed-pickup-store');
 const ledger=require('../shared/pickup-transport-link-store');
+const apiI18n=require('../shared/i18n');
 
 async function session(req){
  if(fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth))
@@ -19,10 +20,10 @@ module.exports=async function(context,req){
  const method=String(req&&req.method||'GET').toUpperCase();
  if(method==='OPTIONS'){context.res=auth.json(204,{}, {'Allow':'GET, OPTIONS'});return}
  try{
-   if(method!=='GET')throw auth.error('METHOD_NOT_ALLOWED','Nur lesender Zugriff erlaubt.',405);
+   if(method!=='GET')throw auth.error('METHOD_NOT_ALLOWED',apiI18n.t(req,'api.common.getOnly'),405);
    const current=await session(req);
    if(!rights.canReadAny(current.user,['pickupcalendar']))
-     throw auth.error('PICKUP_LINK_READ_FORBIDDEN','Keine Leseberechtigung für den Abholkalender.',403);
+     throw auth.error('PICKUP_LINK_READ_FORBIDDEN',apiI18n.t(req,'api.pickupLinks.readForbidden'),403);
    const tenant=company.resolveCompanyContext(req,current.user);
    const environment=fixed.resolveEnvironment(req,{});
    const auditWanted=String(req&&req.query&&req.query.includeAudit||'')==='1';
@@ -32,7 +33,7 @@ module.exports=async function(context,req){
  }catch(e){
    context.res=auth.json(Number(e&&(e.status||e.statusCode))||500,{
      ok:false,code:e&&e.code||'PICKUP_TRANSPORT_LINK_READ_FAILED',
-     message:String(e&&e.message||'Zuordnungen konnten nicht geladen werden.')
+     message:String(e&&e.message||apiI18n.t(req,'api.pickupLinks.loadFailed'))
    });
  }
 };

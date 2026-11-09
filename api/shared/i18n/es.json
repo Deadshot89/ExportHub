@@ -257,6 +257,8 @@
   "api.container.photoLabel.number": "Número del contenedor desde el interior",
   "api.container.photoLabel.sealed": "Contenedor precintado · precinto/marcajes/documentos",
   "api.fixedPickups.failed": "No se pudieron procesar las recogidas fijas.",
+  "api.pickupLinks.readForbidden": "No tienes permiso para consultar el calendario de recogidas.",
+  "api.pickupLinks.loadFailed": "No se pudieron cargar las asignaciones de recogida.",
   "api.abdAnalysis.fileRequired": "Seleccione un archivo PDF, XLSX o CSV.",
   "api.abdAnalysis.fileType": "Para el análisis de la declaración de exportación solo se permiten archivos PDF, XLSX y CSV.",
   "api.abdAnalysis.fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {{max}} MB.",
