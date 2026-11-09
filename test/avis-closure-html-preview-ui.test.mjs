@@ -23,6 +23,8 @@ test('Issue #1328: HTML email preview must use real server template without send
  assert.match(ui,/previewFrame\.setAttribute\('srcdoc',result\.html\)/);
  assert.match(ui,/previewPanel\.hidden=true/,'old previews must be cleared when language/recipient changes');
  assert.match(ui,/previewFrame\.removeAttribute\('srcdoc'\)/);
+ assert.match(ui,/previewGeneration\+\+/,'updating selection must invalidate preview');
+ assert.match(ui,/generation!==previewGeneration\|\|dialog!==ownDialog/,'stale responses must not overwrite current preview');
  assert.match(ui,/renderPickupClosureWarning\(row\.card,row\.shipment\)/);
  assert.match(ui,/data-rc1328-pickup-warning/);
  assert.match(ui,/current\.textContent=message/);
