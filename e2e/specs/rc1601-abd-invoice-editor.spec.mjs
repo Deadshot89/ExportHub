@@ -19,6 +19,30 @@ function reanalyzed(payload){
  const groups=positions.map(p=>({commodityCode:p.commodityCode,originCountry:p.originCountry,value:Number(p.value),currency:p.currency,positionCount:1,status:'complete'}));
  return{header:{...payload.header,invoiceTotal},positions,groups,unassigned:[],totals:{invoiceTotal,accountedTotal:invoiceTotal,difference:0,currency:payload.header.currency},review:{complete:true,groupCount:groups.length,unassignedCount:0}}
 }
+
+test('RC1940: eigene Dokumentenerstellung im Menü öffnen und zwischen Rechnung und Lieferschein wechseln',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='laptop','Chromium Laptop');
+ await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+ await waitReady(page);
+ await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+ const nav=page.locator('#nav > [data-exporthub-documents-nav]');
+ await expect(nav).toBeVisible({timeout:10_000});
+ await expect(nav).toContainText(/Dokumente erstellen|Create documents/i);
+ await nav.click();
+ const workspace=page.locator('#rc1940Documents');
+ await expect(workspace).toBeVisible({timeout:10_000});
+ await expect(page.locator('body')).toHaveAttribute('data-exporthub-view','documents');
+ await expect(workspace.locator('#rc1549AbdManual')).toBeVisible();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeHidden();
+ await workspace.locator('[data-rc1790-tab="delivery"]').click();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeVisible();
+ await expect(workspace.locator('#rc1549AbdManual')).toBeHidden();
+ await workspace.locator('[data-rc1790-tab="invoice"]').click();
+ await expect(workspace.locator('#rc1549AbdManual')).toBeVisible();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeHidden();
+ await expect(workspace.locator('[data-rc1294-abd-analysis]')).toHaveCount(0);
+});
+
 test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportieren',async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='laptop','Test läuft einmal im Chromium-Laptop-Profil.');
  test.setTimeout(90_000);
@@ -59,15 +83,16 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
  await expect(panel).toBeVisible({timeout:10_000});
  await panel.locator('[data-rc1294-mode="invoice"]').click();
- await expect(panel.locator('#rc1549AbdManual')).toBeVisible({timeout:10_000});
+ await expect(panel.locator('#rc1549AbdManual')).toHaveCount(0);
  await panel.locator('[data-rc1294-files]').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from('Artikel;Menge;Wert\nCAP-10;10;50')});
  await panel.locator('[data-rc1294-start]').click();
  const doc=panel.locator('.rc1294-document');
  await expect(doc).toHaveCount(1,{timeout:20_000});
  await expect(doc.locator('[data-rc1549-import]')).toBeEnabled({timeout:10_000});
- await expect(doc.locator('[data-rc1549-proforma]')).toBeDisabled();
+ await expect(doc.locator('[data-rc1549-proforma]')).toHaveCount(0);
  await doc.locator('[data-rc1549-import]').click();
- const editor=page.locator('#rc1549AbdManual');
+ const editor=page.locator('#rc1940Documents #rc1549AbdManual');
+  await expect(page.locator('#rc1940Documents')).toBeVisible({timeout:10_000});
  await expect(editor.locator('tbody tr')).toHaveCount(1);
  await expect(editor.locator('[data-field="itemNumber"]')).toHaveValue('CAP-10');
  await expect(editor.locator('[data-rc1549-header="senderAddress"]')).toHaveValue(/Montel-Allee 3/);
@@ -159,7 +184,8 @@ test('RC1784: D365-TXT-Upload erzeugt getrennte Empfänger-Rechnungsentwürfe',a
  await expect(docs.nth(0)).toContainText('Customer A');
  await expect(docs.nth(1)).toContainText('Customer B');
  await docs.nth(1).locator('[data-rc1549-import]').click();
- const editor=page.locator('#rc1549AbdManual');
+ const editor=page.locator('#rc1940Documents #rc1549AbdManual');
+  await expect(page.locator('#rc1940Documents')).toBeVisible({timeout:10_000});
  await expect(editor.locator('[data-rc1549-header="recipient"]')).toHaveValue('Customer B');
  await expect(editor.locator('tbody tr')).toHaveCount(1);
  await expect(editor.locator('[data-field="itemNumber"]')).toHaveValue('B1');

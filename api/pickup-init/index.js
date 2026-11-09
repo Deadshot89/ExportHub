@@ -5,7 +5,7 @@ const auth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
 
 function text(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function rowsOf(src){for(const k of ['rows','colli','collis','packages','packageRows'])if(Array.isArray(src&&src[k])&&src[k].length)return src[k];return[]}
+function rowsOf(src){for(const k of ['rows','colli','collis','packages','packageRows','packagingRows'])if(Array.isArray(src&&src[k])&&src[k].length)return src[k];return[]}
 function carrier(src){return store.sanitizeText(src.carrierName||src.speditionName||src.carrier||src.spedition||'',180)}
 function resetPickupRecord(r,expected,actor,reason){
  const at=store.now(),history=Array.isArray(r&&r.pickupHistory)?r.pickupHistory:[],collected=Math.max(0,Math.round(Number(r&&(r.pickupCollectedColliCount||r.collectedPickupCollis))||0)),started=history.length>0||collected>0||r&&r.complete===true||['partial','confirmed'].includes(String(r&&r.status||'').toLowerCase()),priorSequence=Math.max(Math.max(0,Math.round(Number(r&&r.pickupSequence)||0)),history.length,history.reduce((m,x)=>Math.max(m,Math.max(0,Math.round(Number(x&&x.sequence)||0))),0));

@@ -19,10 +19,12 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.match(source,/catch\(error\)\{pdf=await renderedPdf\(sh,error\)\}/);
   assert.match(builder,/injectImmediateRuntimeAfterHead\(html,RC1602_OFFICIAL_POD_SCRIPT_TAG/);
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
+  assert.match(builder,/rc1602-official-pod-server-download\.js\?v=1938/,'Build must invalidate the old cached POD button script');
+  assert.match(builder,/1602\|1616\|1623\|1725/,'Builder must upgrade legacy cached URL versions too');
 });
 
 function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false,createPodBlob=null,withStoredAutomaticBlob=false,corruptStoredAutomaticBlob=false,withManualPod=false}={}){
-  let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[],storedCalls=[];
+  let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[],storedCalls=[],pickupSyncs=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
   if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
   const button={disabled:false,dataset:{id:'id8'},textContent:'POD als PDF',
@@ -39,7 +41,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   if(withManualPod)sh.podFiles=[{kind:'manual-pod',manualUpload:true,name:'Customer_POD.pdf',dataUrl:'data:application/pdf;base64,'+pdf.toString('base64')}];
   const window={
     __EXPORTHUB_GET_STATE__:()=>({shipments:[sh]}),
-    ExportHUBIndex240:createPodBlob?{shipments:()=>[sh],createPodBlob}:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
+    ExportHUBIndex240:createPodBlob?{shipments:()=>[sh],createPodBlob}:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>{pickupSyncs.push(true);return true}},
     fetch:async(url,opts)=>{
       called.push({url,opts});
       const isStale=staleLocalId&&String(url).includes('file=automatic-pod-test001&');
@@ -54,7 +56,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   window.ExportHUBDocumentBlob1059={isBlobDocument:f=>!!f.blobName,fetchBlob:async f=>{storedCalls.push(f.blobName);return new Blob([corruptStoredAutomaticBlob?Buffer.from('%PDF-1.7\n'+'z'.repeat(1100)):pdf],{type:'application/pdf'})}};
   const URL={createObjectURL:()=>'/blob/server-pod',revokeObjectURL:()=>{}};
   vm.runInNewContext(source,{window,document,URL,Blob,Uint8Array,encodeURIComponent},{filename:'rc1602-pod.js'});
-  return{click,button,called,alerts,urls,downloaded,delegated,storedCalls,sh}
+  return{click,button,called,alerts,urls,downloaded,delegated,storedCalls,pickupSyncs,sh}
 }
 
 test('RC1616: reference 8LSUHW reads the named immutable stored PDF, not a newly rendered screenshot',async()=>{
@@ -297,4 +299,42 @@ test('P0: verified signed original bypasses a document-row click that cannot rep
  assert.equal(x.storedCalls.length,1);
  assert.equal(x.delegated.length,0,'Do not hide download failure behind the delegated click');
  assert.equal(x.alerts.length,0);
+});
+
+test('RC1938: layout copy downloads a separate PDF and never replaces the signed original',async()=>{
+  const originalPdf=new Blob([Buffer.from('%PDF-1.7\n'+'x'.repeat(1200))],{type:'application/pdf'});
+  let rendered=0;
+  const x=setup({createPodBlob:async()=>{
+    rendered++;
+    return{blob:originalPdf,name:'rendered-layout.pdf'};
+  }});
+  const old=structuredClone(x.sh.podFiles);
+  const copyButton={dataset:{id:'id8'},disabled:false,
+    getAttribute:key=>key==='data-rc1938-layout-copy'?'1':null,
+    matches:selector=>selector.includes('data-rc1938-layout-copy')};
+  let prevented=false;
+  x.click({target:{closest:selector=>selector.includes('data-rc1938-layout-copy')?copyButton:null},
+    preventDefault(){prevented=true},stopImmediatePropagation(){},stopPropagation(){}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(prevented,true);
+  assert.equal(rendered,1,'new copy must use the existing browser print renderer');
+  assert.ok(x.downloaded.includes('LAYOUTKOPIE_8LSUHW_Ladeliste.pdf'));
+  assert.equal(x.called.length,0,'copy rendering must not initiate original POD substitution');
+  assert.equal(x.pickupSyncs.length,0,'layout copy must not synchronize or write the QR pickup state');
+  assert.deepEqual(x.sh.podFiles,old,'original signed POD metadata stays unchanged');
+  assert.equal(copyButton.disabled,false,'button recovers after the download');
+});
+
+test('RC1938: original POD retrieval retains its unchanged verification contract',()=>{
+  assert.match(source,/var RC1938_COPY=/);
+  assert.match(source,/data-rc628-official-pod-download/);
+  assert.match(source,/d\.querySelectorAll\('\[data-rc628-official-pod-download/);
+  assert.match(source,/\[data-index352-action="download-pod"\]/);
+  assert.match(source,/LAYOUTKOPIE_/);
+  assert.match(source,/rc1938DownloadCopy/);
+  assert.match(source,/var saved=await storedSignedBlob\(sh\)/);
+  assert.match(source,/try\{pdf=await canonicalPdf\(sh\)\}/);
+  const copyAction=source.slice(source.indexOf('async function rc1938DownloadCopy('),source.indexOf('function rc1938Install('));
+  assert.doesNotMatch(copyAction,/\b(?:saveAzurePod|replacePodBlob|POD_SIGNED_ORIGINAL_IMMUTABLE)\s*\(/);
+  assert.match(source,/copy.getAttribute\('data-rc1938-layout-copy'\)==='1'/);
 });
