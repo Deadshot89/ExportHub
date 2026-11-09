@@ -2663,5 +2663,6 @@
   "closureMail.mailResume": "Ponowne otwarcie",
   "closureMail.htmlPreview": "Podgląd wiadomości HTML",
   "closureMail.previewFailed": "Nie udało się wczytać podglądu wiadomości.",
-  "closureMail.pickupWarning": "Uwaga: odbiór {{date}} przypada w okresie zamknięcia ({{from}} – {{to}}). Ponowne otwarcie: {{reopen}}. Prosimy sprawdzić termin odbioru."
+  "closureMail.pickupWarning": "Uwaga: odbiór {{date}} przypada w okresie zamknięcia ({{from}} – {{to}}). Ponowne otwarcie: {{reopen}}. Prosimy sprawdzić termin odbioru.",
+  "closureMail.bookingClosed": "Ten termin odbioru przypada na okres zamknięcia. Prosimy wybrać datę po ponownym otwarciu."
 }
