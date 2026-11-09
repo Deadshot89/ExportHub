@@ -2660,5 +2660,7 @@
   "closureMail.mailTitle": "Important notice – Holiday closure",
   "closureMail.mailLast": "Last collection",
   "closureMail.mailClosed": "Closed",
-  "closureMail.mailResume": "Reopening"
+  "closureMail.mailResume": "Reopening",
+  "closureMail.htmlPreview": "Preview HTML email",
+  "closureMail.previewFailed": "Could not load the email preview."
 }
