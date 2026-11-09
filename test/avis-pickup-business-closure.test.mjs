@@ -35,6 +35,9 @@ function loadAvailability(){
 test('Issue #1328: customer and manual availability return no pickup slots on a valid closure date',()=>{
  const {availabilityWithClosure}=loadAvailability();
  const closed=availabilityWithClosure(state,sh,'2026-12-24');
+ const weekend=availabilityWithClosure(state,sh,'2027-01-02');
+ assert.equal(weekend.closed,true,'collection must remain closed until reopening');
+ assert.equal(weekend.slots.length,0);
  assert.equal(closed.closed,true);
  assert.equal(closed.date,'2026-12-24');
  assert.equal(closed.slots.length,0);
