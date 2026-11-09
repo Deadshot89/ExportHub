@@ -44,6 +44,23 @@
    var summary=d.createElement('p');summary.textContent=[header.invoiceNumber||header.documentNumber||'',header.recipient||'',ut('positions')+': '+positions.length].filter(Boolean).join(' · ');box.appendChild(summary);
    var table=d.createElement('div');table.className='rc1940-preview-lines';
    var head=d.createElement('p');head.textContent=ut('preview')+': '+positions.slice(0,5).map(function(r){return [r.itemNumber||'',r.description||'',r.quantity==null?'':r.quantity].filter(Boolean).join(' / ')}).join('  |  ');table.appendChild(head);box.appendChild(table);
+   var groups=Array.isArray(analysis.groups)?analysis.groups:[];
+   if(groups.length){
+    var groupTable=d.createElement('table');groupTable.className='rc1940-group-table';
+    var groupBody=d.createElement('tbody');
+    groups.forEach(function(group){
+     var row=d.createElement('tr');
+     [group.commodityCode,group.originCountry,group.value,group.currency,group.status||''].forEach(function(value){
+      var cell=d.createElement('td');cell.textContent=value==null?'':String(value);row.appendChild(cell)
+     });
+     groupBody.appendChild(row)
+    });
+    groupTable.appendChild(groupBody);box.appendChild(groupTable)
+   }
+   if((analysis.unassigned||[]).length||analysis.requiresReview||analysis.review&&analysis.review.complete===false){
+    var note=d.createElement('p');note.className='rc1940-review-note';note.textContent=ut('review');
+    box.appendChild(note)
+   }
    var button=d.createElement('button');button.type='button';button.className='btn';button.setAttribute('data-rc1940-use',String(index));button.textContent=lastMode==='delivery'?ut('useDelivery'):ut('useInvoice');
    box.appendChild(button);out.appendChild(box)
   })
@@ -182,6 +199,7 @@
   var css=d.createElement('style');css.id='rc1940DocumentsStyle';
   css.textContent='#rc1940Documents{width:100%;min-width:0;padding:4px 0 28px}#rc1940Documents .rc1940-head{margin-bottom:20px}#rc1940Documents .rc1940-head h2{margin:0 0 6px;font-size:clamp(22px,2vw,30px)}#rc1940Documents .rc1940-head p{margin:0;color:var(--muted,#475569)}#rc1940Documents [data-rc1940-document-editor]{min-width:0}#rc1940Documents #rc1549AbdManual,#rc1940Documents #rc1790DeliveryNote{margin-top:12px}#rc1940Documents #rc1790DocTabs button{min-height:44px;min-width:150px}@media(max-width:600px){#rc1940Documents #rc1790DocTabs{display:grid;grid-template-columns:1fr 1fr}#rc1940Documents #rc1790DocTabs button{min-width:0}}';
   css.textContent+='#rc1940DocumentUpload{margin:12px 0 20px;padding:16px;border:1px solid var(--border,#cbd5e1);border-radius:12px;background:var(--card,#fff);color:var(--text,#0f172a)}#rc1940DocumentUpload h3{font-size:18px;margin:0 0 8px}#rc1940DocumentUpload p{margin:5px 0 10px}#rc1940DocumentUpload .rc1940-upload-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}#rc1940DocumentUpload label{display:grid;gap:7px;min-width:200px}#rc1940DocumentUpload input[type=file]{max-width:100%;min-height:44px}#rc1940DocumentUpload [data-rc1940-analyze]{min-height:44px}#rc1940DocumentUpload .rc1940-small{font-size:13px;color:var(--muted,#64748b)}#rc1940DocumentUpload [data-rc1940-upload-status]:not([hidden]){padding:8px 0;font-weight:600}#rc1940DocumentUpload .rc1940-preview{padding:12px 0;border-top:1px solid var(--border,#cbd5e1)}#rc1940DocumentUpload .rc1940-preview p{overflow-wrap:anywhere}#rc1940DocumentUpload .rc1940-preview-lines{max-height:140px;overflow:auto;font-size:13px}#rc1940DocumentUpload .rc1940-preview button{min-height:44px}@media(max-width:600px){#rc1940DocumentUpload .rc1940-upload-controls{display:grid}#rc1940DocumentUpload .rc1940-upload-controls button{width:100%}}';
+  css.textContent+='#rc1940DocumentUpload .rc1940-group-table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13px}#rc1940DocumentUpload .rc1940-group-table td{padding:8px 7px;border-bottom:1px solid var(--border,#cbd5e1);overflow-wrap:anywhere}#rc1940DocumentUpload .rc1940-review-note{font-weight:650;color:var(--muted,#475569)}';
   d.head.appendChild(css);
   d.addEventListener('click',function(e){
    var target=e.target&&e.target.closest&&e.target.closest('[data-exporthub-documents-nav]');
