@@ -292,7 +292,9 @@ test('Issue #1328: Sendungsanmeldung erhält einen sprachrichtigen, idempotenten
   const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
     lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
   for(const [lang,title] of [['de','Wichtige Information'],['en','Important notice'],['pl','Ważna informacja'],['es','Información importante'],['fr','Information importante'],['it','Informazione importante']]){
-    const state={settings:{closureNotices:[closure]}};
+    // Every language must start with an enabled notice; the test deliberately
+    // disables the local entry at the end of each iteration.
+    const state={settings:{closureNotices:[{...closure}]}};
     const window={__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:createTestI18n(lang)};
     const sandbox={window,Date:FixedDate,Intl,URLSearchParams,console};
     vm.runInNewContext(source,sandbox);
