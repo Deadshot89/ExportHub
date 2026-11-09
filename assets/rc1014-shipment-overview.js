@@ -645,10 +645,275 @@
     return true;
   }
 
+
+  // RC1877: simple in-page FIX binding, backed solely by authenticated server
+  // reads/writes. Never mutate a shipment locally or open another window.
+  const bindingCopy={
+    de:{title:'Sammeltransport verknüpfen',intro:'Hauptsendung einem festen Abholziel zuordnen. Einzelne REF und Dokumente bleiben unverändert.',
+      target:'FIX-Abholziel',date:'Abholtag',choose:'Abholziel auswählen',save:'Verknüpfen',change:'Ändern',
+      confirm:'Änderung bestätigen',refresh:'Aktualisieren',current:'Aktuelle Verknüpfung:',none:'Noch nicht verknüpft',
+      loading:'Lade gespeicherte Zuordnung…',saved:'Zuordnung gespeichert und erneut geladen.',
+      locked:'Nur berechtigte Planer können diese Zuordnung ändern.',noDate:'Bitte zuerst das Abholdatum der Hauptsendung erfassen.',
+      noTargets:'Keine passenden FIX-Abholziele vorhanden.',failed:'Zuordnung konnte nicht geladen oder gespeichert werden.',
+      notRegistered:'Die Hauptsendung muss zuerst für die QR-Abholung angemeldet werden.',
+      conflict:'Die Zuordnung wurde zwischenzeitlich geändert. Bitte aktualisieren.',wrongDate:'Abholdatum oder Wochentag stimmt nicht mit der Hauptsendung überein.',
+      confirmHelp:'Das bestehende Abholziel wird geändert. Noch einmal bestätigen.',
+      note:'Keine Änderungen an QR, POD, ABD, Avis oder Sendungsstatus.'},
+    en:{title:'Link grouped pickup',intro:'Link this main shipment to a fixed pickup destination. Individual references and documents remain unchanged.',
+      target:'Fixed pickup destination',date:'Pickup date',choose:'Select pickup destination',save:'Link',change:'Change',
+      confirm:'Confirm change',refresh:'Refresh',current:'Current assignment:',none:'Not linked yet',
+      loading:'Loading saved assignment…',saved:'Assignment saved and reloaded.',
+      locked:'Only authorized planners can change this assignment.',noDate:'Enter the main shipment pickup date first.',
+      noTargets:'No matching fixed pickup destinations.',failed:'Assignment could not be loaded or saved.',
+      notRegistered:'Register this main shipment for QR pickup first.',
+      conflict:'The assignment has changed. Refresh before continuing.',wrongDate:'Pickup date or weekday does not match the main shipment.',
+      confirmHelp:'This changes an existing pickup destination. Confirm once more.',
+      note:'No changes to QR, POD, customs documents, avis or shipment status.'},
+    pl:{title:'Połącz odbiór zbiorczy',intro:'Przypisz przesyłkę główną do stałego miejsca odbioru. Numery REF i dokumenty pozostaną bez zmian.',
+      target:'Stałe miejsce odbioru',date:'Data odbioru',choose:'Wybierz miejsce odbioru',save:'Połącz',change:'Zmień',
+      confirm:'Potwierdź zmianę',refresh:'Odśwież',current:'Aktualne przypisanie:',none:'Jeszcze nieprzypisane',
+      loading:'Wczytywanie przypisania…',saved:'Przypisanie zapisane i ponownie wczytane.',
+      locked:'Tylko uprawnieni planiści mogą zmieniać przypisanie.',noDate:'Najpierw podaj datę odbioru przesyłki głównej.',
+      noTargets:'Brak pasujących stałych miejsc odbioru.',failed:'Nie udało się wczytać lub zapisać przypisania.',
+      notRegistered:'Najpierw zarejestruj przesyłkę główną do odbioru QR.',
+      conflict:'Przypisanie zostało zmienione. Odśwież dane.',wrongDate:'Data lub dzień tygodnia nie pasuje do przesyłki.',
+      confirmHelp:'Zmiana istniejącego miejsca odbioru. Potwierdź ponownie.',
+      note:'Bez zmian w QR, POD, dokumentach celnych, awizacji i statusie przesyłki.'},
+    es:{title:'Vincular recogida agrupada',intro:'Asigna el envío principal a una recogida fija. Las referencias y documentos no cambian.',
+      target:'Destino de recogida fija',date:'Fecha de recogida',choose:'Seleccionar destino',save:'Vincular',change:'Cambiar',
+      confirm:'Confirmar cambio',refresh:'Actualizar',current:'Asignación actual:',none:'Sin asignación',
+      loading:'Cargando asignación…',saved:'Asignación guardada y recargada.',
+      locked:'Solo los planificadores autorizados pueden cambiarla.',noDate:'Indica primero la fecha de recogida del envío principal.',
+      noTargets:'No hay destinos de recogida compatibles.',failed:'No se pudo cargar o guardar la asignación.',
+      notRegistered:'Registra primero el envío principal para la recogida QR.',
+      conflict:'La asignación ha cambiado. Actualiza los datos.',wrongDate:'La fecha o el día no coincide con el envío principal.',
+      confirmHelp:'Se cambiará el destino actual. Confirma de nuevo.',
+      note:'Sin cambios en QR, POD, aduanas, avisos ni estado del envío.'},
+    fr:{title:'Associer un enlèvement groupé',intro:'Reliez l’envoi principal à un enlèvement fixe. Les références et documents restent inchangés.',
+      target:'Destination d’enlèvement fixe',date:'Date d’enlèvement',choose:'Choisir la destination',save:'Associer',change:'Modifier',
+      confirm:'Confirmer la modification',refresh:'Actualiser',current:'Association actuelle :',none:'Aucune association',
+      loading:'Chargement de l’association…',saved:'Association enregistrée puis rechargée.',
+      locked:'Seuls les planificateurs autorisés peuvent la modifier.',noDate:'Renseignez d’abord la date d’enlèvement de l’envoi principal.',
+      noTargets:'Aucune destination d’enlèvement compatible.',failed:'Impossible de charger ou d’enregistrer l’association.',
+      notRegistered:'Enregistrez d’abord l’envoi principal pour l’enlèvement QR.',
+      conflict:'L’association a changé. Actualisez les données.',wrongDate:'La date ou le jour ne correspond pas à l’envoi principal.',
+      confirmHelp:'La destination actuelle sera modifiée. Confirmez à nouveau.',
+      note:'Aucun changement des QR, POD, documents douaniers, avis ou statuts.'},
+    it:{title:'Collega ritiro raggruppato',intro:'Collega la spedizione principale a un ritiro fisso. Riferimenti e documenti restano invariati.',
+      target:'Destinazione di ritiro fissa',date:'Data del ritiro',choose:'Seleziona destinazione',save:'Collega',change:'Modifica',
+      confirm:'Conferma modifica',refresh:'Aggiorna',current:'Assegnazione attuale:',none:'Non ancora collegata',
+      loading:'Caricamento assegnazione…',saved:'Assegnazione salvata e ricaricata.',
+      locked:'Solo i pianificatori autorizzati possono modificarla.',noDate:'Inserisci prima la data di ritiro della spedizione principale.',
+      noTargets:'Nessuna destinazione di ritiro compatibile.',failed:'Impossibile caricare o salvare l’assegnazione.',
+      notRegistered:'Registra prima la spedizione principale per il ritiro QR.',
+      conflict:'L’assegnazione è cambiata. Aggiorna i dati.',wrongDate:'La data o il giorno non corrisponde alla spedizione principale.',
+      confirmHelp:'La destinazione corrente verrà modificata. Conferma ancora.',
+      note:'Nessuna modifica a QR, POD, dogana, avvisi o stato della spedizione.'}
+  };
+  function bt(key){
+    let language='de';try{language=q(root.ExportHUBI18n&&root.ExportHUBI18n.language&&root.ExportHUBI18n.language()).toLowerCase()}catch(_){}
+    const copy=bindingCopy[language]||bindingCopy.de;
+    return copy[key]||bindingCopy.de[key]||key;
+  }
+  function bindingShipmentDate(sh){
+    return q(sh&&(sh.plannedPickupDate||sh.pickupDate||sh.pickdate)).slice(0,10);
+  }
+  function bindingStatus(panel,message,kind){
+    const status=panel&&panel.querySelector&&panel.querySelector('[data-rc1877-status]');
+    if(status){status.textContent=q(message);status.dataset.kind=kind||'info'}
+  }
+  function bindingCss(doc){
+    if(doc.getElementById('rc1877-binding-style'))return;
+    const link=doc.createElement('link');link.id='rc1877-binding-style';link.rel='stylesheet';
+    link.href='/assets/rc1877-pickup-binding.css';
+    (doc.head||doc.documentElement).appendChild(link);
+  }
+  function bindingLabels(panel){
+    for(const key of ['title','intro','refresh','note']){
+      const el=panel.querySelector('[data-rc1877-'+key+']');
+      if(el)el.textContent=bt(key);
+    }
+  }
+  async function bindingFetch(url,method,body){
+    const headers=Object.assign({'Accept':'application/json'},apiHeaders());
+    if(body)headers['Content-Type']='application/json';
+    const res=await root.fetch(url,{method:method||'GET',headers,
+      credentials:'same-origin',cache:'no-store',redirect:'manual',
+      ...(body?{body:JSON.stringify(body)}:{})});
+    if(!res||res.redirected===true||res.type==='opaqueredirect'||
+       /\/\.auth\/|login\.microsoftonline\.com/i.test(q(res.url||'')))throw new Error('AUTH_REDIRECT');
+    let data={};try{data=await res.json()}catch(_){throw new Error('NON_JSON_RESPONSE')}
+    if(!res.ok||data.ok!==true){const e=new Error('REQUEST_REJECTED');e.code=q(data.code);throw e}
+    return data;
+  }
+  function bindingWeekday(value){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(q(value)))return 0;
+    const date=new Date(value+'T12:00:00Z');
+    return Number.isNaN(date.getTime())?0:(date.getUTCDay()||7);
+  }
+  function bindingSelectWeekday(panel){
+    const date=panel.querySelector('[data-rc1877-date]'),select=panel.querySelector('[data-rc1877-target]');
+    if(!select)return;
+    const weekday=bindingWeekday(date&&date.value);
+    Array.from(select.options||[]).forEach(option=>{
+      const day=Number(option.dataset.weekday)||0;
+      if(day)option.disabled=!!weekday&&day!==weekday;
+    });
+    if(select.selectedOptions&&select.selectedOptions[0]&&select.selectedOptions[0].disabled)select.value='';
+  }
+  async function loadShipmentBinding(panel,shipment){
+    const identity=manualPickupIdentity(shipment);
+    if(panel.dataset.rc1877Identity!==identity)return false;
+    const save=panel.querySelector('[data-rc1877-save]'),select=panel.querySelector('[data-rc1877-target]'),
+      date=panel.querySelector('[data-rc1877-date]'),current=panel.querySelector('[data-rc1877-current]');
+    if(!save||!select||!date||!current)return false;
+    save.disabled=true;bindingStatus(panel,bt('loading'));
+    const request=String((Number(panel.dataset.rc1877Request)||0)+1);
+    panel.dataset.rc1877Request=request;
+    try{
+      const results=await Promise.all([bindingFetch('/api/fixed-pickups','GET'),
+        bindingFetch('/api/pickup-transport-bindings','GET')]);
+      if(panel.dataset.rc1877Identity!==identity||panel.dataset.rc1877Request!==request)return false;
+      const fixedData=results[0],stored=results[1],rows=arr(stored.bindings);
+      const matching=rows.filter(item=>q(item.shipmentId).toUpperCase()===shipmentId(shipment)&&
+        q(item.reference).toUpperCase()===shipmentReference(shipment));
+      if(matching.length>1)throw new Error('DUPLICATE_BINDING');
+      const binding=matching[0]||null,targets=arr(fixedData.items).filter(item=>item&&item.active!==false);
+      select.innerHTML='';
+      const empty=root.document.createElement('option');empty.value='';empty.textContent=bt('choose');
+      select.appendChild(empty);
+      targets.forEach(target=>{
+        const option=root.document.createElement('option');option.value=q(target.id);
+        option.textContent=q(target.siteLabel);option.dataset.weekday=String(Number(target.weekday)||0);
+        select.appendChild(option);
+      });
+      panel.dataset.rc1877Revision=String(stored.revision);
+      panel.dataset.rc1877Current=binding?q(binding.pickupTargetId):'';
+      panel.dataset.rc1877CurrentDate=binding?q(binding.pickupDate):'';
+      panel.dataset.rc1877CanEdit=stored.canEdit===true?'1':'0';
+      panel.dataset.rc1877Confirm='';
+      if(binding)date.value=q(binding.pickupDate);
+      else date.value=bindingShipmentDate(shipment);
+      if(binding&&targets.some(item=>q(item.id)===q(binding.pickupTargetId)))select.value=q(binding.pickupTargetId);
+      else if(!binding&&targets.some(item=>q(item.id)===q(shipment.pickupTargetId)))select.value=q(shipment.pickupTargetId);
+      bindingSelectWeekday(panel);
+      current.textContent=bt('current')+' '+(binding?(
+        targets.find(item=>q(item.id)===q(binding.pickupTargetId))?.siteLabel||binding.pickupTargetId
+      ):bt('none'));
+      save.textContent=binding?bt('change'):bt('save');
+      save.disabled=stored.canEdit!==true||!targets.length||!q(date.value);
+      if(stored.canEdit!==true)bindingStatus(panel,bt('locked'));
+      else if(!targets.length)bindingStatus(panel,bt('noTargets'),'error');
+      else if(!q(date.value))bindingStatus(panel,bt('noDate'),'error');
+      else bindingStatus(panel,'');
+      return true;
+    }catch(_){
+      if(panel.dataset.rc1877Identity===identity&&panel.dataset.rc1877Request===request){
+        save.disabled=true;bindingStatus(panel,bt('failed'),'error');
+      }
+      return false;
+    }
+  }
+  function bindingErrorText(code){
+    if(code==='TRANSPORT_NOT_REGISTERED')return bt('notRegistered');
+    if(code==='BINDING_REVISION_CONFLICT'||code==='BINDING_CONCURRENT_UPDATE'||
+       code==='BINDING_OVERRIDE_CONFIRMATION_REQUIRED')return bt('conflict');
+    if(code==='TRANSPORT_DATE_MISMATCH'||code==='TRANSPORT_FIX_WRONG_DAY')return bt('wrongDate');
+    return bt('failed');
+  }
+  function makeShipmentBinding(doc){
+    const panel=doc.createElement('section');
+    panel.className='rc1877-binding';panel.setAttribute('data-rc1877-binding','1');
+    panel.innerHTML='<div class="rc1877-binding__head"><h3 data-rc1877-title></h3></div>'+
+      '<p class="rc1877-binding__intro" data-rc1877-intro></p>'+
+      '<div class="rc1877-binding__grid"><label><span data-rc1877-target-label></span>'+
+      '<select data-rc1877-target></select></label><label><span data-rc1877-date-label></span>'+
+      '<input type="date" data-rc1877-date></label></div>'+
+      '<div class="rc1877-binding__current" data-rc1877-current></div>'+
+      '<div class="rc1877-binding__actions"><button type="button" data-rc1877-save></button>'+
+      '<button type="button" data-rc1877-refresh></button></div>'+
+      '<span data-rc1877-status role="status" aria-live="polite"></span>'+
+      '<div class="rc1877-binding__note" data-rc1877-note></div>';
+    const select=panel.querySelector('[data-rc1877-target]'),
+      date=panel.querySelector('[data-rc1877-date]'),
+      save=panel.querySelector('[data-rc1877-save]'),
+      refresh=panel.querySelector('[data-rc1877-refresh]');
+    for(const control of [select,date])if(control)control.addEventListener('change',()=>{
+      panel.dataset.rc1877Confirm='';save.textContent=bt('save');
+      bindingSelectWeekday(panel);
+    });
+    if(refresh)refresh.addEventListener('click',()=>{
+      const sh=viewShipment(state());if(sh&&manualPickupIdentity(sh)===panel.dataset.rc1877Identity)
+        loadShipmentBinding(panel,sh);
+    });
+    if(save)save.addEventListener('click',async()=>{
+      const sh=viewShipment(state()),identity=sh&&manualPickupIdentity(sh);
+      if(!sh||identity!==panel.dataset.rc1877Identity||panel.dataset.rc1877CanEdit!=='1')return;
+      const target=q(select&&select.value),day=q(date&&date.value),
+        current=q(panel.dataset.rc1877Current),revision=Number(panel.dataset.rc1877Revision);
+      if(!target||!day||!Number.isSafeInteger(revision)){
+        return bindingStatus(panel,bt('failed'),'error');
+      }
+      if(!bindingWeekday(day))return bindingStatus(panel,bt('wrongDate'),'error');
+      const currentDate=q(panel.dataset.rc1877CurrentDate);
+      const changedExisting=!!current&&(current!==target||currentDate!==day);
+      if(changedExisting&&panel.dataset.rc1877Confirm!==target+'|'+day){
+        panel.dataset.rc1877Confirm=target+'|'+day;save.textContent=bt('confirm');
+        return bindingStatus(panel,bt('confirmHelp'));
+      }
+      const confirmOverride=changedExisting;
+      save.disabled=true;refresh.disabled=true;bindingStatus(panel,bt('loading'));
+      try{
+        await bindingFetch('/api/pickup-transport-bindings','POST',{
+          shipmentId:shipmentId(sh),pickupTargetId:target,pickupDate:day,
+          expectedRevision:revision,confirmOverride,
+          reason:confirmOverride?'Abholziel nach Bestätigung geändert':'Hauptsendung als Sammeltransport verknüpft'
+        });
+        if(panel.dataset.rc1877Identity!==identity)return;
+        const loaded=await loadShipmentBinding(panel,sh);
+        if(!loaded)throw new Error('READBACK_FAILED');
+        bindingStatus(panel,bt('saved'),'ok');
+        try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{
+          detail:{reference:shipmentReference(sh),pickupTransportBinding:true}}))}catch(_){}
+      }catch(e){
+        if(panel.dataset.rc1877Identity===identity)
+          bindingStatus(panel,bindingErrorText(q(e&&e.code)),'error');
+      }finally{save.disabled=panel.dataset.rc1877CanEdit!=='1'||!q(select&&select.value)||!q(date&&date.value);
+        refresh.disabled=false;panel.dataset.rc1877Confirm=''}
+    });
+    bindingLabels(panel);
+    return panel;
+  }
+  function enhancePickupTransportBinding(){
+    const doc=root.document;
+    if(!doc||!inShipmentDetailView(doc)||typeof doc.getElementById!=='function')return false;
+    const sh=viewShipment(state());if(!sh||!shipmentId(sh)||!shipmentReference(sh))return false;
+    const anchor=doc.getElementById('rc786ReferenceFilesCard'),host=anchor&&anchor.parentNode;
+    if(!host||typeof host.insertBefore!=='function')return false;
+    bindingCss(doc);
+    let panel=doc.querySelector('[data-rc1877-binding]');
+    if(!panel){panel=makeShipmentBinding(doc);host.insertBefore(panel,anchor);lastMutationAt=Date.now()}
+    const identity=manualPickupIdentity(sh);
+    if(panel.dataset.rc1877Identity!==identity){
+      panel.dataset.rc1877Identity=identity;
+      panel.dataset.rc1877Request='';
+      panel.dataset.rc1877Confirm='';
+      bindingLabels(panel);
+      const targetLabel=panel.querySelector('[data-rc1877-target-label]');
+      const dateLabel=panel.querySelector('[data-rc1877-date-label]');
+      if(targetLabel)targetLabel.textContent=bt('target');
+      if(dateLabel)dateLabel.textContent=bt('date');
+      const refresh=panel.querySelector('[data-rc1877-refresh]');
+      if(refresh)refresh.textContent=bt('refresh');
+      loadShipmentBinding(panel,sh);
+    }
+    return true;
+  }
+
   function scheduleEnhance(){
     if(!root.document||timer)return false;
     const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>{fn();return 1});
-    timer=schedule(()=>{timer=0;enhanceShipmentOverview();enhanceShipmentConfig();enhanceManualPickupBooking();enhanceShipmentDetailedView();},0);
+    timer=schedule(()=>{timer=0;enhanceShipmentOverview();enhanceShipmentConfig();enhanceManualPickupBooking();enhancePickupTransportBinding();enhanceShipmentDetailedView();},0);
     return true;
   }
 
@@ -671,6 +936,10 @@
 
   if(root.addEventListener){
     root.addEventListener('exporthub:rendered',onRendered);
+    root.addEventListener('exporthub:language-changed',()=>{
+      const panel=root.document&&root.document.querySelector&&root.document.querySelector('[data-rc1877-binding]');
+      if(panel&&typeof panel.remove==='function')panel.remove();scheduleEnhance();
+    });
     ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated','exporthub:state-loaded','exporthub:shipment-saved'].forEach(name=>root.addEventListener(name,scheduleEnhance));
   }
 
@@ -685,6 +954,7 @@
     enhanceShipmentOverview,
     enhanceShipmentConfig,
     enhanceManualPickupBooking,
+    enhancePickupTransportBinding,
     enhanceShipmentDetailedView,
     viewShipment,
     manualPickupIdentity,

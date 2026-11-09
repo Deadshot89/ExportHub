@@ -257,6 +257,8 @@
   "api.container.photoLabel.number": "Container-Nummer von innen",
   "api.container.photoLabel.sealed": "Versiegelter Container · Siegel/Kennzeichen/Papiere",
   "api.fixedPickups.failed": "Fixe Abholungen konnten nicht verarbeitet werden.",
+  "api.pickupLinks.readForbidden": "Für den Abholkalender fehlen Leserechte.",
+  "api.pickupLinks.loadFailed": "Abholzuordnungen konnten nicht geladen werden.",
   "api.abdAnalysis.fileRequired": "Bitte eine PDF-, XLSX- oder CSV-Datei auswählen.",
   "api.abdAnalysis.fileType": "Für die ABD-Auswertung sind nur PDF, XLSX und CSV zulässig.",
   "api.abdAnalysis.fileTooLarge": "Die Datei ist zu groß. Maximal {{max}} MB sind zulässig.",
