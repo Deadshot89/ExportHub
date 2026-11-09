@@ -346,12 +346,18 @@ module.exports=async function(context,req){
    // No scan requests, content reads, secret disclosure or storage changes.
    const cs=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
    let diagnostics;
-   if(!cs)diagnostics=await collectTestserviceAbdDefenderDiagnostics();
-   else{
-    const {BlobServiceClient}=require('@azure/storage-blob');
-    const account=BlobServiceClient.fromConnectionString(cs);
-    const name=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
-    diagnostics=await collectTestserviceAbdDefenderDiagnostics({service:account,containerName:name});
+   try{
+    if(!cs)diagnostics=await collectTestserviceAbdDefenderDiagnostics();
+    else{
+     const {BlobServiceClient}=require('@azure/storage-blob');
+     const account=BlobServiceClient.fromConnectionString(cs);
+     const name=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
+     diagnostics=await collectTestserviceAbdDefenderDiagnostics({service:account,containerName:name});
+    }
+   }catch(_){
+    // SDK configuration/parser errors can contain connection-string details.
+    // Never pass them to the generic fixture logger or HTTP response.
+    diagnostics=await collectTestserviceAbdDefenderDiagnostics();
    }
    context.res=json(200,{ok:true,action:'diagnose-abd-defender',...diagnostics});
    return;
