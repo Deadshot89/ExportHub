@@ -307,7 +307,7 @@ function customers(){
   arr(state().customers).forEach(function(c){var name=q(c&&(c.name||c.company||c.companyName)),no=q(c&&(c.customerNumber||c.account||c.accountNumber));if(!name||seen[low(name)])return;seen[low(name)]=1;out.push({name:name,no:no})});
   return out.sort(function(a,b){return a.name.localeCompare(b.name)})
 }
-function customerNo(task){return q(task&&(task.customerNumber||task.linkedAccount||task.customerAccount||task.account))}
+function customerNo(task){var x=task&&typeof task==='object'?task:{};return Object.prototype.hasOwnProperty.call(x,'customerNumber')?q(x.customerNumber):q(x.linkedAccount||x.customerAccount||x.account)}
 function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
 function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
 function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
