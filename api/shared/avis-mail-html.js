@@ -68,6 +68,14 @@ function activeClosureNotices(state,now){
    unique.add(key);return true;
   }).sort((a,b)=>a.startDate.localeCompare(b.startDate)).slice(0,3);
 }
+function closureForPickupDate(state,value){
+ const day=isoDay(value);
+ const entries=state&&state.settings&&state.settings.closureNotices;
+ if(!day||!Array.isArray(entries))return null;
+ return entries.slice(0,100).map(normalizeClosureNotice).filter(Boolean)
+  .filter(notice=>day>=notice.startDate&&day<=notice.endDate)
+  .sort((a,b)=>a.startDate.localeCompare(b.startDate))[0]||null;
+}
 function mailDate(value,lang){
  return new Intl.DateTimeFormat(DATE_LOCALES[lang]||DATE_LOCALES.de,{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'})
   .format(new Date(value+'T12:00:00Z'));
@@ -106,4 +114,4 @@ function renderAvisMailHtml(plainText,avisUrl,language,closureHtml){
  const button='<a href="'+escapeHtml(fullUrl)+'" style="display:inline-block;background:#155eef;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;line-height:22px;padding:12px 18px;border-radius:8px;">'+escapeHtml(LINK_LABELS[lang])+'</a>';
  return '<!doctype html><html lang="'+lang+'"><head><meta charset="UTF-8"></head><body style="margin:0;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:14px;line-height:1.65"><div style="max-width:680px;margin:0 auto">'+String(closureHtml||'')+format(parts[0])+button+format(parts[1])+'</div></body></html>';
 }
-module.exports={LINK_LABELS,languageOf,renderAvisMailHtml,activeClosureNotices,closureNoticePlain,closureNoticeHtml};
+module.exports={LINK_LABELS,languageOf,renderAvisMailHtml,activeClosureNotices,closureForPickupDate,closureNoticePlain,closureNoticeHtml};
