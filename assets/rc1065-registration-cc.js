@@ -154,16 +154,16 @@ function safeDay(v){
  var t=new Date(v+'T12:00:00Z');return Number.isFinite(t.getTime())&&t.toISOString().slice(0,10)===v?v:''
 }
 async function persistClosureEntries(next){
- if(!globalAdmin())throw new Error('Nur Administratoren dürfen Schließzeiten ändern.');
+ if(!globalAdmin())throw new Error(tr('closureMail.onlyAdmins'));
  var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
  var previous=s.settings.closureNotices;
  s.settings.closureNotices=next;
  try{
   var clean=w.ExportHUBClean;
-  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Zentrale Speicherung nicht verfügbar');
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('closureMail.storageUnavailable'));
   await clean.queueSave('Schließzeiten für E-Mails geändert');
   var ok=await clean.flushSave('Schließzeiten für E-Mails geändert',{force:true,userInitiated:true});
-  if(ok!==true)throw new Error('Azure-Speicherung nicht bestätigt');
+  if(ok!==true)throw new Error(tr('closureMail.storageUnconfirmed'));
   try{w.dispatchEvent(new CustomEvent('exporthub:closure-notices-updated',{detail:{count:next.length}}))}catch(_){}
   return true
  }catch(e){if(previous===undefined)delete s.settings.closureNotices;else s.settings.closureNotices=previous;throw e}
@@ -180,22 +180,22 @@ function installClosureSettings(host){
   (w.document.head||w.document.documentElement).appendChild(style)
  }
  var box=w.document.createElement('section');box.id='rc1328ClosureSettings';box.className='card rc1328-closure';
- box.innerHTML='<h3>Betriebszeiten &amp; Schließtage – E-Mail-Hinweis</h3><p>Nur bestätigte Schließzeiten mit letzter Abholung werden in AVIS-E-Mails angezeigt. Aufgabenplaner-Feiertage werden nicht automatisch übernommen.</p><form data-rc1328-form><div class="rc1328-fields"><label>Geschlossen ab<input type="date" name="startDate" required></label><label>Geschlossen bis<input type="date" name="endDate" required></label><label>Letzte Abholung<input type="date" name="lastPickupDate" required></label><label>Letzte Abholzeit<input type="time" name="lastPickupTime" value="15:00" required></label><label>Wieder geöffnet ab<input type="date" name="reopenDate" required></label><label>Hinweis vorher (Tage)<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1328-actions"><button class="btn" type="submit">Schließzeit hinzufügen</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>Gespeicherte Schließzeiten</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
+ box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" value="15:00" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1328-actions"><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
  host.appendChild(box);
  var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]');
  function show(message,kind){status.textContent=message||'';status.setAttribute('data-kind',kind||'info')}
  function display(){
   list.textContent='';
   var entries=closureEntries();
-  if(!entries.length){var empty=w.document.createElement('li');empty.textContent='Keine Schließzeiten hinterlegt';list.appendChild(empty);return}
+  if(!entries.length){var empty=w.document.createElement('li');empty.textContent=tr('closureMail.none');list.appendChild(empty);return}
   entries.forEach(function(item,index){
    var li=w.document.createElement('li'),text=w.document.createElement('span'),remove=w.document.createElement('button');
-   text.textContent=[item.startDate+' – '+item.endDate,'letzte Abholung: '+item.lastPickupDate+' '+item.lastPickupTime,'wieder offen: '+item.reopenDate,'Vorlauf: '+item.leadDays+' Tage',item.enabled?'aktiv':'inaktiv'].join(' · ');
-   remove.type='button';remove.className='btn flat small';remove.textContent='Entfernen';remove.setAttribute('aria-label','Schließzeit '+(index+1)+' entfernen');
+   text.textContent=[item.startDate+' – '+item.endDate,tr('closureMail.lastPickup')+': '+item.lastPickupDate+' '+item.lastPickupTime,tr('closureMail.reopens')+': '+item.reopenDate,tr('closureMail.advance')+': '+item.leadDays+ ' '+tr('closureMail.days'),item.enabled?tr('closureMail.on'):tr('closureMail.off')].join(' · ');
+   remove.type='button';remove.className='btn flat small';remove.textContent=tr('closureMail.remove');remove.setAttribute('aria-label',tr('closureMail.removeAria')+' '+(index+1));
    remove.addEventListener('click',async function(){
-    remove.disabled=true;show('Wird gespeichert …');
-    try{var entries=closureEntries();entries.splice(index,1);await persistClosureEntries(entries);display();show('Schließzeit entfernt','ok')}
-    catch(e){show('Entfernen fehlgeschlagen: '+q(e&&e.message),'error');remove.disabled=false}
+    remove.disabled=true;show(tr('closureMail.saving'));
+    try{var entries=closureEntries();entries.splice(index,1);await persistClosureEntries(entries);display();show(tr('closureMail.removed'),'ok')}
+    catch(e){show(tr('closureMail.removeFailed')+': '+q(e&&e.message),'error');remove.disabled=false}
    });
    li.appendChild(text);li.appendChild(remove);list.appendChild(li)
   })
@@ -207,13 +207,13 @@ function installClosureSettings(host){
   if(!entry.startDate||!entry.endDate||!entry.lastPickupDate||!entry.reopenDate||
     entry.startDate>entry.endDate||entry.lastPickupDate>=entry.startDate||entry.reopenDate<=entry.endDate||
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.lastPickupTime)||!Number.isInteger(entry.leadDays)||entry.leadDays<0||entry.leadDays>90){
-   show('Bitte die Daten prüfen: letzte Abholung vor Schließbeginn, Wiederöffnung danach.','error');return
+   show(tr('closureMail.invalid'),'error');return
   }
-  var button=form.querySelector('[type="submit"]');button.disabled=true;show('Wird zentral gespeichert …');
+  var button=form.querySelector('[type="submit"]');button.disabled=true;show(tr('closureMail.saving'));
   try{
    var entries=closureEntries();entries.push(entry);await persistClosureEntries(entries);
-   form.reset();display();show('Schließzeit gespeichert und für E-Mails aktiviert','ok')
-  }catch(e){show('Speichern fehlgeschlagen: '+q(e&&e.message),'error')}
+   form.reset();display();show(tr('closureMail.saved'),'ok')
+  }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error')}
   finally{button.disabled=false}
  });
  display();return true
