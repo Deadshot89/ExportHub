@@ -199,3 +199,59 @@ test('RC1688: manual diagnostic dispatch cannot execute either mutating POD back
   assert.match(workflow,/graphTargetDiagnostic:[\s\S]*?type: boolean/);
   assert.match(workflow,/if: \$\{\{ false \}\}/, 'production POD status bulk audit remains disabled');
 });
+
+
+test('RC1954: Graph HTTP 400 on folder with readable drive distinguishes invalid folder target',async()=>{
+  const drive=fresh();
+  await fakeRequests((call,n)=>{
+    if(n===1)return token();
+    if(n===2){
+      assert.match(call.path,/\/drives\/rc1687-private-drive\/items\/rc1687-private-folder\?/);
+      return {status:400,body:{error:{code:'BadRequest',message:'PRIVATE FOLDER ID must stay private'}}};
+    }
+    if(n===3){
+      assert.match(call.path,/\/drives\/rc1687-private-drive\?\$select=id/);
+      return {body:{id:'rc1687-private-drive'}};
+    }
+    throw Error('Unexpected diagnostic request');
+  }, async calls=>{
+    const result=await drive.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_FOLDER_FAILED');
+    assert.deepEqual(result.checks.map(x=>x.stage),[
+      'app-token','target-resolver','resolved-drive-read','resolved-folder-read'
+    ]);
+    assert.equal(result.checks[2].status,'ok');
+    assert.equal(result.checks[3].providerCode,'BadRequest');
+    assert.equal(result.checks[3].httpStatus,400);
+    assert.equal(calls.filter(x=>x.method==='GET').length,2);
+    assert.ok(calls.every(x=>['GET','POST'].includes(x.method)));
+    const redacted=JSON.stringify(result);
+    for(const secret of ['rc1687-private-drive','rc1687-private-folder','PRIVATE FOLDER ID','rc1687-private-token'])
+      assert.equal(redacted.includes(secret),false);
+  });
+});
+
+test('RC1954: Graph HTTP 400 folder with unreadable drive preserves both failure stages',async()=>{
+  const drive=fresh();
+  await fakeRequests((call,n)=>{
+    if(n===1)return token();
+    if(n===2)return {status:400,body:{error:{code:'BadRequest',message:'PRIVATE FOLDER'}}};
+    if(n===3)return {status:404,body:{error:{code:'ResourceNotFound',message:'PRIVATE DRIVE'}}};
+    throw Error('Unexpected diagnostic request');
+  }, async calls=>{
+    const result=await drive.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_FOLDER_FAILED');
+    assert.deepEqual(result.checks.map(x=>x.stage),[
+      'app-token','target-resolver','resolved-drive-read','resolved-folder-read'
+    ]);
+    assert.deepEqual(result.checks.slice(-2).map(x=>x.httpStatus),[404,400]);
+    assert.deepEqual(result.checks.slice(-2).map(x=>x.providerCode),['ResourceNotFound','BadRequest']);
+    assert.equal(calls.filter(x=>x.method==='GET').length,2);
+    assert.ok(calls.every(x=>['GET','POST'].includes(x.method)));
+    const redacted=JSON.stringify(result);
+    assert.equal(redacted.includes('PRIVATE'),false);
+    assert.equal(redacted.includes('rc1687-private-drive'),false);
+  });
+});
