@@ -870,7 +870,44 @@ async function retryArchiveBackup(accessKey, environment) {
   return { ok: true, record: drive.record || record, file: existing.file, backup: (drive.record || record).podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function retryDriveBackup(accessKey, environment) {
-  return retryArchiveBackup(accessKey, environment);
+  const got = await store.getRecord(accessKey, environment);
+  const record = got.record || {};
+  const backup = record.podBackup || {};
+  // RC1952: An optional Graph-only retry must not re-upload an already
+  // SHA-verified Azure archive or replace its original archiveSavedAt time.
+  // Missing/incomplete archives still enter the existing mandatory repair path.
+  if (backup.archiveSaved !== true || !/^[a-f0-9]{64}$/.test(text(backup.hash).toLowerCase())) {
+    return retryArchiveBackup(accessKey, environment);
+  }
+  const currentFile = automaticPod(record);
+  if (!currentFile) {
+    throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
+  }
+  // This reads the original signed bytes (or a hash-verified archival
+  // recovery) without rendering or replacing the signed document.
+  const existing = await readAutomaticPodBuffer(accessKey, environment, record);
+  if (!existing) {
+    throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
+  }
+  const originalHash = crypto.createHash('sha256').update(existing.buffer).digest('hex');
+  if (originalHash !== text(backup.hash).toLowerCase()) {
+    throw store.err('POD_ARCHIVE_INTEGRITY_FAILED', 'Der archivierte POD stimmt nicht mit dem signierten Original überein.', 409);
+  }
+  const archiveCheck = await checkAzureArchive(got.clients, record, accessKey, true);
+  if (!archiveCheck.ok) {
+    // A deleted archive requires a real archive repair, never an optimistic
+    // Graph-only success. A conflicting archive must remain blocked.
+    if (archiveCheck.repairable) return retryArchiveBackup(accessKey, environment);
+    throw store.err(archiveCheck.code || 'POD_ARCHIVE_VERIFY_FAILED',
+      archiveCheck.message || 'POD_ARCHIVE_VERIFY_FAILED', 409);
+  }
+  if (!m365Enabled() || !graphDrive.readiness().configured) {
+    return { ok: true, record, file: existing.file, backup, archiveSaved: true, driveSaved: confirmedDriveBackup(backup) };
+  }
+  const drive = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
+  const finalRecord = drive.record || record;
+  return { ok: true, record: finalRecord, file: existing.file, backup: finalRecord.podBackup || {},
+    archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function reconcilePendingBackups(environment, options) {
   options = Object.assign({ limit: 10, minAgeMs: 5 * 60 * 1000 }, options || {});
@@ -1107,7 +1144,9 @@ async function reconcilePendingBackups(environment, options) {
 
   for (const candidate of selectedCandidates) {
     try {
-      const result = await retryArchiveBackup(candidate.accessKey, environment);
+      const result = candidate.driveOnly
+        ? await retryDriveBackup(candidate.accessKey, environment)
+        : await retryArchiveBackup(candidate.accessKey, environment);
       const record = result && result.record || {};
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};

@@ -64,3 +64,28 @@ test('proposals are pure and never alter status, QR or POD',()=>{
  const before=JSON.stringify(input);
  const out=propose(input);assert.equal(out.proposals.length,1);assert.equal(JSON.stringify(input),before);
 });
+test('cancelled/deleted state flags override stale open status for shipments and tasks',()=>{
+ const cases=[
+  sh('REF-A','123',{deleted:true}),sh('REF-B','45',{isDeleted:true}),
+  sh('REF-C','67',{cancelledAt:'2026-11-09T08:00:00Z'}),sh('REF-D','123')
+ ];
+ const result=propose(args({shipments:cases}));
+ assert.deepEqual(result.proposals.map(x=>x.ref),['REF-D']);
+ assert.deepEqual(propose(args({tasks:[{...task,deleted:true}]})).proposals,[]);
+});
+test('a registered primary shipment never gets linked as its own REF child',()=>{
+ const primary=sh('REF-MAIN','123',{id:'SHIPMENT-MAIN'});
+ const active={...transport,shipmentId:'SHIPMENT-MAIN',reference:'REF-MAIN'};
+ const result=propose(args({transports:[active],shipments:[primary,sh('REF-A','123')]}));
+ assert.deepEqual(result.proposals.map(x=>x.ref),['REF-A']);
+});
+test('manual exclusion is reflected in proposals and not reintroduced on the same date',()=>{
+ const existingLinks=[{ref:'REF-A',pickupDate:date,active:false,manualLock:true,mode:'manual'}];
+ const result=propose(args({existingLinks}));
+ assert.deepEqual(result.proposals.map(x=>x.ref),['REF-B']);
+ assert.ok(result.conflicts.some(x=>x.ref==='REF-A'&&x.code==='MANUAL_UNLINK_PROTECTED'));
+ const later=propose(args({pickupDate:'2026-11-16',transports:[{...transport,pickupDate:'2026-11-16'}],
+   tasks:[{...task,weekdays:[1]}],
+   shipments:[sh('REF-A','123',{plannedPickupDate:'2026-11-16'})],existingLinks}));
+ assert.deepEqual(later.proposals.map(x=>x.ref),['REF-A']);
+});

@@ -40,7 +40,13 @@ function shipmentStatus(sh){
   const x=sh&&typeof sh==='object'?sh:{};
   return ['pickupStatus','shipmentStatus','processStatus','status'].map(k=>text(x[k]).toLowerCase());
 }
-function isCancelled(sh){return shipmentStatus(sh).some(s=>/^(?:storniert|cancelled|canceled|gelöscht|deleted)$/.test(s))}
+function isCancelled(sh){
+  const x=sh&&typeof sh==='object'?sh:{};
+  // State snapshots can use deletion booleans even while a stale status says "open".
+  if(x.deleted===true||x.isDeleted===true||x.cancelled===true||x.canceled===true||
+     text(x.deletedAt||x.cancelledAt||x.canceledAt))return true;
+  return shipmentStatus(x).some(s=>/^(?:storniert|cancelled|canceled|gelöscht|deleted)$/.test(s));
+}
 function isComplete(sh){
   const x=sh&&typeof sh==='object'?sh:{};
   if(shipmentStatus(x).some(s=>/^(?:abgeholt|picked up|completed|abgeschlossen|archiviert|archived|pod vorhanden|pod available)$/.test(s)))return true;
@@ -51,7 +57,7 @@ function isComplete(sh){
 }
 function taskForDate(task,pickupDate){
   const x=task&&typeof task==='object'?task:{};
-  if(x.cancelledAt||x.canceledAt||/^(?:cancelled|canceled|storniert|deleted|gelöscht)$/i.test(text(x.status)))return false;
+  if(isCancelled(x)||/^(?:cancelled|canceled|storniert|deleted|gelöscht)$/i.test(text(x.status)))return false;
   const exact=text(x.plannedDate||x.dueDate||x.date||x.targetDate||x.dueAt).slice(0,10);
   if(exact)return exact===pickupDate;
   const day=new Date(pickupDate+'T12:00:00Z').getUTCDay();
@@ -93,6 +99,12 @@ function propose({companyKey,environment,pickupDate,transports,tasks,shipments,e
   for(const [r,sh] of shipmentByRef){
     if(!sh||isCancelled(sh)||isComplete(sh))continue;
     if(companyOf(sh)!==company||shipmentDate(sh)!==day)continue;
+    // A registered main shipment is the parent, never its own REF child.
+    const sid=text(sh.shipmentId||sh.id).toUpperCase();
+    if(active.some(t=>(
+      (sid&&text(t.shipmentId||t.primaryShipmentId).toUpperCase()===sid)||
+      (text(t.reference||t.ref||t.primaryRef).toUpperCase()===r)
+    )))continue;
     const numbers=shipmentNumbers(sh);if(!numbers.length)continue;
     const eligible=active.filter(t=>{
       const fid=text(t.pickupTargetId),mapped=byFixed.get(fid);
@@ -102,6 +114,13 @@ function propose({companyKey,environment,pickupDate,transports,tasks,shipments,e
     const matchingOwners=new Set(numbers.flatMap(n=>Array.from(byAccount.get(n)||[])));
     if(matchingOwners.size>1||new Set(matches).size>1){conflicts.push(conflict('TRANSPORT_ASSIGNMENT_AMBIGUOUS',r,matches.join(',')));continue}
     if(matches.length!==1)continue;
+    // Manual exclusions are durable per pickup date and must not appear as
+    // automatic proposals that would be rejected only during commit.
+    if(links.some(l=>text(l.ref).toUpperCase()===r&&text(l.pickupDate)===day&&
+        l.manualLock===true&&l.active===false)){
+      conflicts.push(conflict('MANUAL_UNLINK_PROTECTED',r,'Manual exclusion'));
+      continue;
+    }
     const existing=links.filter(l=>text(l.ref).toUpperCase()===r&&l.active!==false);
     if(existing.length>1){conflicts.push(conflict('MULTIPLE_EXISTING_LINKS',r,'More than one active link'));continue}
     const t=eligible[0],transportId=matches[0];
