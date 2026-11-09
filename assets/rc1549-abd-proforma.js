@@ -148,9 +148,17 @@ function number(value){
 function money(value){var n=number(value);return n==null?'':n.toFixed(2)}
 function metric(value){var n=number(value);return n==null?'':n.toFixed(3)}
 function authToken(){
- try{var rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},token=q(rt.authToken||rt.sessionToken);if(token)return token}catch(_){}
- try{for(var i=0;root.sessionStorage&&i<root.sessionStorage.length;i++){var raw=root.sessionStorage.getItem(root.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var parsed=JSON.parse(raw);if(parsed&&parsed.token)return q(parsed.token)}}catch(_){}
- return''
+ // RC1932: never search unrelated sessionStorage records for a bearer token.
+ // Use the same active ExportHUB session and environment as the invoice upload.
+ try{var rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},token=q(rt.authToken||rt.token||rt.sessionToken);if(token)return token}catch(_){}
+ try{
+  var raw=root.sessionStorage&&root.sessionStorage.getItem('exporthub_rc301_tab_session');
+  if(!raw)return'';
+  var session=JSON.parse(raw),token=q(session&&session.token);
+  if(!token||!session.user)return'';
+  var source=q(session.environment||session.dataEnvironment).toLowerCase();
+  return !source||source===environment()?token:''
+ }catch(_){return''}
 }
 function environment(){try{return /-testservice\./i.test(String(root.location&&root.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function headers(){
