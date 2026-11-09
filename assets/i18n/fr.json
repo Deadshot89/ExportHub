@@ -2425,6 +2425,8 @@
   "urgentOrderV2.tabClosed": "Demandes clôturées",
   "urgentOrderV2.formTitle": "Créer une nouvelle demande",
   "urgentOrderV2.formIntro": "Saisissez la commande et le flux de marchandises. Les demandes figurent dans leur onglet respectif.",
+  "urgentOrderV2.requestedDispatchDate": "Date d'expédition souhaitée * (heure locale allemande)",
+  "urgentOrderV2.cutoffLateWarning": "Après 15 h 15, reporte la commande à demain. Tu peux tout de même la signaler aujourd'hui. Si le système ne la valide pas automatiquement, la demande ne sera traitée que demain.",
   "urgentOrderV2.priorityLabel": "Priorité / motif de la demande *",
   "urgentOrderV2.typeLabel": "Type de demande *",
   "urgentOrderV2.typeStandard": "Commande en stock – marchandises déjà disponibles",
