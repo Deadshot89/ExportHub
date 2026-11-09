@@ -159,8 +159,9 @@ function registrationMailLanguage(){
  v=q(v).toLowerCase().replace('_','-');
  var m=v.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'
 }
-function registrationClosureNotices(){
- var rows=closureEntries(),lang=registrationMailLanguage(),locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
+function registrationClosureNotices(language){
+ var m=q(language).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);
+ var rows=closureEntries(),lang=m?m[1]:registrationMailLanguage(),locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
  if(!rows.length)return '';
  var today='';
  try{
@@ -313,5 +314,5 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
 }
 
-w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
+w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings,closureNoticeText:registrationClosureNotices});
 })(window);
