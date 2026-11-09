@@ -12,6 +12,8 @@ const accessStore=require('../shared/public-access-store');
 const pickupStore=require('../shared/pickup-store');
 const proof=require('../shared/pickup-transport-registration-proof');
 const bindings=require('../shared/pickup-transport-binding-store');
+const linkStore=require('../shared/pickup-transport-link-store');
+const reconcileService=require('../shared/pickup-transport-reconcile');
 const i18n=require('../shared/i18n');
 async function session(req){
  return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?
@@ -61,7 +63,18 @@ module.exports=async function(context,req){
    actor,reason:String(payload.reason||'Sammeltransport im Abholkalender verbunden').trim(),
    confirmOverride:payload.confirmOverride===true,proof:verified
   });
-  context.res=auth.json(200,{ok:true,...result});
+  // Binding is already durable. A concurrent/failed REF refresh must not
+  // roll back a successfully audited main shipment assignment.
+  let reconciliation={status:'pending'};
+  try{
+   const synced=await reconcileService.reconcile({
+    environment,companyKey:tenant.companyKey,pickupDate,team:trustedTeam,actor,
+    bindingStore:bindings,linkStore,registrationProof:proof,
+    accessStore,pickupStore,fixedStore:fixed
+   });
+   reconciliation={status:'applied',...synced};
+  }catch(_){reconciliation={status:'pending',code:'RECONCILE_RETRY_REQUIRED'}}
+  context.res=auth.json(200,{ok:true,...result,reconciliation});
  }catch(e){
   const status=Number(e&&(e.status||e.statusCode))||500;
   const safe=/^(?:AUTH_|SESSION_|ACCOUNT_DISABLED|PASSWORD_CHANGE_REQUIRED|COMPANY_FORBIDDEN|ENVIRONMENT_|PICKUP_LINK_|METHOD_NOT_ALLOWED|BINDING_|TRANSPORT_)/.test(String(e&&e.code||''));

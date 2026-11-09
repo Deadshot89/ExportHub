@@ -4,7 +4,7 @@ import Module,{createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const source=require.resolve('../api/pickup-transport-bindings/index.js');
 function fixture(options={}){
- const calls={proof:[],reads:[],writes:[],teams:[],auth:0};
+ const calls={proof:[],reads:[],writes:[],teams:[],reconciles:[],auth:0};
  const user={id:'PLANNER-1',companyId:'essentra',rights:{
   pickupcalendar:{level:'view'},planning:{level:'edit'},shipment:{level:'view'}
  }};
@@ -50,12 +50,19 @@ function fixture(options={}){
    return{id:'MAIN-UK',shipmentId:'MAIN-UK',reference:'REF-UK',pickupDate:'2026-11-09',
       pickupTargetId:'FIX-UK',companyKey:'essentra',environment:'testservice',registered:true}}
  };
+ const reconcileService={async reconcile(args){
+  calls.reconciles.push(args);
+  if(options.failReconcile)throw options.failReconcile;
+  return{pickupDate:args.pickupDate,verifiedTransports:1,added:['REF-A','REF-B'],conflicts:[],changed:true};
+ }};
  const stubs={
   '../shared/auth-store':auth,'../shared/fast-auth-store':fast,
   '../shared/company-context':company,'../shared/state-write-guard':rights,
   '../shared/fixed-pickup-store':fixed,'../shared/public-access-store':{},
   '../shared/pickup-store':{},'../shared/pickup-transport-registration-proof':proof,
   '../shared/pickup-transport-binding-store':bindingStore,
+  '../shared/pickup-transport-link-store':{},
+  '../shared/pickup-transport-reconcile':reconcileService,
   '../shared/i18n':{t:()=>'Could not load pickup assignments'}
  };
  const original=Module._load;
@@ -82,6 +89,9 @@ test('planning editor with shipment view (not FIX admin) can link a verified mai
  assert.equal(calls.writes[0].actor,'PLANNER-1');
  assert.equal(calls.writes[0].expectedRevision,2);
  assert.equal(calls.proof.length,1);assert.equal(calls.proof[0].permitNewBinding,true);
+ assert.equal(calls.reconciles.length,1);
+ assert.deepEqual(calls.reconciles[0].team.state.shipments,[{id:'MAIN-UK',reference:'REF-UK'}]);
+ assert.deepEqual(r.data.reconciliation.added,['REF-A','REF-B']);
  assert.equal(calls.proof[0].team.state.shipments[0].id,'MAIN-UK');
  assert.deepEqual(calls.teams,['testservice']);
 });
@@ -194,4 +204,21 @@ test('unrecognized HTTP write methods are rejected without side effects',async()
  assert.equal((await invoke(request({method:'DELETE'}))).status,405);
  assert.equal((await invoke(request({method:'OPTIONS'}))).status,204);
  assert.equal(calls.teams.length,0);assert.equal(calls.writes.length,0);
+});
+test('a failed REF refresh reports pending but retains the successful main binding',async()=>{
+ const failure=Object.assign(new Error('Azure unavailable'),{code:'STORAGE_UNAVAILABLE'});
+ const {request,invoke,calls}=fixture({failReconcile:failure});
+ const r=await invoke(request());
+ assert.equal(r.status,200);
+ assert.equal(r.data.ok,true);assert.equal(r.data.revision,3);
+ assert.equal(r.data.reconciliation.status,'pending');
+ assert.equal(r.data.reconciliation.code,'RECONCILE_RETRY_REQUIRED');
+ assert.equal(calls.writes.length,1);assert.equal(calls.reconciles.length,1);
+});
+test('a denied write cannot trigger automatic REF association',async()=>{
+ const {request,invoke,calls,user}=fixture();
+ const viewer={...user,rights:{pickupcalendar:{level:'view'},
+   planning:{level:'view'},shipment:{level:'view'}}};
+ const r=await invoke(request({user:viewer}));
+ assert.equal(r.status,403);assert.equal(calls.reconciles.length,0);
 });

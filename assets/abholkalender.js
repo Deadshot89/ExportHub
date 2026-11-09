@@ -504,6 +504,46 @@
     if (company) headers['X-ExportHUB-Company-Id'] = company;
     return headers;
   }
+  // RC1878: only calendar dates reach the reconcile endpoint. The server
+  // independently loads the saved team, registration, FIX and REF evidence.
+  let rc1878Timer=0,rc1878Key='',rc1878At=0;
+  function schedulePickupReconcile(force){
+    if(!mountedRoot||!mountedState||!mountedOptions||
+      !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)||
+      mountedState.fixedError||environmentOf(mountedOptions)==='demo'||
+      typeof root.fetch!=='function')return false;
+    const host=String(root.location&&root.location.hostname||'').toLowerCase();
+    if(!(/\.azurestaticapps\.net$/.test(host)||/^(?:www\.)?exporthub360\.(?:de|com)$/.test(host)))return false;
+    const model=buildCalendarModel({today:mountedOptions.today||new Date(),
+      weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,
+      shipments:mountedState.shipments,tasks:mountedState.tasks,companyKey:mountedState.companyKey});
+    const dates=model.days.map(d=>d.dateKey).filter(v=>/^\d{4}-\d{2}-\d{2}$/.test(v)).slice(0,5);
+    if(!dates.length)return false;
+    const opts=mountedOptions;
+    const key=environmentOf(opts)+'|'+String(mountedState.companyKey||'')+'|'+dates.join(',');
+    if(rc1878Timer){if(root.clearTimeout)root.clearTimeout(rc1878Timer);rc1878Timer=0}
+    if(!force&&key===rc1878Key&&Date.now()-rc1878At<30000)return false;
+    rc1878Key=key;rc1878At=Date.now();
+    const run=async()=>{
+      rc1878Timer=0;
+      if(!mountedState||!mountedCalendarIsCurrent(mountedRoot,mountedState,opts))return;
+      try{
+        const response=await root.fetch('/api/pickup-transport-reconcile',{
+          method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',
+          headers:requestHeaders(opts),body:JSON.stringify({dates})
+        });
+        if(!response||response.redirected||response.type==='opaqueredirect'||!response.ok)return;
+        const data=await response.json();
+        if(data&&data.ok===true&&root.dispatchEvent&&typeof root.CustomEvent==='function')
+          root.dispatchEvent(new root.CustomEvent('exporthub:pickup-transport-reconciled',{
+            detail:{dates,totalAdded:Number(data.totalAdded)||0}
+          }));
+      }catch(_){/* Fail closed: never claim a REF link was saved on API failure. */}
+    };
+    rc1878Timer=typeof root.setTimeout==='function'?root.setTimeout(run,650):(run(),0);
+    return true;
+  }
+
   async function readResponse(response){
     let data = {};
     try { data = await response.json(); } catch (_) {}
@@ -550,6 +590,7 @@
       requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
       requestState.companyKey=String(data.companyKey||'');
       requestState.canEdit = data.canEdit === true;
+      schedulePickupReconcile(false);
     } catch (e) {
       if (!requestIsCurrent()) return;
       // An unsuccessful refresh must not leave old customer/REF associations displayed as current.
@@ -587,6 +628,7 @@
     if (!mountedState || !mountedRoot) return;
     mountedState.weekOffset = Math.trunc(number(offset));
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+    schedulePickupReconcile(false);
   }
   function bindEvents(){
     if (!mountedRoot || eventsBound || typeof mountedRoot.addEventListener !== 'function') return;
@@ -660,11 +702,13 @@
     // an open FIX form keeps what was typed; the new shipments show with the next render
     if (mountedState.editingFix) return;
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+    schedulePickupReconcile(true);
   }
   function setTasks(tasks){
     if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
     mountedState.tasks=Array.isArray(tasks)?tasks:[];
     if(!mountedState.editingFix)render(mountedRoot,mountedState,mountedOptions&&mountedOptions.today);
+    schedulePickupReconcile(true);
   }
   function setShipmentLoading(loading){
     if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
@@ -697,7 +741,8 @@
     setTasks,
     setShipmentLoading,
     setWeekOffset,
-    loadFixedPickups
+    loadFixedPickups,
+    schedulePickupReconcile
   };
 
   if (root && typeof root.addEventListener === 'function') root.addEventListener('exporthub:language-changed',()=>{
