@@ -2425,6 +2425,8 @@
   "urgentOrderV2.tabClosed": "Richieste chiuse",
   "urgentOrderV2.formTitle": "Crea una nuova richiesta",
   "urgentOrderV2.formIntro": "Inserisci ordine e flusso merci. Le richieste appaiono nella scheda corrispondente.",
+  "urgentOrderV2.requestedDispatchDate": "Data di spedizione richiesta * (ora locale tedesca)",
+  "urgentOrderV2.cutoffLateWarning": "Dopo le 15:15, sposta l'ordine a domani. Puoi comunque segnalarlo oggi. Se il sistema non lo rilascia automaticamente, la richiesta verrà gestita solo domani.",
   "urgentOrderV2.priorityLabel": "Priorità / motivo della richiesta *",
   "urgentOrderV2.typeLabel": "Tipo di richiesta *",
   "urgentOrderV2.typeStandard": "Ordine di magazzino – merce già disponibile",
