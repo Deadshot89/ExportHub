@@ -216,7 +216,7 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- const fallback=$('reportForm').elements.language.value==='en'?"After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.":"Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.";
+ const fallback=$('reportForm').elements.language.value==='en'?"Today's reporting deadline has passed! Orders for today must be reported by 3:15 pm. Please move this order to tomorrow. If you still report it for today, it can only be processed today if the system releases it automatically. Otherwise, tomorrow.":"Meldefrist für heute abgelaufen! Aufträge für heute müssen bis 15:15 Uhr gemeldet werden. Bitte verschiebe den Auftrag auf morgen. Meldest du ihn trotzdem für heute, wird er nur noch heute bearbeitet, wenn das System ihn automatisch freigibt. Sonst erst morgen.";
  return localeV2('cutoffLateWarning',fallback);
 }
 function syncCutoff(){
