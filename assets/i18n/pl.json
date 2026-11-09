@@ -2426,7 +2426,7 @@
   "urgentOrderV2.formTitle": "Utwórz nowe zgłoszenie",
   "urgentOrderV2.formIntro": "Wprowadź dane zamówienia i przepływu towarów. Zgłoszenia znajdziesz w odpowiedniej zakładce.",
   "urgentOrderV2.requestedDispatchDate": "Żądana data wysyłki * (czas lokalny w Niemczech)",
-  "urgentOrderV2.cutoffLateWarning": "Dzisiejszy termin zgłoszeń minął! Zamówienia na dziś trzeba zgłosić do 15:15. Przenieś zamówienie na jutro. Jeśli mimo to zgłosisz je na dziś, może zostać obsłużone dzisiaj tylko wtedy, gdy system automatycznie je zwolni. W przeciwnym razie jutro.",
+  "urgentOrderV2.cutoffLateWarning": "Krótka informacja o dzisiejszym terminie: Zamówienia na dziś zgłoś proszę do 15:15. Jeśli jest już później, najlepiej wybierz jutro jako dzień wysyłki. Nadal możesz zgłosić zamówienie na dziś. Jeśli system nie zwolni go automatycznie, zajmiemy się nim jutro.",
   "urgentOrderV2.priorityLabel": "Priorytet / powód zgłoszenia *",
   "urgentOrderV2.typeLabel": "Rodzaj zgłoszenia *",
   "urgentOrderV2.typeStandard": "Zlecenie magazynowe – towar jest już dostępny",
