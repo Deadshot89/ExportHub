@@ -2662,5 +2662,6 @@
   "closureMail.mailClosed": "Cerrado",
   "closureMail.mailResume": "Reapertura",
   "closureMail.htmlPreview": "Vista previa del correo HTML",
-  "closureMail.previewFailed": "No se pudo cargar la vista previa del correo."
+  "closureMail.previewFailed": "No se pudo cargar la vista previa del correo.",
+  "closureMail.pickupWarning": "Atención: la recogida del {{date}} coincide con el cierre ({{from}} – {{to}}). Reabrimos el {{reopen}}. Revise la fecha de recogida."
 }
