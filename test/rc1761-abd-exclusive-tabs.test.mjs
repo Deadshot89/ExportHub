@@ -17,9 +17,9 @@ function harness(){
    classList:{toggle(name,enabled){if(name==='active')active=!!enabled}},
    get active(){return active}};
  }
- const buttons=['manual','shipment','invoice','saved'].map(tab);
- const form={hidden:false,id:'',setAttribute(){}},history={hidden:true,id:'',setAttribute(){}},invoice={hidden:true,setAttribute(){}},heading={textContent:'ABD-Anfrage erstellen'},createButton={hidden:false};
- const panel={querySelector(s){if(s==='[data-rc1294-invoice-panel]')return invoice;return null},
+ const buttons=['manual','shipment','saved'].map(tab);
+ const form={hidden:false,id:'',setAttribute(){}},history={hidden:true,id:'',setAttribute(){}},heading={textContent:'ABD-Anfrage erstellen'},createButton={hidden:false};
+ const panel={querySelector(){return null},
   querySelectorAll(s){return s==='[data-rc1294-mode]'?buttons:[]}};
  const host={setAttribute(key,value){attrs[key]=value},getAttribute(key){return attrs[key]},
   querySelector(selector){
@@ -37,32 +37,30 @@ function harness(){
  const window={document,addEventListener(){},
   ExportHUBRC626:{openAbd(fromShipment){assert.equal(fromShipment,true);calls++}}};
  vm.runInNewContext(source,{window,document,console,Intl,URL,setTimeout,clearTimeout,Uint8Array,btoa(){return''}});
- return {api:window.ExportHUBRC1294ABDAnalysis,form,history,invoice,heading,createButton,buttons,attrs,get calls(){return calls}};
+ return {api:window.ExportHUBRC1294ABDAnalysis,form,history,heading,createButton,buttons,attrs,get calls(){return calls}};
 }
 
-test('RC1761: only selected ABD workspace is visible',()=>{
+test('RC1942: ABD has manual, shipment and saved modes only; legacy invoice mode normalizes to manual',()=>{
  const h=harness();
  h.api.setMode('invoice');
- assert.equal(h.form.hidden,true,'legacy ABD form must disappear in invoice tab');
- assert.equal(h.createButton.hidden,true,'new ABD action must not appear in invoice tab');
- assert.equal(h.invoice.hidden,false,'invoice analysis must remain visible');
+ assert.equal(h.form.hidden,false);
+ assert.equal(h.createButton.hidden,false);
  assert.equal(h.history.hidden,true);
- assert.equal(h.attrs['data-rc1294-mode'],'invoice');
- assert.equal(h.buttons[2].getAttribute('aria-selected'),'true');
-
+ assert.equal(h.attrs['data-rc1294-mode'],'manual');
+ assert.equal(h.buttons.length,3);
+ assert.equal(h.buttons[0].getAttribute('aria-selected'),'true');
  h.api.setMode('saved');
  assert.equal(h.form.hidden,true);
- assert.equal(h.invoice.hidden,true);
- assert.equal(h.history.hidden,false,'saved request list has its own tab');
- assert.equal(h.createButton.hidden,true,'history tab must not repeat the create action');
- assert.equal(h.buttons[3].getAttribute('aria-pressed'),'true');
-
+ assert.equal(h.history.hidden,false);
+ assert.equal(h.createButton.hidden,true);
+ assert.equal(h.buttons[2].getAttribute('aria-pressed'),'true');
  h.api.setMode('manual');
- assert.equal(h.form.hidden,false,'manual form must return without rerendering its data');
- assert.equal(h.createButton.hidden,false,'new ABD action belongs to manual creation');
- assert.equal(h.invoice.hidden,true);
+ assert.equal(h.form.hidden,false);
+ assert.equal(h.createButton.hidden,false);
  assert.equal(h.history.hidden,true);
  assert.equal(h.calls,0);
+ assert.doesNotMatch(source,/data-rc1294-mode="invoice"/);
+ assert.doesNotMatch(source,/id="rc1294InvoicePanel"/);
 });
 
 test('RC1761: shipment prefill is invoked once only for user-initiated tab change',()=>{
@@ -75,10 +73,9 @@ test('RC1761: shipment prefill is invoked once only for user-initiated tab chang
  assert.equal(h.buttons[1].getAttribute('aria-selected'),'true');
 });
 
-test('RC1761: invoice handoff returns to manual ABD and CSS respects hidden panels',()=>{
+test('RC1942: old ABD handoff remains available and documents now own the invoice editor',()=>{
  assert.match(handoff,/tabs\.setMode\('manual',true\);\s*legacy\.openAbd\(\)/);
  assert.match(proforma,/history\.hidden=abd\.getAttribute\('data-rc1294-mode'\)!=='saved'/);
- assert.match(css,/#rc626Abd\[data-rc1294-mode="invoice"\] > \.rc626-grid2/);
  assert.match(css,/#rc626Abd\[data-rc1294-mode="saved"\] > \.rc626-grid2/);
  assert.match(source,/setMode\(currentMode,true\)/);
  assert.match(source,/if\(mode==='shipment'\)[\s\S]*?ExportHUBRC626\.openAbd\(true\)/);
