@@ -23,7 +23,7 @@ test('RC1942: ABD bietet nur Manuell, Aus Sendung und Gespeichert; Excel liegt i
  await expect(workspace).toBeVisible();
  const picker=workspace.locator('[data-rc1940-files]');
  await expect(picker).toBeVisible();
- await picker.setInputFiles({name:'rechnung.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('PK\\u0003\\u0004test-excel')});
+ await picker.setInputFiles({name:'rechnung.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from([0x50,0x4b,0x03,0x04,0x54,0x45,0x53,0x54])});
  await expect(workspace.locator('[data-rc1940-selection]')).toContainText('rechnung.xlsx');
  await expect(workspace.locator('[data-rc1940-analyze]')).toBeEnabled();
  await workspace.locator('[data-rc1790-tab="delivery"]').click();
@@ -41,7 +41,7 @@ test('RC1942: document Excel picker works even if optional export translation as
  await page.locator('#nav > [data-exporthub-documents-nav]').click();
  const picker=page.locator('#rc1940Documents [data-rc1940-files]');
  await expect(picker).toBeVisible({timeout:10000});
- await expect(picker).toHaveAttribute('accept',/\\.xlsx/);
- await picker.setInputFiles({name:'D365.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('PK\\u0003\\u0004fixture')});
+ await expect(picker).toHaveAttribute('accept',/\.xlsx/);
+ await picker.setInputFiles({name:'D365.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from([0x50,0x4b,0x03,0x04,0x46,0x49,0x58,0x54])});
  await expect(page.locator('#rc1940Documents [data-rc1940-selection]')).toContainText('D365.xlsx');
 });
