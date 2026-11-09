@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "Entfernen fehlgeschlagen",
   "closureMail.invalid": "Bitte die Daten prüfen: letzte Abholung vor Schließbeginn, Wiederöffnung danach.",
   "closureMail.saved": "Schließzeit gespeichert und für E-Mails aktiviert",
-  "closureMail.saveFailed": "Speichern fehlgeschlagen"
+  "closureMail.saveFailed": "Speichern fehlgeschlagen",
+  "closureMail.mailTitle": "Wichtige Information zu unseren Betriebsferien",
+  "closureMail.mailLast": "Letzte Abholung",
+  "closureMail.mailClosed": "Geschlossen",
+  "closureMail.mailResume": "Wieder geöffnet ab"
 }
