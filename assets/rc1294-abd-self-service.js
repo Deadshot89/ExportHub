@@ -316,7 +316,9 @@ function renderResults(results){
  var box=resultBox();if(!box)return;
  var summary=lastResults.length+' '+(lastResults.length===1?xtr('documentSingle'):xtr('documentPlural'))+' · '+lastGroups.length+' '+xtr('groups')+' · '+lastUnassigned.length+' '+xtr('openShort');
  box.innerHTML='<div class="rc1294-result-head"><strong>'+esc(summary)+'</strong>'+(lastGroups.length?'<button type="button" class="ghost" data-rc1294-copy>'+esc(xtr('customsPortalData'))+'</button>':'')+'</div>'+lastResults.map(documentHtml).join('');
- box.hidden=false
+ box.hidden=false;
+ // Install handoff controls synchronously for every detected invoice, including D365 multi-recipient uploads.
+ try{if(w.ExportHUBRC1549Proforma&&typeof w.ExportHUBRC1549Proforma.mount==='function')w.ExportHUBRC1549Proforma.mount()}catch(_){}
 }
 async function poll(upload,fileName){
  var delayed=false;
