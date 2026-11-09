@@ -153,6 +153,9 @@ test('failed Outlook launch never records a successful opening',async()=>{
 test('Issue #1328: AVIS Outlook draft uses selected language and shows the same closure in its preview',async()=>{
  const source=fs.readFileSync('assets/rc1166-avis-reminder-overview.js','utf8');
  assert.match(source,/text\.value=withClosureMailNotice\(/,'vorschau muss Schließhinweis enthalten');
+ assert.match(source,/data-closure-preview role="note" hidden/,'der mehrsprachige Hinweis muss in der Dialogvorschau hervorgehoben sein');
+ assert.match(source,/closurePreview\.textContent=notice;closurePreview\.hidden=!notice/,'leere Vorschau muss sich verbergen');
+ assert.match(source,/border:2px solid #b45309/,'die Vorschau erhält eine kontrastreiche Umrandung');
  for(const [lang,title] of [['de','Wichtige Information'],['en','Important notice'],['pl','Ważna informacja'],['es','Información importante'],['fr','Information importante'],['it','Informazione importante']]){
   const {api,sh,state,launches,window}=setup({clock:'2026-12-14T12:00:00Z'});
   const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
