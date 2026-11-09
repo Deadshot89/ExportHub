@@ -301,7 +301,7 @@ async function sendHtmlAvis(sh,email,target,lang,url,mode){
 function inOverview(){var b=d.body;return !!(b&&low(b.getAttribute('data-exporthub-view'))==='shipmentoverview')}
 function ensureStyle(){
  if(d.getElementById('rc1166AvisReminderStyle'))return;
- var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}.rc1328-closure-preview{white-space:pre-line;padding:14px 16px;border:2px solid #b45309;border-radius:10px;background:#fff7ed;color:#78350f;font-weight:600;line-height:1.5;margin:12px 0}.rc1328-closure-preview[hidden]{display:none}.rc1328-html-preview{border:1px solid #cbd5e1;border-radius:10px;margin:10px 0;overflow:hidden}.rc1328-html-preview[hidden]{display:none}.rc1328-html-preview .rc1166-note{padding:10px;background:#f1f5f9;color:#334155;font-weight:700}.rc1328-html-preview iframe{width:100%;min-height:370px;border:0;background:white;display:block}.rc1207-send-status{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700}.rc1207-send-status[data-kind="ok"]{background:#ecfdf5;color:#166534;border:1px solid #86efac}.rc1207-send-status[data-kind="bad"]{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
+ var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}.rc1328-closure-preview{white-space:pre-line;padding:14px 16px;border:2px solid #b45309;border-radius:10px;background:#fff7ed;color:#78350f;font-weight:600;line-height:1.5;margin:12px 0}.rc1328-closure-preview[hidden]{display:none}.rc1328-pickup-warning{padding:12px 14px;margin:10px 0;border-radius:9px;background:#fff7ed;border:2px solid #b45309;color:#78350f;font-size:14px;font-weight:700;line-height:1.4}.rc1328-html-preview{border:1px solid #cbd5e1;border-radius:10px;margin:10px 0;overflow:hidden}.rc1328-html-preview[hidden]{display:none}.rc1328-html-preview .rc1166-note{padding:10px;background:#f1f5f9;color:#334155;font-weight:700}.rc1328-html-preview iframe{width:100%;min-height:370px;border:0;background:white;display:block}.rc1207-send-status{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700}.rc1207-send-status[data-kind="ok"]{background:#ecfdf5;color:#166534;border:1px solid #86efac}.rc1207-send-status[data-kind="bad"]{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function closeDialog(){if(dialog&&dialog.parentNode)dialog.parentNode.removeChild(dialog);dialog=null}
@@ -364,6 +364,24 @@ function openDialog(sh,mode){
  refresh();return true
 }
 
+function renderPickupClosureWarning(card,sh){
+ var current=card&&card.querySelector&&card.querySelector('[data-rc1328-pickup-warning]');
+ var date=pickupDateOf(sh),api=w.ExportHUBRC1065RegistrationCC,hit=null;
+ try{if(api&&typeof api.pickupClosureWarning==='function')hit=api.pickupClosureWarning(date)}catch(_){}
+ if(!hit){if(current)current.remove();return false}
+ var lang='de';
+ try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
+ var locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
+ function formatted(v){return new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z'))}
+ var message=tr('closureMail.pickupWarning',{date:formatted(hit.pickupDate),from:formatted(hit.startDate),to:formatted(hit.endDate),reopen:formatted(hit.reopenDate)},lang);
+ if(!current){
+  current=d.createElement('div');current.className='rc1328-pickup-warning';
+  current.setAttribute('data-rc1328-pickup-warning','1');current.setAttribute('role','alert');
+  card.appendChild(current)
+ }
+ if(current.textContent!==message)current.textContent=message;
+ return true
+}
 function ensureButton(card,sh){
  var url=avisLink(sh),old=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');
  if(!url){if(old)old.remove();return false}
@@ -395,14 +413,14 @@ function overviewCards(shipments){
 function render(){
  if(!inOverview()){d.querySelectorAll('[data-rc1166-avis-reminder]').forEach(function(x){x.remove()});closeDialog();return 0}
  ensureStyle();var shipments=allShipments(),rows=overviewCards(shipments),count=0;
- rows.forEach(function(row){if(row.shipment&&ensureButton(row.card,row.shipment))count++});return count
+ rows.forEach(function(row){if(row.shipment){renderPickupClosureWarning(row.card,row.shipment);if(ensureButton(row.card,row.shipment))count++}});return count
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1316 Avis-Erinnerung',e)}catch(_){}}},0)}
 var observerCardSelector='.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference],article,.card,[role="article"]';
 function observerElement(node){return node&&node.nodeType===1?node:null}
 function ownReminderNode(node){
  var el=observerElement(node);if(!el)return false;
- try{return !!((el.matches&&el.matches('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog'))||(el.closest&&el.closest('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog')))}catch(_){return false}
+ try{return !!((el.matches&&el.matches('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog,.rc1328-pickup-warning'))||(el.closest&&el.closest('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog,.rc1328-pickup-warning')))}catch(_){return false}
 }
 function nodeTouchesOverviewCard(node){
  var el=observerElement(node);if(!el)return false;
