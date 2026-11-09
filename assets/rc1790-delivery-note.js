@@ -12,7 +12,7 @@
  function fmt(key,values){return t(key).replace(/\{([a-z]+)\}/g,function(_,field){return String(values[field]||'')})}
  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]})}
  function q(s){return String(s==null?'':s).trim()}
- function host(){var h=root.document&&root.document.getElementById('rc1294AbdAnalysis');return h&&h.querySelector('[data-rc1294-invoice-panel]')}
+ function host(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')}
  function manual(){return root.document&&root.document.getElementById('rc1549AbdManual')}
  function panel(){return root.document&&root.document.getElementById('rc1790DeliveryNote')}
  function stateMessage(s,kind){var target=panel()&&panel().querySelector('[data-rc1790-status]');if(target){target.hidden=!s;target.textContent=s;target.setAttribute('data-kind',kind||'info')}}
@@ -142,7 +142,7 @@
   schedule()
  }
  function schedule(){if(timer)return;timer=root.setTimeout(function(){timer=0;mount()},20)}
- function start(){schedule();if(!observer&&root.MutationObserver&&root.document.body){observer=new root.MutationObserver(function(){if(!panel())schedule()});observer.observe(root.document.body,{childList:true,subtree:true})}}
+ function start(){schedule();if(!observer&&root.MutationObserver&&root.document.body){observer=new root.MutationObserver(function(){if(host()&&!panel())schedule()});observer.observe(root.document.body,{childList:true,subtree:true})}}
  root.ExportHUBRC1790DeliveryNote=Object.freeze({version:'RC1790',mount:mount,snapshot:snapshot});
  if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',start,{once:true});else start();
  if(root.addEventListener){['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(event){root.addEventListener(event,schedule)});root.addEventListener('exporthub:language-changed',localizeWithoutLosingDraft)};
