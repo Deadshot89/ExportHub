@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const {activeClosureNotices,closureNoticePlain,closureNoticeHtml,renderAvisMailHtml}=require('../api/shared/avis-mail-html.js');
+const {activeClosureNotices,closureForPickupDate,closureNoticePlain,closureNoticeHtml,renderAvisMailHtml}=require('../api/shared/avis-mail-html.js');
 
 const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
 const settings=(notices)=>({settings:{closureNotices:notices}});
@@ -82,4 +82,22 @@ test('Issue 1328: Ungültige oder ausgeschaltete Konfiguration versendet keinen 
  assert.deepEqual(activeClosureNotices({},at('2026-12-20')),[]);
  assert.deepEqual(activeClosureNotices(settings([]),at('2026-12-20')),[]);
  assert.deepEqual(activeClosureNotices(settings([{...closure,enabled:undefined}]),at('2026-12-20')),[]);
+});
+
+
+test('Issue 1328: pickup closure lookup is inclusive, independent of announcement lead, and rejects invalid setups',()=>{
+ const enabled=settings([closure]);
+ for(const day of ['2026-12-21','2026-12-31','2027-01-01']){
+  const result=closureForPickupDate(enabled,day);
+  assert.ok(result,'Closed date must be denied: '+day);
+  assert.equal(result.reopenDate,'2027-01-04');
+ }
+ for(const day of ['2026-12-20','2027-01-02','2027-01-04','2026-02-30','2026/12/25','']){
+  assert.equal(closureForPickupDate(enabled,day),null,'Open/invalid date: '+day);
+ }
+ assert.equal(closureForPickupDate(settings([{...closure,enabled:false}]),'2026-12-25'),null);
+ assert.equal(closureForPickupDate(settings([{...closure,lastPickupTime:'25:00'}]),'2026-12-25'),null);
+ assert.equal(closureForPickupDate({taskCalendar:{closures:[closure]}},'2026-12-25'),null);
+ const longLead={...closure,leadDays:0};
+ assert.ok(closureForPickupDate(settings([longLead]),'2026-12-25'),'bookings must close even when the email lead window is inactive');
 });
