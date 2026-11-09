@@ -96,9 +96,11 @@ test('Issue #1328: internal manual pickup shows localized closed-day warnings an
  assert.match(manual,/setManualPickupStatus\(panel,tr\('closureMail\.bookingClosed'\),'error'\)/);
  assert.match(manual,/if\(panel\.dataset\.rc1328ClosureBlocked==='1'\)/);
  assert.match(manual,/e\.code==='PICKUP_BUSINESS_CLOSED'/);
+ assert.match(manual,/option\.disabled=slot\.closedForPickup===true\|\|/,'existing selected slots beyond the final cutoff must remain disabled');
  for(const language of ['de','en','pl','es','fr','it']){
   const dict=JSON.parse(fs.readFileSync('assets/i18n/'+language+'.json','utf8'));
   assert.ok(dict['closureMail.bookingClosed']?.length>25,language+' needs booking warning');
+  for(const placeholder of ['{{last}}','{{time}}','{{reopen}}'])assert.ok(dict['closureMail.pickupWarning']?.includes(placeholder),language+' warning must state actual collection cutoff');
  }
 });
 
