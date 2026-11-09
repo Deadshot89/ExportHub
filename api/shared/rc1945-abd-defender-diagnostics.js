@@ -50,6 +50,8 @@ async function collectTestserviceAbdDefenderDiagnostics(options={}){
    const blob=container.getBlobClient(item.name);
    if(!blob||typeof blob.getTags!=='function')return report('client-unavailable');
    const tagResponse=await blob.getTags();
+   // An RPC may finish after the budget: never report a stale inventory as verified.
+   if(clock()-started>budget)return report('incomplete');
    const status=scanResultFromTags(tagResponse&&tagResponse.tags||{}).status;
    if(!STATES.includes(status))return report('incomplete');
    counts[status]++;records++;
@@ -62,6 +64,7 @@ async function collectTestserviceAbdDefenderDiagnostics(options={}){
     }
    }
   }
+  if(clock()-started>budget)return report('incomplete');
   return{...result,status:'verified',reason:null,recordCount:records,
    states:counts,pendingOver120Seconds,pendingOverTwoHours};
  }catch(error){return report(reasonFor(error))}
