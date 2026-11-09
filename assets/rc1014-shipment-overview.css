@@ -345,3 +345,31 @@ body[data-exporthub-view="shipmentview"] [data-rc1370-status][data-state="locked
   body[data-exporthub-view="shipmentview"] .rc1370-manual-grid{grid-template-columns:1fr}
   body[data-exporthub-view="shipmentview"] .rc1370-manual-actions button{width:100%}
 }
+
+/* RC1934 – authenticated container photos stay in the shipment view. */
+.rc1259-photo-preview{
+  position:fixed;inset:0;z-index:2147482500;display:flex;align-items:center;
+  justify-content:center;padding:clamp(12px,3vw,28px);
+  background:rgba(10,20,36,.78);
+}
+.rc1259-photo-preview-dialog{
+  display:flex;flex-direction:column;width:min(100%,1060px);max-height:94vh;
+  background:var(--card,#fff);color:var(--text,#172536);border-radius:16px;
+  overflow:hidden;box-shadow:0 24px 75px rgba(0,0,0,.33);
+}
+.rc1259-photo-preview-header{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:12px 16px;border-bottom:1px solid #cbd5e1;
+}
+.rc1259-photo-preview-header strong{font-size:14px;overflow-wrap:anywhere}
+.rc1259-photo-preview-header button{
+  min-height:40px;padding:8px 14px;border:1px solid #94a3b8;
+  border-radius:9px;background:var(--card,#fff);color:inherit;
+  font:inherit;font-weight:700;cursor:pointer;
+}
+.rc1259-photo-preview-header button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+.rc1259-photo-preview-image{
+  display:block;max-width:100%;width:auto;max-height:calc(94vh - 66px);
+  margin:auto;object-fit:contain;
+}
+@media(max-width:600px){.rc1259-photo-preview{padding:8px}.rc1259-photo-preview-dialog{border-radius:12px}}
