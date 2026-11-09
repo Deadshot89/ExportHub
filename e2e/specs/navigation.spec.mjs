@@ -329,7 +329,9 @@ test('RC1942: ABD ohne Rechnungsanalyse; Dokumente erstellen mit Excel/PDF/CSV-U
  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
  await expect(panel).toBeVisible({timeout:10000});
- await expect(panel.locator('[data-rc1294-mode]')).toHaveCount(3);
+ await expect(panel.locator('[data-rc1294-mode="manual"]')).toHaveCount(1);
+ await expect(panel.locator('[data-rc1294-mode="shipment"]')).toHaveCount(1);
+ await expect(panel.locator('[data-rc1294-mode="saved"]')).toHaveCount(1);
  await expect(panel.locator('[data-rc1294-mode="invoice"]')).toHaveCount(0);
  await expect(panel.locator('[data-rc1294-invoice-panel]')).toHaveCount(0);
  await expect(page.locator('#rc1294AbdForm')).toBeVisible();
