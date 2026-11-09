@@ -496,7 +496,7 @@ async function deleteManagedTask(id){
     if(typeof w.alert==='function')w.alert(t('managedByShipment'));
     return false;
   }
-  var seriesId=q(task.seriesId),entireSeries=seriesId.indexOf('rc1570-series:')===0;
+  var seriesId=q(task.seriesId),entireSeries=!!seriesId&&isWeekly(task);
   var message=t(entireSeries?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
   if(typeof w.confirm==='function'&&!w.confirm(message))return false;
   var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta};
@@ -597,6 +597,7 @@ function managedRows(){
 }
 function isSystemManagedTask(x){
   if(x&&(x.masterTaskRC848||x.masterTaskRC846))return true;
+  if(isWeekly(x)&&!q(x&&x.seriesId))return true;
   if(low(x&&x.sourceType)==='manual'&&!/^(m848:|task:av-missing:)/i.test(taskId(x)))return false;
   if(/^(m848:|task:av-missing:)/i.test(taskId(x)))return true;
   var source=low(x&&x.sourceType);
