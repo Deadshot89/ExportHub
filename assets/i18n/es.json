@@ -2425,6 +2425,8 @@
   "urgentOrderV2.tabClosed": "Solicitudes cerradas",
   "urgentOrderV2.formTitle": "Crear una nueva solicitud",
   "urgentOrderV2.formIntro": "Introduce el pedido y el flujo de mercancías. Las solicitudes aparecen en la pestaña correspondiente.",
+  "urgentOrderV2.requestedDispatchDate": "Fecha de envío solicitada * (hora local de Alemania)",
+  "urgentOrderV2.cutoffLateWarning": "Después de las 15:15, pasa el pedido a mañana. Aun así, puedes registrarlo hoy. Si el sistema no lo libera automáticamente, la solicitud se tramitará mañana.",
   "urgentOrderV2.priorityLabel": "Prioridad / motivo de la solicitud *",
   "urgentOrderV2.typeLabel": "Tipo de solicitud *",
   "urgentOrderV2.typeStandard": "Pedido de almacén – mercancía ya disponible",
