@@ -393,7 +393,7 @@
     const number = numberValue ? `<div class="pickup-item-note">${esc(tr('pickupCalendar.label.customerNumber'))}: ${esc(numberValue)}</div>` : '';
     const linkState = status && status.state ? status.state : '';
     const linkKey = {done:'pickupCalendar.fix.done',partial:'pickupCalendar.fix.partial',planned:'pickupCalendar.fix.planned'}[linkState];
-    const refButtons = status && status.matched && status.matched.length ? `<div class="pickup-item-actions">${status.matched.slice(0,60).map(sh=>`<button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(sh.key)}">${esc(sh.ref)}</button>`).join('')}</div>` : '';
+    const refButtons = status && status.matched && status.matched.length ? `<div class="pickup-item-actions">${status.matched.slice(0,60).map(sh=>`<button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(sh.key)}" data-pickup-shipment-ref="${esc(sh.ref)}">${esc(sh.ref)}</button>`).join('')}</div>` : '';
     const conflict = status && (status.conflicts||[]).length || status && status.legacyConflict;
     const stats = status && status.shipments ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.badge.shipment'))}: <strong>${status.shipments}</strong></span><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${status.total}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${status.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${status.open}</strong></span></div>` : '';
     // Preserve the legacy compact REF summary; the buttons below provide individual navigation.
@@ -406,7 +406,7 @@
     const collis = shipmentColliState(shipment);
     const key = shipmentIdentity(shipment);
     const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${collis.expected}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${collis.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${collis.remaining}</strong></span></div>` : '';
-    const open = key ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">${esc(tr('pickupCalendar.action.openShipment'))}</button></div>` : '';
+    const open = key ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}" data-pickup-shipment-ref="${esc(shipmentRefText(shipment))}">${esc(tr('pickupCalendar.action.openShipment'))}</button></div>` : '';
     const customer = shipmentCustomer(shipment);
     const doneClass = shipmentIsCompleted(shipment) && !collis.partial ? ' is-done' : collis.partial ? ' is-partial' : '';
     return `<article class="pickup-item pickup-item-shipment${doneClass}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">${esc(tr('pickupCalendar.badge.shipment'))}</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span class="pickup-customer">${esc(tr('pickupCalendar.label.customer'))}: <strong>${esc(customer)}</strong></span><span class="pickup-carrier">${esc(shipmentCarrier(shipment))}</span><span class="pickup-status" data-pickup-state="${collis.partial?'partial':collis.complete||doneClass===' is-done'?'done':'open'}">${doneClass===' is-done'?'✓ ':''}${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
@@ -564,7 +564,11 @@
     }
   }
   function findFix(id){ return mountedState && mountedState.fixedPickups.find(item=>String(item && item.id)===String(id)) || null; }
-  function findShipment(key){ return mountedState && mountedState.shipments.find(item=>shipmentIdentity(item)===String(key || '')) || null; }
+  function findShipment(key,reference){
+    const matches=mountedState&&Array.isArray(mountedState.shipments)?mountedState.shipments.filter(item=>shipmentIdentity(item)===String(key||'')&&(!reference||shipmentRefText(item)===String(reference))):[];
+    // Recycled technical IDs must never open an unrelated customer REF.
+    return matches.length===1?matches[0]:null;
+  }
   function setWeekOffset(offset){
     if (!mountedState || !mountedRoot) return;
     mountedState.weekOffset = Math.trunc(number(offset));
@@ -583,8 +587,12 @@
       if (action === 'week-next') { setWeekOffset(mountedState.weekOffset+1); return; }
       if (action === 'print-week') { printCurrentWeek(); return; }
       if (action === 'open-shipment') {
-        const shipment = findShipment(button.getAttribute('data-pickup-shipment-key'));
+        const shipment = findShipment(button.getAttribute('data-pickup-shipment-key'),button.getAttribute('data-pickup-shipment-ref'));
         if (shipment) triggerOpenShipment(shipment,mountedOptions);
+        else {
+          mountedState.shipmentError=tr('pickupCalendar.assignment.check');
+          render(mountedRoot,mountedState,mountedOptions&&mountedOptions.today);
+        }
         return;
       }
       if (action === 'new') mountedState.editingFix = {id:'',siteLabel:'',customerNumber:'',weekday:1,note:'',active:true};
