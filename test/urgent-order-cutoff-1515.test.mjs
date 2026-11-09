@@ -78,8 +78,8 @@ test('late cutoff choices stay hidden until a late same-day submit and tomorrow 
    'function berlinCutoffClock(){','function buildPayload(){','syncCutoff','applyLateCutoffChoice']
  ]){
   const html=fs.readFileSync(new URL('../assets/'+file,import.meta.url),'utf8');
-  const start=html.indexOf(begin),end=html.indexOf(end,start);
-  assert.ok(start>=0&&end>start,file+' cutoff helpers found');
+  const snippetStart=html.indexOf(begin),snippetEnd=html.indexOf(end,snippetStart);
+  assert.ok(snippetStart>=0&&snippetEnd>snippetStart,file+' cutoff helpers found');
   const controls=Object.fromEntries(ids.map(id=>[id,{value:'',hidden:false,textContent:'',min:'',focus(){}}]));
   const isInternal=file==='urgent-orders.html';
   const dateId=isInternal?'internalRequestedDispatchDate':'requestedDispatchDate';
@@ -102,7 +102,7 @@ test('late cutoff choices stay hidden until a late same-day submit and tomorrow 
    localeV2:(_key,fallback)=>fallback,
    showWizardStep:()=>{},
   });
-  vm.runInContext(html.slice(start,end),context);
+  vm.runInContext(html.slice(snippetStart,snippetEnd),context);
   assert.equal(context[sync](),false,file+' at 15:15:59');
   assert.equal(controls[panelId].hidden,true,'warning starts hidden');
   clock='2026-11-09T14:16:00Z'; // 15:16 Berlin
