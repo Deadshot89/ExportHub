@@ -201,62 +201,31 @@ async function renderedPdf(sh,cause){
 }
 function fileName(sh){return 'POD_'+(refOf(sh)||t('fallback'))+'_Ladeliste_unterschrieben.pdf'}
 
-/* RC1938: print-copy action intentionally never changes the archived original. */
-var RC1938_COPY='[data-rc1938-layout-copy="1"]';
-var RC1938_LABELS={
- de:'Ladeliste drucken (Layoutkopie)',en:'Print loading list (layout copy)',
- pl:'Drukuj listę (kopia)',es:'Imprimir lista (copia)',
- fr:'Imprimer liste (copie)',it:'Stampa lista (copia)'
-};
-function rc1938Label(){
- var lang=q((d.documentElement&&d.documentElement.lang)||(w.navigator&&w.navigator.language)||'de').slice(0,2).toLowerCase();
- return RC1938_LABELS[lang]||RC1938_LABELS.de
-}
-async function rc1938DownloadCopy(button){
- if(button.dataset.rc1938Busy==='1')return;
- button.dataset.rc1938Busy='1';button.disabled=true;
- try{
-  var sh=shipment(button);
-  // A layout copy must not synchronize or persist pickup/team state. Render
-  // solely from the already selected shipment; missing signature evidence
-  // fails visibly rather than altering any archived original.
-  // The existing browser renderer creates a new in-memory PDF only;
-  // it does not use saveAzurePod, overwrite an archive, or replace an ID.
-  var pdf=await renderedPdf(sh,null);
-  if(!pdf||pdf.size<1000)throw Error(t('empty'));
-  var href=URL.createObjectURL(pdf),a=d.createElement('a');
-  a.href=href;a.download='LAYOUTKOPIE_'+(refOf(sh)||t('fallback'))+'_Ladeliste.pdf';
-  a.rel='noopener';d.body.appendChild(a);a.click();a.remove();
-  w.setTimeout(function(){URL.revokeObjectURL(href)},120000);
- }catch(error){if(typeof w.alert==='function')w.alert(t('failed')+'\n\n'+q(error&&error.message||error))}
- finally{delete button.dataset.rc1938Busy;button.disabled=false}
-}
-function rc1938Install(){
- if(!d.querySelectorAll||!d.createElement)return;
- Array.from(d.querySelectorAll('[data-rc628-official-pod-download="1"],[data-index352-action="download-pod"]')).forEach(function(original){
-  if(!original.parentNode)return;
-  if(original.nextElementSibling&&original.nextElementSibling.matches(RC1938_COPY))return;
-  var copy=d.createElement('button');copy.type='button';
-  copy.className=q(original.className);
-  copy.setAttribute('data-rc1938-layout-copy','1');
-  copy.textContent=rc1938Label();
-  copy.title=rc1938Label();
-  if(original.dataset&&original.dataset.id)copy.dataset.id=original.dataset.id;
-  copy.style.marginLeft='8px';original.parentNode.insertBefore(copy,original.nextSibling);
+/* RC1955: one visible POD entry point. Legacy duplicates are removed on render.
+   This UI change neither writes nor replaces signed archive files. */
+var RC1955_REDUNDANT='[data-rc1938-layout-copy="1"],[data-rc628-official-pod-download="1"],[data-index352-action="download-pod"]';
+function rc1955CleanUp(){
+ if(!d.querySelectorAll)return;
+ Array.from(d.querySelectorAll(RC1955_REDUNDANT)).forEach(function(button){
+  if(button&&typeof button.remove==='function')button.remove();
  });
 }
-function rc1938Observe(){
- rc1938Install();
+function rc1955Observe(){
+ rc1955CleanUp();
  if(w.MutationObserver&&d.body){
   var queued=false,observer=new w.MutationObserver(function(records){
    if(queued||!records.some(function(x){return x.addedNodes&&x.addedNodes.length}))return;
    queued=true;
    var schedule=w.requestAnimationFrame||function(fn){w.setTimeout(fn,0)};
-   schedule(function(){queued=false;rc1938Install()});
+   schedule(function(){queued=false;rc1955CleanUp()});
   });
   observer.observe(d.body,{childList:true,subtree:true});
  }
- if(typeof w.addEventListener==='function')w.addEventListener('exporthub:viewchange',rc1938Install);
+ if(typeof w.addEventListener==='function'){
+  ['exporthub:viewchange','exporthub:rendered','exporthub:languagechange'].forEach(function(event){
+   w.addEventListener(event,rc1955CleanUp);
+  });
+ }
 }
 
 function openPdf(blob,sh,mode,popup){
@@ -276,8 +245,19 @@ async function handle(button){
  if(mode==='open')try{popup=w.open('','_blank');if(popup){popup.document.title=t('loadingTitle');popup.document.body.textContent=t('loadingText')}}catch(_){}
  try{
   sh=shipment(button);
-  // Prefer a verified immutable original over a delegated click which
-  // returns before the document panel's asynchronous download can fail.
+  // RC1955: "POD öffnen" renders the same in-memory A4 loading-list preview
+  // as the former print-copy button, without modifying any archived original.
+  // Missing genuine signature evidence keeps the verified original as fallback.
+  var podControl=w.ExportHUBPodRemove1740;
+  var removed=podControl&&typeof podControl.qrRemoved==='function'&&podControl.qrRemoved(sh);
+  if(mode==='open'&&!removed){
+   try{
+    var preview=await renderedPdf(sh,null);
+    openPdf(preview,sh,mode,popup);
+    return;
+   }catch(_){/* Never invent a missing or invalid driver signature. */}
+  }
+  // Hash-verified immutable originals still win over unverified document links.
   var saved=await storedSignedBlob(sh);
   if(saved){openPdf(saved,sh,mode,popup);return}
   if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
@@ -304,17 +284,12 @@ async function handle(button){
  }
 }
 d.addEventListener('click',function(e){
- var copy=e.target&&e.target.closest&&e.target.closest(RC1938_COPY);
- if(copy&&!copy.disabled&&copy.getAttribute&&copy.getAttribute('data-rc1938-layout-copy')==='1'){
-  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
-  rc1938DownloadCopy(copy);return
- }
  var button=e.target&&e.target.closest&&e.target.closest(SELECTOR);
  if(!button||button.disabled)return;
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',rc1938Observe,{once:true});
-else rc1938Observe();
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',rc1955Observe,{once:true});
+else rc1955Observe();
 w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1630',selector:SELECTOR,canonicalPdf:canonicalPdf,renderedPdf:renderedPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
 })(window,document);

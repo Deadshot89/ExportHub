@@ -1234,6 +1234,19 @@ async function diagnoseTarget(options) {
     success('resolved-folder-read');
     return Object.assign(result, { ok: true, code: 'GRAPH_DIAGNOSTIC_TARGET_READABLE' });
   } catch (error) {
+    // RC1954: A folder-level 400 alone cannot distinguish an inaccessible
+    // drive from a bad folder ID. Probe drive metadata (GET only) and publish
+    // just the redacted status; never emit tenant, drive ID, or Graph message.
+    // Keep the original folder failure as the final diagnostic stage.
+    if (result.targetMode === 'explicit-ids') {
+      try {
+        const drive = await graphGet(token, '/drives/' + encodeURIComponent(target.driveId) + '?$select=id');
+        if (text(drive.body && drive.body.id)) success('resolved-drive-read');
+        else failure('resolved-drive-read', { code: 'GRAPH_DRIVE_ID_MISSING', statusCode: 502 });
+      } catch (driveError) {
+        failure('resolved-drive-read', driveError);
+      }
+    }
     failure('resolved-folder-read', error);
     return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_FOLDER_FAILED' });
   }

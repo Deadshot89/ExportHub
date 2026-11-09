@@ -48,6 +48,26 @@ function validateDirectOutbound(raw){
   checkResult:failed?'exception':'passed',exceptionReason:failed?exceptionReason:''};
 }
 
+// Same-day Urgent Orders are accepted after the deadline but clearly flagged.
+// The deadline follows the German local clock (including daylight saving time).
+function dispatchCutoff(requestedDate,now){
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+  timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+ }).formatToParts(new Date(now)).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+ const today=parts.year+'-'+parts.month+'-'+parts.day;
+ const date=requestedDate==null||requestedDate===''?today:text(requestedDate,20);
+ const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+ if(!match)throw problem('URGENT_DISPATCH_DATE_INVALID','Bitte einen gültigen gewünschten Versandtag angeben.');
+ const day=new Date(Date.UTC(+match[1],+match[2]-1,+match[3]));
+ if(day.getUTCFullYear()!==+match[1]||day.getUTCMonth()!==+match[2]-1||day.getUTCDate()!==+match[3])
+  throw problem('URGENT_DISPATCH_DATE_INVALID','Bitte einen gültigen gewünschten Versandtag angeben.');
+ if(date<today)throw problem('URGENT_DISPATCH_DATE_PAST','Der gewünschte Versandtag darf nicht in der Vergangenheit liegen.');
+ const lateSameDay=date===today&&(+parts.hour*60 + +parts.minute)>15*60+15;
+ const next=new Date(Date.UTC(+parts.year,+parts.month-1,+parts.day+1)).toISOString().slice(0,10);
+ return{requestedDispatchDate:date,cutoff:{lateSameDay,cutoffLocalTime:'15:15',timeZone:'Europe/Berlin',
+  nextProcessingDate:lateSameDay?next:null,checkedAt:now}};
+}
 function validateItems(raw,now,orderType='STANDARD'){
  if(!Array.isArray(raw)||raw.length<1||raw.length>100)throw problem('URGENT_LINES_REQUIRED','Bitte 1 bis 100 Artikel/Lines erfassen.');
  const seen=new Set();
@@ -82,8 +102,9 @@ function createOrder(raw,actor,now=new Date().toISOString()){
  const ownerId=text(actor&&actor.id,150);
  if(!ownerId)throw problem('URGENT_ACTOR_REQUIRED','A validated user or reporter session is required.',401);
  const directOutbound=orderType==='DIRECT_OUTBOUND'?validateDirectOutbound(p.directOutbound):null;
+ const dispatch=dispatchCutoff(p.requestedDispatchDate,now);
  return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,orderType,directOutbound,
-  email:email(p.email),language:language(p.language),
+  email:email(p.email),language:language(p.language),...dispatch,
   createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,
   items:validateItems(p.items,now,orderType),history:[{at:now,actorId:ownerId,event:'created'}]};
 }
@@ -180,4 +201,4 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  return mail;
 }
 
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent};

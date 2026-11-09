@@ -257,6 +257,8 @@
   "api.container.photoLabel.number": "Numer kontenera od wewnątrz",
   "api.container.photoLabel.sealed": "Zaplombowany kontener · plomba/oznaczenia/dokumenty",
   "api.fixedPickups.failed": "Nie udało się przetworzyć stałych odbiorów.",
+  "api.pickupLinks.readForbidden": "Brak uprawnień do odczytu kalendarza odbiorów.",
+  "api.pickupLinks.loadFailed": "Nie udało się wczytać powiązań odbiorów.",
   "api.abdAnalysis.fileRequired": "Wybierz plik PDF, XLSX lub CSV.",
   "api.abdAnalysis.fileType": "Do analizy zgłoszenia wywozowego dozwolone są tylko pliki PDF, XLSX i CSV.",
   "api.abdAnalysis.fileTooLarge": "Plik jest za duży. Maksymalny rozmiar to {{max}} MB.",

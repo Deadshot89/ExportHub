@@ -17,7 +17,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 .layout{display:grid;grid-template-columns:minmax(290px,420px) minmax(0,1fr);gap:18px;align-items:start}.panel{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 4px 20px #22334c0b;padding:20px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label.field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#344961}.wide{grid-column:1/-1}input,select,textarea{width:100%;min-height:41px;border:1px solid #b8c7d9;border-radius:9px;padding:9px 11px;background:var(--card);color:var(--ink);outline-offset:2px}textarea{min-height:70px;resize:vertical}input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #73a8fa;outline-offset:2px}
 .btn{min-height:40px;padding:9px 13px;border-radius:10px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-weight:700}.btn.alt{background:#fff;color:var(--blue);border-color:#b6cae4}.btn.flat{background:#eef3f9;color:#253952;border-color:#d6e1ec}.btn.danger{background:#fff;color:var(--red);border-color:#e7bdc2}.btn.small{min-height:32px;padding:5px 9px;font-size:12px}.btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}
-.help{margin:8px 0 0;font-size:12px;color:var(--muted)}.alert{padding:11px 13px;border:1px solid #e8ba8e;background:#fff8ec;color:#82430a;border-radius:10px;margin:0 0 16px}.message{margin-top:10px;font-weight:600;min-height:22px}.message[data-kind="error"]{color:var(--red)}.message[data-kind="ok"]{color:var(--green)}.field-error{display:block;color:var(--red);font-size:12px;font-weight:700;margin-top:4px}.field-error[hidden]{display:none}textarea[aria-invalid="true"]{border-color:var(--red);outline:2px solid var(--red);outline-offset:1px}
+.help{margin:8px 0 0;font-size:12px;color:var(--muted)}.alert{padding:11px 13px;border:1px solid #e8ba8e;background:#fff8ec;color:#82430a;border-radius:10px;margin:0 0 16px}.message{margin-top:10px;font-weight:600;min-height:22px}.message[data-kind="error"]{color:var(--red)}.message[data-kind="ok"]{color:var(--green)}.message[data-kind="warning"]{color:#a0640b}#internalCutoffWarning:not([hidden]){border:1px solid #e9c483;background:#fff4e1;color:#794909}.field-error{display:block;color:var(--red);font-size:12px;font-weight:700;margin-top:4px}.field-error[hidden]{display:none}textarea[aria-invalid="true"]{border-color:var(--red);outline:2px solid var(--red);outline-offset:1px}
 .line-card{border:1px solid var(--line);border-radius:12px;padding:13px;margin:12px 0;background:#f8fafd}.line-card .head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:11px}.checks{display:grid;gap:8px;margin-top:12px}.checks label{font-size:12px;font-weight:650;color:#344961}.checks .check-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,145px);gap:8px;align-items:center}.check-row select{min-width:0}
 .inline-check{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700}.inline-check input{width:18px;min-height:18px;height:18px}.filters{display:grid;grid-template-columns:minmax(130px,1fr) repeat(3,minmax(105px,145px));gap:8px;margin:2px 0 14px}.list-head,.order-summary{display:grid;grid-template-columns:minmax(140px,1.25fr) minmax(100px,.8fr) minmax(72px,.55fr) minmax(88px,.65fr) minmax(135px,1.1fr) minmax(145px,1.15fr) minmax(178px,1.4fr);gap:10px;align-items:center}.list-head{color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;padding:0 12px 8px}.order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff}.order[open]{border-color:#a5bfde}.order-summary{list-style:none;padding:14px 12px;cursor:pointer}.order-summary::-webkit-details-marker{display:none}.order-summary:hover{background:#f8faff}.so{font-weight:800;display:flex;align-items:center;gap:7px}.so:before{content:"▸";color:var(--blue);font-size:14px}.order[open] .so:before{content:"▾"}.sub{display:block;color:var(--muted);font-size:11px;font-weight:500}.tag{display:inline-flex;justify-content:center;padding:3px 9px;border-radius:50px;font-weight:800;font-size:11px;white-space:normal;text-align:center;max-width:100%}.tag[data-priority="P1"]{background:#fee1e3;color:#a3121e}.tag[data-priority="P2"]{background:#ffead0;color:#925008}.tag[data-priority="P3"]{background:#e3efff;color:#1d5ca4}.tag[data-priority="P4"]{background:#edf0f4;color:#4c5a6e}.status{font-weight:750;font-size:12px}.order-summary>span{min-width:0}.order-summary .order-email{overflow-wrap:anywhere}.order-mail-state{display:flex;align-items:flex-start;flex-direction:column;gap:3px}.order-mail-state .btn{font-size:11px;min-height:29px;padding:4px 8px}.order-mail-badge{display:inline-block;border-radius:999px;padding:3px 8px;font-weight:800;font-size:11px;line-height:1.4;background:var(--line);color:var(--muted)}.order-mail-badge.sent{background:#d9f2e2;color:#146341}.order-mail-badge.pending{background:#fff0d5;color:#875006}.order-buttons{display:flex;flex-wrap:wrap;gap:5px}.order-detail{border-top:1px solid var(--line);padding:12px;background:#f8fafd;overflow-x:auto}.lines-table{border-collapse:collapse;width:100%;font-size:12px;min-width:610px}.lines-table th{text-align:left;color:var(--muted);font-size:11px}.lines-table td,.lines-table th{padding:9px 8px;border-bottom:1px solid var(--line)}.lines-table tr:last-child td{border:0}.lines-table select{width:135px;min-height:33px;padding:5px 8px}.flag{font-weight:750;color:#a3470f}.ok{color:var(--green);font-weight:700}.empty{padding:35px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}.hintbar{margin-bottom:12px;font-size:12px;color:var(--muted)}
 .mail-history{margin-top:15px;border-top:1px solid var(--line);padding-top:12px}.mail-history h3{margin:0 0 9px;font-size:15px}.mail-entry{margin:7px 0;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}.mail-entry>summary{padding:10px 12px;cursor:pointer;font-weight:700;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.mail-entry-content{padding:12px;border-top:1px solid var(--line)}.mail-entry pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px;font:inherit;max-height:300px;overflow:auto}.mail-chip{font-size:11px;border-radius:999px;background:#fff0d5;color:#815006;padding:3px 9px}.mail-chip.sent{background:#dcf5e8;color:#125b37}.mail-meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.mail-entry .btn{margin-top:10px}@media(prefers-color-scheme:dark){.mail-chip{background:#493921;color:#ffe2aa}.mail-chip.sent{background:#244c3b;color:#a4f0c5}.order-mail-badge.sent{background:#244c3b;color:#a4f0c5}.order-mail-badge.pending{background:#493921;color:#ffe2aa}}
@@ -55,6 +55,11 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:8px 0 13px}.stat{padding:11px 15px;border-radius:11px}.stat b{font-size:23px}
 .workspace-nav{position:sticky;top:0;z-index:12;backdrop-filter:blur(12px);margin:13px 0}.workspace-nav .workspace-tab{flex:1 1 175px}
 .layout>.panel{padding:clamp(18px,2.6vw,27px)}.form-grid{gap:10px}.filters{gap:7px}
+.cutoff-choice{border:1px solid #e4c58c;background:#fff8eb;border-radius:13px;padding:16px;margin-top:13px;color:#644513}
+.cutoff-choice h3{font-size:16px;margin:0 0 8px}.cutoff-choice p{margin:0 0 14px;line-height:1.6}
+.cutoff-choice .btn-row{display:flex;flex-wrap:wrap;gap:10px}
+@media(max-width:550px){.cutoff-choice .btn-row button{flex:1 1 100%}}
+@media(prefers-color-scheme:dark){.cutoff-choice{background:#392d1d;border-color:#80683f;color:#f5deb0}}
 .wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;border-bottom:1px solid var(--line);padding-bottom:17px}.wizard-track>span{display:flex;align-items:center;gap:10px;border-radius:11px;padding:9px;color:var(--muted);font-size:12px;font-weight:800}
 .wizard-track b{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;background:var(--bg);border:1px solid var(--line)}.wizard-track>span[aria-current="step"]{background:#1e61c3;color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff22;border-color:#ffffff55}
 [data-internal-step]{padding-top:16px}[data-internal-step][hidden]{display:none!important}.wizard-review{padding:17px 19px;border-radius:14px;border:1px solid #bad4f1;background:#eef6ff}
@@ -82,6 +87,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
 <label class="field">Lieferart *<select name="delivery" required><option value="" data-i18n="urgentOrderV2.chooseOrder">Bitte wählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label>
 <label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label>
+<label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="internalRequestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
 <datalist id="internalUrgentEmailHistory"></datalist>
@@ -89,7 +95,12 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <div id="lineFields"></div>
-</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div>
+<section id="internalLateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="internalLateCutoffHeading" hidden>
+<h3 id="internalLateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
+<p id="internalLateCutoffText"></p>
+<div class="btn-row"><button class="btn alt" id="internalLateSubmitToday" type="button" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button class="btn" id="internalLateMoveTomorrow" type="button" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
@@ -195,6 +206,7 @@ function formItems(){
 let internalStep=1;
 function showInternalStep(step){
  internalStep=Math.max(1,Math.min(3,step));
+ if(internalStep!==3)hideInternalCutoffChoice();
  for(const block of document.querySelectorAll('[data-internal-step]'))block.hidden=Number(block.dataset.internalStep)!==internalStep;
  for(const mark of document.querySelectorAll('[data-internal-mark]')){if(Number(mark.dataset.internalMark)===internalStep)mark.setAttribute('aria-current','step');else mark.removeAttribute('aria-current');}
  $('internalWizardBack').hidden=internalStep===1;$('internalWizardNext').hidden=internalStep===3;
@@ -340,16 +352,65 @@ async function refresh(){
   $('retryInternalList').addEventListener('click',refresh);
  }
 }
+function berlinCutoffClock(){
+ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
+}
+function cutoffText(){
+ const fallback=$('newOrder').elements.language.value==='en'?"A quick note about today's deadline: Please report orders for today by 3:15 pm. If it's later, it's best to choose tomorrow as the shipping date. You can still report the order for today. If the system doesn't release it automatically, we'll take care of it tomorrow.":"Hinweis zur heutigen Meldefrist: Bitte melde Aufträge für heute bis 15:15 Uhr. Ist es später, wähle am besten morgen als Versandtag. Du kannst den Auftrag trotzdem für heute melden. Wenn das System ihn nicht automatisch freigibt, kümmern wir uns morgen darum.";
+ return localeV2('cutoffLateWarning',fallback);
+}
+let internalCutoffApproved=false;
+function hideInternalCutoffChoice(){
+ $('internalLateCutoffChoice').hidden=true;
+ $('createButton').hidden=false;
+}
+function showInternalCutoffChoice(){
+ $('internalLateCutoffText').textContent=cutoffText();
+ $('internalLateCutoffChoice').hidden=false;
+ $('createButton').hidden=true;
+ $('internalLateMoveTomorrow').focus();
+}
+function syncInternalCutoff(){
+ const control=$('internalRequestedDispatchDate'),clock=berlinCutoffClock();
+ if(!control.value)control.value=clock.date;
+ control.min=clock.date;
+ const late=control.value===clock.date&&clock.minutes>15*60+15;
+ if(!late)hideInternalCutoffChoice();
+ else if(!$('internalLateCutoffChoice').hidden)$('internalLateCutoffText').textContent=cutoffText();
+ return late;
+}
+function internalTomorrow(){
+ const [y,m,d]=berlinCutoffClock().date.split('-').map(Number);
+ return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10);
+}
+function internalLateChoice(moveTomorrow){
+ const control=$('internalRequestedDispatchDate');
+ if(moveTomorrow){
+  control.value=internalTomorrow();
+  syncInternalCutoff();
+  const review=$('internalWizardReview');
+  if(review)review.textContent=review.textContent+' · '+control.value;
+ }else{
+  internalCutoffApproved=true;
+ }
+ hideInternalCutoffChoice();
+ $('newOrder').requestSubmit();
+}
 async function submit(ev){
  ev.preventDefault();const form=$('newOrder');
  if(internalStep!==3){showInternalStep(1);return;}
+ const approved=internalCutoffApproved;internalCutoffApproved=false;
+ const lateToday=syncInternalCutoff();
  if(!form.reportValidity()){showInternalStep(1);return;}
  const items=formItems();
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
- const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,items};
+ if(lateToday&&!approved){showInternalCutoffChoice();return;}
+ hideInternalCutoffChoice();
+ const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
+ try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
@@ -428,6 +489,10 @@ async function copyDraft(){
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
 $('newOrder').addEventListener('submit',submit);
+$('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
+$('internalLateSubmitToday').addEventListener('click',()=>internalLateChoice(false));
+$('internalLateMoveTomorrow').addEventListener('click',()=>internalLateChoice(true));
+$('csLanguage').addEventListener('change',syncInternalCutoff);
 $('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('clearInternalEmailHistory').addEventListener('click',forgetEmails);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
@@ -436,9 +501,10 @@ $('mailIssue').addEventListener('input',()=>{if($('mailIssue').value.trim().leng
 $('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
 window.addEventListener('exporthub:language-changed',render);
+window.addEventListener('exporthub:language-changed',syncInternalCutoff);
 $('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
 $('urgentBackToHub').href=urgentPublicOrigin()+'/';
-renderSavedEmails();lineField();showInternalStep(1);refresh();
+renderSavedEmails();lineField();syncInternalCutoff();showInternalStep(1);refresh();
 })();
 </script>
 <script>/* Eingebettet in ExportHUB360: eigene Kopfzeile und schwebende Sprachauswahl der Hauptseite überlagerten "Zurück" (2026-11-06) */if(/[?&]embedded=1(?:&|$)/.test(location.search))document.documentElement.setAttribute('data-embedded','1');</script>
