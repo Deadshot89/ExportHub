@@ -106,7 +106,7 @@ test('internal server errors are localized and do not disclose stack traces',asy
  assert.doesNotMatch(r.body,/DATABASE_URL|secret|\/srv\/|STORAGE_INTERNAL/i);
 });
 test('read-only verification consults authoritative server evidence without exposing token keys',async()=>{
- const {request,invoke,reads,proofCalls,pickupAccess,pickupStore}=setup();
+ const {request,invoke,reads,proofCalls,pickupAccess,pickupStore,bindingStore}=setup();
  const r=await invoke(request({query:{verifyShipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',pickupDate:'2026-11-09'}}));
  assert.equal(r.status,200);assert.equal(r.data.verified,true);
  assert.equal(r.data.transport.id,'MAIN-UK');assert.equal(r.data.transport.registered,true);
