@@ -101,3 +101,16 @@ test('Issue #1328: internal manual pickup shows localized closed-day warnings an
   assert.ok(dict['closureMail.bookingClosed']?.length>25,language+' needs booking warning');
  }
 });
+
+
+test('Issue #1328: final pickup day retains early windows and blocks those crossing the deadline',()=>{
+ const {availabilityWithClosure}=loadAvailability();
+ const available=availabilityWithClosure(state,sh,'2026-12-18');
+ const early=available.slots.find(slot=>slot.to==='14:30');
+ const late=available.slots.find(slot=>slot.to==='16:00');
+ assert.equal(early?.available,true);
+ assert.equal(late?.available,false);
+ assert.equal(late?.closedForPickup,true);
+ assert.equal(late?.remaining,0);
+ assert.equal(available.closed,true,false);
+});
