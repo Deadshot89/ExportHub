@@ -27,8 +27,8 @@ const runHash = new AsyncFunction('entries', 'fail', 'globalThis', 'uniqueArchiv
   stage + '\nreturn { entries, fail };'
 );
 
-async function run(entries, crypto = webcrypto) {
-  const fail = [];
+async function run(entries, crypto = webcrypto, existingFailures = []) {
+  const fail = existingFailures.slice();
   const input = entries.map(entry => ({ name: entry.name, data: entry.data.slice() }));
   const result = await runHash(input, fail, { crypto }, uniqueArchiveEntries, TextEncoder);
   return result;
@@ -69,6 +69,18 @@ test('RC1957: filename collisions are normalized before checksums are assigned',
   assert.ok(sums.includes(digest(second) + '  ' + fileNames[1]));
   const afterZipNaming = uniqueArchiveEntries(entries);
   assert.deepEqual(afterZipNaming.filter(e => /\.pdf$/i.test(e.name)).map(e => e.name), fileNames);
+});
+
+test('RC1957: any already failed PDF download suppresses a misleading complete checksum manifest', async () => {
+  const good = bytes('%PDF-1.7\\nSIGNED ORIGINAL');
+  const { entries, fail } = await run(
+    [{ name: 'POD_ABC123_Ladeliste.pdf', data: good }],
+    webcrypto,
+    ['POD_DOWNLOAD_FAILED']
+  );
+  assert.deepEqual(fail, ['POD_DOWNLOAD_FAILED']);
+  assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false);
+  assert.deepEqual(entries[0].data, good, 'the successful original stays byte-exact');
 });
 
 test('RC1957: unavailable WebCrypto and empty exports fail closed without inventing proof', async () => {
