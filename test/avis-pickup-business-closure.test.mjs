@@ -114,3 +114,43 @@ test('Issue #1328: final pickup day retains early windows and blocks those cross
  assert.equal(late?.remaining,0);
  assert.notEqual(available.closed,true);
 });
+
+
+test('Issue #1328: rejected customer and internal bookings do not check slots, write state or add history',async()=>{
+ const start=api.indexOf('async function saveAppointment('),middle=api.indexOf('async function saveManualAppointment(',start),end=api.indexOf('function sessionFromRequest(',middle);
+ assert.ok(start>=0&&middle>start&&end>middle);
+ const checks={slots:0,writes:0,appointments:0,reads:0};
+ const original=structuredClone(state);
+ const sandbox={
+  MAX_RETRIES:1,closureMail,
+  async readTeam(){checks.reads++;return{value:{state:original},etag:'etag-1'}},
+  obj:v=>Boolean(v&&typeof v==='object'&&!Array.isArray(v)),
+  findShipment:()=>original.shipments[0],
+  findManualAppointmentShipment:()=>original.shipments[0],
+  dateTimeOf:()=>'',sid:v=>v.id,sref:v=>v.reference,
+  validateAppointment:p=>({date:p.pickupDate,from:p.timeFrom,to:p.timeTo}),
+  sanitizeManualAppointment:p=>({date:p.pickupDate,from:p.timeFrom,to:p.timeTo,carrier:'Carrier',shipmentNumber:'N1'}),
+  error:(code,message,status)=>Object.assign(new Error(message),{code,status}),
+  avisSlots:{slotState(){checks.slots++;throw Error('No slot lookup before closure guard')}},
+  applyAppointment(){checks.appointments++;throw Error('Must not modify history')},
+  applyManualAppointment(){checks.appointments++;throw Error('Must not modify history')},
+  async writeTeam(){checks.writes++;throw Error('Must not persist')},
+  text:v=>String(v==null?'':v),Date
+ };
+ vm.runInNewContext(api.slice(start,middle)+'\nthis.saveCustomer=saveAppointment;',sandbox);
+ vm.runInNewContext(api.slice(middle,end)+'\nthis.saveInternal=saveManualAppointment;',sandbox);
+ const input={pickupDate:'2026-12-19',timeFrom:'08:30',timeTo:'10:30'};
+ const late={pickupDate:'2026-12-18',timeFrom:'14:00',timeTo:'16:00'};
+ for(const payload of [input,late]){
+  await assert.rejects(
+   ()=>sandbox.saveCustomer({}, {record:{subjectId:sh.id,reference:sh.reference}},'session',payload),
+   err=>err.code==='PICKUP_BUSINESS_CLOSED'&&err.status===409
+  );
+  await assert.rejects(
+   ()=>sandbox.saveInternal({},sh.id,sh.reference,payload,'Dispatcher'),
+   err=>err.code==='PICKUP_BUSINESS_CLOSED'&&err.status===409
+  );
+ }
+ assert.deepEqual(checks,{slots:0,writes:0,appointments:0,reads:4});
+ assert.deepEqual(original,state,'denied bookings must leave shipment state unchanged');
+});
