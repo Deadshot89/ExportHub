@@ -2662,5 +2662,6 @@
   "closureMail.mailClosed": "Chiuso",
   "closureMail.mailResume": "Riapertura",
   "closureMail.htmlPreview": "Anteprima email HTML",
-  "closureMail.previewFailed": "Impossibile caricare l’anteprima dell’email."
+  "closureMail.previewFailed": "Impossibile caricare l’anteprima dell’email.",
+  "closureMail.pickupWarning": "Attenzione: il ritiro del {{date}} cade durante la chiusura ({{from}} – {{to}}). Riapriamo il {{reopen}}. Verificare la data di ritiro."
 }
