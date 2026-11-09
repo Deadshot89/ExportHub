@@ -1,0 +1,41 @@
+/* RC1877 – main shipment FIX-binding card. Responsive, light/dark and accessible. */
+.rc1877-binding{
+  margin:16px 0;padding:18px;border:1px solid var(--border,#d5dbe5);
+  border-radius:14px;background:var(--surface,#fff);color:var(--text,#17233b);
+  box-shadow:0 6px 22px rgba(15,23,42,.06);
+}
+.rc1877-binding__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rc1877-binding__head h3{margin:0;font-size:17px;font-weight:750;line-height:1.4}
+.rc1877-binding__intro{margin:6px 0 14px;color:var(--muted,#667085);font-size:13px;line-height:1.55}
+.rc1877-binding__grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px}
+.rc1877-binding label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700}
+.rc1877-binding select,.rc1877-binding input[type=date]{
+  color:inherit;background:var(--input-bg,transparent);border:1px solid var(--border,#aeb8c8);
+  border-radius:9px;padding:10px 12px;min-height:44px;font:inherit;width:100%;max-width:100%;
+}
+.rc1877-binding select:focus-visible,.rc1877-binding input:focus-visible,
+.rc1877-binding button:focus-visible{outline:3px solid #387cf5;outline-offset:2px}
+.rc1877-binding__current{margin:12px 0 0;font-size:13px;line-height:1.5}
+.rc1877-binding__actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.rc1877-binding__actions button{border:1px solid var(--border,#8c98aa);border-radius:9px;padding:9px 14px;
+  min-height:44px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.rc1877-binding__actions [data-rc1877-save]{background:#185abc;color:#fff;border-color:#185abc}
+.rc1877-binding button:disabled{opacity:.5;cursor:not-allowed}
+.rc1877-binding [data-rc1877-status]{display:block;min-height:19px;margin-top:10px;font-size:12px;
+  line-height:1.5;overflow-wrap:anywhere}
+.rc1877-binding [data-rc1877-status][data-kind=error]{color:#b91c1c}
+.rc1877-binding [data-rc1877-status][data-kind=ok]{color:#07834b}
+.rc1877-binding__note{font-size:11px;color:var(--muted,#667085);margin-top:10px}
+@media(max-width:650px){
+ .rc1877-binding{padding:14px}
+ .rc1877-binding__grid{grid-template-columns:minmax(0,1fr)}
+ .rc1877-binding__actions button{flex:1 1 140px}
+}
+@media(prefers-color-scheme:dark){
+ .rc1877-binding{background:var(--surface,#1b2638);color:var(--text,#f1f5f9);
+   border-color:var(--border,#475569)}
+ .rc1877-binding select,.rc1877-binding input{background:var(--input-bg,#1c293b)}
+ .rc1877-binding [data-rc1877-status][data-kind=error]{color:#fca5a5}
+ .rc1877-binding [data-rc1877-status][data-kind=ok]{color:#7ae4ae}
+}
+@media(prefers-reduced-motion:reduce){.rc1877-binding *{scroll-behavior:auto}}
