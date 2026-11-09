@@ -134,6 +134,8 @@
   }
   function taskOnPickupDay(task,dateKey,weekday){
     const x=task&&typeof task==='object'?task:{};
+    // A cancelled occurrence must never continue assigning shipments to its former FIX target.
+    if(x.cancelledAt||x.canceledAt||/^(?:cancelled|canceled|storniert|deleted|gelöscht)$/i.test(String(x.status||'').trim()))return false;
     const date=plannedDateValue(x.dueDate||x.plannedDate||x.date||x.targetDate||x.dueAt);
     if(date)return date===dateKey;
     const days=Array.isArray(x.weekdays)?x.weekdays.map(Number):[];
