@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "No se pudo eliminar el cierre",
   "closureMail.invalid": "Comprueba las fechas: la última recogida debe ser anterior al cierre y la reapertura posterior.",
   "closureMail.saved": "Cierre guardado y activado para los correos",
-  "closureMail.saveFailed": "No se pudo guardar"
+  "closureMail.saveFailed": "No se pudo guardar",
+  "closureMail.mailTitle": "Información importante – Cierre temporal",
+  "closureMail.mailLast": "Última recogida",
+  "closureMail.mailClosed": "Cerrado",
+  "closureMail.mailResume": "Reapertura"
 }
