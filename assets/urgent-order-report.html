@@ -63,6 +63,8 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
 <datalist id="urgentEmailHistory"></datalist>
 <div class="actions"><span class="muted" id="emailHistoryHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span><button type="button" class="btn secondary small" id="clearEmailHistory" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button></div>
+<label class="field">Gewünschter Versandtag * (deutsche Ortszeit)<input id="requestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
+<div id="cutoffWarning" class="type-explanation" role="alert" hidden></div>
 <div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
@@ -209,10 +211,28 @@ function directOutbound(form){
   plannedDispatchAt:x.plannedDispatchAt.value,deliveryNotePresent:flag(x.deliveryNotePresent),
   asnWorking:flag(x.asnWorking),holdsClear:flag(x.holdsClear),exceptionReason:x.exceptionReason.value.trim()};
 }
+function berlinCutoffClock(){
+ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
+}
+function cutoffText(){
+ return $('reportForm').elements.language.value==='en'
+  ?'After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.'
+  :'Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.';
+}
+function syncCutoff(){
+ const control=$('requestedDispatchDate'),clock=berlinCutoffClock();
+ if(!control.value)control.value=clock.date;
+ control.min=clock.date;
+ const late=control.value===clock.date&&clock.minutes>15*60+15;
+ $('cutoffWarning').hidden=!late;
+ $('cutoffWarning').textContent=late?cutoffText():'';
+ return late;
+}
 function buildPayload(){
  const form=$('reportForm'),x=form.elements;
  return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
-  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
+  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,requestedDispatchDate:x.requestedDispatchDate.value,
   directOutbound:directOutbound(form),items:items()};
 }
 
@@ -284,6 +304,7 @@ async function refresh(){
 async function submit(ev){
  ev.preventDefault();
  if(wizardStep!==3){showWizardStep(1);return;}
+ syncCutoff();
  if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
@@ -295,13 +316,14 @@ async function submit(ev){
   const data=await api('create',p);
   rememberEmail(p.email); // Save only after successful server confirmation.
   secret=data.accessToken;
-  $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
+  const late=!!(data.order.cutoff&&data.order.cutoff.lateSameDay);
+  $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.')+(late?' '+cutoffText():'');
   location.hash='access='+encodeURIComponent(secret);
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
-  syncType();showWizardStep(1);activateLink();await refresh();
-  showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
+  syncType();syncCutoff();showWizardStep(1);activateLink();await refresh();
+  showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.')+(late?' '+cutoffText():''),late?'warning':'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
 }
@@ -312,6 +334,8 @@ async function copyLink(){
 $('reportForm').addEventListener('submit',submit);
 $('wizardNext').addEventListener('click',nextWizardStep);$('wizardBack').addEventListener('click',()=>showWizardStep(wizardStep-1));
 $('orderType').addEventListener('change',syncType);
+$('requestedDispatchDate').addEventListener('change',syncCutoff);
+$('reportForm').elements.language.addEventListener('change',syncCutoff);
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
@@ -321,7 +345,7 @@ window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
 $('clearEmailHistory').addEventListener('click',clearEmailChoices);
 refreshEmailChoices();
-secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
+secret=accessFromHash();lineCard();syncType();syncCutoff();showWizardStep(1);refresh();
 })();
 </script>
 </body>
