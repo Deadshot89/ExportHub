@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
+const documentWorkspace=fs.readFileSync('assets/rc1940-documents-workspace.js','utf8');
 const i18nSource=fs.readFileSync('assets/i18n/rc1499-exportexperte.js','utf8');
 const sandbox={console,Intl,URL,setTimeout,clearTimeout};
 vm.runInNewContext(i18nSource,sandbox,{filename:'assets/i18n/rc1499-exportexperte.js'});
@@ -12,22 +13,28 @@ const de=sandbox.ExportHUBRC1499I18n.packs.de;
 
 function has(pattern,message){assert.match(source,pattern,message)}
 
-test('export_expert_router_offers_three_paths_without_reimplementing_legacy_shipment_prefill',()=>{
+test('RC1942: ABD only offers manual, shipment and saved; invoice upload lives in Documents',()=>{
   assert.equal(de.manualMode,'Manuell');
   assert.equal(de.shipmentMode,'Aus Sendung');
-  assert.equal(de.invoiceMode,'Rechnung analysieren');
-  has(/xtr\('manualMode'\)/,'Router muss den manuellen Bestandspfad anbieten');
-  has(/xtr\('shipmentMode'\)/,'Router muss den bestehenden Sendungspfad anbieten');
-  has(/xtr\('invoiceMode'\)/,'Router muss die Rechnungsanalyse anbieten');
-  has(/ExportHUBRC626\.openAbd\(true\)/,'Aus Sendung muss exakt auf den bestehenden RC626-Pfad delegieren');
-  assert.doesNotMatch(source,/function\s+prefillFromShipment\s*\(/,'RC1294 darf den bestehenden Shipment-Prefill nicht duplizieren');
-  assert.doesNotMatch(source,/function\s+openAbd\s*\(/,'RC1294 darf den bestehenden RC626-openAbd-Handler nicht neu definieren');
+  assert.equal(de.savedMode,'Gespeicherte Anfragen');
+  has(/xtr\('manualMode'\)/,'Manueller Pfad fehlt');
+  has(/xtr\('shipmentMode'\)/,'Sendungspfad fehlt');
+  has(/xtr\('savedMode'\)/,'Gespeicherte ABD-Anfragen fehlen');
+  assert.doesNotMatch(source,/data-rc1294-mode=["']invoice["']/,'Alte Rechnungsanalyse im ABD-Router vorhanden');
+  assert.doesNotMatch(source,/id="rc1294InvoicePanel"/,'Altes Rechnungsupload-Panel noch in ABD');
+  assert.match(documentWorkspace,/data-rc1940-files accept=/,'Dateiupload fehlt im Dokumentenbereich');
+  assert.match(documentWorkspace,/scanner\.analyzeFile\(file\)/,'Virenprüfung und Analyse fehlen im Dokumentenbereich');
+  has(/ExportHUBRC626\.openAbd\(true\)/,'Aus Sendung muss auf den Bestandspfad delegieren');
+  assert.doesNotMatch(source,/function\s+prefillFromShipment\s*\(/,'Shipment-Prefill darf nicht dupliziert werden');
+  assert.doesNotMatch(source,/function\s+openAbd\s*\(/,'Legacy-ABD-Handler darf nicht neu definiert werden');
 });
 
-test('invoice_path_has_its_own_scoped_review_panel',()=>{
-  has(/data-rc1294-mode=[\\"']invoice[\\"']/,'Rechnungsanalyse braucht einen eigenen Router-Modus');
-  has(/data-rc1294-invoice-panel/,'Rechnungsanalyse braucht einen eigenen ein-/ausblendbaren Panel-Scope');
-  has(/setMode\(/,'Router braucht eine zentrale Modusumschaltung');
+test('RC1942: document upload has its own scoped result preview and editor import',()=>{
+  assert.match(documentWorkspace,/id='rc1940DocumentUpload'/,'Eigener Upload-Bereich fehlt');
+  assert.match(documentWorkspace,/data-rc1940-upload-results/,'Analyse-Vorschau fehlt');
+  assert.match(documentWorkspace,/data-rc1940-use/,'Manuelle Übernahme fehlt');
+  assert.match(documentWorkspace,/editor\.importAnalysis\(result\.analysis\)/,'Übernahme in Rechnung und Lieferschein fehlt');
+  assert.match(source,/function setMode\(/,'ABD-Router braucht weiterhin Modusumschaltung');
 });
 
 test('grouped_review_uses_hs_plus_origin_groups_as_primary_rows',()=>{
