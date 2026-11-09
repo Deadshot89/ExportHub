@@ -2660,5 +2660,7 @@
   "closureMail.mailTitle": "Información importante – Cierre temporal",
   "closureMail.mailLast": "Última recogida",
   "closureMail.mailClosed": "Cerrado",
-  "closureMail.mailResume": "Reapertura"
+  "closureMail.mailResume": "Reapertura",
+  "closureMail.htmlPreview": "Vista previa del correo HTML",
+  "closureMail.previewFailed": "No se pudo cargar la vista previa del correo."
 }
