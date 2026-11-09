@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
-const client=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
+const client=fs.readFileSync('assets/rc1940-documents-workspace.js','utf8');
+const abd=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
 
-test('RC1499 invoice intake advertises PDF JPG JPEG PNG XLSX CSV TXT TSV',()=>{
+test('RC1942 Documents intake advertises PDF JPG JPEG PNG XLSX CSV TXT TSV while ABD omits the invoice tab',()=>{
  assert.match(client,/accept="[^"]*\.pdf/i);
  assert.match(client,/accept="[^"]*\.xlsx/i);
  assert.match(client,/accept="[^"]*\.csv/i);
@@ -14,6 +15,8 @@ test('RC1499 invoice intake advertises PDF JPG JPEG PNG XLSX CSV TXT TSV',()=>{
  assert.match(client,/accept="[^"]*\.jpg/i);
  assert.match(client,/accept="[^"]*\.jpeg/i);
  assert.match(client,/accept="[^"]*\.png/i);
+ assert.doesNotMatch(abd,/data-rc1294-mode="invoice"/);
+ assert.match(abd,/analyzeFile:analyzeFile/);
 });
 
 test('RC1499 server accepts only validated image extensions and MIME/signatures',()=>{

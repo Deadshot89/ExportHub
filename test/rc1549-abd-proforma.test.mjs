@@ -12,6 +12,7 @@ const model=require('../api/shared/abd-analysis-model.js');
 const exporter=require('../api/shared/abd-analysis-export.js');
 const {extractPdfText}=require('../api/shared/customer-avis-document-content.js');
 const runtime=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
+const documents=fs.readFileSync('assets/rc1940-documents-workspace.js','utf8');
 const proformaUi=fs.readFileSync('assets/rc1549-abd-proforma.js','utf8');
 const releaseBuilder=fs.readFileSync('.github/rc1521/build-three-env.mjs','utf8');
 
@@ -62,7 +63,8 @@ test('RC1549: Proforma-PDF enthält Essentra Branding, Positionen und Zollzusamm
 });
 
 test('RC1549: document creation keeps manual positions and proforma independent of ABD',()=>{
- assert.match(runtime,/accept="[^"]*\.pdf[^"]*\.xlsx[^"]*\.csv/);
+ assert.match(documents,/accept="[^"]*\.pdf[^"]*\.xlsx[^"]*\.csv/);
+ assert.doesNotMatch(runtime,/data-rc1294-mode="invoice"/);
  assert.match(proformaUi,/data-rc1549-manual-add/);
  assert.match(proformaUi,/data-rc1549-manual-list/);
  assert.match(proformaUi,/data-rc1549-manual-create/);
