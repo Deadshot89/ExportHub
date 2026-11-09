@@ -214,6 +214,18 @@ function withRegistrationClosureNotice(url){
  else parts[index]='body='+encodeURIComponent(next);
  return base+'?'+parts.join('&')
 }
+function pickupClosureWarning(value){
+ var day=safeDay(value);if(!day)return null;
+ var matches=closureEntries().filter(function(c){
+  if(!c||c.enabled!==true)return false;
+  var a=safeDay(c.startDate),b=safeDay(c.endDate),last=safeDay(c.lastPickupDate),reopen=safeDay(c.reopenDate),lead=c.leadDays==null?14:Number(c.leadDays);
+  return !!(a&&b&&last&&reopen&&a<=b&&last<a&&reopen>b&&
+   /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(q(c.lastPickupTime))&&Number.isInteger(lead)&&lead>=0&&lead<=90&&day>=a&&day<=b)
+ }).sort(function(a,b){return q(a.startDate).localeCompare(q(b.startDate))});
+ if(!matches.length)return null;
+ var c=matches[0];
+ return{pickupDate:day,startDate:c.startDate,endDate:c.endDate,reopenDate:c.reopenDate}
+}
 async function persistClosureEntries(next){
  if(!globalAdmin())throw new Error(tr('closureMail.onlyAdmins'));
  var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
@@ -320,5 +332,5 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
 }
 
-w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings,closureNoticeText:registrationClosureNotices});
+w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings,closureNoticeText:registrationClosureNotices,pickupClosureWarning:pickupClosureWarning});
 })(window);
