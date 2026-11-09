@@ -71,7 +71,7 @@
   var p=panel();if(!p)return false;
   p.querySelectorAll('[data-rc1790-header]').forEach(function(field){field.value=headerDraft[field.getAttribute('data-rc1790-header')]||''});
   renderRows();applyMode();
-  stateMessage('Daten übernommen. Bitte Lieferadresse, Dokumentnummer, Datum und Positionen prüfen.','ok');
+  stateMessage(t('pageHelp'),'ok');
   if(typeof p.scrollIntoView==='function')p.scrollIntoView({behavior:'smooth',block:'start'});
   return true
  }
