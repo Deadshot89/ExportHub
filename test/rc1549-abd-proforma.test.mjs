@@ -61,7 +61,7 @@ test('RC1549: Proforma-PDF enthält Essentra Branding, Positionen und Zollzusamm
  assert.match(text,/245\.90/);
 });
 
-test('RC1549: ABD UI bietet Upload, manuelle Positionen und Proforma an',()=>{
+test('RC1549: document creation keeps manual positions and proforma independent of ABD',()=>{
  assert.match(runtime,/accept="[^"]*\.pdf[^"]*\.xlsx[^"]*\.csv/);
  assert.match(proformaUi,/data-rc1549-manual-add/);
  assert.match(proformaUi,/data-rc1549-manual-list/);
@@ -83,6 +83,7 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
  fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.mkdirSync(out,{recursive:true});
  fs.writeFileSync(path.join(root,'assets/rc1549-abd-proforma.js'),'window.__RC1549__=true;\n');
  fs.copyFileSync('assets/rc1790-delivery-note.js',path.join(root,'assets/rc1790-delivery-note.js'));
+  fs.copyFileSync('assets/rc1940-documents-workspace.js',path.join(root,'assets/rc1940-documents-workspace.js'));
  fs.mkdirSync(path.join(root,'assets/i18n'),{recursive:true});
  fs.copyFileSync('assets/i18n/rc1790-delivery-note.js',path.join(root,'assets/i18n/rc1790-delivery-note.js'));
 
@@ -101,6 +102,7 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
    assert.ok(html.indexOf(tag)<html.indexOf('</head>'),'RC1549-Tag muss vor dem echten ersten </head> stehen');
    assert.equal((html.match(/id="exporthub-rc1790-delivery-note"/g)||[]).length,1);
    assert.equal((html.match(/id="exporthub-rc1790-delivery-note-i18n"/g)||[]).length,1);
+    assert.equal((html.match(/id="exporthub-rc1940-documents"/g)||[]).length,1);
    assert.ok(html.indexOf('id="exporthub-rc1790-delivery-note"')<html.indexOf('</head>'),'RC1790 muss im echten Head stehen');
    assert.match(html,/var html='<!doctype html><html><head><title>Print<\/title><\/head><body>OK<\/body><\/html>'/);
   }

@@ -55,6 +55,7 @@ ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 1
 ICONS.quality=ICONS.inspections;
 ICONS.urgentorders='<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"/>';
 ICONS.shipmentevidence=ICONS.shipmentoverview;
+ICONS.documents=ICONS.abd;
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -62,7 +63,7 @@ var SECTIONS=[
  // Urgent Order (pack-notification-nav.js, ohne data-view) steht direkt unter Packmeldungen
  {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','urgentorders','notifications']},
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
- {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentevidence','shipmentsearch','cmr','pickupcalendar']},
+ {key:'shipments',accent:'#0284c7',views:['shipment','abd','documents','shipmentoverview','shipmentevidence','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','quality','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
@@ -111,7 +112,7 @@ function css(){
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
-function itemSel(v){if(v==='urgentorders')return '[data-exporthub-urgent-nav]';if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
+function itemSel(v){if(v==='urgentorders')return '[data-exporthub-urgent-nav]';if(v==='documents')return '[data-exporthub-documents-nav]';if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
 function ensureStyle(){if(d.getElementById(STYLE_ID))return;var st=d.createElement('style');st.id=STYLE_ID;st.textContent=css();(d.head||d.documentElement).appendChild(st)}
 
 function header(s){
