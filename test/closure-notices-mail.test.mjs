@@ -101,3 +101,13 @@ test('Issue 1328: pickup closure lookup is inclusive, independent of announcemen
  const longLead={...closure,leadDays:0};
  assert.ok(closureForPickupDate(settings([longLead]),'2026-12-25'),'bookings must close even when the email lead window is inactive');
 });
+
+
+test('Issue 1328: on the last pickup day, only two-hour windows ending by the cutoff remain bookable',()=>{
+ const configured=settings([closure]);
+ assert.equal(closureForPickupSlot(configured,'2026-12-18','11:00','13:00'),null);
+ assert.equal(closureForPickupSlot(configured,'2026-12-18','13:00','15:00'),null);
+ assert.ok(closureForPickupSlot(configured,'2026-12-18','13:30','15:30'));
+ assert.ok(closureForPickupSlot(configured,'2026-12-19','08:30','10:30'));
+ assert.equal(closureForPickupSlot(configured,'2027-01-04','08:30','10:30'),null);
+});
