@@ -182,6 +182,33 @@ test('RC1875: wrong-environment FIX response and failed refresh cannot retain ol
  assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
 });
 
+test('RC1875: opening FIX REF never selects another shipment with recycled ID',()=>{
+ const source=fs.readFileSync('assets/abholkalender.js','utf8');
+ let onClick=null;
+ const opened=[];
+ const context=vm.createContext({Date,Intl,Math,Number,String,Array,Object,JSON,Promise,console,
+   fetch:()=>new Promise(()=>{})});
+ vm.runInContext(source,context,{filename:'assets/abholkalender.js'});
+ const root={innerHTML:'',addEventListener(name,handler){if(name==='click')onClick=handler},
+   querySelector(selector){return selector==='.pickup-calendar'&&this.innerHTML.includes('pickup-calendar')?{}:null}};
+ context.ExportHubPickupCalendar.mount(root,{
+   environment:'testservice',today:monday,
+   shipments:[{id:'RECYCLED',reference:'REF-A'},{id:'RECYCLED',reference:'REF-B'}],
+   onOpenShipment:sh=>opened.push(sh.reference)
+ });
+ assert.equal(typeof onClick,'function');
+ const click=(reference)=>onClick({target:{closest:()=>({getAttribute(name){return({
+   'data-pickup-action':'open-shipment','data-pickup-shipment-key':'RECYCLED',
+   'data-pickup-shipment-ref':reference
+ })[name]??null}})}});
+ click('REF-B');
+ assert.deepEqual(opened,['REF-B']);
+ click(null);
+ assert.deepEqual(opened,['REF-B'],'ambiguous legacy ID is refused, not silently opened');
+ assert.ok(context.ExportHubPickupCalendar.setShipments);
+ assert.match(root.innerHTML,/pickup-error/);
+});
+
 test('RC1875: recurring Pick task mapping is deterministic by weekday and explicit target',()=>{
  const tueTask={...pick,id:'task-TUESDAY',weekdays:[2]};
  assert.equal(cal.taskOnPickupDay(pick,'2026-11-09',1),true);
