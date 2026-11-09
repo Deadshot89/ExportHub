@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "Impossibile rimuovere la chiusura",
   "closureMail.invalid": "Controlla le date: ultimo ritiro prima della chiusura e riapertura dopo.",
   "closureMail.saved": "Chiusura salvata e abilitata per le email",
-  "closureMail.saveFailed": "Impossibile salvare"
+  "closureMail.saveFailed": "Impossibile salvare",
+  "closureMail.mailTitle": "Informazione importante – Chiusura",
+  "closureMail.mailLast": "Ultimo ritiro",
+  "closureMail.mailClosed": "Chiuso",
+  "closureMail.mailResume": "Riapertura"
 }
