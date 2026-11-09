@@ -626,6 +626,7 @@
   "pickupCalendar.field.customerNumber": "Numer(y) klienta",
   "pickupCalendar.field.customerNumberHint": "Kilka numerów oddziel przecinkami. Gdy tego dnia zostanie odebrana przesyłka z tym numerem klienta, odbiór zmieni kolor na zielony jako wykonany.",
   "pickupCalendar.label.customerNumber": "Nr klienta",
+  "pickupCalendar.assignment.check": "Sprawdź powiązanie",
   "pickupCalendar.fix.done": "Odebrano",
   "pickupCalendar.fix.partial": "Odebrano częściowo",
   "pickupCalendar.fix.planned": "Przesyłka zgłoszona",

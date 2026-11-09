@@ -308,7 +308,7 @@ function customers(){
   arr(state().customers).forEach(function(c){var name=q(c&&(c.name||c.company||c.companyName)),no=q(c&&(c.customerNumber||c.account||c.accountNumber));if(!name||seen[low(name)])return;seen[low(name)]=1;out.push({name:name,no:no})});
   return out.sort(function(a,b){return a.name.localeCompare(b.name)})
 }
-function customerNo(task){return q(task&&(task.customerNumber||task.linkedAccount||task.customerAccount||task.account))}
+function customerNo(task){var x=task&&typeof task==='object'?task:{};return Object.prototype.hasOwnProperty.call(x,'customerNumber')?q(x.customerNumber):q(x.linkedAccount||x.customerAccount||x.account)}
 function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
 function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
 function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
@@ -343,6 +343,21 @@ function syncWeeklySeries(s,task,v){
    rule:{type:'weekly',intervalWeeks:1,weekdays:days},task:template});
  if(index>=0)s.taskSeries[index]=entry;else s.taskSeries.push(entry);
  retireSeriesDays(s,id,days);
+ // Keep eligible future series instances in sync with the confirmed saved Pick task.
+ // Never rewrite historic, completed, in-progress or manually overridden occurrences.
+ var today=dayKey(new Date());
+ arr(s.tasks).forEach(function(row){
+  if(!row||row===task||q(row.seriesId)!==id||!q(row.occurrenceKey)||row.manualOverride===true||isDone(row)||statusOf(row)==='in_progress')return;
+  var date=q(row.originalOccurrenceDate)||q(row.occurrenceKey).split('|').pop();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today)return;
+  row.customerNumber=task.customerNumber;
+  row.linkedAccount=task.linkedAccount;
+  row.customerNumberSetAt=task.customerNumberSetAt;
+  row.pickupTargetId=task.pickupTargetId;
+  row.pickupTargetCompanyKey=task.pickupTargetCompanyKey;
+  row.updatedAt=task.updatedAt;
+  row._syncUpdatedAt=task._syncUpdatedAt;
+ });
  task.seriesId=id;task.weekdays=days;if(!q(task.occurrenceKey))task.isTemplate=true;
  var engine=w.ExportHUBTaskRecurrenceV2,cal=engine&&typeof engine.calendar==='function'?engine.calendar(s.taskCalendar||{}):null;
  if(engine&&typeof engine.materialize==='function'&&cal){
@@ -353,11 +368,65 @@ function syncWeeklySeries(s,task,v){
  return true
 }
 function findUser(name){var n=low(name);if(!n)return null;return users().find(function(u){return [u.id,u.name,u.displayName,u.user,u.username,u.login].map(low).indexOf(n)>=0})||null}
-function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
+function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';if(mode==='edit'||mode==='new')loadPickupTargets();try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
 function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
 function edit(id){var x=findTask(id);if(!x||x.isVirtualTaskMaster)return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
 function openForm(){if(!canWrite()){alert(t('noRights'));return}openTaskView('new','')}
 function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='in_progress'?'in_progress':'open')}
+
+// RC1875: Task stores only stable FIX transport id; displayed destinations come
+// from the authorized fixed-pickup catalog. Never edit the same numbers twice.
+var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='',pickupCompanyKey='';
+function pickupEnv(){
+ var host=low(w.location&&w.location.hostname||''),path=low(w.location&&w.location.pathname||''),forced=low(w.__EXPORTHUB_FORCED_ENVIRONMENT__||'');
+ if(forced==='demo'||path.indexOf('demo.html')>=0)return 'demo';
+ if(forced==='testservice'||host.indexOf('-testservice.')>=0)return 'testservice';
+ return 'production'
+}
+function pickupRequestedCompany(){
+ var s=state(),u=s.currentUser||s.activeUser||s.user,selected=q(s.activeCompanyId||s.currentCompanyId||s.companyId||s.companyKey||'');
+ if(!u||typeof u!=='object')return selected;
+ var admin=u.admin===true||u.isAdmin===true||u.globalAdmin===true||/^(admin|administrator|globaladmin|global-admin)$/.test(low(u.role||u.userRole||u.level));
+ var values=[u.companyId,u.companyKey,u.tenantId,u.tenant];
+ ['companyIds','allowedCompanyIds'].forEach(function(k){arr(u[k]).forEach(function(v){values.push(v)})});
+ arr(u.companies).forEach(function(v){values.push(typeof v==='string'?v:v&&(v.id||v.key||v.companyId))});
+ var allowed=values.map(q).filter(Boolean),key=function(v){return low(v).normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)};
+ if(selected&&(admin||allowed.some(function(v){return key(v)===key(selected)})))return selected;
+ return allowed[0]||''
+}
+function pickupCompanyKeyOf(value){return low(value).normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)}
+function pickupOptions(selected){
+ var key=q(selected),rows=pickupTargets.filter(function(x){return x&&x.active!==false});
+ var html='<option value="">'+esc(t('fPickupNone'))+'</option>';
+ if(key&&!rows.some(function(x){return q(x.id)===key}))
+   html+='<option value="'+esc(key)+'" selected>'+esc(t('fPickupMissing'))+'</option>';
+ rows.forEach(function(x){
+  var id=q(x.id);if(!id)return;
+  html+='<option value="'+esc(id)+'"'+(key===id?' selected':'')+'>'+esc(q(x.siteLabel))+' · '+esc(dayNames(lang())[Number(x.weekday)]||'')+'</option>'
+ });
+ return html
+}
+async function loadPickupTargets(){
+ if(pickupTargetsState==='loading')return;
+ var env=pickupEnv(),requestedCompany=pickupRequestedCompany(),taskIdAtStart=tv.id,modeAtStart=tv.mode;
+ pickupTargetsState='loading';
+ try{
+  var headers={'Accept':'application/json','X-ExportHUB-Environment':env};
+  if(requestedCompany)headers['X-ExportHUB-Company-Id']=requestedCompany;
+  var res=await w.fetch('/api/fixed-pickups?includeInactive=1',{
+   method:'GET',credentials:'same-origin',headers:headers
+  });
+  var data=await res.json();
+  if(!res.ok||!data||data.ok===false||data.environment!==env||!Array.isArray(data.items))throw Error('FIX_TARGETS_UNAVAILABLE');
+  if(requestedCompany!==pickupRequestedCompany()||(requestedCompany&&pickupCompanyKeyOf(data.companyKey)!==pickupCompanyKeyOf(requestedCompany)))throw Error('FIX_COMPANY_MISMATCH');
+  pickupTargets=data.items.filter(function(x){return x&&x.active!==false&&q(x.id)});
+  pickupTargetsEnv=env;pickupCompanyKey=q(data.companyKey);pickupTargetsState=pickupCompanyKey?'ready':'error';
+ }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv='';pickupCompanyKey=''}
+ // Update just the selector: never re-render the form and lose user input.
+ if(tv.mode!==modeAtStart||tv.id!==taskIdAtStart)return;
+ var el=w.document&&w.document.querySelector('#rc1570TaskView [name="pickupTargetId"]');
+ if(el){var value=el.value;el.innerHTML=pickupOptions(value);el.value=value}
+}
 var savePending=false;
 async function persist(reason,id){
   // Queueing a change is not a confirmed server save.
@@ -398,7 +467,8 @@ function applyForm(task,v,isNew){
   var autoDone=v.autoDone!==false;
   if(isNew||v.customerNo!==customerNo(task)||autoDone!==(task.autoDoneOnShipment!==false))task.customerNumberSetAt=now;
   task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;task.autoDoneOnShipment=autoDone;
-  task.linkedShipmentRef=v.ref;task.note=v.note;
+  task.pickupTargetCompanyKey=v.pickupTargetId?(pickupCompanyKey||q(task.pickupTargetCompanyKey)):'';
+  task.pickupTargetId=q(v.pickupTargetId);task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
   task._syncUpdatedAt=now;task._syncDeviceId='manual-task-editor';
@@ -410,10 +480,17 @@ async function saveForm(form){
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
     date:q(f.date.value),weekdays:Array.from(form.querySelectorAll('[name="weekdays"]:checked')).map(function(node){return Number(node.value)}),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
-    customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
+    customer:q(f.customer.value),customerNo:q(f.customerNo.value),pickupTargetId:q(f.pickupTargetId&&f.pickupTargetId.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
   var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
   if(!v.title){showError(t('required'));return false}
+  // Linking a FIX target without a customer number cannot produce a verifiable shipment association.
+  if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
+  if(v.pickupTargetId){
+    var requestedCompany=pickupRequestedCompany(),companyMatches=!requestedCompany||pickupCompanyKeyOf(pickupCompanyKey)===pickupCompanyKeyOf(requestedCompany);
+    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey)&&(!requestedCompany||pickupCompanyKeyOf(originalTarget.pickupTargetCompanyKey)===pickupCompanyKeyOf(requestedCompany))&&(!pickupCompanyKey||q(originalTarget.pickupTargetCompanyKey)===pickupCompanyKey);
+    if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&companyMatches&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
+  }
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
@@ -548,6 +625,7 @@ function formHtml(task){
     field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
     field(t('fCustomer'),'<input name="customer" list="rc1570Customers" maxlength="120" autocomplete="off" value="'+esc(task?customer(x):'')+'"><datalist id="rc1570Customers">'+customers().map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.no)+'</option>'}).join('')+'</datalist>')+
     field(t('fCustomerNo'),'<input name="customerNo" maxlength="120" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    field(t('fPickupTarget'),'<select name="pickupTargetId" data-rc1875-pickup-target="1">'+pickupOptions(q(x.pickupTargetId))+'</select>')+
     '<label class="rc1570-field rc1570-wide rc1570-autodone"><span><input type="checkbox" name="autoDone"'+(x.autoDoneOnShipment===false?'':' checked')+'> '+esc(t('fAutoDone'))+'</span><small>'+esc(t('fAutoDoneHint'))+'</small></label>'+
     field(t('fRef'),'<input name="ref" maxlength="40" autocomplete="off" value="'+esc(task?ref(x):'')+'">',true)+
     field(t('fNote'),'<textarea name="note" rows="4" maxlength="2000">'+esc(task?noteOf(x):'')+'</textarea>',true)+
@@ -558,7 +636,7 @@ function detailHtml(task){
   var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),days=weeklyDays(x),rows=[
     [t('fArea'),q(x.area||x.category)||area(x)],[t('fOwner'),ownerName(x,us)],
     [t('fDue'),isWeekly(x)&&days.length?'↻ '+days.map(function(i){return dayNames(lang())[i]}).join(' + '):(d?fmtDate(d):t('noDate'))],[t('fTimeShort'),q(x.time)],
-    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
+    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fPickupTarget'),arr(pickupTargets).find(function(z){return q(z&&z.id)===q(x.pickupTargetId)})?.siteLabel||(q(x.pickupTargetId)?t('fPickupMissing'):t('fPickupNone'))],[t('fRefShort'),rf]
   ];
   if(q(x.doneByShipmentRef))rows.push([t('fDoneByShipment'),q(x.doneByShipmentRef)]);
   else if(customerNo(x)&&!isDone(x)&&x.autoDoneOnShipment!==false)rows.push([t('fAutoDoneShort'),t('autoDoneOn')]);
