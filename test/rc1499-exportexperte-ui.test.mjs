@@ -33,8 +33,9 @@ test('RC1499 UI release contract: grouped review is primary and original positio
 });
 
 test('RC1499 UI release contract: mandatory formats and server safety gates remain connected',()=>{
+  const accept=(documents.match(/data-rc1940-files accept="([^"]+)"/)||[])[1]||'';
   for(const ext of ['pdf','jpg','jpeg','png','xlsx','csv','txt','tsv'])
-    assert.match(documents,new RegExp('\\\\.'+ext+'(?:[,\\\\s]|$)','i'),'Upload-Format fehlt: '+ext);
+    assert.ok(accept.split(',').includes('.'+ext),'Upload-Format fehlt: '+ext);
   assert.match(analysisApi,/pdf\|xlsx\|csv\|txt\|tsv\|jpg\|jpeg\|png/,'Server akzeptiert nicht alle Pflichtformate inklusive D365 TXT/TSV');
   assert.match(documents,/data-rc1940-files/,'D365 TXT/TSV Upload wird über Dokumente bereitgestellt');
   assert.match(documents,/scanner\.analyzeFile\(file\)/,'Geschützte Scanner-API wird nicht benutzt');
