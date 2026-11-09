@@ -308,6 +308,7 @@
       weekOffset: 0,
       canEdit: false,
       fixedLoading: false,
+      fixedRequestId: 0,
       shipmentLoading: false,
       fixedError: null,
       shipmentError: null,
@@ -523,6 +524,9 @@
     const requestState = mountedState;
     const requestOptions = mountedOptions;
     if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+    // Only the most recent in-flight response may replace a FIX planning snapshot.
+    const requestId=++requestState.fixedRequestId;
+    const requestIsCurrent=()=>requestState.fixedRequestId===requestId&&mountedCalendarIsCurrent(requestRoot,requestState,requestOptions);
     requestState.fixedLoading = true;
     requestState.fixedError = null;
     render(requestRoot,requestState,requestOptions.today);
@@ -532,19 +536,19 @@
       if (data.environment && String(data.environment).toLowerCase() !== environmentOf(requestOptions)) {
         throw new Error('FIX_ENVIRONMENT_MISMATCH');
       }
-      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      if (!requestIsCurrent()) return;
       requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
       requestState.companyKey=String(data.companyKey||'');
       requestState.canEdit = data.canEdit === true;
     } catch (e) {
-      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      if (!requestIsCurrent()) return;
       // An unsuccessful refresh must not leave old customer/REF associations displayed as current.
       requestState.fixedPickups = [];
       requestState.companyKey = '';
       requestState.canEdit = false;
       requestState.fixedError = e && e.message || tr('pickupCalendar.error.fixedLoad');
     } finally {
-      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      if (!requestIsCurrent()) return;
       requestState.fixedLoading = false;
       render(requestRoot,requestState,requestOptions.today);
     }
