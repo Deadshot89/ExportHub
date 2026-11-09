@@ -97,7 +97,7 @@
  async function runScan(){
   if(scanBusy)return false;
   if(!chosenFiles.length){uploadStatus(ut('empty'),'bad');return false}
-  if(chosenFiles.length>5||chosenFiles.some(function(f){return !/\\.(pdf|xlsx|csv|tsv|txt|jpe?g|png)$/i.test(f.name)||!f.size||f.size>12*1024*1024})){uploadStatus(ut('invalid')+' '+ut('limits'),'bad');return false}
+  if(chosenFiles.length>5||chosenFiles.some(function(f){return !/\.(pdf|xlsx|csv|tsv|txt|jpe?g|png)$/i.test(f.name)||!f.size||f.size>12*1024*1024})){uploadStatus(ut('invalid')+' '+ut('limits'),'bad');return false}
   var scanner=w.ExportHUBRC1294ABDAnalysis;
   if(!scanner||typeof scanner.analyzeFile!=='function'){uploadStatus(ut('unavailable'),'bad');return false}
   // Recheck only still-pending files. Already analyzed files are NOT uploaded a second time.
