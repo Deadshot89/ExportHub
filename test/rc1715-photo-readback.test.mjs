@@ -36,3 +36,21 @@ test('P2: reference collision cannot expose another shipment photo',async()=>{
  assert.equal(c.res.status,404);
  assert.equal(c.res.body.code,'CONTAINER_PHOTO_NOT_FOUND');
 });
+
+test('P2: a mismatched photo metadata reference cannot expose a foreign photo',async()=>{
+ const foreign={...newPhoto,reference:'OTHER1'};
+ const handler=setup([{id:'S1',reference:'ABC123',containerPhotos:[foreign]}],[]);
+ const c={log:{error(){}},res:null};
+ await handler(c,{method:'GET',query:{reference:'ABC123',shipmentId:'S1',file:'container-loaded'}});
+ assert.equal(c.res.status,404);
+ assert.equal(c.res.body.code,'CONTAINER_PHOTO_NOT_FOUND');
+});
+
+test('P2: a saved photo pointing at another REF blob is not downloaded',async()=>{
+ const foreign={...newPhoto,reference:'ABC123',blobName:'production/OTHER1/Containerdokumentation/foreign.jpg'};
+ const handler=setup([{id:'S1',reference:'ABC123',containerPhotos:[foreign]}],[]);
+ const c={log:{error(){}},res:null};
+ await handler(c,{method:'GET',query:{reference:'ABC123',shipmentId:'S1',file:'container-loaded'}});
+ assert.equal(c.res.status,404);
+ assert.equal(c.res.body.code,'CONTAINER_PHOTO_NOT_FOUND');
+});
