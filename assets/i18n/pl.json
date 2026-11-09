@@ -2660,5 +2660,7 @@
   "closureMail.mailTitle": "Ważna informacja – Przerwa w pracy",
   "closureMail.mailLast": "Ostatni odbiór",
   "closureMail.mailClosed": "Zamknięte",
-  "closureMail.mailResume": "Ponowne otwarcie"
+  "closureMail.mailResume": "Ponowne otwarcie",
+  "closureMail.htmlPreview": "Podgląd wiadomości HTML",
+  "closureMail.previewFailed": "Nie udało się wczytać podglądu wiadomości."
 }
