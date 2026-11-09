@@ -512,7 +512,9 @@
   function managedTaskPlanItems(ctx={}){
     if(!managedOwnerMatches(ctx))return [];
     const today=localDay(ctx.now||new Date());
-    return MANAGED_TASKS.map(spec=>({
+    const liveState=ctx.state||lastContext.state||{};
+    const disabled=liveState.taskManagedDisabled&&typeof liveState.taskManagedDisabled==='object'?liveState.taskManagedDisabled:{};
+    return MANAGED_TASKS.filter(spec=>!Object.prototype.hasOwnProperty.call(disabled,q(spec.key))).map(spec=>({
       key:spec.key,
       title:tr(spec.titleKey),
       group:tr(spec.groupKey),
