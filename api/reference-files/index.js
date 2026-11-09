@@ -5,6 +5,7 @@ const apiI18n=require('../shared/i18n');
 const referenceFolder=require('../shared/reference-folder-upload');
 const avCheck=require('../shared/av-check');
 const avBlob=require('../shared/av-blob-store');
+const refDocBlob=require('../shared/ref-doc-blob-store');
 const avCheckApi=require('../av-check/index');
 const publicAccess=require('../shared/public-access-store');
 const authStore=require('../shared/auth-store');
@@ -182,8 +183,17 @@ async function handleUpload(req){
    avStatus:progress&&progress.status||'pending',taskUpdatePending});
  }
  if(action==='upload-document'){
-  const file=documentUploadFile(ref,payload),saved=await referenceFolder.upload(ref,file.name,file.buffer,file.mimeType,environment);
-  return json(200,{ok:true,reference:ref,file:{id:saved.id,name:saved.name,size:saved.size,kind:file.kind}});
+  const file=documentUploadFile(ref,payload);
+  // Azure ist die unabhängige Hauptkopie, SharePoint kommt zusätzlich. Fehler nur, wenn beides ausfällt.
+  let azureSaved=null,azureError='',sharepointSaved=null,sharepointError='',sharepointFailure=null;
+  try{azureSaved=await refDocBlob.save(ref,environment,file.name,file.buffer,file.mimeType)}
+  catch(e){azureError=text(e&&e.code)||'AZURE_UNAVAILABLE'}
+  try{sharepointSaved=await referenceFolder.upload(ref,file.name,file.buffer,file.mimeType,environment)}
+  catch(e){sharepointFailure=e;sharepointError=text(e&&e.code)||'GRAPH_UNAVAILABLE'}
+  if(!azureSaved&&!sharepointSaved)throw sharepointFailure||error('DOCUMENT_NOT_SAVED','api.reference.fileLoadFailed',502);
+  const primary=azureSaved||sharepointSaved;
+  return json(200,{ok:true,reference:ref,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
+   azureSaved:!!azureSaved,azureError,sharepointSaved:!!sharepointSaved,sharepointError});
  }
  throw error('ACTION_INVALID','Unbekannte Aktion.',400);
 }
@@ -202,16 +212,27 @@ module.exports=async function(context,req){
     'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
+  if(/^refdoc:/.test(itemId)){
+   const read=await refDocBlob.read(ref,env,itemId);
+   context.res={status:200,isRaw:true,headers:{'Content-Type':read.file.mimeType,
+    'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
+    'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
+  }
   const azure=await avBlob.list(ref,env);
+  // Azure-Kopien von Sendungsdokumenten: ein Lesefehler im Speicher darf die SharePoint-Liste nicht blockieren.
+  let docs=[];try{docs=await refDocBlob.list(ref,env)}catch(_){docs=[]}
   let listed,graphError=null;
   try{listed=await listFiles(ref,req)}
-  catch(e){graphError=e;if(!azure.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
+  catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
   const files=Array.from(listed.files||[]);
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
+  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
+   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
-    folderMissing:listed.folderMissing&&!azure.length,sharepointAvailable:!graphError,files});return}
+    folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
   const item=files.find(f=>f.id===itemId);
   if(!item)throw error('FILE_NOT_FOUND','api.reference.fileNotFound',404);
   if(Number(item.size||0)>MAX_FILE_BYTES)throw error('FILE_TOO_LARGE','api.reference.fileTooLarge',413);

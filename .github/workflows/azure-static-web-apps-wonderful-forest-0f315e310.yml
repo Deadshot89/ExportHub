@@ -237,6 +237,48 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1903 Sendungsdokumentation TESTSERVICE Live-Gate vor Production-Freigabe
+        shell: bash
+        env:
+          RC1903_EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Echte anonyme Testdaten ausschliesslich bei Aenderungen an RC1903 erfassen.
+          # Vor jedem Schreibzugriff validiert das Skript TESTSERVICE-Host und Deployment-SHA.
+          if git diff --name-only HEAD^ HEAD --               api/shipment-evidence/               assets/shipment-evidence.js               assets/shipment-evidence-guest.js               assets/shipment-evidence.css               assets/i18n/shipment-evidence.js               scripts/rc1903-testservice-guest-live.mjs               .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml               | grep -q .; then
+            node scripts/rc1903-testservice-guest-live.mjs
+          else
+            echo 'RC1903 unveraendert; kein anonymer Testdatensatz angelegt.'
+          fi
+
+      - name: RC1903 TESTSERVICE deployed visual proof (customer and photos, no real API writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run only for RC1903 changes or visual proof updates.
+          if git diff --name-only HEAD^ HEAD -- \
+               api/shipment-evidence/ assets/shipment-evidence.js assets/shipment-evidence-guest.js \
+               assets/shipment-evidence.css assets/i18n/shipment-evidence.js \
+               assets/sendungsdokumentation.html \
+               e2e/specs/rc1903-testservice-visual-proof.spec.mjs \
+               playwright.rc1903-testservice-visual.config.mjs \
+               .github/workflows/rc1903-shipment-evidence-browser.yml \
+               .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml \
+               | grep -q .; then
+            npx playwright test e2e/specs/rc1903-testservice-visual-proof.spec.mjs --config playwright.rc1903-testservice-visual.config.mjs
+          else
+            echo 'RC1903 unveraendert; keine zusaetzliche visuelle Live-Pruefung.'
+          fi
+
+      - name: RC1903 TESTSERVICE visual proof screenshots (synthetic data only)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-testservice-visual-proof
+          path: test-results/**/rc1903-testservice-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate
         shell: bash
         run: |
@@ -716,7 +758,7 @@ jobs:
             if(ready){console.log('RC1249 '+env+' automatische Upload-Mail bereit');process.exit(0)}
             const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
             if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
-            console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,ok:v.ok,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,code:v.code}));
+            console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,ok:v.ok,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,code:v.code,upstreamStatus:v.upstreamStatus,authFailureCategory:v.authFailureCategory}));
             process.exit(1);
           "
 

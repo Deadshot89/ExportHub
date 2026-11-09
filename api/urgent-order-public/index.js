@@ -104,6 +104,7 @@ module.exports=async function(context,req){
   const publicCode=recognized?internalCode:'URGENT_PUBLIC_FAILED';
   const responseStatus=!recognized&&status<500?503:status;
   context.log&&context.log.warn&&context.log.warn('urgent-order-public',internalCode,status);
+   if(internalCode==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(internal.safeHostDiagnostic(req)));
   const serviceError=responseStatus>=500;
   const safeMessages={
    URGENT_STORAGE_MISSING:'Urgent Order ist noch nicht mit dem Datenspeicher verbunden. Bitte die Logistik informieren.',

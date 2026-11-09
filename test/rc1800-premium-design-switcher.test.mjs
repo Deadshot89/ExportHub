@@ -59,10 +59,11 @@ test('RC1800: Auswahl Premium = Klassisch als Basis plus data-eh-skin; andere De
   if(api){
     assert.equal(api.current(),'premium');
     api.apply('neon');
-    assert.equal(env.html.getAttribute('data-eh-design'),'neon');
+    // RC1930: Neon Night ist keine Auswahl mehr und fällt auf Original (Klassisch) zurück
+    assert.equal(env.html.getAttribute('data-eh-design'),'classic');
     assert.equal(env.html.getAttribute('data-eh-skin'),null);
-    assert.equal(env.store.get('exporthub-ui-design'),'neon');
-    assert.equal(JSON.stringify(api.designs.map(d=>d.id)),JSON.stringify(['classic','modern','glass','neon','premium','neu']));
+    assert.equal(env.store.get('exporthub-ui-design'),'classic');
+    assert.equal(JSON.stringify(api.designs.map(d=>d.id)),JSON.stringify(['classic','premium','neu','frost','graphit','azur','stahl','polar']));
   }
 });
 

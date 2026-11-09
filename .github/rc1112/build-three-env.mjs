@@ -62,13 +62,27 @@ const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/asset
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
-const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1820"><\/script>';
+const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1930"><\/script>';
 const RC1800_PREMIUM_STYLE_TAG='<link id="exporthub-rc1800-premium-design" rel="stylesheet" href="/assets/rc1800-premium-design.css?v=1804">';
 // RC1820: Design "Neu" (Prototyp A) mit Menü oben; greift nur bei html[data-eh-layout="top"]
-const RC1820_TOPNAV_STYLE_TAG='<link id="exporthub-rc1820-topnav-style" rel="stylesheet" href="/assets/rc1820-top-navigation.css?v=1820">';
+const RC1820_TOPNAV_STYLE_TAG='<link id="exporthub-rc1820-topnav-style" rel="stylesheet" href="/assets/rc1820-top-navigation.css?v=1931">';
 // RC1821: Design "Neu" Stufe 2, eigenes Erscheinungsbild (nur html[data-eh-layout="top"])
-const RC1821_DESIGN_NEU_STYLE_TAG='<link id="exporthub-rc1821-design-neu-style" rel="stylesheet" href="/assets/rc1821-design-neu.css?v=1821">';
-const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=1820"><\/script>';
+const RC1821_DESIGN_NEU_STYLE_TAG='<link id="exporthub-rc1821-design-neu-style" rel="stylesheet" href="/assets/rc1821-design-neu.css?v=1930">';
+// RC1900: neue Oberfläche Sendungsübersicht (nur Design "Neu", html[data-eh-layout="top"])
+const RC1900_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1900-overview-style" rel="stylesheet" href="/assets/rc1900-neue-sendungsuebersicht.css?v=1930">';
+const RC1900_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1900-overview-script" defer src="/assets/rc1900-neue-sendungsuebersicht.js?v=1930"><\/script>';
+// RC1901: neue Oberfläche Sendungsansicht (nur Design "Neu", html[data-eh-layout="top"])
+const RC1901_SHIPMENT_STYLE_TAG='<link id="exporthub-rc1901-shipment-style" rel="stylesheet" href="/assets/rc1901-neue-sendungsansicht.css?v=1930">';
+const RC1901_SHIPMENT_SCRIPT_TAG='<script id="exporthub-rc1901-shipment-script" defer src="/assets/rc1901-neue-sendungsansicht.js?v=1930"><\/script>';
+// RC1902: neue Oberfläche Sendung erstellen/bearbeiten (nur Design "Neu", html[data-eh-layout="top"])
+const RC1902_FORM_STYLE_TAG='<link id="exporthub-rc1902-form-style" rel="stylesheet" href="/assets/rc1902-neue-sendungsmaske.css?v=1930">';
+const RC1902_FORM_SCRIPT_TAG='<script id="exporthub-rc1902-form-script" defer src="/assets/rc1902-neue-sendungsmaske.js?v=1932"><\/script>';
+const RC1903_CAPTURE_STYLE_TAG='<link id="exporthub-rc1903-capture-style" rel="stylesheet" href="/assets/rc1903-neue-erfassung.css?v=1930">';
+const RC1903_CAPTURE_SCRIPT_TAG='<script id="exporthub-rc1903-capture-script" defer src="/assets/rc1903-neue-erfassung.js?v=1930"><\/script>';
+// RC1930: neue Designs Frost, Graphit, Azur, Stahl, Polar (nur html[data-eh-palette])
+const RC1930_PALETTES_STYLE_TAG='<link id="exporthub-rc1930-palettes-style" rel="stylesheet" href="/assets/rc1930-design-paletten.css?v=1932">';
+const RC1930_FRAME_SCRIPT_TAG='<script id="exporthub-rc1930-frame-script" defer src="/assets/rc1930-design-rahmen.js?v=1931"><\/script>';
+const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=1932"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
@@ -96,10 +110,10 @@ const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src=
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1754.1"></script>';
 const RC1650_SHIPMENT_TASKS_SCRIPT_TAG='<script id="exporthub-rc1650-shipment-tasks-script" defer src="/assets/rc1650-shipment-task-link.js?v=1650"></script>';
 // RC1810 Aufgabenseite (Heute/Woche/Monat/Liste) plus Betriebsferien und Feiertage im Wochenplan
-const RC1810_TASK_BOARD_STYLE_TAG='<link id="exporthub-rc1810-task-board-style" rel="stylesheet" href="/assets/rc1810-task-board.css?v=1810">';
-const RC1810_TASK_BOARD_I18N_TAG='<script id="exporthub-rc1810-task-board-i18n" defer src="/assets/i18n/rc1810-task-board.js?v=1810"></script>';
+const RC1810_TASK_BOARD_STYLE_TAG='<link id="exporthub-rc1810-task-board-style" rel="stylesheet" href="/assets/rc1810-task-board.css?v=1812">';
+const RC1810_TASK_BOARD_I18N_TAG='<script id="exporthub-rc1810-task-board-i18n" defer src="/assets/i18n/rc1810-task-board.js?v=1812"></script>';
 const RC1810_TASK_CALENDAR_SCRIPT_TAG='<script id="exporthub-rc1810-task-calendar-script" defer src="/assets/rc1810-task-calendar.js?v=1810"></script>';
-const RC1810_TASK_BOARD_SCRIPT_TAG='<script id="exporthub-rc1810-task-board-script" defer src="/assets/rc1810-task-board.js?v=1810"></script>';
+const RC1810_TASK_BOARD_SCRIPT_TAG='<script id="exporthub-rc1810-task-board-script" defer src="/assets/rc1810-task-board.js?v=1814"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
 const RC1660_SHIPMENT_SOP_STYLE_TAG='<link id="exporthub-rc1660-shipment-sop-style" rel="stylesheet" href="/assets/rc1660-shipment-sop-popup.css?v=1660">';
@@ -174,7 +188,7 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_STYLE_TAG,'exporthub-rc1304-theme-style');
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
-  if(!html.includes('rc1304-theme-switcher.js?v=1820'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  if(!html.includes('rc1304-theme-switcher.js?v=1930'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
   return html;
 }
 
@@ -186,8 +200,24 @@ function patchRc1800PremiumDesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_STYLE_TAG,'exporthub-rc1820-topnav-style');
   html=injectDeferredRuntimeInHead(html,RC1821_DESIGN_NEU_STYLE_TAG,'exporthub-rc1821-design-neu-style');
   html=injectDeferredRuntimeInHead(html,RC1820_TOPNAV_SCRIPT_TAG,'exporthub-rc1820-topnav-script');
-  if(!html.includes('rc1821-design-neu.css?v=1821'))throw new Error(file+': RC1821 Design Neu fehlt');
-  if(!html.includes('rc1820-top-navigation.css?v=1820')||!html.includes('rc1820-top-navigation.js?v=1820'))throw new Error(file+': RC1820 Menü oben fehlt');
+  if(!html.includes('rc1821-design-neu.css?v=1930'))throw new Error(file+': RC1821 Design Neu fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1900_OVERVIEW_STYLE_TAG,'exporthub-rc1900-overview-style');
+  html=injectDeferredRuntimeInHead(html,RC1900_OVERVIEW_SCRIPT_TAG,'exporthub-rc1900-overview-script');
+  if(!html.includes('rc1900-neue-sendungsuebersicht.js?v=1930'))throw new Error(file+': RC1900 neue Sendungsübersicht fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1901_SHIPMENT_STYLE_TAG,'exporthub-rc1901-shipment-style');
+  html=injectDeferredRuntimeInHead(html,RC1901_SHIPMENT_SCRIPT_TAG,'exporthub-rc1901-shipment-script');
+  if(!html.includes('rc1901-neue-sendungsansicht.js?v=1930'))throw new Error(file+': RC1901 neue Sendungsansicht fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1902_FORM_STYLE_TAG,'exporthub-rc1902-form-style');
+  html=injectDeferredRuntimeInHead(html,RC1902_FORM_SCRIPT_TAG,'exporthub-rc1902-form-script');
+  if(!html.includes('rc1902-neue-sendungsmaske.js?v=1932'))throw new Error(file+': RC1902 neue Sendungsmaske fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1903_CAPTURE_STYLE_TAG,'exporthub-rc1903-capture-style');
+  html=injectDeferredRuntimeInHead(html,RC1903_CAPTURE_SCRIPT_TAG,'exporthub-rc1903-capture-script');
+  if(!html.includes('rc1903-neue-erfassung.js?v=1930'))throw new Error(file+': RC1903 neue Erfassung fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1930_PALETTES_STYLE_TAG,'exporthub-rc1930-palettes-style');
+  if(!html.includes('rc1930-design-paletten.css?v=1932'))throw new Error(file+': RC1930 Design-Paletten fehlen');
+  html=injectDeferredRuntimeInHead(html,RC1930_FRAME_SCRIPT_TAG,'exporthub-rc1930-frame-script');
+  if(!html.includes('rc1930-design-rahmen.js?v=1931'))throw new Error(file+': RC1930 Design-Rahmen fehlt');
+  if(!html.includes('rc1820-top-navigation.css?v=1931')||!html.includes('rc1820-top-navigation.js?v=1932'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }
 
@@ -330,7 +360,7 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_CALENDAR_SCRIPT_TAG,'exporthub-rc1810-task-calendar-script');
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_I18N_TAG,'exporthub-rc1810-task-board-i18n');
   html=injectDeferredRuntimeInHead(html,RC1810_TASK_BOARD_SCRIPT_TAG,'exporthub-rc1810-task-board-script');
-  if(!html.includes('/assets/i18n/rc1810-task-board.js?v=1810')||!html.includes('/assets/rc1810-task-calendar.js?v=1810')||!html.includes('/assets/rc1810-task-board.js?v=1810')||!html.includes('rc1810-task-board.css?v=1810'))throw new Error(file+': RC1810 Aufgabenseite fehlt');
+  if(!html.includes('/assets/i18n/rc1810-task-board.js?v=1812')||!html.includes('/assets/rc1810-task-calendar.js?v=1810')||!html.includes('/assets/rc1810-task-board.js?v=1814')||!html.includes('rc1810-task-board.css?v=1812'))throw new Error(file+': RC1810 Aufgabenseite fehlt');
   // RC1577 admin POD audit (report first, regenerate / review flag only after confirmation)
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
@@ -1736,8 +1766,12 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report-i18n" defer src="/assets/i18n/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report" defer src="/assets/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation-i18n');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1860"></script>','exporthub-rc1860-shipment-documentation');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1931"></script>','exporthub-rc1860-shipment-documentation-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1931"></script>','exporthub-rc1860-shipment-documentation');
+  html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1903-shipment-evidence-css" rel="stylesheet" href="/assets/shipment-evidence.css?v=1906">','exporthub-rc1903-shipment-evidence-css');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-i18n" defer src="/assets/i18n/shipment-evidence.js?v=1906"></script>','exporthub-rc1903-shipment-evidence-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence" defer src="/assets/shipment-evidence.js?v=1906"></script>','exporthub-rc1903-shipment-evidence');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-guest" defer src="/assets/shipment-evidence-guest.js?v=1905"></script>','exporthub-rc1903-shipment-evidence-guest');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1872-unified-notifications" defer src="/assets/rc1872-unified-notifications.js?v=1872"></script>','exporthub-rc1872-unified-notifications');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
@@ -1910,6 +1944,16 @@ for(const rel of [
   'assets/rc1820-top-navigation.css', // RC1820: Design "Neu" mit Menü oben
   'assets/rc1820-top-navigation.js',
   'assets/rc1821-design-neu.css', // RC1821: Design "Neu" Stufe 2
+  'assets/rc1900-neue-sendungsuebersicht.css', // RC1900: neue Oberfläche Sendungsübersicht
+  'assets/rc1900-neue-sendungsuebersicht.js',
+  'assets/rc1901-neue-sendungsansicht.css', // RC1901: neue Oberfläche Sendungsansicht
+  'assets/rc1901-neue-sendungsansicht.js',
+  'assets/rc1902-neue-sendungsmaske.css', // RC1902: neue Oberfläche Sendung erstellen/bearbeiten
+  'assets/rc1902-neue-sendungsmaske.js',
+  'assets/rc1903-neue-erfassung.css', // RC1903: neue Erfassung (eigene Felder) Sendung erstellen/bearbeiten
+  'assets/rc1903-neue-erfassung.js',
+  'assets/rc1930-design-paletten.css', // RC1930: neue Designs Frost, Graphit, Azur, Stahl, Polar
+  'assets/rc1930-design-rahmen.js',
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',
@@ -1966,6 +2010,11 @@ for(const rel of [
   'assets/i18n/qualitaet.js',
   'assets/i18n/rc1860-shipment-documentation.js',
   'assets/rc1860-shipment-documentation.js',
+  'assets/shipment-evidence.css',
+  'assets/i18n/shipment-evidence.js',
+  'assets/shipment-evidence.js',
+  'assets/shipment-evidence-guest.js',
+  'assets/sendungsdokumentation.html',
   'assets/rc1872-unified-notifications.js',
   'assets/i18n/web-push.js',
   'assets/web-push/client.js',

@@ -57,3 +57,124 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 #content>.rc1579-it-tabs>button[aria-current="page"]{background:#64748b;color:#fff;border-color:#64748b}
 #content>.rc1579-it-tabs>button:focus-visible{outline:2px solid #64748b;outline-offset:1px}
 @media (max-width:560px){#content>.rc1579-it-tabs .rc1579-it-tabs-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#content>.rc1579-it-tabs>button{flex:1 1 auto;justify-content:center;padding:7px 8px;font-size:13px}}
+
+/* Einheitliche, kontraststarke Zähler für Packmeldungen, Urgent Order und Benachrichtigungen. */
+/* Kein Eingriff in die Zähl-Logik; identische Ausrichtung in Classic, Modern, Glass und Neon. */
+#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
+  display:flex!important;
+  align-items:center!important;
+  grid-template-columns:none!important;
+  gap:9px!important;
+  min-width:0!important;
+  width:100%!important;
+  min-height:44px!important;
+  padding:6px 10px!important;
+  box-sizing:border-box!important;
+}
+#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) .index308-nav-label{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  width:auto!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  text-align:left!important;
+}
+#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) .index308-nav-icon{
+  flex:0 0 34px!important;
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+}
+/* Auch unbekannte ältere Aufgaben-Zähler der Benachrichtigungs-Navigation erfassen,
+   aber niemals die Beschriftung oder das Icon als Zähler formatieren. */
+#nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :where(
+  .pack-internal-nav-badge,
+  .urgent-nav-count,
+  .eh1872-nav-warning,
+  .index236-notification-count,
+  .index236-nav-badge,
+  #index236NotificationCount,
+  .notification-count,
+  .nav-count
+),
+#nav#nav#nav>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child:not(.index308-nav-label):not(.index308-nav-icon){
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  align-self:center!important;
+  min-width:24px!important;
+  width:auto!important;
+  height:24px!important;
+  min-height:24px!important;
+  margin:0 0 0 auto!important;
+  padding:0 6px!important;
+  border:1px solid transparent!important;
+  border-radius:999px!important;
+  box-sizing:border-box!important;
+  background:#b42318!important;
+  color:#fff!important;
+  font:700 12px/1.1 Inter,system-ui,sans-serif!important;
+  font-variant-numeric:tabular-nums!important;
+  letter-spacing:0!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
+/* 0 = kein offener Vorgang: gleicher Badge, ruhige Neutralfarbe. */
+#nav#nav#nav>button[data-exporthub-urgent-nav] .urgent-nav-count[data-has-open="false"],
+#nav#nav#nav>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child[data-count="0"]{
+  background:#e2e8f0!important;
+  color:#334155!important;
+  border-color:#cbd5e1!important;
+}
+/* Explizit verborgene Zähler dürfen nicht durch display!important sichtbar werden. */
+#nav#nav#nav>button :is(.pack-internal-nav-badge,.urgent-nav-count,.eh1872-nav-warning,#index236NotificationCount)[hidden]{
+  display:none!important;
+}
+#nav#nav#nav[data-rc1579-ready]>button[data-exporthub-urgent-nav]::after{display:none!important}
+/* Schlanke Desktop-Leiste und mobile Bottom-Navigation benötigen Overlay-Zähler
+   statt eines horizontalen 3-Spalten-Layouts. Classic bleibt als Textmenü erhalten. */
+@media(max-width:1100px){
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:3px!important;
+    padding:5px!important;
+  }
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) :where(.pack-internal-nav-badge,.urgent-nav-count,.eh1872-nav-warning,.index236-notification-count,.index236-nav-badge,#index236NotificationCount,.notification-count,.nav-count),
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-view="notifications"],[data-index321-view="notifications"])>:is(span,b,strong,small):last-child:not(.index308-nav-label):not(.index308-nav-icon){
+    position:absolute!important;
+    top:1px!important;
+    right:1px!important;
+    margin:0!important;
+    min-width:24px!important;
+    height:24px!important;
+    min-height:24px!important;
+    padding:0 6px!important;
+    font-size:12px!important;
+    line-height:1!important;
+  }
+}
+@media(max-width:760px){
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]){
+    min-width:62px!important;
+    min-height:54px!important;
+    flex-direction:column!important;
+  }
+  html[data-eh-design]:not([data-eh-design="classic"]) #nav#nav#nav>button:is([data-pack-notifications-nav],[data-exporthub-urgent-nav],[data-view="notifications"],[data-index321-view="notifications"]) .index308-nav-label{
+    display:block!important;
+    flex:0 1 auto!important;
+    max-width:65px!important;
+    font-size:9px!important;
+    line-height:1.1!important;
+    text-align:center!important;
+  }
+}

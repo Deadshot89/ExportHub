@@ -140,12 +140,12 @@
   // Dashboard steckt im Logo (wie im Prototyp), damit alle Punkte in eine Zeile passen
   var dash=null;m.start.forEach(function(i){if(viewOf(i.el)==='dashboard')dash=i.el});
   var brand=bar.querySelector('[data-rc1820-home]');brand.classList.toggle('is-active',!!(dash&&isActive(dash)));if(dash){brand.title=labelOf(dash);brand.setAttribute('aria-label','ExportHUB · '+labelOf(dash))}
-  m.start.forEach(function(i,idx){if(i.el===dash)return;html+='<button type="button" class="rc1820-pill'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+(isActive(i.el)?' aria-current="page"':'')+'>'+esc(labelOf(i.el))+'</button>'});
+  m.start.forEach(function(i,idx){if(i.el===dash){html+='<button type="button" class="rc1820-pill rc1820-pill-home'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+(isActive(i.el)?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>';return}html+='<button type="button" class="rc1820-pill'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+(isActive(i.el)?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>'});
   m.sections.forEach(function(s,si){
    var act=s.items.some(function(i){return isActive(i.el)});
-   html+='<button type="button" class="rc1820-pill rc1820-pill-menu'+(act?' is-active':'')+(openKey===s.key?' is-open':'')+'" data-rc1820-section="'+esc(s.key)+'" aria-expanded="'+(openKey===s.key)+'" aria-haspopup="true">'+esc(s.label)+'<span class="rc1820-chev" aria-hidden="true"></span></button>';
+   html+='<button type="button" class="rc1820-pill rc1820-pill-menu'+(act?' is-active':'')+(openKey===s.key?' is-open':'')+'" data-rc1820-section="'+esc(s.key)+'" aria-expanded="'+(openKey===s.key)+'" aria-haspopup="true" style="'+esc(iconVars(s.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(s.label)+'<span class="rc1820-chev" aria-hidden="true"></span></button>';
   });
-  pills.innerHTML=html;
+  if(pills.__rc1820Html!==html){pills.innerHTML=html;pills.__rc1820Html=html}
   pills.setAttribute('aria-label',tx('menu'));
   // Glocke = Benachrichtigungen, mit Zähler
   bell.hidden=!m.notifications;

@@ -1,5 +1,5 @@
 'use strict';
-// Kunden-Avis: Dokumente aus dem REF-Ordner (Upload in der Sendungsansicht).
+// Kunden-Avis: Dokumente aus der Sendungsansicht (REF-Ordner in SharePoint und unabhängige Azure-Kopie).
 // Der Upload benennt Dateien "<Art>_<REF>_<JJJJMMTT-hhmmss>_<Originalname>".
 // Nur Lieferschein, Rechnung und Packliste sind für Kunden sichtbar; Excel und
 // sonstige Dokumente bleiben intern.
@@ -16,19 +16,32 @@ function parseName(name,reference){
  const ext=(m[3].toLowerCase().match(/(\.[a-z0-9]+)$/)||[])[1]||'';
  return{category:CATEGORY[m[1].toLowerCase()],original:m[3],ext};
 }
-function toRecords(files,reference){
+function toRecords(files,reference,source='graph'){
  const out=[];
  for(const f of Array.isArray(files)?files:[]){
   const id=text(f&&f.id),parsed=parseName(f&&f.name,reference);
   if(!id||!parsed)continue;
-  out.push({id:'ref-'+id,refItemId:id,name:parsed.original,mime:MIME[parsed.ext]||'application/octet-stream',size:Number(f.size||0)||0,category:parsed.category,inline:null,external:'',blobName:'',uploadedAt:text(f.createdDateTime)});
+  out.push({id:'ref-'+id,refItemId:id,refSource:source,name:parsed.original,mime:MIME[parsed.ext]||'application/octet-stream',size:Number(f.size||0)||0,category:parsed.category,inline:null,external:'',blobName:'',uploadedAt:text(f.createdDateTime),sourceName:text(f.name)});
   if(out.length>=MAX_DOCS)break;
  }
  return out;
 }
-// Fehler beim Lesen des REF-Ordners dürfen den Avis nicht blockieren.
-async function load(referenceFolder,reference,environment,log){
- try{return toRecords(await referenceFolder.listFiles(reference,environment),reference)}
- catch(e){if(typeof log==='function')log('customer-avis REF-Dokumente nicht lesbar',text(e&&e.code));return[]}
+// Fehler beim Lesen einer Quelle dürfen den Avis nicht blockieren; die andere Quelle bleibt sichtbar.
+// Azure-Dokumente stehen vor gleichnamigen SharePoint-Dateien (gleicher Upload, verifizierte Kopie), Doppelte entfallen.
+async function load(referenceFolder,reference,environment,log,refDocStore){
+ const warn=code=>{if(typeof log==='function')log('customer-avis REF-Dokumente nicht lesbar',code)};
+ let azure=[],graph=[];
+ if(refDocStore&&typeof refDocStore.list==='function'){
+  try{azure=toRecords(await refDocStore.list(reference,environment),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
+ }
+ try{graph=toRecords(await referenceFolder.listFiles(reference,environment),reference,'graph')}catch(e){warn(text(e&&e.code))}
+ const seen=new Set(),out=[];
+ for(const d of azure.concat(graph)){
+  const key=d.sourceName.toLowerCase();
+  if(seen.has(key))continue;
+  seen.add(key);out.push(d);
+  if(out.length>=MAX_DOCS)break;
+ }
+ return out;
 }
 module.exports={parseName,toRecords,load,CATEGORY};

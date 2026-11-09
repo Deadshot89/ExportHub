@@ -1,0 +1,345 @@
+/*
+ * RC1930: neue Designs Frost, Graphit, Azur, Stahl und Polar (Design-Umschalter RC1304).
+ * Basis ist der Premium-Skin (data-eh-skin="premium") plus die neue Oberfläche (data-eh-newui).
+ * Diese Datei liefert nur Optik: Farbpalette, Hintergrundleuchten, Glas-Seitenleiste,
+ * kompaktere Größen und für Polar die schmale Icon-Leiste. Keine Logik, keine Texte.
+ * Aktiv nur mit html[data-eh-palette]; Original, Indigo und Horizont bleiben unverändert.
+ */
+
+/* 1 ── Paletten ───────────────────────────────────────────────────────── */
+html[data-eh-palette="frost"]{
+  --eh-p:#0369a1;--eh-p2:#0891b2;--eh-p3:#0ea5e9;--eh-pd:#075985;--eh-ps:#eef7fc;--eh-pl:#cfe8f6;
+  --eh-p-rgb:3 105 161;--eh-p3-rgb:14 165 233;
+  --eh-page:#f7f9fc;--eh-glow1:rgba(14,165,233,.55);--eh-glow2:rgba(6,182,212,.45);--eh-glow3:rgba(59,130,246,0);
+}
+html[data-eh-palette="graphit"]{
+  --eh-p:#1f2937;--eh-p2:#374151;--eh-p3:#3b82f6;--eh-pd:#111827;--eh-ps:#f1f3f6;--eh-pl:#d9dee6;
+  --eh-p-rgb:31 41 55;--eh-p3-rgb:59 130 246;
+  --eh-page:#f4f5f7;--eh-glow1:rgba(59,130,246,.40);--eh-glow2:rgba(14,165,233,.32);--eh-glow3:rgba(148,163,184,.40);
+}
+html[data-eh-palette="azur"]{
+  --eh-p:#2563eb;--eh-p2:#1d4ed8;--eh-p3:#0ea5e9;--eh-pd:#1e40af;--eh-ps:#eef4ff;--eh-pl:#d3e2fd;
+  --eh-p-rgb:37 99 235;--eh-p3-rgb:14 165 233;
+  --eh-page:#f2f6fc;--eh-glow1:rgba(37,99,235,.50);--eh-glow2:rgba(14,165,233,.42);--eh-glow3:rgba(56,189,248,.34);
+}
+html[data-eh-palette="stahl"]{
+  --eh-p:#1e40af;--eh-p2:#1e3a8a;--eh-p3:#3b5bdb;--eh-pd:#172f6e;--eh-ps:#edf1f8;--eh-pl:#d2dbea;
+  --eh-p-rgb:30 64 175;--eh-p3-rgb:59 91 219;
+  --eh-page:#e9edf2;--eh-glow1:rgba(30,64,175,.36);--eh-glow2:rgba(100,116,139,.42);--eh-glow3:rgba(148,163,184,.45);
+}
+html[data-eh-palette="polar"]{
+  --eh-p:#4361ee;--eh-p2:#3046c8;--eh-p3:#4cc9f0;--eh-pd:#2a3db0;--eh-ps:#f0f3fe;--eh-pl:#d8dffb;
+  --eh-p-rgb:67 97 238;--eh-p3-rgb:76 201 240;
+  --eh-page:#fbfcfe;--eh-glow1:rgba(67,97,238,.38);--eh-glow2:rgba(76,201,240,.42);--eh-glow3:rgba(67,97,238,0);
+}
+
+/* Premium-Tokens auf die Palette umstellen */
+html[data-eh-palette][data-eh-skin="premium"] body[data-eh-skin="premium"]{
+  --pc-primary:var(--eh-p);--pc-primary-2:var(--eh-p2);--pc-primary-soft:var(--eh-ps);--pc-focus:var(--eh-p3);
+  --pc-page:var(--eh-page);--pc-page-accent:var(--eh-page);--pc-body-bg:var(--eh-page);
+  --pc-nav-active:var(--eh-ps);--pc-nav-active-text:var(--eh-pd);--pc-info:var(--eh-p);
+  --pc-button-bg:var(--eh-p);--menu-accent:var(--eh-p);
+  --pc-side-bg:rgba(255,255,255,.62);--pc-top-bg:rgba(255,255,255,.66);--pc-card-bg:rgba(255,255,255,.7);--eh-card:rgba(255,255,255,.72);
+  --pc-card-radius:14px;--pc-control-radius:9px;--pc-button-radius:9px;--pc-nav-radius:9px;
+  --pc-shadow-soft:0 1px 2px rgba(16,24,40,.05),0 6px 20px -10px rgba(16,24,40,.14);
+  --px-info-bg:var(--eh-ps);
+  font-size:13px;
+}
+/* neue Oberfläche: eigene Variablen der Ansichten (Karten halbtransparent, damit das Leuchten durchscheint) */
+html[data-eh-palette] :is(#rc1900Overview,#rc1901Shipment,#rc1902ShipmentForm,#rc1903Capture):is(#rc1900Overview,#rc1901Shipment,#rc1902ShipmentForm,#rc1903Capture){
+  --primary:var(--eh-p);--primary2:var(--eh-p2);--c:var(--eh-p3);
+}
+
+/* 2 ── Hintergrundleuchten: drei weiche Lichtflächen, langsam driftend ───── */
+html[data-eh-palette] body[data-eh-skin="premium"]::before,
+html[data-eh-palette] body[data-eh-skin="premium"]::after{
+  content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(90px);
+}
+html[data-eh-palette] body[data-eh-skin="premium"]::before{
+  width:640px;height:640px;left:14%;top:-260px;
+  background:var(--eh-glow1);box-shadow:780px 420px 0 -60px var(--eh-glow2);
+  animation:rc1930-drift1 22s ease-in-out infinite alternate;
+}
+html[data-eh-palette] body[data-eh-skin="premium"]::after{
+  width:560px;height:560px;left:38%;bottom:-320px;
+  background:var(--eh-glow3);
+  animation:rc1930-drift2 28s ease-in-out infinite alternate;
+}
+html[data-eh-palette="frost"] body[data-eh-skin="premium"]::before,
+html[data-eh-palette="stahl"] body[data-eh-skin="premium"]::before{width:900px;height:460px;left:-6%;top:-300px;box-shadow:900px 0 0 -40px var(--eh-glow2)}
+@keyframes rc1930-drift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(110px,50px,0) scale(1.1)}}
+@keyframes rc1930-drift2{from{transform:translate3d(0,0,0) scale(1.04)}to{transform:translate3d(-120px,-40px,0) scale(.96)}}
+@media (prefers-reduced-motion:reduce){html[data-eh-palette] body[data-eh-skin="premium"]::before,html[data-eh-palette] body[data-eh-skin="premium"]::after{animation:none}}
+html[data-eh-palette]{background:var(--eh-page)!important}
+html[data-eh-palette][data-eh-skin="premium"] body[data-eh-skin="premium"]{background:transparent!important}
+html[data-eh-palette] body[data-eh-skin="premium"] :is(.app,.main,#app){background:transparent!important}
+
+/* 3 ── Glas-Seitenleiste und Kopfzeile (nur Desktop, backdrop-filter stört fixe Elemente auf dem Handy) */
+@media (min-width:1024px){
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar{
+    background:var(--pc-side-bg)!important;border:1px solid rgba(255,255,255,.9)!important;
+    box-shadow:0 1px 1px rgba(16,24,40,.04),0 14px 40px -14px rgba(16,24,40,.18)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] .topbar{
+    background:var(--pc-top-bg)!important;
+    -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
+  }
+}
+html[data-eh-palette] body[data-eh-skin="premium"] :is(.btn,.btn-primary,button.primary):hover{background:var(--eh-pd)!important}
+/* aktiver Menüpunkt leuchtet */
+html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button:is(.active,[aria-current="page"],[aria-current="true"]){
+  box-shadow:0 6px 18px -8px rgb(var(--eh-p-rgb)/.55),inset 0 0 0 1px rgb(var(--eh-p-rgb)/.10)!important;
+}
+/* Fokus mit Leuchtring */
+html[data-eh-palette] body[data-eh-skin="premium"] :is(input,select,textarea):focus{
+  box-shadow:0 0 0 3px rgb(var(--eh-p-rgb)/.14),0 0 18px -4px rgb(var(--eh-p3-rgb)/.55)!important;
+}
+/* Hauptknöpfe mit Glanz */
+html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary){position:relative;overflow:hidden}
+html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{
+  content:"";position:absolute;top:0;bottom:0;left:-80px;width:50px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-20deg);
+  animation:rc1930-shine 4.2s ease-in-out infinite;
+}
+@keyframes rc1930-shine{0%,65%{left:-80px}100%{left:120%}}
+@media (prefers-reduced-motion:reduce){html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{display:none}}
+
+/* 4 ── Kompaktere Größen ─────────────────────────────────────────────── */
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-head h1{font-size:26px!important}
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-search{height:36px}
+html[data-eh-palette] #rc1900Overview#rc1900Overview .rc1900-btn{min-height:34px;padding:0 13px;font-size:13px!important;border-radius:10px}
+html[data-eh-palette] body[data-eh-skin="premium"] #content :is(h1,.page-head h1){font-size:24px}
+html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav button{min-height:34px}
+
+/* 5 ── Polar: schmale Icon-Leiste, klappt bei Maus/Fokus auf ─────────── */
+@media (min-width:1024px){
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] .app#app{grid-template-columns:76px minmax(0,1fr)!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar{
+    position:sticky!important;z-index:1200;width:64px!important;min-width:64px!important;overflow:hidden!important;
+    transition:width .18s ease,box-shadow .18s ease;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:is(:hover,:focus-within){
+    width:264px!important;overflow-y:auto!important;box-shadow:0 24px 60px -18px rgba(16,24,40,.35)!important;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) :is(.brand>div:not(.logo),.profile,.rc1579-section-label,.rc1579-section-count,.rc1579-section-chevron){display:none!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) #nav#nav#nav button{
+    font-size:0!important;justify-content:center!important;padding-left:0!important;padding-right:0!important;gap:0!important;
+  }
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) #nav#nav#nav button>:not(.index308-nav-icon){display:none!important}
+  html[data-eh-layout="rail"] body[data-eh-skin="premium"] aside.sidebar:not(:hover):not(:focus-within) :is(.rc1579-section,.brand){justify-content:center!important;padding-left:0!important;padding-right:0!important}
+}
+
+/* 6 ── Rahmen wie im Entwurf (ab 1024 px) ─────────────────────────────── */
+@media (min-width:1024px){
+  /* Seitenleiste: schmal, Glas, ruhige Menüpunkte ohne bunte Kacheln */
+  html[data-eh-palette]:not([data-eh-layout]) body[data-eh-skin="premium"] .app#app{grid-template-columns:232px minmax(0,1fr)!important;gap:16px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar.sidebar{border-radius:18px!important;padding:14px 10px!important}
+  html[data-eh-palette]:not([data-eh-layout]) body[data-eh-skin="premium"] aside.sidebar.sidebar{width:232px!important;min-width:0!important;max-width:232px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar .brand{gap:10px!important;padding:2px 8px 14px!important;margin:0 0 6px!important;border-bottom:1px solid rgba(15,23,42,.06)!important;align-items:center!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar .brand .logo{width:30px!important;height:30px!important;min-width:30px!important;border-radius:9px!important;font-size:12px!important;color:#fff!important;background:linear-gradient(135deg,var(--eh-p),var(--eh-p3))!important;box-shadow:0 0 22px -2px rgb(var(--eh-p-rgb)/.55)!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar .brand strong{font-size:16px!important;letter-spacing:-.02em!important;font-weight:800!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar #brandUserLine{display:none!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button,
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section{
+    min-height:34px!important;height:34px!important;padding-top:0!important;padding-bottom:0!important;margin:1px 0!important;border-radius:10px!important;
+    font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:#5a6478!important;gap:10px!important;
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon,
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-icon{
+    width:18px!important;height:18px!important;min-width:18px!important;flex:0 0 18px!important;border-radius:0!important;
+    background:transparent!important;background-color:transparent!important;color:currentColor!important;box-shadow:none!important;
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:not([data-exporthub-urgent-nav]):hover,
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section:hover{background:rgb(var(--eh-p-rgb)/.08)!important;color:#0b1220!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"]){
+    position:relative!important;background:rgba(255,255,255,.9)!important;color:#0b1220!important;font-weight:700!important;
+    box-shadow:0 0 0 1px rgba(255,255,255,.95),0 8px 22px -8px rgb(var(--eh-p-rgb)/.55)!important;
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"])::after{
+    content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--eh-p);box-shadow:0 0 12px 2px rgb(var(--eh-p-rgb)/.6);
+  }
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav[data-rc1579-ready]>button:is(.active,[aria-current="page"]) .index308-nav-icon{color:var(--eh-p)!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] #nav#nav#nav>.rc1579-section .rc1579-section-count{background:rgb(var(--eh-p-rgb)/.10)!important;color:var(--eh-p)!important;font-size:11px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] aside.sidebar .profile{margin-top:auto!important;padding:12px 8px 0!important;border-top:1px solid rgba(15,23,42,.06)!important;background:transparent!important;font-size:12px!important}
+
+  /* Kopfzeile: nur Suche, Glocke und Benutzerknopf; Sprache, Design, Mehr und Abmelden im Benutzermenü */
+  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar.topbar{min-height:52px!important;padding:8px 10px!important;border-radius:16px!important;gap:10px!important;position:relative!important;z-index:40!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .search{max-width:460px!important;height:36px!important;border-radius:12px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .search input{height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important}
+  html[data-eh-palette] body[data-eh-skin="premium"] header.topbar .eh-topbar-main{flex:1 1 auto!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools{
+    position:absolute!important;right:8px;top:calc(100% + 8px);z-index:1300;display:none!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;
+    min-width:250px;padding:12px!important;border-radius:14px!important;background:rgba(255,255,255,.98)!important;border:1px solid rgba(15,23,42,.10)!important;
+    box-shadow:0 2px 6px rgba(16,24,40,.06),0 24px 60px -14px rgba(16,24,40,.38)!important;
+  }
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar[data-rc1930-open] .eh-topbar-tools{display:flex!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools :is(.eh-topbar-options,.eh-topbar-actions){display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;width:100%!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools :is(select,button,summary,#ehThemeSwitch){width:100%!important;height:34px!important;min-height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .eh-topbar-tools .eh-topbar-more-menu{position:static!important;box-shadow:none!important;margin-top:6px!important}
+  html[data-eh-palette] .rc1930-topbtn{display:none}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-bell{margin-left:auto!important}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-topbtn{
+    display:inline-grid;place-items:center;flex:none;width:36px;height:36px;padding:0;border-radius:12px!important;position:relative;cursor:pointer;
+    border:1px solid rgba(255,255,255,.9)!important;background:rgba(255,255,255,.85)!important;color:#0b1220;font:inherit;font-weight:700;font-size:12px;
+  }
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-topbtn:hover{box-shadow:0 8px 20px -8px rgb(var(--eh-p-rgb)/.55)}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-user{border-radius:50%!important;color:#fff!important;border:0!important;background:linear-gradient(135deg,var(--eh-p),var(--eh-p3))!important;box-shadow:0 0 18px -4px rgb(var(--eh-p-rgb)/.6)}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-bell[data-rc1930-alert]::after{content:"";position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px #ef4444}
+  html[data-eh-palette][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-topbtn svg{width:17px;height:17px}
+  /* Menü oben (Frost, Stahl) hat schon eine Glocke */
+  html[data-eh-palette][data-eh-layout="top"] header.topbar .rc1930-bell{display:none!important}
+
+  /* Karten der neuen Oberfläche: kompakter */
+  html[data-eh-palette] #rc1903Capture#rc1903Capture :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select){min-height:34px!important;height:34px!important;padding-top:6px!important;padding-bottom:6px!important;line-height:20px!important;font-size:13px!important;border-radius:9px!important}
+  html[data-eh-palette] #rc1903Capture#rc1903Capture textarea{font-size:13px!important;border-radius:9px!important}
+}
+
+/* 7 ── Sendung erstellen wie im Entwurf: Erfassung links, rechts die Leiste „Startklar“ (ab 1280 px) ── */
+@media (min-width:1280px){
+  html[data-eh-palette][data-rc1903-view="capture"] main.main{display:grid!important;grid-template-columns:minmax(0,1fr) 288px!important;grid-auto-flow:row dense!important;column-gap:16px!important;align-items:start!important}
+  html[data-eh-palette][data-rc1903-view="capture"] main.main>*{grid-column:1/-1}
+  html[data-eh-palette][data-rc1903-view="capture"] main.main>#rc1903Capture{grid-column:1}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm{
+    grid-column:2;grid-row:span 6;align-self:start;position:sticky;top:16px;margin:0;border-radius:18px;
+    background:rgba(255,255,255,.74);border:1px solid rgba(255,255,255,.9);box-shadow:0 1px 1px rgba(16,24,40,.04),0 16px 44px -14px rgb(var(--eh-p-rgb)/.35);
+  }
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm::before{display:none}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm{display:flex;flex-direction:column;gap:12px;padding:16px}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-bar{display:contents}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm :is(.rc1902-id,.rc1902-kpis,.rc1902-steps,.rc1902-actions){flex:none!important;min-width:0}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-id{order:1}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis{order:2}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{order:3}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref strong{font-size:22px;letter-spacing:.04em;color:var(--eh-p);text-shadow:0 0 22px rgb(var(--eh-p-rgb)/.45)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:12px 0;border-top:1px solid rgba(15,23,42,.06);border-bottom:1px solid rgba(15,23,42,.06)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis>div{padding:0;border:0;min-width:0;margin:0}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis dt{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis dd{font-size:18px;font-weight:800;letter-spacing:-.02em;text-shadow:0 0 20px rgb(var(--eh-p-rgb)/.40);white-space:nowrap}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions{order:4;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions .rc1902-btn{width:100%;justify-content:center;min-height:36px}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-btn-primary{box-shadow:0 10px 28px -8px rgb(var(--eh-p-rgb)/.6)}
+  /* Schritte als Checkliste mit Fortschrittsring */
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border-top:0;background:transparent;overflow:visible;position:relative}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm[data-rc1930-progress] .rc1902-steps::before{
+    content:attr(data-rc1930-label);display:grid;place-items:center;align-self:center;width:84px;height:84px;margin:0 0 10px;border-radius:50%;
+    font-size:20px;font-weight:800;letter-spacing:-.02em;color:#0b1220;
+    background:radial-gradient(circle,rgba(255,255,255,.96) 0 31px,transparent 32px),conic-gradient(var(--eh-p) 0 var(--rc1930-p,0%),rgba(15,23,42,.08) var(--rc1930-p,0%) 100%);
+    box-shadow:0 0 34px -8px rgb(var(--eh-p-rgb)/.6);
+  }
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step{width:100%;justify-content:flex-start;min-height:34px;padding:0 4px;border-radius:9px;border:0;border-bottom:1px solid rgba(15,23,42,.06);font-size:13px;background:transparent;white-space:normal;text-align:left}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-current{background:rgb(var(--eh-p-rgb)/.07)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step-num{width:18px;height:18px;min-width:18px;border-radius:6px;font-size:0;display:grid;place-items:center;background:transparent;border:2px solid rgba(15,23,42,.14)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-ok .rc1902-step-num{border:0;background:#059669;box-shadow:0 0 14px -2px rgba(5,150,105,.6)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-ok .rc1902-step-num::after{content:"";width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:translateY(-1px) rotate(-45deg)}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step.is-warn .rc1902-step-num{border-color:#d97706}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step-state{display:none}
+  html[data-eh-palette][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary{margin:10px 0 0;font-size:12px;text-align:center}
+}
+@media (min-width:1280px){
+  html[data-eh-palette] #rc1903Capture#rc1903Capture .rc1903-grid{gap:14px}
+  html[data-eh-palette] #rc1903Capture#rc1903Capture .rc1903-sec{border-radius:18px;border-color:rgba(255,255,255,.9)}
+  html[data-eh-palette] #rc1903Capture#rc1903Capture .rc1903-sec:is([data-rc1903-section="rc363BlockCustomer"],[data-rc1903-section="rc363BlockShipment"],[data-rc1903-section="rc363BlockDocuments"],[data-rc1903-section="rc363BlockAbdDecision"]){grid-column:span 6}
+}
+
+/* 8 ── Frost wie im freigegebenen Entwurf (RC1931) ────────────────────────
+   Menü oben als Glasleiste mit Icons, aktiver Punkt als weiße Pille mit Leuchtstrich,
+   Benutzerknopf rechts im Menü, Suche mit Tastenkürzel und Glocke rechts daneben,
+   kräftiges Blau-Leuchten oben. „Sendung erstellen“: Kopfzeile mit Titel, Kennzahlen und Knöpfen,
+   darunter Karten (Empfänger, Sendungsdaten, Ladung, Stauplan …), rechts die Leiste „Startklar“. */
+html[data-eh-palette="frost"]{
+  --eh-glow1:rgba(56,189,248,.62);--eh-glow2:rgba(14,165,233,.50);--eh-glow3:rgba(125,211,252,.38);
+  background:linear-gradient(180deg,#d9eefa 0,#eaf5fc 260px,#f5f9fd 560px,#f7f9fc 100%)!important;
+}
+html[data-eh-palette="frost"] body[data-eh-skin="premium"]::before{width:1100px;height:520px;left:-8%;top:-330px;box-shadow:1000px 40px 0 -40px var(--eh-glow2)}
+html[data-eh-palette] .rc1930-kbd{flex:none;margin:0 8px 0 auto;padding:3px 7px;border-radius:6px;border:1px solid #d6e2ec;background:rgba(248,250,252,.9);color:#475467;font:600 11px/1.3 Inter,"Segoe UI",system-ui,sans-serif;white-space:nowrap}
+@media (max-width:1023px){html[data-eh-palette] .rc1930-kbd{display:none}}
+@media (min-width:1024px){
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-bar{
+    gap:6px 14px;padding:8px 10px 8px 12px;border-radius:18px;background:rgba(255,255,255,.64);border:1px solid rgba(255,255,255,.92);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+    box-shadow:0 1px 1px rgba(16,24,40,.04),0 18px 44px -18px rgb(var(--eh-p-rgb)/.38);
+  }
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--eh-p),var(--eh-p3));box-shadow:0 0 20px -2px rgb(var(--eh-p-rgb)/.55)}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-brand-name{font-size:15px}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pills{flex-wrap:nowrap;overflow:visible}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-brand.is-active{background:transparent}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pills{gap:2px}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill{position:relative;height:34px;padding:0 9px;gap:6px;border-radius:10px;font-size:12.5px;font-weight:600;color:#344054}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill.rc1820-pill-home{display:inline-flex}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill[style*="--rc1820-icon"] .rc1820-pill-icon{
+    display:inline-block;flex:none;width:15px;height:15px;background-color:currentColor;opacity:.8;
+    -webkit-mask:var(--rc1820-icon) center/15px 15px no-repeat;mask:var(--rc1820-icon) center/15px 15px no-repeat;
+  }
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-chev{display:none}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill:is(:hover,.is-open){background:rgba(255,255,255,.72);color:#0b1220}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill.is-active{background:#fff;color:#0b1220;font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.06),0 6px 16px -8px rgb(var(--eh-p-rgb)/.5)}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill.is-active .rc1820-pill-icon{opacity:1;color:var(--eh-p)}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill.is-active::after{content:"";position:absolute;left:12px;right:12px;bottom:-8px;height:3px;border-radius:3px;background:var(--eh-p);box-shadow:0 0 10px rgb(var(--eh-p-rgb)/.6)}
+  /* Glocke steht rechts neben der Suche; „Sendung erstellen“ bleibt im Menü Sendungen und im Schnellstart */
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-actions :is(.rc1820-bell,.rc1820-cta){display:none}
+  html[data-eh-palette="frost"][data-rc1930-frame] body[data-eh-layout="top"] #rc1820TopNav .rc1930-user{
+    display:inline-grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0!important;border-radius:50%!important;cursor:pointer;
+    background:linear-gradient(135deg,var(--eh-p),var(--eh-p3))!important;color:#fff!important;font:700 12px/1 Inter,"Segoe UI",system-ui,sans-serif;
+    box-shadow:0 0 18px -4px rgb(var(--eh-p-rgb)/.6)!important;
+  }
+  html[data-eh-palette="frost"][data-eh-layout="top"][data-rc1930-frame] body[data-eh-skin="premium"] header.topbar .rc1930-bell{display:inline-grid!important;margin-left:auto!important}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] #app.app>main.main>header.topbar .search{width:360px;max-width:40%!important;height:36px!important;background:rgba(255,255,255,.72)!important;border:1px solid rgba(255,255,255,.95)!important;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 22px -14px rgb(var(--eh-p-rgb)/.45)!important}
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] #app.app>main.main>header.topbar .search>input{flex:1 1 auto;min-width:0}
+  /* Benutzermenü klappt rechts oben unter dem Benutzerknopf auf */
+  html[data-eh-palette="frost"][data-rc1930-frame] body[data-eh-layout="top"] header.topbar .eh-topbar-tools{top:-8px!important}
+}
+@media (min-width:1024px) and (max-width:1599px){
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-brand-name{display:none}
+}
+@media (min-width:1024px) and (max-width:1365px){
+  html[data-eh-palette="frost"] body[data-eh-layout="top"] .rc1820-pill[style*="--rc1820-icon"] .rc1820-pill-icon{display:none}
+}
+@media (min-width:1280px){
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] main.main{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 300px!important;row-gap:14px!important;column-gap:16px!important}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm,
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture,
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-grid{display:contents}
+  /* Kopfzeile: Titel mit Referenz, Kennzahlen, Knöpfe */
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-id{grid-column:1;grid-row:3;align-self:center;justify-self:start;justify-content:flex-start;text-align:left;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kicker{flex:none;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#0b1220;text-transform:none}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref{display:inline-flex;flex:none;align-items:center;gap:8px;margin:0}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-ref strong{padding:4px 9px;border-radius:7px;background:#e3f2fb;color:var(--eh-p);font:700 13px/1.2 ui-monospace,"Cascadia Mono",Consolas,monospace;letter-spacing:.06em;text-shadow:none}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-customer{flex-basis:100%;font-size:12px;color:#667085}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-kpis{
+    grid-column:2;grid-row:3;align-self:center;justify-self:start;display:flex;gap:28px;margin:0;padding:10px 18px;border:1px solid rgba(255,255,255,.92);border-radius:14px;
+    background:rgba(255,255,255,.7);box-shadow:0 1px 1px rgba(16,24,40,.04),0 10px 26px -16px rgb(var(--eh-p-rgb)/.4);
+  }
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions{grid-column:2/4;grid-row:3;justify-self:end;width:max-content;align-self:center;display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-end;gap:8px}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-actions .rc1902-btn{width:auto;min-height:36px;padding:0 14px;font-size:13px}
+  /* Leiste „Startklar“ rechts */
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{
+    grid-column:3;grid-row:4/span 7;align-self:start;position:sticky;top:16px;
+    display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:12px;padding:16px;border-radius:18px;
+    background:rgba(255,255,255,.76);border:1px solid rgba(255,255,255,.92);box-shadow:0 1px 1px rgba(16,24,40,.04),0 16px 44px -14px rgb(var(--eh-p-rgb)/.35);
+  }
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm[data-rc1930-progress] .rc1902-steps::before{grid-column:1;grid-row:1;width:76px;height:76px;margin:0 0 12px;font-size:19px;background:radial-gradient(circle,rgba(255,255,255,.97) 0 28px,transparent 29px),conic-gradient(var(--eh-p) 0 var(--rc1930-p,0%),rgba(15,23,42,.08) var(--rc1930-p,0%) 100%)}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary{grid-column:2;grid-row:1;align-self:center;margin:0 0 12px;text-align:left;font-size:12px;line-height:1.35;color:#667085;white-space:normal;min-width:0}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary::before{content:attr(data-rc1930-title);display:block;margin-bottom:2px;font-size:15px;font-weight:800;color:#0b1220}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-step{grid-column:1/-1}
+  /* Karten */
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec{grid-column:1/3;align-self:start;margin:0;border-radius:16px;border-color:rgba(255,255,255,.92);background:rgba(255,255,255,.74);box-shadow:0 1px 1px rgba(16,24,40,.04),0 12px 32px -18px rgb(var(--eh-p-rgb)/.35)}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockCustomer"]{grid-column:1;grid-row:4}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockShipment"]{grid-column:2;grid-row:4}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockColli"]{grid-row:5}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockStow"]{grid-row:6}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockDocuments"]{grid-column:1;grid-row:7}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockAbdDecision"]{grid-column:2;grid-row:7}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockMail"]{grid-row:8}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockActions"]{grid-row:9}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-top{grid-column:1/3;grid-row:10;margin:0}
+  /* Sendungsdaten: Felder links, Lieferavis rechts, damit die Karte niedrig bleibt */
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockShipment"] .rc1903-sec-body{display:block;columns:2 260px;column-gap:16px}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec[data-rc1903-section="rc363BlockShipment"] .rc1903-sec-body>*{margin:0 0 12px;break-inside:avoid}
+  /* Kartenkopf schlank wie im Entwurf: kleine Überschrift ohne Nummer */
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec-head{padding:12px 16px 8px;gap:10px;border-bottom:0}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec-num{display:none}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec-head h3{font-size:11px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase;color:#475467!important}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec-head p{display:none}
+  html[data-eh-palette="frost"][data-rc1903-view="capture"] #rc1903Capture#rc1903Capture .rc1903-sec-body{padding:4px 16px 16px}
+}

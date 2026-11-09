@@ -42,7 +42,8 @@ test('Lesefehler im REF-Ordner blockieren den Avis nicht', async () => {
 test('customer-avis liefert REF-Dokumente nur über die Listen-ID aus', () => {
   const src = fs.readFileSync(new URL('../api/customer-avis/index.js', import.meta.url), 'utf8');
   assert.match(src, /refDocs\.load\(referenceFolder,sref\(sh\)/);
-  assert.match(src, /doc\.refItemId\)\{const file=await referenceFolder\.readFile\(doc\.refItemId/);
+  assert.match(src, /doc\.refItemId\)\{const file=doc\.refSource==='azure'\?await refDocBlob\.read\(/);
+  assert.match(src, /:await referenceFolder\.readFile\(doc\.refItemId,sessionInfo\.environment\)/);
 });
 
 test('Zoll-KI unterscheidet Konfigurations-, Kontingent- und Timeout-Fehler', async () => {

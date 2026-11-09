@@ -77,7 +77,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
  const azure=JSON.parse(fs.readFileSync('api/shipment-documentation/function.json','utf8'));
- assert.match(build,/rc1860-shipment-documentation\.js\?v=1860/);
+ assert.match(build,/rc1860-shipment-documentation\.js\?v=1931/);
  assert.match(build,/'assets\/rc1860-shipment-documentation\.js'/);
  assert.match(ui,/getElementById\('rc786ReferenceFilesCard'\)/);
  assert.match(ui,/action:'complaint'/);
@@ -85,7 +85,9 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.match(ui,/runtime\.upload\(ref,prepared,type==='photo'\?'sonstiges':'lieferschein'\)/);
  assert.match(ui,/filenameForProof\(f,type,i\)/);
  assert.match(ui,/if\(!isCurrent\(box,ref\)\)return/);
- assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1860/);
+ assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1931/);
+ const translations=fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8');
+ for(const key of ['previewUnavailable','linkedError','download','close','linkedPhotosSection'])assert.match(translations,new RegExp('"'+key+'"'));
  assert.equal(azure.bindings[0].type,'httpTrigger');
  assert.deepEqual(azure.bindings[0].methods,['get','post','options']);
 });
