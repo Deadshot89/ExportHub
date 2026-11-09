@@ -141,6 +141,31 @@ async function consume(environmentName,kind,tokenHash,extra={}){
   return mutateRecord(environmentName,kind,tokenHash,r=>{assertUsable(r,{allowUsed:false});r.usedAt=now();r.usedReason=text(extra.reason||'completed').slice(0,80);r.failedAttempts=0;r.lockedUntil=null;r.updatedAt=now();Object.assign(r,clone(extra.fields||{}));return r});
 }
 async function getByHash(environmentName,kind,tokenHash,{allowUsed=true}={}){ const got=await readRecord(environmentName,kind,tokenHash); assertUsable(got.record,{allowUsed}); return got; }
+// RC1876 server-only inspection of an issued pickup subject. Never return
+// bearer tokens or hashes to HTTP callers; authorize the caller before use.
+async function inspectPickupSubject(environmentName,subjectId){
+  const env=lower(environmentName),id=text(subjectId);
+  if(!['production','testservice'].includes(env)||!id||id.length>256)
+    throw error('PICKUP_SUBJECT_INVALID','Invalid pickup subject scope.',400);
+  const c=await container(),name=subjectName(env,'pickup',id);
+  const found=await readJson(c.getBlockBlobClient(name),null),index=found.value;
+  if(!index)return null;
+  if(index.active!==true||index.revokedAt)return null;
+  if(index.kind!=='pickup'||index.environment!==env||text(index.subjectId)!==id)
+    throw error('PICKUP_SUBJECT_MISMATCH','Stored pickup subject identity is inconsistent.',409);
+  const tokenHash=lower(index.tokenHash),resourceKey=lower(index.resourceKey||index.tokenHash);
+  if(!tokenHashValid(tokenHash)||!tokenHashValid(resourceKey))
+    throw error('PICKUP_SUBJECT_MISMATCH','Stored pickup subject identity is incomplete.',409);
+  const got=await readRecord(env,'pickup',tokenHash),record=got.record;
+  if(!record||record.kind!=='pickup'||record.environment!==env||
+     text(record.subjectId)!==id||lower(record.tokenHash)!==tokenHash)
+    throw error('PICKUP_SUBJECT_MISMATCH','Pickup registration does not match its subject index.',409);
+  if(record.revokedAt)return null;
+  // This lookup does not establish firm ownership or a FIX association.
+  // Those must be proved against the authenticated team and FIX stores.
+  return {environment:env,subjectId:id,shipmentId:text(record.shipmentId),
+    reference:text(record.reference).toUpperCase(),resourceKey,issuedAt:record.createdAt||null};
+}
 function signSessionPayload(payload){ const env=normalizeEnvironment(payload.environment),kind=normalizeKind(payload.kind),raw=Buffer.from(JSON.stringify(payload)).toString('base64url'),sig=crypto.createHmac('sha256',sessionSecret(env,kind)).update(raw).digest('base64url');return `${raw}.${sig}`; }
 function issueSession(accessRecord,ttlMs=SESSION_MS){ const payload={v:1,kind:accessRecord.kind,environment:accessRecord.environment,th:accessRecord.tokenHash,subjectId:accessRecord.subjectId,shipmentId:accessRecord.shipmentId,reference:accessRecord.reference,iat:Date.now(),exp:Date.now()+Math.max(60*1000,Number(ttlMs)||SESSION_MS),nonce:crypto.randomBytes(12).toString('base64url')}; return {session:signSessionPayload(payload),expiresAt:new Date(payload.exp).toISOString(),payload}; }
 function verifySession(session,expectedKind){
@@ -152,4 +177,4 @@ function verifySession(session,expectedKind){
 }
 async function resolveSession(session,expectedKind){ const p=verifySession(session,expectedKind),got=await getByHash(p.environment,p.kind,p.th,{allowUsed:true}); if(got.record.subjectId!==p.subjectId)throw error('SESSION_INVALID','Öffentliche Sitzung ist ungültig.',401); return {payload:p,record:got.record,environment:p.environment,tokenHash:p.th}; }
 
-module.exports={CONTAINER,ROOT,MAX_FAILED_ATTEMPTS,LOCK_MS,SESSION_MS,text,lower,now,clone,error,body,json,environment,normalizeEnvironment,normalizeKind,hashToken,tokenValid,issue,resolve,consume,revokeSubject,updateSubjectSnapshot,registerFailure,clearFailures,getByHash,issueSession,verifySession,resolveSession,assertUsable};
+module.exports={CONTAINER,ROOT,MAX_FAILED_ATTEMPTS,LOCK_MS,SESSION_MS,text,lower,now,clone,error,body,json,environment,normalizeEnvironment,normalizeKind,hashToken,tokenValid,issue,resolve,consume,revokeSubject,updateSubjectSnapshot,registerFailure,clearFailures,getByHash,inspectPickupSubject,issueSession,verifySession,resolveSession,assertUsable};
