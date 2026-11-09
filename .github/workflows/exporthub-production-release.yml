@@ -517,6 +517,21 @@ jobs:
           git show "$GITHUB_SHA:$source_spec" > "$gate_spec"
           trap 'rm -f "$gate_spec"' EXIT
           npx playwright test "$gate_spec" --project=laptop
+      - name: RC1570 Aufgabenansicht Production Read-only Liveprüfung
+        id: rc1570_tasks_focus_production
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          source_spec='e2e/specs/rc1570-tasks-focus-production.spec.mjs'
+          gate_spec='e2e/specs/rc1570-workflow-production.spec.mjs'
+          git show "$GITHUB_SHA:$source_spec" > "$gate_spec"
+          trap 'rm -f "$gate_spec"' EXIT
+          npx playwright test "$gate_spec" --project=laptop
+
       - name: RC1530 Dashboard-Personalisierung Production-Liveprüfung
         id: rc1530_dashboard_personalization_production
         shell: bash
@@ -533,6 +548,16 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rc1547-taskplanner-production-${{ inputs.release_sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: RC1570 Aufgabenansicht Production Browser-Artefakte
+        if: ${{ failure() && steps.rc1570_tasks_focus_production.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1570-tasks-production-${{ inputs.release_sha }}
           path: |
             test-results
             playwright-report
