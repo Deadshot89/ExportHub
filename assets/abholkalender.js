@@ -538,6 +538,11 @@
       if (data.environment && String(data.environment).toLowerCase() !== environmentOf(requestOptions)) {
         throw new Error('FIX_ENVIRONMENT_MISMATCH');
       }
+      const requestedCompany=String(requestOptions.companyId||'').trim().toLowerCase().normalize('NFKD')
+        .replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+      if (requestedCompany && String(data.companyKey||'')!==requestedCompany) {
+        throw new Error('FIX_COMPANY_MISMATCH');
+      }
       if (!requestIsCurrent()) return;
       requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
       requestState.companyKey=String(data.companyKey||'');
