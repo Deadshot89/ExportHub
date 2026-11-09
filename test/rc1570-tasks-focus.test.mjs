@@ -206,7 +206,7 @@ test('RC1570 Aufgabenansicht entfernt den Listen-Fokus, sonst blendet das CSS di
 
 
 /* RC1811: real task-view form writes must be confirmed, not merely queued. */
-function editorHarness(tasks,flushSave){
+function editorHarness(tasks,flushSave,runtime){
   const store={tasks,users:[],taskSeries:[]},calls=[];
   const win={
     __EXPORTHUB_GET_STATE__:()=>store,
@@ -219,6 +219,7 @@ function editorHarness(tasks,flushSave){
       operationStatus(){}
     }
   };
+  if(runtime)win.ExportHUBRC1014TaskRuntime=runtime;
   const context={window:win,Date,Intl,console:{...console,error(){}}};
   vm.runInNewContext(texts,context);
   vm.runInNewContext(source,context);
@@ -422,4 +423,20 @@ test('Aufgabenansicht: verwaltete Wochenroutine dauerhaft abschalten, nicht nur 
   assert.deepEqual(store.tasks.map(x=>x.id),['manual']);
   assert.ok(store.taskManagedDisabled['wuerth-industrie'].disabledAt);
   assert.equal(store._teamSyncMeta.tombstones.filter(x=>x.collection==='tasks').length,2);
+});
+
+
+test('Aufgabenansicht: alle Wochenstämme auch ohne Instanz an einem anderen Wochentag sichtbar und löschbar',async()=>{
+  const runtime={managedTaskPlanItems:({state})=>state.taskManagedDisabled&&state.taskManagedDisabled['wuerth-industrie']?[]:[
+    {key:'wuerth-industrie',title:'Würth Industrie',group:'Anmeldung',weekdays:[2,4],dueTime:'13:00'}
+  ]};
+  const {api,store}=editorHarness([{id:'manual',title:'Einmalig',owner:'Tobias',sourceType:'manual'}],()=>true,runtime);
+  assert.equal(api.managedRows().counts.weekly,1,'Wochenregel ohne heute erzeugte Instanz sichtbar');
+  let html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="managed:template:wuerth-industrie"/);
+  assert.match(html,/data-rc1570-tv-delete="managed:template:wuerth-industrie"/);
+  assert.equal(await api._deleteManagedTask('managed:template:wuerth-industrie'),true);
+  assert.ok(store.taskManagedDisabled['wuerth-industrie'].disabledAt);
+  assert.deepEqual(store.tasks.map(t=>t.id),['manual']);
+  assert.equal(api.managedRows().counts.weekly,0,'dauerhaft abgeschaltete Serie ist nicht wieder sichtbar');
 });
