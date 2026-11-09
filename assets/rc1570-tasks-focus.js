@@ -159,9 +159,9 @@ function buildModel(now){
   return model
 }
 // work groups as in the old task list (RC874): same rules, same order
-var GROUPS=['shipments','pod','customer','picks','abds','check','extra'];
+var GROUPS=['shipments','pod','av','customer','picks','abds','check','extra'];
 var GROUP_LIMIT=6;
-var GROUP_KEYS={shipments:'gShipments',pod:'gPod',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
+var GROUP_KEYS={shipments:'gShipments',pod:'gPod',av:'gAv',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
 function fold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function workGroup(task){
   var x=task||{},a=fold(x.area||x.category||x.section||x.type),tt=fold(x.title||x.name),hay=fold([a,tt,x.note,x.source,x.recurringSource].join(' '));
@@ -169,6 +169,7 @@ function workGroup(task){
   var pickedUp=!!(x.pickedUp===true||x.pickupConfirmed===true||x.pickedUpAt||x.pickupAt||x.abgeholtAt)||/abgeholt|picked up|pickedup/.test(ship);
   var hasPod=!!(x.pod===true||x.hasPod===true||x.podAvailable===true||x.podAt||x.podUrl||x.podFile||x.podDocument);
   if((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod)return'pod';
+  if(low(x.sourceType)==='av_missing'||/ausgangsvermerk|\bav\s+hochladen\b/.test(hay))return'av';
   if(/kontroll|pruf/.test(a))return'check';
   if(/zusatz|additional/.test(a))return'extra';
   if(/abd|mrn|ausfuhr/.test(hay))return'abds';
@@ -294,7 +295,7 @@ function route(v){try{if(typeof w.setView==='function')w.setView(v)}catch(_){}}
    Saves straight into state.tasks; the server merges the changed fields into the stored task. */
 var TV_ID='rc1570TaskView';
 var TV_FLAG='data-rc1570-taskview';
-var tv={mode:'',id:'',search:'',error:''};
+var tv={mode:'',id:'',search:'',error:'',kind:'all',scope:'mine',moreCount:100};
 function knownAreas(){var seen={};arr(state().tasks).forEach(function(x){var a=q(x&&(x.area||x.category));if(a)seen[a]=1});return Object.keys(seen).sort()}
 function knownOwners(){
   var seen={},us=users();us.forEach(function(u){var n=q(u&&(u.name||u.displayName||u.user));if(n)seen[n]=1});
@@ -524,18 +525,59 @@ function detailHtml(task){
     (noteOf(x)?'<section class="rc1570-tv-note"><h3>'+esc(t('fNote'))+'</h3><p>'+esc(noteOf(x))+'</p></section>':'')+
     '<footer class="rc1570-form-actions">'+(canWrite()?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
       ['open','in_progress','done'].filter(function(s){return s!==st}).map(function(s){return'<button type="button" class="ghost" data-rc1570-tv-status="'+s+'">'+esc(t({open:'markOpen',in_progress:'markInProgress',done:'markDone'}[s]))+'</button>'}).join(''):'')+
-      (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+'</footer></article>'
+      (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+
+      (!isSystemManagedTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
+      (isSystemManagedTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
+}
+function managedRows(){
+  var today=dayKey(new Date()),us=users(),rows=arr(state().tasks).filter(function(x){
+    return x&&title(x)&&(!isTemplate(x)||(low(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
+  });
+  if(tv.scope==='mine')rows=rows.filter(isMine);
+  var counters={all:rows.length,overdue:0,weekly:0,once:0,done:0};
+  rows.forEach(function(x){
+    if(isDone(x))counters.done++;
+    if(isWeekly(x))counters.weekly++;else counters.once++;
+    var d=taskDate(x);if(!isDone(x)&&d&&dayKey(d)<today)counters.overdue++;
+  });
+  if(tv.kind==='done')rows=rows.filter(isDone);
+  else if(tv.kind==='overdue')rows=rows.filter(function(x){var d=taskDate(x);return !isDone(x)&&d&&dayKey(d)<today});
+  else if(tv.kind==='weekly')rows=rows.filter(isWeekly);
+  else if(tv.kind==='once')rows=rows.filter(function(x){return !isWeekly(x)});
+  var needle=low(tv.search);
+  if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
+  rows.sort(function(a,b){
+    var ad=taskDate(a),bd=taskDate(b),ak=ad?dayKey(ad):'9999',bk=bd?dayKey(bd):'9999',ao=isDone(a),bo=isDone(b);
+    if(ao!==bo)return ao?1:-1;
+    if(ak!==bk)return ak<bk?-1:1;
+    return title(a).localeCompare(title(b))
+  });
+  return{rows:rows,counts:counters,users:us,today:today}
+}
+function isSystemManagedTask(x){
+  if(low(x&&x.sourceType)==='manual')return false;
+  if(x&&(x.masterTaskRC848||x.masterTaskRC846))return true;
+  if(/^(m848:|task:av-missing:)/i.test(taskId(x)))return true;
+  var source=low(x&&x.sourceType);
+  if(source&&source!=='user'&&source!=='custom')return true;
+  return ['Fehlende POD','Offene Sendungen','Offene ABDs'].indexOf(q(x&&x.group))>=0
 }
 function listHtml(){
-  var needle=low(tv.search),us=users(),rows=arr(state().tasks).filter(function(x){
-    // The manager must show completed tasks and editable manual weekly-series masters.
-    return x&&title(x)&&(!isTemplate(x)||(q(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
-  });
-  if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
-  rows.sort(function(a,b){var da=taskDate(a),db=taskDate(b),ka=da?dayKey(da):'9',kb=db?dayKey(db):'9';return ka<kb?-1:ka>kb?1:title(a).localeCompare(title(b))});
-  var shown=rows.slice(0,200);
-  return'<aside class="rc1570-tv-list"><input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'"><p class="rc1570-tv-hint">'+esc(t('openCount',{count:rows.length}))+'</p><ul>'+
-    shown.map(function(x){var id=taskId(x),d=taskDate(x);return'<li><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'><strong>'+esc(title(x))+'</strong><span>'+esc([d?fmtDate(d):'',ownerName(x,us),customer(x)].filter(Boolean).join(' · '))+'</span></button></li>'}).join('')+'</ul></aside>'
+  var model=managedRows(),rows=model.rows,us=model.users,counts=model.counts,shown=rows.slice(0,tv.moreCount);
+  var tabs=['all','overdue','weekly','once','done'],keys={all:'managerAll',overdue:'overdue',weekly:'managerWeekly',once:'managerOnce',done:'done'};
+  return'<aside class="rc1570-tv-list">'+
+    '<input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'">'+
+    '<div class="rc1570-tv-scope rc1570-scope" role="group">'+['mine','all'].map(function(scope){return'<button type="button" data-rc1570-tv-scope="'+scope+'" aria-pressed="'+(tv.scope===scope)+'">'+esc(t(scope==='mine'?'scopeMine':'scopeAll'))+'</button>'}).join('')+'</div>'+
+    '<div class="rc1570-tv-kind" role="group" aria-label="'+esc(t('managerFilter'))+'">'+tabs.map(function(kind){return'<button type="button" data-rc1570-tv-kind="'+kind+'" aria-pressed="'+(tv.kind===kind)+'">'+esc(t(keys[kind]))+' <strong>'+counts[kind]+'</strong></button>'}).join('')+'</div>'+
+    '<p class="rc1570-tv-hint">'+esc(t('managerCount',{count:rows.length}))+'</p>'+
+    '<ul>'+shown.map(function(x){
+      var id=taskId(x),d=taskDate(x),weekly=isWeekly(x),done=isDone(x),late=!done&&d&&dayKey(d)<model.today,system=isSystemManagedTask(x);
+      return'<li class="rc1570-tv-row"'+(late?' data-late="true"':'')+'><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'>'+
+        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x)].filter(Boolean).join(' · '))+'</span>'+
+        '</button>'+(canWrite()&&!system?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
+    }).join('')+'</ul>'+
+    (rows.length>shown.length?'<button type="button" class="ghost rc1570-tv-more" data-rc1570-tv-more="1">'+esc(t('managerMore',{count:rows.length-shown.length}))+'</button>':'')+
+    '</aside>'
 }
 function taskViewHtml(){
   var task=tv.id?findTask(tv.id):null;
@@ -574,13 +616,17 @@ function renderTaskView(force){
 function refreshList(panel){
   var aside=panel.querySelector('.rc1570-tv-list'),tmp=w.document.createElement('div');if(!aside)return;
   tmp.innerHTML=listHtml();var next=tmp.firstChild;
-  ['.rc1570-tv-hint','ul'].forEach(function(sel){var o=aside.querySelector(sel),n=next.querySelector(sel);if(o&&n)o.replaceWith(n)});
+  ['.rc1570-tv-scope','.rc1570-tv-kind','.rc1570-tv-hint','ul','.rc1570-tv-more'].forEach(function(sel){var o=aside.querySelector(sel),n=next.querySelector(sel);if(o&&n)o.replaceWith(n);else if(o&&!n)o.remove();else if(n&&!o)aside.appendChild(n)});
   lastView=taskViewHtml()
 }
 function bindTaskView(panel){
   panel.addEventListener('click',function(e){
     if(savePending){e.preventDefault();return}
     var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
+    if((b=el.closest('[data-rc1570-tv-delete]'))){e.preventDefault();deleteManagedTask(b.getAttribute('data-rc1570-tv-delete'));return}
+    if((b=el.closest('[data-rc1570-tv-kind]'))){e.preventDefault();tv.kind=b.getAttribute('data-rc1570-tv-kind');tv.moreCount=100;lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-scope]'))){e.preventDefault();tv.scope=b.getAttribute('data-rc1570-tv-scope')==='all'?'all':'mine';tv.moreCount=100;lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-more]'))){e.preventDefault();tv.moreCount+=100;lastView='';renderTaskView(true);return}
     if((b=el.closest('[data-rc1570-tv-open]'))){e.preventDefault();tv.saved='';openTaskView('show',b.getAttribute('data-rc1570-tv-open'));return}
     if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();changeTaskStatus(b.getAttribute('data-rc1570-tv-status'));return}
     if((b=el.closest('[data-rc1570-tv]'))){
@@ -669,6 +715,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_saveForm:saveForm,_changeTaskStatus:changeTaskStatus,_tv:tv});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,managedRows:managedRows,_deleteManagedTask:deleteManagedTask,applyForm:applyForm,_saveForm:saveForm,_changeTaskStatus:changeTaskStatus,_tv:tv});
 install();
 })(window);
