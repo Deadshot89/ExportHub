@@ -12,6 +12,9 @@ function identity(value) {
   const endpoint = String(fields.get('blobendpoint') || '');
   const match = /^https:\/\/([a-z0-9-]+)\.blob\.(?:core\.windows\.net|core\.usgovcloudapi\.net|core\.chinacloudapi\.cn)(?:\/|$)/i.exec(endpoint);
   const fromEndpoint = match ? match[1].toLowerCase() : '';
+  // A custom BlobEndpoint cannot prove which storage account it addresses.
+  // Never claim independence from an AccountName paired with an unknown proxy.
+  if (endpoint && !fromEndpoint) return '';
   // A credential with contradictory account identifiers must not prove separation.
   if (named && fromEndpoint && named !== fromEndpoint) return '';
   return named || fromEndpoint;
