@@ -340,7 +340,7 @@ test('RC1942: ABD ohne Rechnungsanalyse; Dokumente erstellen mit Excel/PDF/CSV-U
  const workspace=page.locator('#rc1940Documents');
  const picker=workspace.locator('[data-rc1940-files]');
  await expect(picker).toHaveAttribute('multiple','');
- await expect(picker).toHaveAttribute('accept',/\\.pdf.*\\.xlsx.*\\.csv/i);
+ await expect(picker).toHaveAttribute('accept',/\.pdf.*\.xlsx.*\.csv/i);
  await expect(workspace.locator('[data-rc1940-analyze]')).toBeVisible();
  await assertNoSourceLeak(page);
  await assertNoHorizontalOverflow(page);
