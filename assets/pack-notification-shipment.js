@@ -193,8 +193,29 @@
       return true;
     }catch(_){return false;}
   }
+  // RC1910: "Sendung erstellen" darf einen Pack-Entwurf nicht in der
+  // schreibgeschuetzten Sendungsansicht stranden lassen. Der kanonische
+  // RC420-Editor oeffnet gespeicherte Entwuerfe unter ihrer eindeutigen REF.
+  function isShipmentDraft(sh){
+    if(!sh)return false;
+    const status=q(sh.status||sh.shipmentStatus||sh.processStatus).toLocaleLowerCase('de-DE');
+    if(/^(?:storniert|cancelled|canceled|abgeschlossen|archiviert|completed|archived)$/.test(status))return false;
+    return sh.draft===true||sh.isDraft===true||/^(?:entwurf|draft)$/.test(status);
+  }
+  function editSavedShipment(sh){
+    const target=q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.id||sh.shipmentId));if(!target)return false;
+    const editor=root.ExportHUBShipment420&&root.ExportHUBShipment420.openSavedShipment;
+    // RC455 also exposes these editor aliases for older runtimes.
+    const fallback=root.rc524EditShipment||root.rc409EditShipment;
+    try{
+      if(typeof editor==='function'){editor.call(root.ExportHUBShipment420,target);return true;}
+      if(typeof fallback==='function'){fallback(target);return true;}
+    }catch(_){}
+    return false;
+  }
   function openShipment(sh){
     const target=q(sh&&(sh.ref||sh.reference||sh.id||sh.shipmentId));if(!target)return false;
+    if(isShipmentDraft(sh)&&editSavedShipment(sh))return true;
     try{if(root.ExportHUBShipmentView&&typeof root.ExportHUBShipmentView.open==='function'){root.ExportHUBShipmentView.open(target,'tasks');return true;}}catch(_){}
     try{if(typeof root.openShipment==='function'){root.openShipment(target);return true;}}catch(_){}
     try{if(typeof root.__EXPORTHUB_OPEN_SHIPMENT__==='function'){root.__EXPORTHUB_OPEN_SHIPMENT__(target);return true;}}catch(_){}
@@ -432,10 +453,52 @@
     if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
     setTimeout(()=>waitForShipmentForm(prefill),20);return true;
   }
+  // An editor snapshot is not yet a saved shipment. Keep the active draft
+  // instead of trying to open its generated REF in the read-only overview.
+  // Persisted rows, on the other hand, must be reopened by the canonical editor.
+  function persistedShipmentForNotification(state,notification){
+    return findShipmentForNotification({
+      shipments:arr(state&&state.shipments),
+      savedShipments:arr(state&&state.savedShipments),
+      sharedShipments:arr(state&&state.sharedShipments)
+    },notification);
+  }
+  function resumeUnsavedDraft(state,notification){
+    const prefill=shipmentPrefill(notification),draft=ownedPendingDraft(state,prefill);
+    if(!draft)return false;
+    const router=root.ExportHUBRC325;
+    if(!(router&&typeof router.route==='function')&&typeof root.setView!=='function')return false;
+    // Do not startNewShipment() and do not re-apply the initial Pack fields:
+    // both would erase the user's customer, dimensions or later edits.
+    const previousPending=pending,previousPrefill=root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__;
+    pending={notificationId:q(notification.id),prefill};
+    deferredSavedEvent=null;
+    root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
+    try{
+      if(router&&typeof router.route==='function')router.route('shipment','pack-draft-resume');
+      else root.setView('shipment');
+    }catch(_){
+      pending=previousPending;
+      root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=previousPrefill;
+      return false;
+    }
+    setTimeout(()=>{
+      if(pending&&pending.prefill===prefill){
+        keepPendingDocuments(prefill);
+        renderPendingLieferscheine(prefill);
+      }
+    },20);
+    return true;
+  }
   function begin(notificationId){
     const state=sharedState(),notification=notificationById(state,notificationId);if(!notification)return false;
-    const existing=findShipmentForNotification(state,notification);if(existing)return openShipment(existing);
     if(q(notification.status).toLowerCase()==='cancelled')return false;
+    const saved=persistedShipmentForNotification(state,notification);
+    if(saved)return openShipment(saved);
+    if(resumeUnsavedDraft(state,notification))return true;
+    // A saved link that is missing from the available state must not create
+    // another shipment; wait for the original to become readable.
+    if(q(notification.shipmentId)||q(notification.shipmentRef))return false;
     return startNew(notification);
   }
   async function onShipmentSaved(event){

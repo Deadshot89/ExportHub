@@ -81,6 +81,7 @@ module.exports = async function(context, req) {
       saved: fullySaved,
       azureSaved: backup.azureSaved === true,
       archiveSaved: backup.archiveSaved === true,
+      archiveStorageMode: store.podArchiveStorageMode(),
       driveSaved: driveVerified,
       status: fullySaved ? 'saved' : backup.archiveSaved === true ? 'sharepoint-pending' : backup.status === 'saved' ? 'pending' : (backup.status || 'unknown'),
       savedAt: backup.archiveSavedAt || backup.driveSavedAt || backup.azureSavedAt || store.now(),
