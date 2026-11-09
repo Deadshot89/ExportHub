@@ -8,7 +8,13 @@ test('RC1942: ABD bietet nur Manuell, Aus Sendung und Gespeichert; Excel liegt i
  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
  await expect(panel).toBeVisible({timeout:10000});
- await expect(panel.locator('[data-rc1294-mode]')).toHaveCount(3);
+ const diagnostic=await page.evaluate(async()=>{
+  const tabs=Array.from(document.querySelectorAll('#rc1294AbdAnalysis [data-rc1294-mode]')).map(x=>({mode:x.getAttribute('data-rc1294-mode'),label:x.textContent,html:x.outerHTML.slice(0,220)}));
+  const tags=Array.from(document.querySelectorAll('script[src*="rc1294"]')).map(x=>x.getAttribute('src'));
+  let asset='unavailable';try{asset=await fetch('/assets/rc1294-abd-self-service.js?rc1942-diag=1',{cache:'no-store'}).then(r=>r.text())}catch(_){}
+  return{tabs,tags,assetBytes:asset.length,assetHasInvoice:asset.includes('data-rc1294-mode="invoice"'),assetHasScanner:asset.includes('analyzeFile:analyzeFile'),assetHasNewHeader:asset.includes("workspaceTitle:'ABD erstellen'"),version:window.ExportHUBRC1294ABDAnalysis&&window.ExportHUBRC1294ABDAnalysis.version}
+ });
+ expect(diagnostic.tabs.length,'RC1942 runtime ABD diagnosis: '+JSON.stringify(diagnostic)).toBe(3);
  await expect(panel.locator('[data-rc1294-mode="invoice"]')).toHaveCount(0);
  await expect(panel.locator('[data-rc1294-invoice-panel]')).toHaveCount(0);
  await expect(page.locator('#rc1294AbdForm')).toBeVisible();
