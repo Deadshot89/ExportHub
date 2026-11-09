@@ -112,5 +112,5 @@ test('Issue #1328: final pickup day retains early windows and blocks those cross
  assert.equal(late?.available,false);
  assert.equal(late?.closedForPickup,true);
  assert.equal(late?.remaining,0);
- assert.equal(available.closed,true,false);
+ assert.notEqual(available.closed,true);
 });
