@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const cal=require('../assets/abholkalender.js');
+import '../assets/abholkalender.js';
+// This package is ESM; the browser IIFE publishes its testable API on globalThis.
+const cal=globalThis.ExportHubPickupCalendar;
 const tasksSource=fs.readFileSync('assets/rc1570-tasks-focus.js','utf8');
 const runtime=fs.readFileSync('assets/rc1012-abholkalender-runtime.js','utf8');
 const dict=fs.readFileSync('assets/i18n/rc1570-tasks-focus.js','utf8');
@@ -131,6 +131,13 @@ test('RC1875: task editor persists stable target ID using canonical guarded task
  assert.match(runtime,/exporthub:tasks-updated/);
  for(const key of ['fPickupTarget','fPickupNone','fPickupMissing','fPickupNeedsNumbers'])
   assert.equal((dict.match(new RegExp(key+':','g'))||[]).length,6,key+' must exist in every language');
+});
+
+test('RC1875: cancelled tasks never create a FIX shipment link',()=>{
+ const cancelled={...pick,status:'cancelled',cancelledAt:'2026-11-08T10:00:00Z'};
+ const status=model([cancelled],[a,b]).days[0].fixedStatus['FIX-UK'];
+ assert.deepEqual(status.refs,[]);
+ assert.equal(status.fromTasks,false);
 });
 
 test('RC1875: recurring Pick task mapping is deterministic by weekday and explicit target',()=>{
