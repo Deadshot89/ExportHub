@@ -31,9 +31,12 @@ module.exports=async function(context,req){
    const snapshot=await ledger.read({companyKey:tenant.companyKey,environment},{includeAudit});
    context.res=auth.json(200,{ok:true,...snapshot,canEdit:!!rights.canEditAny(current.user,['pickupcalendar'])});
  }catch(e){
-   context.res=auth.json(Number(e&&(e.status||e.statusCode))||500,{
-     ok:false,code:e&&e.code||'PICKUP_TRANSPORT_LINK_READ_FAILED',
-     message:String(e&&e.message||apiI18n.t(req,'api.pickupLinks.loadFailed'))
+   const status=Number(e&&(e.status||e.statusCode))||500,code=String(e&&e.code||'');
+   // Keep unexpected Azure errors (including account names and paths) private.
+   const known=status<500&&/^(?:AUTH_REQUIRED|SESSION_INVALID|SESSION_REVOKED|ACCOUNT_DISABLED|PASSWORD_CHANGE_REQUIRED|COMPANY_FORBIDDEN|ENVIRONMENT_INVALID|ENVIRONMENT_MISMATCH|METHOD_NOT_ALLOWED|PICKUP_LINK_READ_FORBIDDEN|LINK_[A-Z0-9_]+)$/.test(code);
+   context.res=auth.json(status,{
+     ok:false,code:known?code:'PICKUP_TRANSPORT_LINK_READ_FAILED',
+     message:known?String(e.message||apiI18n.t(req,'api.pickupLinks.loadFailed')):apiI18n.t(req,'api.pickupLinks.loadFailed')
    });
  }
 };

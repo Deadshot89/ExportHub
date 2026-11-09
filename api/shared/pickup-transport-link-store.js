@@ -59,7 +59,9 @@ async function load(input){
  const blob=createBlobServiceClient(cs).getContainerClient(CONTAINER).getBlockBlobClient(pathFor(s));
  try{
    const response=await blob.download(0);
-   let raw='';for await(const chunk of response.readableStreamBody)raw+=Buffer.from(chunk).toString('utf8');
+   // Azure may split a multibyte UTF-8 character across chunks.
+   const chunks=[];for await(const chunk of response.readableStreamBody)chunks.push(Buffer.from(chunk));
+   const raw=Buffer.concat(chunks).toString('utf8');
    let data;try{data=JSON.parse(raw)}catch(_){fail('LINK_DOCUMENT_INVALID','Beschädigter Zuordnungsstand',409)}
    return {scope:s,blob,etag:response.etag||null,document:cleanDoc(data,s)};
  }catch(e){

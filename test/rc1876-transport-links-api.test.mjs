@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import Module,{createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const baseUser={id:'OP1',role:'user',companyId:'essentra',rights:{pickupcalendar:{level:'view',read:true}}};
-function setup(){
+function setup(options={}){
  const reads=[],source=require.resolve('../api/pickup-transport-links/index.js');
  const auth={
    json(status,payload,headers={}){return{status,headers:{'Cache-Control':'no-store',...headers},body:JSON.stringify(payload)}},
@@ -11,10 +11,10 @@ function setup(){
    async validateSession(req){if(!req.headers||req.headers.authorization!=='Bearer valid')throw auth.error('AUTH_REQUIRED','Login fehlt',401);return{user:req.user||baseUser}}
  };
  const fast={isSource:()=>true,validateSession:auth.validateSession};
- const ledger={async read(scope,options){reads.push({scope,options});return{
+ const ledger={async read(scope,readOptions){reads.push({scope,options:readOptions});if(options.storageError)throw options.storageError;return{
    environment:scope.environment,companyKey:scope.companyKey,revision:4,
    links:[{ref:'REF-A',pickupDate:'2026-11-09',transportId:'TRANSPORT-UK',active:true}],
-   manualExclusions:[],...(options.includeAudit?{audit:[{action:'manual-link',by:'Operator'}]}:{})
+   manualExclusions:[],...(readOptions.includeAudit?{audit:[{action:'manual-link',by:'Operator'}]}:{})
  }}};
  const original=Module._load;
  Module._load=function(request,parent,isMain){
@@ -74,4 +74,20 @@ test('write methods are explicitly blocked before authentication and storage',as
  assert.equal(r.status,405);assert.equal(r.data.code,'METHOD_NOT_ALLOWED');assert.equal(reads.length,0);
  const options=await invoke(request({method:'OPTIONS',headers:{}}));
  assert.equal(options.status,204);assert.equal(reads.length,0);
+});
+test('unexpected storage failures never expose secrets or internal paths',async()=>{
+ const injected=Object.assign(new Error('AccountKey=private-secret account/blob/internal'),{code:'AuthorizationFailure',statusCode:403});
+ const {request,invoke}=setup({storageError:injected});
+ const r=await invoke(request());
+ assert.equal(r.status,403);
+ assert.equal(r.data.code,'PICKUP_TRANSPORT_LINK_READ_FAILED');
+ assert.doesNotMatch(r.body,/AccountKey|private-secret|internal|AuthorizationFailure/i);
+});
+test('internal server errors are localized and do not disclose stack traces',async()=>{
+ const injected=Object.assign(new Error('DATABASE_URL=secret; /srv/root/index.js'),{code:'STORAGE_INTERNAL',statusCode:500});
+ const {request,invoke}=setup({storageError:injected});
+ const r=await invoke(request());
+ assert.equal(r.status,500);
+ assert.equal(r.data.code,'PICKUP_TRANSPORT_LINK_READ_FAILED');
+ assert.doesNotMatch(r.body,/DATABASE_URL|secret|\/srv\/|STORAGE_INTERNAL/i);
 });

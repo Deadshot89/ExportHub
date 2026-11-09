@@ -19,7 +19,7 @@ function memory(){
        const key=container+'/'+path;
        return {
          async download(){const found=blobs.get(key);if(!found)throw missing();
-           return {etag:found.etag,readableStreamBody:(async function*(){yield found.bytes})()}},
+           return {etag:found.etag,readableStreamBody:(async function*(){for(const part of found.parts||[found.bytes])yield part})()}},
          async upload(raw,length,options={}){
            if(failNextPut){failNextPut=false;throw conflict()}
            const prev=blobs.get(key),conditions=options.conditions||{};
@@ -147,6 +147,19 @@ test('two active rows for the same REF on separate dates are rejected',async()=>
    ]
  }))});
  await assert.rejects(store.read(scope),{code:'LINK_DOCUMENT_INVALID'});
+});
+test('UTF-8 split across blob chunks is not corrupted',async()=>{
+ const mem=memory(),store=loadStore(mem),path='exporthub-data/'+store.pathFor(scope);
+ const doc={schemaVersion:1,...scope,revision:1,updatedAt:null,
+   links:[{ref:'REF-A',pickupDate:day,transportId:'TRANSPORT-UK',active:true,createdBy:'Müller'}],
+   audit:[{action:'manual-link',by:'Müller',reason:'Größe geprüft'}]};
+ const bytes=Buffer.from(JSON.stringify(doc),'utf8'),start=bytes.indexOf(Buffer.from('ü','utf8'));
+ assert.ok(start>0);
+ mem.blobs.set(path,{etag:'"utf8"',bytes,parts:[bytes.subarray(0,start+1),bytes.subarray(start+1)]});
+ const snapshot=await store.read(scope,{includeAudit:true});
+ assert.equal(snapshot.links[0].createdBy,'Müller');
+ assert.equal(snapshot.audit[0].by,'Müller');
+ assert.equal(snapshot.audit[0].reason,'Größe geprüft');
 });
 test('corrupt or cross-tenant existing records fail closed',async()=>{
  const mem=memory(),store=loadStore(mem);
