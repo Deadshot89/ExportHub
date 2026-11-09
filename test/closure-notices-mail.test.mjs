@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const {activeClosureNotices,closureForPickupDate,closureNoticePlain,closureNoticeHtml,renderAvisMailHtml}=require('../api/shared/avis-mail-html.js');
+const {activeClosureNotices,closureForPickupDate,closureForPickupSlot,closureNoticePlain,closureNoticeHtml,renderAvisMailHtml}=require('../api/shared/avis-mail-html.js');
 
 const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
 const settings=(notices)=>({settings:{closureNotices:notices}});
@@ -87,12 +87,12 @@ test('Issue 1328: Ungültige oder ausgeschaltete Konfiguration versendet keinen 
 
 test('Issue 1328: pickup closure lookup is inclusive, independent of announcement lead, and rejects invalid setups',()=>{
  const enabled=settings([closure]);
- for(const day of ['2026-12-21','2026-12-31','2027-01-01','2027-01-02','2027-01-03']){
+ for(const day of ['2026-12-19','2026-12-20','2026-12-21','2026-12-31','2027-01-01','2027-01-02','2027-01-03']){
   const result=closureForPickupDate(enabled,day);
   assert.ok(result,'Closed date must be denied: '+day);
   assert.equal(result.reopenDate,'2027-01-04');
  }
- for(const day of ['2026-12-20','2027-01-04','2026-02-30','2026/12/25','']){
+ for(const day of ['2026-12-18','2027-01-04','2026-02-30','2026/12/25','']){
   assert.equal(closureForPickupDate(enabled,day),null,'Open/invalid date: '+day);
  }
  assert.equal(closureForPickupDate(settings([{...closure,enabled:false}]),'2026-12-25'),null);
