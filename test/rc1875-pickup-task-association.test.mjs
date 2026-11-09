@@ -87,6 +87,16 @@ test('RC1875: clearing all Pick accounts never restores legacy FIX account',()=>
  assert.equal(result.legacyConflict,true);
 });
 
+test('RC1875: cleared canonical Pick account cannot resurrect stale linkedAccount',()=>{
+ const cleared={...pick,customerNumber:'',linkedAccount:'00123',customerAccount:'00045'};
+ const after=model([cleared],[a,b]).days[0].fixedStatus['FIX-UK'];
+ assert.deepEqual(after.customerNumbers,[]);
+ assert.deepEqual(after.refs,[]);
+ const legacy={...pick};delete legacy.customerNumber;
+ legacy.linkedAccount='00123';
+ assert.deepEqual(cal.taskCustomerNumbers(legacy),['123'],'old tasks without canonical field still work');
+});
+
 test('RC1875: duplicate legacy FIX customer never creates two silent transport matches',()=>{
  const oldFix=[
   {id:'FIX-1',weekday:1,customerNumber:'123',active:true},
