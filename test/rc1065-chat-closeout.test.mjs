@@ -352,3 +352,29 @@ test('Issue #1328: prepared mailto updates an existing notice when mail language
  assert.equal(disabledText,'Hello,\n\nPlease arrange the pickup.\n\nBest regards');
  assert.match(new URL(disabled).searchParams.get('cc'),/danielollmann@essentra.com/i);
 });
+
+
+test('Issue #1328: pickup warning only for valid, enabled closures and inclusive closure dates',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
+ const state={settings:{closureNotices:[closure]}};
+ const window={__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:createTestI18n('de')};
+ vm.runInNewContext(source,{window,URLSearchParams,console,Date,Intl});
+ const check=window.ExportHUBRC1065RegistrationCC.pickupClosureWarning;
+ assert.equal(typeof check,'function');
+ for(const day of ['2026-12-21','2026-12-25','2027-01-01']){
+  const found=check(day);
+  assert.ok(found,day);
+  assert.equal(found.pickupDate,day);
+  assert.equal(found.reopenDate,'2027-01-04');
+ }
+ for(const day of ['2026-12-20','2027-01-02','','2026-02-30','something']){
+  assert.equal(check(day),null,day);
+ }
+ closure.enabled=false;
+ assert.equal(check('2026-12-25'),null);
+ closure.enabled=true;closure.lastPickupTime='99:99';
+ assert.equal(check('2026-12-25'),null,'invalid hour must not warn falsely');
+ closure.lastPickupTime='15:00';closure.reopenDate='2027-01-01';
+ assert.equal(check('2026-12-25'),null,'invalid reopening must not warn falsely');
+});
