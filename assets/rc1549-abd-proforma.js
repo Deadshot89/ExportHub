@@ -167,7 +167,7 @@ function decodeBase64(raw){var binary=root.atob(q(raw)),bytes=new Uint8Array(bin
 function download(file){
  if(!file||!file.base64)throw new Error('ABD_EXPORT_EMPTY');
  var blob=new root.Blob([decodeBase64(file.base64)],{type:q(file.mimeType)||'application/pdf'}),url=root.URL.createObjectURL(blob),link=root.document.createElement('a');
- link.href=url;link.download=q(file.name)||'Proforma.pdf';link.style.display='none';root.document.body.appendChild(link);link.click();link.remove();root.setTimeout(function(){try{root.URL.revokeObjectURL(url)}catch(_){}},1000)
+ link.href=url;link.download=q(file.name)||'Proforma.pdf';link.style.display='none';root.document.body.appendChild(link);link.click();link.remove();root.setTimeout(function(){try{root.URL.revokeObjectURL(url)}catch(_){}},30000)
 }
 function ready(snapshot){
  snapshot=snapshot&&typeof snapshot==='object'?snapshot:{};var review=snapshot.review||{},totals=snapshot.totals||{},groups=Array.isArray(snapshot.groups)?snapshot.groups:[],unassigned=Array.isArray(snapshot.unassigned)?snapshot.unassigned:[];
@@ -258,9 +258,9 @@ async function analyzeManual(button){
  if(positions.some(function(p){return !(p.quantity>0)||p.value==null||p.value<0||p.netMassKg==null||p.netMassKg<0||p.grossMassKg==null||p.grossMassKg<p.netMassKg||!/^[0-9]{6,10}$/.test(p.commodityCode)||!/^[A-Z]{2}$/.test(p.originCountry)||!(p.itemNumber||p.description)})){setStatus(t('invalidPosition'),'bad');return false}
  var total=positions.reduce(function(sum,row){return sum+Number(row.value||0)},0);header.invoiceTotal=Math.round(total*100)/100;
  busy=true;if(button)button.disabled=true;setStatus('…','info');
- try{var result=await post('/api/abd-analysis',{action:'reanalyze',header:header,positions:positions});manualSnapshot=result.analysis||null;renderManualResult(manualSnapshot);return !!manualSnapshot}
- catch(error){manualSnapshot=null;renderManualResult(null);setStatus(q(error&&error.message)||t('error'),'bad');return false}
- finally{busy=false;if(button)button.disabled=false}
+ try{var result=await post('/api/abd-analysis',{action:'reanalyze',header:header,positions:positions});manualSnapshot=result.analysis||null;return !!manualSnapshot}
+ catch(error){manualSnapshot=null;setStatus(q(error&&error.message)||t('error'),'bad');return false}
+ finally{busy=false;if(button)button.disabled=false;renderManualResult(manualSnapshot)}
 }
 function uploadDate(value){
  var raw=q(value);
