@@ -2,7 +2,7 @@
 'use strict';
 var packs=Object.freeze({
   de:Object.freeze({
-    workspaceTitle:'ABD & Rechnungen',
+    workspaceTitle:'ABD erstellen',
     tabIntro:'Arbeitsbereich auswählen – nur die passenden Felder werden angezeigt.',
     savedMode:'Gespeicherte Anfragen',
     entryTitle:'Exportexperte · ABD erstellen',
@@ -52,7 +52,7 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Erst alle Positionen prüfen und die Differenz auf 0 setzen.'
   }),
   en:Object.freeze({
-    workspaceTitle:'Export declarations & invoices',
+    workspaceTitle:'Create export declaration',
     tabIntro:'Choose a workspace – only the relevant fields are shown.',
     savedMode:'Saved requests',
     entryTitle:'Export expert · create export declaration',
@@ -102,7 +102,7 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Review all items first and reduce the difference to 0.'
   }),
   pl:Object.freeze({
-    workspaceTitle:'Zgłoszenia eksportowe i faktury',
+    workspaceTitle:'Utwórz zgłoszenie eksportowe',
     tabIntro:'Wybierz obszar pracy – wyświetlane są tylko odpowiednie pola.',
     savedMode:'Zapisane wnioski',
     entryTitle:'Ekspert eksportowy · utwórz ABD',
@@ -152,7 +152,7 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Najpierw sprawdź wszystkie pozycje i ustaw różnicę na 0.'
   }),
   es:Object.freeze({
-    workspaceTitle:'Declaraciones de exportación y facturas',
+    workspaceTitle:'Crear declaración de exportación',
     tabIntro:'Selecciona una sección – solo se muestran los campos necesarios.',
     savedMode:'Solicitudes guardadas',
     entryTitle:'Experto de exportación · crear ABD',
@@ -202,7 +202,7 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Revisa primero todas las partidas y lleva la diferencia a 0.'
   }),
   fr:Object.freeze({
-    workspaceTitle:'Déclarations d\'exportation et factures',
+    workspaceTitle:'Créer une déclaration d\'exportation',
     tabIntro:'Choisissez une section – seuls les champs utiles sont affichés.',
     savedMode:'Demandes enregistrées',
     entryTitle:'Expert export · créer un ABD',
@@ -252,7 +252,7 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Vérifiez d’abord toutes les positions et ramenez l’écart à 0.'
   }),
   it:Object.freeze({
-    workspaceTitle:'Dichiarazioni di esportazione e fatture',
+    workspaceTitle:'Crea dichiarazione di esportazione',
     tabIntro:'Scegli una sezione – vengono mostrati solo i campi pertinenti.',
     savedMode:'Richieste salvate',
     entryTitle:'Esperto export · crea ABD',
