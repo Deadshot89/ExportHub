@@ -19,3 +19,13 @@ test('RC1547: zusätzliche Daten werden nicht versteckt oder abgeschnitten',()=>
   assert.match(source,/root\.setAttribute\('data-rc1547-position-count'/,'Positionsanzahl muss nachvollziehbar bleiben');
   assert.match(source,/root\.setAttribute\('data-rc1547-document-count'/,'Anhangsanzahl muss nachvollziehbar bleiben');
 });
+
+test('RC1935: actual 10-per-column delivery-note rows determine A4 scaling',()=>{
+  const fn=source.match(/function rc1935DocumentGridRows\(count\)\{[\s\S]*?\n\}/);
+  assert.ok(fn,'RC1935 must match actual document grid');
+  const rows=new Function(fn[0]+';return rc1935DocumentGridRows;')();
+  for(const [count,expected] of [[0,0],[1,1],[5,5],[10,10],[11,10],[19,10],[28,10],[81,11]])
+    assert.equal(rows(count),expected,'Wrong delivery-note row count for '+count+' names');
+  assert.match(source,/var documentRows=rc1935DocumentGridRows\(documentCount\)/);
+  assert.doesNotMatch(source,/Math\.ceil\(Math\.min\(documentCount,10\)\/2\)/);
+});
