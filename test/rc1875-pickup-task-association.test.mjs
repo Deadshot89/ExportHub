@@ -237,6 +237,14 @@ test('RC1875: opening FIX REF never selects another shipment with recycled ID',(
  assert.match(root.innerHTML,/pickup-error/);
 });
 
+test('RC1875: rescheduled plannedDate takes precedence over stale dueDate',()=>{
+ const moved={...pick,plannedDate:'2026-11-10',dueDate:'2026-11-09'};
+ assert.equal(cal.taskOnPickupDay(moved,'2026-11-09',1),false,
+   'old dueDate must not re-associate a moved task to Monday');
+ assert.equal(cal.taskOnPickupDay(moved,'2026-11-10',2),true,
+   'rescheduled task must match the new planned date');
+});
+
 test('RC1875: recurring Pick task mapping is deterministic by weekday and explicit target',()=>{
  const tueTask={...pick,id:'task-TUESDAY',weekdays:[2]};
  assert.equal(cal.taskOnPickupDay(pick,'2026-11-09',1),true);
