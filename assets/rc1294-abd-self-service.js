@@ -375,6 +375,8 @@ async function start(){
    }
   }
   renderResults(results);
+  // Independent document editor is notified after the complete multi-document result is rendered.
+  try{if(typeof w.CustomEvent==='function'&&typeof w.dispatchEvent==='function')w.dispatchEvent(new w.CustomEvent('exporthub:abd-analysis-results'))}catch(_){}
   return results.length>0
  }catch(e){setStatus(tr('abd.analysis.error',{message:q(e&&e.message)}),'bad');return false}
  finally{busy=false;if(button){button.disabled=false;button.textContent=hasPendingUploads()?xtr('resumeScan'):xtr('start')}}
