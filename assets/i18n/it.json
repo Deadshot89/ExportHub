@@ -2660,5 +2660,7 @@
   "closureMail.mailTitle": "Informazione importante – Chiusura",
   "closureMail.mailLast": "Ultimo ritiro",
   "closureMail.mailClosed": "Chiuso",
-  "closureMail.mailResume": "Riapertura"
+  "closureMail.mailResume": "Riapertura",
+  "closureMail.htmlPreview": "Anteprima email HTML",
+  "closureMail.previewFailed": "Impossibile caricare l’anteprima dell’email."
 }
