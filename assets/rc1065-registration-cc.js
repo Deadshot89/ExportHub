@@ -9,7 +9,7 @@ var DEFAULTS=Object.freeze({'sevastian marcu':'SevastianMarcu@essentra.com','dan
 var REQUIRED_DEFAULTS=Object.freeze(REQUIRED.map(function(name){return{name:name,email:DEFAULTS[norm(name)]}}));
 
 function q(v){return String(v==null?'':v).trim()}
-function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function norm(v){return q(v).toLocaleLowerCase('de-DE').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function mail(v){var m=q(v).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);return m?m[0]:''}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -76,7 +76,7 @@ function mergeRequiredCc(raw,requiredAddresses){
 function prepare(url){
  var raw=q(url);if(!isRegistration(raw))return{ok:true,url:raw,required:false,missing:[]};
  var r=resolve();if(!r.ok)return{ok:false,url:raw,required:true,missing:r.missing};
- return{ok:true,url:mergeRequiredCc(raw,r.addresses),required:true,missing:[]}
+ return{ok:true,url:withRegistrationClosureNotice(mergeRequiredCc(raw,r.addresses)),required:true,missing:[]}
 }
 function block(p){
  var names=(p&&p.missing||[]).join(', '),msg=tr('registrationCc.blocked',{names:names?': '+names:''});
@@ -153,6 +153,60 @@ function safeDay(v){
  v=q(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return'';
  var t=new Date(v+'T12:00:00Z');return Number.isFinite(t.getTime())&&t.toISOString().slice(0,10)===v?v:''
 }
+function registrationMailLanguage(){
+ var i=w.ExportHUBI18n||{},v='';
+ try{v=typeof i.language==='function'?i.language():i.language||i.currentLanguage||''}catch(_){}
+ v=q(v).toLowerCase().replace('_','-');
+ var m=v.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'
+}
+function registrationClosureNotices(){
+ var rows=closureEntries(),lang=registrationMailLanguage(),locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
+ if(!rows.length)return '';
+ var today='';
+ try{
+  var parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date());
+  var part=function(k){var x=parts.find(function(v){return v.type===k});return x&&x.value||''};
+  today=part('year')+'-'+part('month')+'-'+part('day')
+ }catch(_){return''}
+ function mailDate(day){return new Intl.DateTimeFormat(locale,{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'))}
+ var out=[],seen={},marker='=== ExportHUB360 ===';
+ rows.slice(0,100).forEach(function(v){
+  if(!v||v.enabled!==true)return;
+  var a=safeDay(v.startDate),b=safeDay(v.endDate),p=safeDay(v.lastPickupDate),r=safeDay(v.reopenDate),hour=q(v.lastPickupTime);
+  var lead=v.leadDays==null?14:Number(v.leadDays);
+  if(!a||!b||!p||!r||a>b||p>=a||r<=b||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(hour)||!Number.isInteger(lead)||lead<0||lead>90)return;
+  var from=new Date(a+'T12:00:00Z');from.setUTCDate(from.getUTCDate()-lead);
+  if(today<from.toISOString().slice(0,10)||today>=r)return;
+  var dedup=[a,b,p,hour,r].join('|');if(seen[dedup])return;seen[dedup]=1;
+  out.push({start:a,end:b,last:p,time:hour,reopen:r})
+ });
+ out.sort(function(a,b){return a.start.localeCompare(b.start)});
+ if(!out.length)return'';
+ var body=out.slice(0,3).map(function(c){
+  return [
+   tr('closureMail.mailTitle',null,lang),
+   tr('closureMail.mailLast',null,lang)+': '+mailDate(c.last)+', '+c.time,
+   tr('closureMail.mailClosed',null,lang)+': '+mailDate(c.start)+' – '+mailDate(c.end),
+   tr('closureMail.mailResume',null,lang)+': '+mailDate(c.reopen)
+  ].join('\n')
+ }).join('\n\n');
+ return marker+'\n'+body+'\n'+'===================='
+}
+function withRegistrationClosureNotice(url){
+ var notice=registrationClosureNotices();
+ if(!notice)return url;
+ var qmark=url.indexOf('?'),base=qmark>=0?url.slice(0,qmark):url;
+ var parts=qmark>=0?url.slice(qmark+1).split('&'):[];
+ var index=parts.findIndex(function(row){
+  try{return decodeURIComponent(row.split('=')[0]||'').toLowerCase()==='body'}catch(_){return false}
+ });
+ var source=index>=0?parts[index].slice(parts[index].indexOf('=')+1):'',body='';
+ try{body=decodeURIComponent(source.replace(/\+/g,' '))}catch(_){return url}
+ if(body.indexOf('=== ExportHUB360 ===')>=0)return url;
+ parts[index>=0?index:parts.length]='body='+encodeURIComponent(body+(body?'\n\n':'')+notice);
+ return base+'?'+parts.join('&')
+}
+
 async function persistClosureEntries(next){
  if(!globalAdmin())throw new Error(tr('closureMail.onlyAdmins'));
  var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
