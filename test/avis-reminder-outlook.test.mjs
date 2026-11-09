@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 // Catch a regression to server mail, missing Outlook fields, false sent history, or automatic AVIS CCs.
-function setup({hostname='www.exporthub360.de',launchFails=false}={}){
+function setup({hostname='www.exporthub360.de',launchFails=false,clock=''}={}){
  const launches=[],calls=[],events={},saved=[];
  const sh={id:'S1',reference:'ABC123',customerId:'SE1',customerName:'Essentra Sweden',customerAvisToken:'abc',customerAvisUrl:'https://www.exporthub360.de/avis/abc',avisFirstMailSentAt:'2026-09-01T10:00:00Z'};
  const state={shipment:{id:'OTHER',reference:'OTHER1'},shipments:[sh],savedShipments:[{...sh}],customers:[{id:'SE1',name:'Essentra Sweden',salesContacts:[{email:'sales@example.com'}],ccContacts:[{email:'copy@example.com'},{email:'customer@example.com'}]}],currentUser:{name:'Tobias'}};
@@ -16,10 +16,11 @@ function setup({hostname='www.exporthub360.de',launchFails=false}={}){
   }};
  },body:{appendChild(){},getAttribute(){return''}},head:{appendChild(){}},documentElement:{appendChild(){}}};
  const de=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
- const sandbox={document,URL,console,Date,Intl,Map,Set,Promise,clearTimeout(){},setInterval(){},setTimeout(){return 1},location:{hostname,href:'https://'+hostname+'/'},addEventListener(){},dispatchEvent(){},CustomEvent:class{},__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:{t:(k)=>de[k]||k},fetch(...args){calls.push(args);throw new Error('Server mail must not be used')},ExportHUBClean:{queueSave(reason){saved.push(reason)}}};
+ const Clock=clock?class extends Date{constructor(...a){super(...(a.length?a:[clock]))}static now(){return Date.parse(clock)}}:Date;
+ const sandbox={document,URL,console,Date:Clock,Intl,Map,Set,Promise,clearTimeout(){},setInterval(){},setTimeout(){return 1},location:{hostname,href:'https://'+hostname+'/'},addEventListener(){},dispatchEvent(){},CustomEvent:class{},__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:{t:(k)=>de[k]||k},fetch(...args){calls.push(args);throw new Error('Server mail must not be used')},ExportHUBClean:{queueSave(reason){saved.push(reason)}}};
  sandbox.window=sandbox;
  for(const file of ['assets/rc1065-registration-cc.js','assets/rc1071-shipment-history.js','assets/rc1166-avis-reminder-overview.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox);
- return{api:sandbox.ExportHUBRC1166AvisReminder,sh,state,launches,calls,saved,events,document};
+ return{api:sandbox.ExportHUBRC1166AvisReminder,sh,state,launches,calls,saved,events,document,window:sandbox};
 }
 
 test('reminder opens a complete Outlook draft with only manual customer-folder CC and records opening on the correct shipment',async()=>{
@@ -147,4 +148,28 @@ test('failed Outlook launch never records a successful opening',async()=>{
  const {api,sh}=setup({launchFails:true});
  await assert.rejects(()=>api.sendReminder(sh,'customer@example.com','customer','de',sh.customerAvisUrl,'reminder'),/Mail handler blocked/);
  assert.equal(sh.shipmentHistory,undefined);
+});
+
+test('Issue #1328: AVIS Outlook draft uses selected language and shows the same closure in its preview',async()=>{
+ const source=fs.readFileSync('assets/rc1166-avis-reminder-overview.js','utf8');
+ assert.match(source,/text\.value=withClosureMailNotice\(/,'vorschau muss Schließhinweis enthalten');
+ for(const [lang,title] of [['de','Wichtige Information'],['en','Important notice'],['pl','Ważna informacja'],['es','Información importante'],['fr','Information importante'],['it','Informazione importante']]){
+  const {api,sh,state,launches,window}=setup({clock:'2026-12-14T12:00:00Z'});
+  const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+  const fallback=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+  window.ExportHUBI18n.t=(key)=>pack[key]||fallback[key]||key;
+  state.settings={closureNotices:[{enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14}]};
+  await api.sendReminder(sh,'customer@example.com','customer',lang,sh.customerAvisUrl,'reminder');
+  const draft=new URL(launches[0]);
+  const text=draft.searchParams.get('body');
+  assert.ok(text.includes(title),lang);
+  assert.match(text,/=== ExportHUB360 ===/);
+  assert.match(text,/15:00/);
+  assert.doesNotMatch(text,/<table|<strong/i);
+  assert.equal((text.match(/=== ExportHUB360 ===/g)||[]).length,1,'nur ein Hinweis');
+  assert.equal(draft.searchParams.get('cc'),'copy@example.com');
+  state.settings.closureNotices[0].enabled=false;
+  await api.sendReminder(sh,'customer@example.com','customer',lang,sh.customerAvisUrl,'reminder');
+  assert.doesNotMatch(new URL(launches[1]).searchParams.get('body'),/=== ExportHUB360 ===/);
+ }
 });
