@@ -155,7 +155,9 @@ function safeDay(v){
 }
 function registrationMailLanguage(){
  var i=w.ExportHUBI18n||{},v='';
- try{v=typeof i.language==='function'?i.language():i.language||i.currentLanguage||''}catch(_){}
+ // A separately selected email language takes precedence over the site language.
+ try{var selector=w.document&&w.document.getElementById&&w.document.getElementById('rc543MailLang');v=q(selector&&selector.value)}catch(_){}
+ if(!v)try{v=typeof i.language==='function'?i.language():i.language||i.currentLanguage||''}catch(_){}
  v=q(v).toLowerCase().replace('_','-');
  var m=v.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'
 }
@@ -194,8 +196,6 @@ function registrationClosureNotices(language){
  return marker+'\n'+body+'\n'+'===================='
 }
 function withRegistrationClosureNotice(url){
- var notice=registrationClosureNotices();
- if(!notice)return url;
  var qmark=url.indexOf('?'),base=qmark>=0?url.slice(0,qmark):url;
  var parts=qmark>=0?url.slice(qmark+1).split('&'):[];
  var index=parts.findIndex(function(row){
@@ -203,11 +203,17 @@ function withRegistrationClosureNotice(url){
  });
  var source=index>=0?parts[index].slice(parts[index].indexOf('=')+1):'',body='';
  try{body=decodeURIComponent(source.replace(/\+/g,' '))}catch(_){return url}
- if(body.indexOf('=== ExportHUB360 ===')>=0)return url;
- parts[index>=0?index:parts.length]='body='+encodeURIComponent(body+(body?'\n\n':'')+notice);
+ // Refresh an earlier ExportHUB-generated notice when the language, dates, or
+ // active state change. Never delete or rewrite the user's other email text.
+ var noteRx=/(?:\r?\n){0,2}=== ExportHUB360 ===\r?\n[\s\S]*?\r?\n====================(?=\r?\n|$)/g;
+ var clean=body.replace(noteRx,'');
+ var notice=registrationClosureNotices();
+ if(!notice&&clean===body)return url;
+ var next=clean+(notice?(clean?'\n\n':'')+notice:'');
+ if(index<0){if(!next)return url;parts.push('body='+encodeURIComponent(next))}
+ else parts[index]='body='+encodeURIComponent(next);
  return base+'?'+parts.join('&')
 }
-
 async function persistClosureEntries(next){
  if(!globalAdmin())throw new Error(tr('closureMail.onlyAdmins'));
  var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
