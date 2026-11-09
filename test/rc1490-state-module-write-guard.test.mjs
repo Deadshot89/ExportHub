@@ -185,3 +185,37 @@ test('RC1490: State-Runtime lädt sicheren Merge im isolierten Request-Kontext',
   assert.match(runtime,/writeContext\.run\(/);
   assert.match(runtime,/mergeModule\.exports\s*=\s*secureMerge/);
 });
+
+
+test('Issue #1328: external closure notices require global admin even with settings edit right',()=>{
+ const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+  lastPickupDate:'2026-12-18',lastPickupTime:'15:00',
+  reopenDate:'2027-01-04',leadDays:14};
+ const server=baseState();
+ const user=userWithRights({settings:right('edit')});
+ const add=structuredClone(server);
+ add.settings.closureNotices=[closure];
+ expectForbidden(user,server,add);
+
+ const seeded=baseState();
+ seeded.settings.closureNotices=[closure];
+ for(const change of [
+  settings=>{settings.closureNotices[0].lastPickupTime='13:00'},
+  settings=>{settings.closureNotices[0].enabled=false},
+  settings=>{delete settings.closureNotices}
+ ]){
+  const incoming=structuredClone(seeded);
+  change(incoming.settings);
+  expectForbidden(user,seeded,incoming);
+ }
+
+ const allowed=structuredClone(seeded);
+ allowed.settings.theme='dark';
+ const merged=runAs(user,()=>secureMerge.mergeState(seeded,allowed));
+ assert.equal(merged.settings.theme,'dark','normal settings edit must remain usable');
+ assert.deepEqual(merged.settings.closureNotices,seeded.settings.closureNotices);
+
+ const admin={...userWithRights(),role:'Admin',globalAdmin:true,permissions:['*']};
+ const saved=runAs(admin,()=>secureMerge.mergeState(server,add));
+ assert.equal(saved.settings.closureNotices[0].lastPickupTime,'15:00');
+});
