@@ -588,7 +588,7 @@ function weeklyMasterTasks(){
   var recurring=arr(s.taskSeries).filter(function(entry){
     var id=q(entry&&entry.id),rule=entry&&entry.rule,template=entry&&entry.task||{};
     return id&&rule&&low(rule.type)==='weekly'&&!tombstones.has(low(id))&&q(entry.title||template.title)&&
-      !arr(s.tasks).some(function(task){return q(task&&task.seriesId)===id&&isTemplate(task)})
+      !arr(s.tasks).some(function(task){return q(task&&task.seriesId)===id&&isTemplate(task)&&low(task.sourceType)==='manual'&&id.indexOf('rc1570-series:')===0})
   }).map(function(entry){
     var x=entry.task||{},id=q(entry.id);
     return{id:'series:template:'+id,seriesId:id,title:q(entry.title||x.title),name:q(entry.title||x.title),
