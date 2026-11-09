@@ -151,7 +151,19 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await expect(editor.locator('[data-rc1549-status]')).toBeVisible();
  await editor.locator('[data-rc1549-manual-create]').click();
  await expect(editor.locator('[data-rc1549-result] [data-rc1549-proforma]')).toBeEnabled({timeout:15_000});
- const [download]=await Promise.all([page.waitForEvent('download'),editor.locator('[data-rc1549-result] [data-rc1549-proforma]').click()]);
+ let download;
+ try{
+  [download]=await Promise.all([page.waitForEvent('download'),editor.locator('[data-rc1549-result] [data-rc1549-proforma]').click()]);
+ }catch(error){
+  const debug=await page.evaluate(()=>({
+   exportCalls:Array.isArray(window.__rc1601Exports)?window.__rc1601Exports.length:-1,
+   uiStatus:document.querySelector('#rc1549AbdManual [data-rc1549-status]')?.textContent||'',
+   uiStatusKind:document.querySelector('#rc1549AbdManual [data-rc1549-status]')?.getAttribute('data-kind')||'',
+   buttonDisabled:document.querySelector('#rc1549AbdManual [data-rc1549-proforma]')?.disabled,
+   view:document.body.getAttribute('data-exporthub-view')||''
+  }));
+  throw new Error('RC1601 PDF-download diagnostics: '+JSON.stringify(debug)+' / '+error.message);
+ }
  expect(download.suggestedFilename()).toBe('Proforma-Browser.pdf');
  const exports=await page.evaluate(()=>window.__rc1601Exports);
  expect(exports).toHaveLength(1);
