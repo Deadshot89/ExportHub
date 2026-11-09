@@ -19,6 +19,30 @@ function reanalyzed(payload){
  const groups=positions.map(p=>({commodityCode:p.commodityCode,originCountry:p.originCountry,value:Number(p.value),currency:p.currency,positionCount:1,status:'complete'}));
  return{header:{...payload.header,invoiceTotal},positions,groups,unassigned:[],totals:{invoiceTotal,accountedTotal:invoiceTotal,difference:0,currency:payload.header.currency},review:{complete:true,groupCount:groups.length,unassignedCount:0}}
 }
+
+test('RC1940: eigene Dokumentenerstellung im Menü öffnen und zwischen Rechnung und Lieferschein wechseln',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='laptop','Chromium Laptop');
+ await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+ await waitReady(page);
+ await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+ const nav=page.locator('#nav > [data-exporthub-documents-nav]');
+ await expect(nav).toBeVisible({timeout:10_000});
+ await expect(nav).toContainText(/Dokumente erstellen|Create documents/i);
+ await nav.click();
+ const workspace=page.locator('#rc1940Documents');
+ await expect(workspace).toBeVisible({timeout:10_000});
+ await expect(page.locator('body')).toHaveAttribute('data-exporthub-view','documents');
+ await expect(workspace.locator('#rc1549AbdManual')).toBeVisible();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeHidden();
+ await workspace.locator('[data-rc1790-tab="delivery"]').click();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeVisible();
+ await expect(workspace.locator('#rc1549AbdManual')).toBeHidden();
+ await workspace.locator('[data-rc1790-tab="invoice"]').click();
+ await expect(workspace.locator('#rc1549AbdManual')).toBeVisible();
+ await expect(workspace.locator('#rc1790DeliveryNote')).toBeHidden();
+ await expect(workspace.locator('[data-rc1294-abd-analysis]')).toHaveCount(0);
+});
+
 test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportieren',async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='laptop','Test läuft einmal im Chromium-Laptop-Profil.');
  test.setTimeout(90_000);
