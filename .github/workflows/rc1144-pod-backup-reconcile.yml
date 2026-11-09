@@ -185,10 +185,13 @@ jobs:
 
             # Pause ONLY optional Graph retries after two consecutive target/request failures.
             # Required Azure archival continues; next scheduled run retries Graph.
-            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED')?'1':'0')})")"
-            if [ "$graph_target_failure" = '1' ]; then
+            graph_target_attempt_result="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());const failed=codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED');const saved=Number(v.driveSavedCount||0)>0&&Number(v.drivePendingCount||0)===0;process.stdout.write(failed?'failed':saved?'saved':'none')})")"
+            # A page without a Graph attempt is not a successful attempt.
+            # Count consecutive FAILED attempts, even across unrelated scan pages.
+            # Only a verified successful Graph save resets the failure streak.
+            if [ "$graph_target_attempt_result" = 'failed' ]; then
               graph_target_failure_streak=$((graph_target_failure_streak + 1))
-            elif [ "$suppress_drive_backfill" != '1' ]; then
+            elif [ "$graph_target_attempt_result" = 'saved' ]; then
               graph_target_failure_streak=0
             fi
             if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then
@@ -360,10 +363,13 @@ jobs:
 
             # Pause ONLY optional Graph retries after two consecutive target/request failures.
             # Required Azure archival continues; next scheduled run retries Graph.
-            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED')?'1':'0')})")"
-            if [ "$graph_target_failure" = '1' ]; then
+            graph_target_attempt_result="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());const failed=codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED');const saved=Number(v.driveSavedCount||0)>0&&Number(v.drivePendingCount||0)===0;process.stdout.write(failed?'failed':saved?'saved':'none')})")"
+            # A page without a Graph attempt is not a successful attempt.
+            # Count consecutive FAILED attempts, even across unrelated scan pages.
+            # Only a verified successful Graph save resets the failure streak.
+            if [ "$graph_target_attempt_result" = 'failed' ]; then
               graph_target_failure_streak=$((graph_target_failure_streak + 1))
-            elif [ "$suppress_drive_backfill" != '1' ]; then
+            elif [ "$graph_target_attempt_result" = 'saved' ]; then
               graph_target_failure_streak=0
             fi
             if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then
