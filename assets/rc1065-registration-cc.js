@@ -214,17 +214,18 @@ function withRegistrationClosureNotice(url){
  else parts[index]='body='+encodeURIComponent(next);
  return base+'?'+parts.join('&')
 }
-function pickupClosureWarning(value){
- var day=safeDay(value);if(!day)return null;
+function pickupClosureWarning(value,slotEnd){
+ var day=safeDay(value),end=q(slotEnd);if(!day)return null;
  var matches=closureEntries().filter(function(c){
   if(!c||c.enabled!==true)return false;
-  var a=safeDay(c.startDate),b=safeDay(c.endDate),last=safeDay(c.lastPickupDate),reopen=safeDay(c.reopenDate),lead=c.leadDays==null?14:Number(c.leadDays);
-  return !!(a&&b&&last&&reopen&&a<=b&&last<a&&reopen>b&&
-   /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(q(c.lastPickupTime))&&Number.isInteger(lead)&&lead>=0&&lead<=90&&day>last&&day<reopen)
- }).sort(function(a,b){return q(a.startDate).localeCompare(q(b.startDate))});
+  var a=safeDay(c.startDate),b=safeDay(c.endDate),last=safeDay(c.lastPickupDate),reopen=safeDay(c.reopenDate),hour=q(c.lastPickupTime),lead=c.leadDays==null?14:Number(c.leadDays);
+  if(!(a&&b&&last&&reopen&&a<=b&&last<a&&reopen>b&&
+   /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(hour)&&Number.isInteger(lead)&&lead>=0&&lead<=90))return false;
+  return (day>last&&day<reopen)||(day===last&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(end)&&end>hour)
+ }).sort(function(a,b){return q(a.lastPickupDate).localeCompare(q(b.lastPickupDate))});
  if(!matches.length)return null;
  var c=matches[0];
- return{pickupDate:day,startDate:c.startDate,endDate:c.endDate,reopenDate:c.reopenDate}
+ return{pickupDate:day,startDate:c.startDate,endDate:c.endDate,lastPickupDate:c.lastPickupDate,lastPickupTime:c.lastPickupTime,reopenDate:c.reopenDate}
 }
 async function persistClosureEntries(next){
  if(!globalAdmin())throw new Error(tr('closureMail.onlyAdmins'));
