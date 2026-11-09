@@ -100,6 +100,26 @@ test('RC1570 production: task roster, overdue POD/AV, weekly and deletion safety
     const showsLast=!!node.querySelector('[data-rc1570-tv-open="rc1570-synthetic-244"]');
     const initialStateUnchanged=JSON.stringify(state)===before;
 
+    // Exercise delegated user clicks in a synthetic DOM, not a real session.
+    document.body.setAttribute('data-exporthub-view','taskdetail');
+    const root=document.createElement('main');
+    root.id='content';
+    document.body.appendChild(root);
+    tv.mode='list';tv.kind='all';tv.scope='mine';tv.moreCount=100;
+    api.refresh();
+    const mounted=!!document.querySelector('#rc1570TaskView [data-rc1570-tv-kind="overdue"]');
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-scope="all"]').click();
+    const scopeClicked=api.managedRows().counts.all===252;
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-scope="mine"]').click();
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-kind="overdue"]').click();
+    const overdueClicked=!!document.querySelector(
+      '#rc1570TaskView [data-rc1570-tv-open="task:av-missing:RC1570"]');
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-kind="all"]').click();
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-more]').click();
+    document.querySelector('#rc1570TaskView [data-rc1570-tv-more]').click();
+    const moreClicked=!!document.querySelector(
+      '#rc1570TaskView [data-rc1570-tv-open="rc1570-synthetic-244"]');
+
     const blockedSystemDeletion=await api._deleteManagedTask('rc1570-pod');
     const deletedManual=await api._deleteManagedTask('rc1570-manual-late');
     const savedDeletion=state._teamSyncMeta.tombstones.some(x=>
@@ -109,6 +129,7 @@ test('RC1570 production: task roster, overdue POD/AV, weekly and deletion safety
 
     return {
       mineCount:mine.counts.all,allCount,firstVisible,paginated,
+      mounted,scopeClicked,overdueClicked,moreClicked,
       noSystemDelete,manualDeleteVisible,
       overdue,weekly,done,searched,showsLast,initialStateUnchanged,
       blockedSystemDeletion,deletedManual,savedDeletion,manualGone,systemIntact,
@@ -116,6 +137,10 @@ test('RC1570 production: task roster, overdue POD/AV, weekly and deletion safety
     };
   });
 
+  expect(result.mounted).toBe(true);
+  expect(result.scopeClicked).toBe(true);
+  expect(result.overdueClicked).toBe(true);
+  expect(result.moreClicked).toBe(true);
   expect(result.mineCount).toBe(251);
   expect(result.allCount).toBe(252);
   expect(result.firstVisible).toBe(100);
