@@ -129,6 +129,25 @@ test('bad scope, missing actor, invalid transport ID and insufficient audit reas
  await assert.rejects(manual(store,{reason:'ok'}),{code:'LINK_REASON_REQUIRED'});
  await assert.rejects(manual(store,{transport:{...transport,id:'Essentra UK'}}),{code:'LINK_ID_INVALID'});
 });
+test('automatic links reject mixed production and TESTSERVICE evidence',async()=>{
+ const mem=memory(),store=loadStore(mem);
+ await assert.rejects(auto(store,{shipments:[sh('REF-A','123',{environment:'production'})]}),
+   {code:'LINK_ENVIRONMENT_MISMATCH'});
+ await assert.rejects(auto(store,{transports:[{...transport,environment:'production'}]}),
+   {code:'LINK_ENVIRONMENT_MISMATCH'});
+ assert.equal(mem.blobs.size,0);
+});
+test('two active rows for the same REF on separate dates are rejected',async()=>{
+ const mem=memory(),store=loadStore(mem),path='exporthub-data/'+store.pathFor(scope);
+ mem.blobs.set(path,{etag:'"duplicate"',bytes:Buffer.from(JSON.stringify({
+   schemaVersion:1,...scope,revision:2,updatedAt:null,audit:[],
+   links:[
+     {ref:'REF-A',pickupDate:'2026-11-09',transportId:'TRANSPORT-1',active:true},
+     {ref:'REF-A',pickupDate:'2026-11-10',transportId:'TRANSPORT-2',active:true}
+   ]
+ }))});
+ await assert.rejects(store.read(scope),{code:'LINK_DOCUMENT_INVALID'});
+});
 test('corrupt or cross-tenant existing records fail closed',async()=>{
  const mem=memory(),store=loadStore(mem);
  const blobName='exporthub-data/'+store.pathFor(scope);

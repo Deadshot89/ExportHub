@@ -42,12 +42,14 @@ function cleanDoc(data,s){
     data.schemaVersion!==1||data.environment!==s.environment||data.companyKey!==s.companyKey||
     !Number.isSafeInteger(data.revision)||data.revision<0||!Array.isArray(data.links)||!Array.isArray(data.audit))
     fail('LINK_DOCUMENT_INVALID','Gespeicherter Zuordnungsstand ist unvollständig oder fremd',409);
- const unique=new Set();
+ const unique=new Set(),activeRefs=new Set();
  for(const item of data.links){
-   const k=text(item&&item.ref).toUpperCase()+'|'+text(item&&item.pickupDate);
-   if(!item||!rule.date(item.pickupDate)||!text(item.ref)||unique.has(k))
+   const r=text(item&&item.ref).toUpperCase(),k=r+'|'+text(item&&item.pickupDate);
+   if(!item||!rule.date(item.pickupDate)||!r||unique.has(k)||
+      (item.active===true&&activeRefs.has(r)))
      fail('LINK_DOCUMENT_INVALID','Mehrdeutiger Zuordnungsstand',409);
    unique.add(k);
+   if(item.active===true)activeRefs.add(r);
  }
  return data;
 }
@@ -101,8 +103,16 @@ async function applyAutomatic({environment,companyKey,pickupDate,expectedRevisio
  const loaded=await load({environment,companyKey}),doc=loaded.document,s=loaded.scope;
  guardRevision(doc,expectedRevision);actor=actorOf(actor);
  const day=dateOf(pickupDate);
+ const lists=[transports||[],tasks||[],shipments||[]];
+ for(const list of lists){
+   if(!Array.isArray(list))fail('LINK_EVIDENCE_INVALID','Ungültige serverseitige Quelldaten',409);
+   for(const record of list){
+     if(record&&record.environment&&text(record.environment)!==s.environment)
+       fail('LINK_ENVIRONMENT_MISMATCH','Fremde Datenumgebung in Zuordnungsnachweis',403);
+   }
+ }
  const evidence={companyKey:s.companyKey,environment:s.environment,pickupDate:day,
-   transports:transports||[],tasks:tasks||[],shipments:shipments||[],existingLinks:doc.links};
+   transports:lists[0],tasks:lists[1],shipments:lists[2],existingLinks:doc.links};
  const result=rule.propose(evidence),next=copy(doc),added=[],conflicts=[...result.conflicts],at=new Date().toISOString();
  for(const proposal of result.proposals){
    const r=refOf({reference:proposal.ref}),id=idOf(proposal.transportId),fixId=idOf(proposal.fixId);
