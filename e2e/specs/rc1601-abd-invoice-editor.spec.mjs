@@ -154,7 +154,11 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await page.evaluate(()=>{window.__rc1601PdfClicks=0;document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('[data-rc1549-proforma]'))window.__rc1601PdfClicks++},true)});
  let download;
  try{
-  [download]=await Promise.all([page.waitForEvent('download'),editor.locator('[data-rc1549-result] [data-rc1549-proforma]').click()]);
+  const pdfButton=editor.locator('[data-rc1549-result] [data-rc1549-proforma]');
+  await pdfButton.scrollIntoViewIfNeeded({timeout:20000});
+  const pdfDownload=page.waitForEvent('download',{timeout:30000});
+  await pdfButton.click({timeout:20000});
+  download=await pdfDownload;
  }catch(error){
   const debug=await page.evaluate(()=>({
    exportCalls:Array.isArray(window.__rc1601Exports)?window.__rc1601Exports.length:-1,
