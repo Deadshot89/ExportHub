@@ -15,7 +15,7 @@ header{background:#10243a;color:#fff;padding:17px clamp(16px,2vw,40px)}.brand{fo
 .s-Open{background:#e8ebf0;color:#475467}.s-Waved{background:#dee9ff;color:#254e9d}.s-InProgress{background:#fff0ca;color:#81510b}.s-Problem{background:#ffe0e4;color:#b11f33}.s-Loaded{background:#efe5ff;color:#7745a0}.s-Shipped{background:#d7f4f1;color:#087a79}.s-Invoiced{background:#d8f2e4;color:#147142}.s-Mixed{background:#e9edf2;color:#546077}
 .btn{background:var(--blue);color:white;border:1px solid var(--blue);border-radius:9px;padding:9px 13px;font-weight:750;min-height:41px}.btn.secondary{background:white;color:var(--blue);border-color:#aac0df}.btn.danger{background:white;color:#aa2030;border-color:#e0bcc2}.btn.small{padding:6px 9px;font-size:12px;min-height:33px}.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.line{padding:12px;background:#f8fafd;border:1px solid var(--line);border-radius:12px}.line-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}.line-head strong{font-size:13px}.linecheck{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650}.linecheck input{width:17px;height:17px}
 .tracking{background:#eaf2ff;border:1px solid #b7d0ed;padding:13px;border-radius:12px;margin-bottom:17px}.tracking strong{display:block}.tracking p{margin:4px 0 8px}.tracking code{display:block;padding:8px;background:#fff;border-radius:8px;font-size:11px;overflow-wrap:anywhere}
-.message{font-size:13px;font-weight:700;min-height:18px;margin:10px 0}.message[data-state=error]{color:#a3232f}.message[data-state=ok]{color:#176944}
+.message{font-size:13px;font-weight:700;min-height:18px;margin:10px 0}.message[data-state=error]{color:#a3232f}.message[data-state=ok]{color:#176944}.message[data-state=warning]{color:#a0640b}.type-explanation[role=alert]{border-color:#e9c483;background:#fff4e1;color:#794909}
 .tabrow{display:flex;gap:8px;margin:10px 0 15px;border-bottom:1px solid var(--line);padding-bottom:10px}.tab{border:1px solid transparent;background:transparent;color:var(--sub);padding:9px 14px;font-weight:760;border-radius:9px}.tab[aria-selected=true]{background:#e8f0ff;border-color:#b9d0f0;color:#204e99}.filterbar{display:grid;grid-template-columns:minmax(120px,1fr) 120px;gap:8px;margin-bottom:13px}.filterbar input,.filterbar select{min-height:40px;border:1px solid #b3c3d8;padding:9px;border-radius:9px;background:var(--surface)}
 .order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}.order summary{list-style:none;cursor:pointer;padding:13px}.order summary::-webkit-details-marker{display:none}.order-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:space-between}.order-head strong{font-size:15px}.order summary:hover{background:#f7faff}.order-details{background:#f8fbff;padding:12px;border-top:1px solid var(--line)}.item-row{border-top:1px solid var(--line);padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.item-row:first-of-type{border-top:0}.empty{padding:30px 15px;color:var(--sub);border:1px dashed #c5d3e5;border-radius:12px;text-align:center}.date{font-variant-numeric:tabular-nums}.counters{display:flex;gap:8px;color:var(--sub);font-size:12px;margin:0 0 10px}
 @media(max-width:1050px){.board{grid-template-columns:1fr}.panel{padding:17px}}@media(max-width:470px){.pair,.filterbar{grid-template-columns:1fr}.check{grid-template-columns:1fr}.check select{width:100%}.panel{padding:13px}}
@@ -40,6 +40,11 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 
 .urgent-hero{padding:21px 25px;margin-bottom:12px}.urgent-hero h1{font-size:clamp(26px,2.5vw,34px)}
 .workspace-nav{position:sticky;top:0;z-index:11;backdrop-filter:blur(12px);margin:9px 0 15px}.workspace-nav .workspace-tab{flex:1 1 175px}.board>.panel{padding:clamp(18px,2.7vw,28px)}
+.cutoff-choice{border:1px solid #e4c58c;background:#fff8eb;border-radius:13px;padding:16px;margin-top:13px;color:#644513}
+.cutoff-choice h3{font-size:16px;margin:0 0 8px}.cutoff-choice p{margin:0 0 14px;line-height:1.6}
+.cutoff-choice .actions{gap:10px}
+@media(max-width:550px){.cutoff-choice .actions button{flex:1 1 100%}}
+@media(prefers-color-scheme:dark){.cutoff-choice{background:#392d1d;border-color:#80683f;color:#f5deb0}}
 .wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 17px;border-bottom:1px solid var(--line)}.wizard-track>span{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:750;color:var(--sub)}
 .wizard-track b{width:29px;height:29px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--page)}.wizard-track>span[aria-current="step"]{background:var(--blue);color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff25;border-color:#ffffff55}
 [data-wizard-step]{padding-top:16px}[data-wizard-step][hidden]{display:none!important}.wizard-review{border:1px solid #b4ccee;background:#eef5ff;border-radius:14px;padding:17px}.wizard-review p{line-height:1.6}.wizard-review #wizardReview{font-weight:800;color:#205287}.wizard-actions{display:flex;gap:9px;align-items:center;padding-top:16px;border-top:1px solid var(--line)}.wizard-actions>span{flex:1}
@@ -63,6 +68,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
 <datalist id="urgentEmailHistory"></datalist>
 <div class="actions"><span class="muted" id="emailHistoryHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span><button type="button" class="btn secondary small" id="clearEmailHistory" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button></div>
+<label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="requestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
@@ -76,7 +82,12 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
 </div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
-</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
+<section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
+<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
+<p id="lateCutoffText"></p>
+<div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
@@ -209,16 +220,62 @@ function directOutbound(form){
   plannedDispatchAt:x.plannedDispatchAt.value,deliveryNotePresent:flag(x.deliveryNotePresent),
   asnWorking:flag(x.asnWorking),holdsClear:flag(x.holdsClear),exceptionReason:x.exceptionReason.value.trim()};
 }
+function berlinCutoffClock(){
+ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
+}
+function cutoffText(){
+ const fallback=$('reportForm').elements.language.value==='en'?"A quick note about today's deadline: Please report orders for today by 3:15 pm. If it's later, it's best to choose tomorrow as the shipping date. You can still report the order for today. If the system doesn't release it automatically, we'll take care of it tomorrow.":"Hinweis zur heutigen Meldefrist: Bitte melde Aufträge für heute bis 15:15 Uhr. Ist es später, wähle am besten morgen als Versandtag. Du kannst den Auftrag trotzdem für heute melden. Wenn das System ihn nicht automatisch freigibt, kümmern wir uns morgen darum.";
+ return localeV2('cutoffLateWarning',fallback);
+}
+let cutoffApproved=false;
+function hideLateCutoffChoice(){
+ $('lateCutoffChoice').hidden=true;
+ $('submitOrder').hidden=false;
+}
+function showLateCutoffChoice(){
+ $('lateCutoffText').textContent=cutoffText();
+ $('lateCutoffChoice').hidden=false;
+ $('submitOrder').hidden=true;
+ $('lateMoveTomorrow').focus();
+}
+function syncCutoff(){
+ const control=$('requestedDispatchDate'),clock=berlinCutoffClock();
+ if(!control.value)control.value=clock.date;
+ control.min=clock.date;
+ const late=control.value===clock.date&&clock.minutes>15*60+15;
+ if(!late)hideLateCutoffChoice();
+ else if(!$('lateCutoffChoice').hidden)$('lateCutoffText').textContent=cutoffText();
+ return late;
+}
+function cutoffTomorrow(){
+ const [y,m,d]=berlinCutoffClock().date.split('-').map(Number);
+ return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10);
+}
+function applyLateCutoffChoice(moveTomorrow){
+ if(moveTomorrow){
+  const today=berlinCutoffClock().date,tomorrow=cutoffTomorrow();
+  $('requestedDispatchDate').value=tomorrow;
+  const planned=$('reportForm').elements.plannedDispatchAt;
+  if(planned&&planned.value&&planned.value.slice(0,10)===today)planned.value=tomorrow+planned.value.slice(10);
+  syncCutoff();showWizardStep(3);
+ }else{
+  cutoffApproved=true;
+ }
+ hideLateCutoffChoice();
+ $('reportForm').requestSubmit();
+}
 function buildPayload(){
  const form=$('reportForm'),x=form.elements;
  return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
-  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
+  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,requestedDispatchDate:x.requestedDispatchDate.value,
   directOutbound:directOutbound(form),items:items()};
 }
 
 let wizardStep=1;
 function showWizardStep(step){
  wizardStep=Math.max(1,Math.min(3,step));
+ if(wizardStep!==3)hideLateCutoffChoice();
  for(const block of document.querySelectorAll('[data-wizard-step]'))block.hidden=Number(block.dataset.wizardStep)!==wizardStep;
  for(const marker of document.querySelectorAll('[data-wizard-mark]')){if(Number(marker.dataset.wizardMark)===wizardStep)marker.setAttribute('aria-current','step');else marker.removeAttribute('aria-current');}
  $('wizardBack').hidden=wizardStep===1;$('wizardNext').hidden=wizardStep===3;
@@ -284,23 +341,28 @@ async function refresh(){
 async function submit(ev){
  ev.preventDefault();
  if(wizardStep!==3){showWizardStep(1);return;}
+ const approved=cutoffApproved;cutoffApproved=false;
+ const lateToday=syncCutoff();
  if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
  if(invalid){showMessage('Fehlgeschlagene Artikelprüfungen benötigen eine Begründung.','error');return;}
  if(p.directOutbound&&(p.directOutbound.deliveryNotePresent===false||p.directOutbound.asnWorking===false||p.directOutbound.holdsClear===false)&&p.directOutbound.exceptionReason.length<8){showMessage('Fehlgeschlagene Wareneingangsprüfung benötigt eine Begründung.','error');return;}
+ if(lateToday&&!approved){showLateCutoffChoice();return;}
+ hideLateCutoffChoice();
  $('submitOrder').disabled=true;showMessage('Anfrage wird gespeichert …','');
  try{
   const data=await api('create',p);
   rememberEmail(p.email); // Save only after successful server confirmation.
   secret=data.accessToken;
+  const late=!!(data.order.cutoff&&data.order.cutoff.lateSameDay);
   $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
   location.hash='access='+encodeURIComponent(secret);
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
-  syncType();showWizardStep(1);activateLink();await refresh();
+  syncType();syncCutoff();showWizardStep(1);activateLink();await refresh();
   showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
@@ -312,6 +374,10 @@ async function copyLink(){
 $('reportForm').addEventListener('submit',submit);
 $('wizardNext').addEventListener('click',nextWizardStep);$('wizardBack').addEventListener('click',()=>showWizardStep(wizardStep-1));
 $('orderType').addEventListener('change',syncType);
+$('requestedDispatchDate').addEventListener('change',syncCutoff);
+$('lateSubmitToday').addEventListener('click',()=>applyLateCutoffChoice(false));
+$('lateMoveTomorrow').addEventListener('click',()=>applyLateCutoffChoice(true));
+$('reportForm').elements.language.addEventListener('change',syncCutoff);
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
@@ -319,9 +385,10 @@ for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
+window.addEventListener('exporthub:language-changed',syncCutoff);
 $('clearEmailHistory').addEventListener('click',clearEmailChoices);
 refreshEmailChoices();
-secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
+secret=accessFromHash();lineCard();syncType();syncCutoff();showWizardStep(1);refresh();
 })();
 </script>
 </body>

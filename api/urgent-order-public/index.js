@@ -24,6 +24,7 @@ function publicOrder(order){
  return{
   id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
+  requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
   items:(order.items||[]).map(x=>({
    id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,
