@@ -4,11 +4,11 @@ import Module,{createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const baseUser={id:'OP1',role:'user',companyId:'essentra',rights:{pickupcalendar:{level:'view',read:true}}};
 function setup(options={}){
- const reads=[],source=require.resolve('../api/pickup-transport-links/index.js');
+ const reads=[],proofCalls=[],source=require.resolve('../api/pickup-transport-links/index.js');
  const auth={
    json(status,payload,headers={}){return{status,headers:{'Cache-Control':'no-store',...headers},body:JSON.stringify(payload)}},
    error(code,message,status){return Object.assign(new Error(message),{code,status})},
-   async validateSession(req){if(!req.headers||req.headers.authorization!=='Bearer valid')throw auth.error('AUTH_REQUIRED','Login fehlt',401);return{user:req.user||baseUser}}
+   async validateSession(req){if(!req.headers||req.headers.authorization!=='Bearer valid')throw auth.error('AUTH_REQUIRED','Login fehlt',401);return{user:req.user||baseUser,team:{state:{shipments:[{id:'MAIN-UK',reference:'UK-REF'}]}}}}
  };
  const fast={isSource:()=>true,validateSession:auth.validateSession};
  const ledger={async read(scope,readOptions){reads.push({scope,options:readOptions});if(options.storageError)throw options.storageError;return{
@@ -16,12 +16,22 @@ function setup(options={}){
    links:[{ref:'REF-A',pickupDate:'2026-11-09',transportId:'TRANSPORT-UK',active:true}],
    manualExclusions:[],...(readOptions.includeAudit?{audit:[{action:'manual-link',by:'Operator'}]}:{})
  }}};
+ const registrationProof={async inspect(args){proofCalls.push(args);
+     if(options.verifyError)throw options.verifyError;
+     return {id:'MAIN-UK',shipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',
+       pickupDate:'2026-11-09',reference:'UK-REF',companyKey:args.companyKey,
+       environment:args.environment,registered:true};
+   }};
+ const pickupAccess={};const pickupStore={};
  const original=Module._load;
  Module._load=function(request,parent,isMain){
    if(parent&&parent.filename===source){
      if(request==='../shared/auth-store')return auth;
      if(request==='../shared/fast-auth-store')return fast;
      if(request==='../shared/pickup-transport-link-store')return ledger;
+     if(request==='../shared/pickup-transport-registration-proof')return registrationProof;
+     if(request==='../shared/public-access-store')return pickupAccess;
+     if(request==='../shared/pickup-store')return pickupStore;
    }
    return original.call(this,request,parent,isMain);
  };
@@ -33,7 +43,7 @@ function setup(options={}){
    query:{},user:baseUser,...overrides
  });
  const invoke=async req=>{const ctx={};await handler(ctx,req);return {...ctx.res,data:JSON.parse(ctx.res.body)}};
- return{reads,request,invoke};
+ return{reads,request,invoke,proofCalls,pickupAccess,pickupStore};
 }
 test('GET reads only own testservice tenant and no-store response',async()=>{
  const {reads,request,invoke}=setup(),r=await invoke(request());
@@ -90,4 +100,35 @@ test('internal server errors are localized and do not disclose stack traces',asy
  assert.equal(r.status,500);
  assert.equal(r.data.code,'PICKUP_TRANSPORT_LINK_READ_FAILED');
  assert.doesNotMatch(r.body,/DATABASE_URL|secret|\/srv\/|STORAGE_INTERNAL/i);
+});
+test('read-only verification consults authoritative server evidence without exposing token keys',async()=>{
+ const {request,invoke,reads,proofCalls,pickupAccess,pickupStore}=setup();
+ const r=await invoke(request({query:{verifyShipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',pickupDate:'2026-11-09'}}));
+ assert.equal(r.status,200);assert.equal(r.data.verified,true);
+ assert.equal(r.data.transport.id,'MAIN-UK');assert.equal(r.data.transport.registered,true);
+ assert.equal(JSON.stringify(r.data).includes('resourceKey'),false);
+ assert.equal(reads.length,0);assert.equal(proofCalls.length,1);
+ assert.equal(proofCalls[0].environment,'testservice');
+ assert.equal(proofCalls[0].companyKey,'essentra');
+ assert.equal(proofCalls[0].shipmentId,'MAIN-UK');
+ assert.equal(proofCalls[0].team.state.shipments[0].id,'MAIN-UK');
+ assert.equal(proofCalls[0].accessStore,pickupAccess);
+ assert.equal(proofCalls[0].pickupStore,pickupStore);
+});
+test('unverified request requires calendar rights before reading registration',async()=>{
+ const {request,invoke,proofCalls}=setup();
+ const q={verifyShipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',pickupDate:'2026-11-09'};
+ const r=await invoke(request({query:q,user:{...baseUser,rights:{pickupcalendar:{level:'none'}}}}));
+ assert.equal(r.status,403);assert.equal(proofCalls.length,0);
+});
+test('verification rejects missing IDs, dates and unexpected storage disclosure',async()=>{
+ const {request,invoke,proofCalls}=setup();
+ const bad=await invoke(request({query:{verifyShipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',pickupDate:'invalid'}}));
+ assert.equal(bad.status,400);assert.equal(proofCalls.length,0);
+ const {request:another,invoke:check}=setup({verifyError:Object.assign(
+   new Error('AccountKey=private-secret /azure/internal'),{code:'BlobAuthFailed',statusCode:403})});
+ const err=await check(another({query:{verifyShipmentId:'MAIN-UK',pickupTargetId:'FIX-UK',pickupDate:'2026-11-09'}}));
+ assert.equal(err.status,403);
+ assert.equal(err.data.code,'PICKUP_TRANSPORT_LINK_READ_FAILED');
+ assert.doesNotMatch(err.body,/AccountKey|private-secret|internal|BlobAuthFailed/i);
 });
