@@ -242,6 +242,8 @@ function renderManualResult(snapshot){
  var totals=snapshot.totals||{},groups=Array.isArray(snapshot.groups)?snapshot.groups:[],review=snapshot.review||{},currency=q(totals.currency||snapshot.header&&snapshot.header.currency);
  var table=groups.map(function(g){return'<tr><td><b>'+esc(g.commodityCode)+'</b></td><td>'+esc(g.originCountry)+'</td><td>'+esc(money(g.value))+' '+esc(g.currency)+'</td><td>'+esc(metric(g.netMassKg))+'</td><td>'+esc(metric(g.grossMassKg))+'</td><td>'+esc(metric(g.volumeM3))+'</td></tr>'}).join('');
  box.hidden=false;box.innerHTML='<div class="rc1549-result-head"><div><small>'+esc(t('summary'))+'</small><strong>'+esc(review.complete?t('ready'):t('review'))+'</strong></div><button type="button" class="btn" data-rc1549-proforma '+(readyInvoice(snapshot)?'':'disabled')+'>'+esc(t('proforma'))+'</button></div><div class="rc1549-metrics"><div><span>'+esc(t('total'))+'</span><strong>'+esc(money(totals.invoiceTotal))+' '+esc(currency)+'</strong></div><div><span>'+esc(t('net'))+'</span><strong>'+esc(metric(totals.netMassKg))+' kg</strong></div><div><span>'+esc(t('gross'))+'</span><strong>'+esc(metric(totals.grossMassKg))+' kg</strong></div><div><span>'+esc(t('volume'))+'</span><strong>'+esc(metric(totals.volumeM3))+' m³</strong></div></div><h5>'+esc(t('groups'))+'</h5><div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th></tr></thead><tbody>'+table+'</tbody></table></div>';
+ var exportButton=box.querySelector('[data-rc1549-proforma]');
+ if(exportButton)exportButton.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();exportProforma(manualSnapshot,exportButton)});
  setStatus(review.complete?t('ready'):t('review'),review.complete?'ok':'warn')
 }
 async function analyzeManual(button){
@@ -383,7 +385,6 @@ function mountManual(){
   var remove=event.target&&event.target.closest&&event.target.closest('[data-rc1549-remove]');if(remove){var ri=Number(remove.getAttribute('data-rc1549-remove'));if(rows.length>1&&Number.isInteger(ri)){rows.splice(ri,1);renderRows();invalidate()}return}
   var duplicate=event.target&&event.target.closest&&event.target.closest('[data-rc1549-duplicate]');if(duplicate){var di=Number(duplicate.getAttribute('data-rc1549-duplicate'));if(Number.isInteger(di)&&rows[di]){rows.splice(di+1,0,Object.assign({},rows[di]));renderRows();invalidate()}return}
   var create=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-create]');if(create){analyzeManual(create);return}
-  var proforma=event.target&&event.target.closest&&event.target.closest('[data-rc1549-proforma]');if(proforma&&proforma.closest('#rc1549AbdManual'))exportProforma(manualSnapshot,proforma)
  });
  return true
 }
