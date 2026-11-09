@@ -21,7 +21,8 @@ async function invoke(backup) {
     getRecord: async () => ({ record }),
     pickupComplete: () => true,
     updateTeam: async () => {},
-    now: () => '2026-10-28T10:00:00Z'
+    now: () => '2026-10-28T10:00:00Z',
+    podArchiveStorageMode: () => 'same-account'
   };
   const archive = {
     automaticPod: () => ({ id: 'existing-original' }),
@@ -53,6 +54,7 @@ test('RC1715 P1: Azure archive without a Graph-readback original stays incomplet
   const result = await invoke({ status: 'saved', azureSaved: true, archiveSaved: true, driveSaved: false, hash });
   assert.equal(result.ok, true, 'Azure save itself remains available');
   assert.equal(result.archiveSaved, true);
+  assert.equal(result.archiveStorageMode, 'same-account');
   assert.equal(result.saved, false, 'general success must not mean Azure-only');
   assert.equal(result.driveSaved, false);
   assert.equal(result.status, 'sharepoint-pending');

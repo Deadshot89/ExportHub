@@ -23,6 +23,20 @@ Jeder echte digitale POD ist die **vollständige, unterschriebene Ladeliste**. D
 
 Das Azure-Archiv verwendet standardmäßig denselben Azure Storage Account wie der POD-Primärspeicher, jedoch einen anderen Container `exporthub-pod-backup`. Optional kann `EXPORTHUB_POD_BACKUP_CONNECTION_STRING` einen unabhängigen Azure Storage Account anbinden. Dies verbessert die Ausfallsicherheit, ersetzt aber **nicht** die gesondert vereinbarte SharePoint-Notfallkopie.
 
+## Azure-Archivkonto: unabhängig oder nur zweiter Container? (RC1950)
+
+Die Azure-Archivkopie verwendet ohne `EXPORTHUB_POD_BACKUP_CONNECTION_STRING` **dasselbe Speicherkonto** wie der Primärcontainer. Das ist eine zweite Blob-Kopie, aber **kein separates Azure-Speicherkonto**. Ein konfiguriertes zweites Connection-String-Geheimnis allein beweist ebenfalls keine Kontentrennung.
+
+Die API liefert ab RC1950 ausschließlich den redigierten Status `archiveStorageMode`, ohne Kontonamen, Endpunkte oder Secrets:
+- `same-account`: kein zweites Speicherkonto nachweisbar (auch bei anderem Schlüssel desselben Kontos)
+- `separate-account`: verschiedene, eindeutig identifizierte Azure-Speicherkonten
+- `unverified`: alternative Verbindungszeichenfolge vorhanden, Kontentrennung nicht verifizierbar
+- `unconfigured`: Primärverbindung nicht gesetzt
+
+Dieser Wert sagt **nichts** über eine erfolgreiche Kopie aus. `archiveSaved` und tatsächliche SHA-256-Rückleseprüfung sind weiterhin erforderlich. `separate-account` garantiert weder eine andere Region noch getrennte Administratorrechte, Wiederherstellbarkeit oder die SharePoint-Kopie.
+
+Für echte Kontentrennung muss ein **bereits autorisiertes** zweites Azure-Speicherkonto gewählt oder ein neues mit genehmigtem Kosten-/Sicherheitskonzept bereitgestellt werden. Den vollständigen Connection String ausschließlich serverseitig in `EXPORTHUB_POD_BACKUP_CONNECTION_STRING` hinterlegen, TESTSERVICE und PRODUKTION getrennt prüfen. Kein fremdes/privates Konto für Firmen-PODs verwenden. Die Umgebungskonfiguration ist keine Codeänderung und wird durch Merge/Deployment **nicht** automatisch vorgenommen. Zuerst nur ein freigegebenes TESTSERVICE-Testdokument auf dem zweiten Account ablegen und per Hash aus dem Backup rücklesen; danach kontrolliert für Produktion freigeben.
+
 ## Microsoft Graph – Ziel und Berechtigungen
 
 Erforderlich sind die Azure-seitig geschützten Werte:
