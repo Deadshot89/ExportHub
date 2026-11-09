@@ -12,14 +12,14 @@
  };
  var lastMode='invoice',scheduled=false,observer=null,installed=false;
  var uploadLabels={
-  de:{title:'Dateien hochladen und analysieren',hint:'PDF, Excel, CSV oder Bild hochladen. Nach der Sicherheitsprüfung erkannte Daten prüfen und in den Editor übernehmen.',select:'Dateien auswählen',start:'Dateien analysieren',resume:'Prüfung erneut abfragen',empty:'Bitte zuerst eine Datei auswählen.',checking:'Datei wird auf Viren geprüft und analysiert:',ready:'Analyse abgeschlossen. Daten prüfen und übernehmen.',failed:'Analyse fehlgeschlagen:',useInvoice:'In Rechnung übernehmen',useDelivery:'In Lieferschein übernehmen',positions:'Positionen',preview:'Erkannte Daten',review:'Angaben aus Dateien immer kontrollieren. Es erfolgt keine automatische Freigabe.',limits:'Maximal 5 Dateien, je höchstens 12 MB.',invalid:'Zulässig sind PDF, XLSX, CSV, TSV, TXT, JPG und PNG.',unavailable:'Die abgesicherte Dateianalyse ist nicht verfügbar.',pending:'Sicherheitsprüfung noch offen. Mit derselben Datei erneut prüfen.',selected:'Ausgewählte Dateien'},
-  en:{title:'Upload and analyze files',hint:'Upload PDF, Excel, CSV or an image. Review extracted data after security scanning, then import into the editor.',select:'Choose files',start:'Analyze files',resume:'Check scan again',empty:'Choose a file first.',checking:'Scanning and analyzing:',ready:'Analysis complete. Review and import the data.',failed:'Analysis failed:',useInvoice:'Import into invoice',useDelivery:'Import into delivery note',positions:'Items',preview:'Extracted data',review:'Always verify extracted details. No automatic approval.',limits:'Up to 5 files, max 12 MB each.',invalid:'Allowed: PDF, XLSX, CSV, TSV, TXT, JPG and PNG.',unavailable:'Secure file analysis is unavailable.',pending:'Security scan still pending. Check again with the same file.',selected:'Selected files'},
-  pl:{title:'Prześlij i przeanalizuj pliki',hint:'Prześlij PDF, Excel, CSV lub obraz. Sprawdź dane po kontroli bezpieczeństwa.',select:'Wybierz pliki',start:'Analizuj pliki',resume:'Sprawdź ponownie',empty:'Najpierw wybierz plik.',checking:'Kontrola i analiza:',ready:'Analiza zakończona. Sprawdź i przenieś dane.',failed:'Błąd analizy:',useInvoice:'Do faktury',useDelivery:'Do dokumentu dostawy',positions:'Pozycje',preview:'Rozpoznane dane',review:'Zawsze sprawdź rozpoznane informacje.',limits:'Maks. 5 plików, do 12 MB każdy.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analiza plików niedostępna.',pending:'Trwa kontrola bezpieczeństwa. Sprawdź ponownie.',selected:'Wybrane pliki'},
-  es:{title:'Subir y analizar archivos',hint:'Sube PDF, Excel, CSV o imágenes. Revisa los datos antes de importarlos.',select:'Elegir archivos',start:'Analizar archivos',resume:'Comprobar otra vez',empty:'Selecciona un archivo.',checking:'Analizando:',ready:'Análisis terminado. Revisa e importa.',failed:'Error de análisis:',useInvoice:'Importar a factura',useDelivery:'Importar a albarán',positions:'Artículos',preview:'Datos detectados',review:'Comprueba siempre los datos detectados.',limits:'Hasta 5 archivos de 12 MB.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Análisis seguro no disponible.',pending:'El análisis de seguridad sigue pendiente.',selected:'Archivos seleccionados'},
-  fr:{title:'Importer et analyser des fichiers',hint:'Importez PDF, Excel, CSV ou image. Vérifiez les données avant de les reprendre.',select:'Choisir des fichiers',start:'Analyser',resume:'Vérifier à nouveau',empty:'Choisissez un fichier.',checking:'Analyse en cours :',ready:'Analyse terminée. Vérifiez puis reprenez.',failed:'Échec :',useInvoice:'Vers la facture',useDelivery:'Vers le bon de livraison',positions:'Lignes',preview:'Données extraites',review:'Vérifiez toutes les données extraites.',limits:'5 fichiers max., 12 Mo chacun.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analyse sécurisée indisponible.',pending:'Analyse de sécurité en attente.',selected:'Fichiers sélectionnés'},
-  it:{title:'Carica e analizza file',hint:'Carica PDF, Excel, CSV o immagini. Verifica i dati prima di importarli.',select:'Scegli file',start:'Analizza file',resume:'Controlla di nuovo',empty:'Seleziona un file.',checking:'Analisi:',ready:'Analisi completata. Verifica e importa.',failed:'Errore:',useInvoice:'Nella fattura',useDelivery:'Nella bolla di consegna',positions:'Articoli',preview:'Dati estratti',review:'Verifica sempre i dati estratti.',limits:'Fino a 5 file da 12 MB.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analisi sicura non disponibile.',pending:'Scansione di sicurezza in attesa.',selected:'File selezionati'}
+  de:{title:'Dateien hochladen und analysieren',hint:'PDF, Excel, CSV oder Bild hochladen. Nach der Sicherheitsprüfung erkannte Daten prüfen und in den Editor übernehmen.',select:'Dateien auswählen',start:'Dateien analysieren',resume:'Prüfung erneut abfragen',empty:'Bitte zuerst eine Datei auswählen.',checking:'Datei wird auf Viren geprüft und analysiert:',ready:'Analyse abgeschlossen. Daten prüfen und übernehmen.',failed:'Analyse fehlgeschlagen:',useInvoice:'In Rechnung übernehmen',useDelivery:'In Lieferschein übernehmen',positions:'Positionen',preview:'Erkannte Daten',review:'Angaben aus Dateien immer kontrollieren. Es erfolgt keine automatische Freigabe.',limits:'Maximal 5 Dateien, je höchstens 12 MB.',invalid:'Zulässig sind PDF, XLSX, CSV, TSV, TXT, JPG und PNG.',unavailable:'Die abgesicherte Dateianalyse ist nicht verfügbar.',pending:'Sicherheitsprüfung läuft noch. „Prüfung erneut abfragen“ klicken, ohne die Datei neu auszuwählen oder die Seite neu zu laden.',selected:'Ausgewählte Dateien'},
+  en:{title:'Upload and analyze files',hint:'Upload PDF, Excel, CSV or an image. Review extracted data after security scanning, then import into the editor.',select:'Choose files',start:'Analyze files',resume:'Check scan again',empty:'Choose a file first.',checking:'Scanning and analyzing:',ready:'Analysis complete. Review and import the data.',failed:'Analysis failed:',useInvoice:'Import into invoice',useDelivery:'Import into delivery note',positions:'Items',preview:'Extracted data',review:'Always verify extracted details. No automatic approval.',limits:'Up to 5 files, max 12 MB each.',invalid:'Allowed: PDF, XLSX, CSV, TSV, TXT, JPG and PNG.',unavailable:'Secure file analysis is unavailable.',pending:'Security scan still running. Select “Check scan again” without choosing the file again or reloading the page.',selected:'Selected files'},
+  pl:{title:'Prześlij i przeanalizuj pliki',hint:'Prześlij PDF, Excel, CSV lub obraz. Sprawdź dane po kontroli bezpieczeństwa.',select:'Wybierz pliki',start:'Analizuj pliki',resume:'Sprawdź ponownie',empty:'Najpierw wybierz plik.',checking:'Kontrola i analiza:',ready:'Analiza zakończona. Sprawdź i przenieś dane.',failed:'Błąd analizy:',useInvoice:'Do faktury',useDelivery:'Do dokumentu dostawy',positions:'Pozycje',preview:'Rozpoznane dane',review:'Zawsze sprawdź rozpoznane informacje.',limits:'Maks. 5 plików, do 12 MB każdy.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analiza plików niedostępna.',pending:'Kontrola bezpieczeństwa trwa. Wybierz „Sprawdź ponownie” bez ponownego wybierania pliku ani odświeżania strony.',selected:'Wybrane pliki'},
+  es:{title:'Subir y analizar archivos',hint:'Sube PDF, Excel, CSV o imágenes. Revisa los datos antes de importarlos.',select:'Elegir archivos',start:'Analizar archivos',resume:'Comprobar otra vez',empty:'Selecciona un archivo.',checking:'Analizando:',ready:'Análisis terminado. Revisa e importa.',failed:'Error de análisis:',useInvoice:'Importar a factura',useDelivery:'Importar a albarán',positions:'Artículos',preview:'Datos detectados',review:'Comprueba siempre los datos detectados.',limits:'Hasta 5 archivos de 12 MB.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Análisis seguro no disponible.',pending:'El control de seguridad continúa. Pulsa «Comprobar otra vez» sin volver a elegir el archivo ni recargar la página.',selected:'Archivos seleccionados'},
+  fr:{title:'Importer et analyser des fichiers',hint:'Importez PDF, Excel, CSV ou image. Vérifiez les données avant de les reprendre.',select:'Choisir des fichiers',start:'Analyser',resume:'Vérifier à nouveau',empty:'Choisissez un fichier.',checking:'Analyse en cours :',ready:'Analyse terminée. Vérifiez puis reprenez.',failed:'Échec :',useInvoice:'Vers la facture',useDelivery:'Vers le bon de livraison',positions:'Lignes',preview:'Données extraites',review:'Vérifiez toutes les données extraites.',limits:'5 fichiers max., 12 Mo chacun.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analyse sécurisée indisponible.',pending:'Le contrôle de sécurité est en cours. Cliquez sur « Vérifier à nouveau » sans sélectionner de nouveau le fichier ni recharger la page.',selected:'Fichiers sélectionnés'},
+  it:{title:'Carica e analizza file',hint:'Carica PDF, Excel, CSV o immagini. Verifica i dati prima di importarli.',select:'Scegli file',start:'Analizza file',resume:'Controlla di nuovo',empty:'Seleziona un file.',checking:'Analisi:',ready:'Analisi completata. Verifica e importa.',failed:'Errore:',useInvoice:'Nella fattura',useDelivery:'Nella bolla di consegna',positions:'Articoli',preview:'Dati estratti',review:'Verifica sempre i dati estratti.',limits:'Fino a 5 file da 12 MB.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analisi sicura non disponibile.',pending:'Controllo di sicurezza ancora in corso. Premi «Controlla di nuovo» senza riselezionare il file né ricaricare la pagina.',selected:'File selezionati'}
  };
- var chosenFiles=[],scanResults=[],scanBusy=false,scanPending=false;
+ var chosenFiles=[],scanResults=[],scanBusy=false,scanPending=false,pendingScanFiles=[];
  function ut(key){return uploadLabels[lang()][key]}
  function uploadHost(){return d.getElementById('rc1940DocumentUpload')}
  function uploadStatus(message,kind){
@@ -76,7 +76,7 @@
    parent.insertBefore(p,anchor);
    p.addEventListener('change',function(e){
     if(!e.target||!e.target.matches('[data-rc1940-files]'))return;
-    e.stopPropagation();chosenFiles=Array.from(e.target.files||[]);scanResults=[];scanPending=false;uploadStatus('', 'info');refreshUpload()
+    e.stopPropagation();chosenFiles=Array.from(e.target.files||[]);scanResults=[];scanPending=false;pendingScanFiles=[];uploadStatus('', 'info');refreshUpload()
    });
    p.addEventListener('click',function(e){
     var run=e.target&&e.target.closest('[data-rc1940-analyze]');
@@ -97,25 +97,33 @@
  async function runScan(){
   if(scanBusy)return false;
   if(!chosenFiles.length){uploadStatus(ut('empty'),'bad');return false}
-  if(chosenFiles.length>5||chosenFiles.some(function(f){return !/\.(pdf|xlsx|csv|tsv|txt|jpe?g|png)$/i.test(f.name)||!f.size||f.size>12*1024*1024})){uploadStatus(ut('invalid')+' '+ut('limits'),'bad');return false}
+  if(chosenFiles.length>5||chosenFiles.some(function(f){return !/\\.(pdf|xlsx|csv|tsv|txt|jpe?g|png)$/i.test(f.name)||!f.size||f.size>12*1024*1024})){uploadStatus(ut('invalid')+' '+ut('limits'),'bad');return false}
   var scanner=w.ExportHUBRC1294ABDAnalysis;
   if(!scanner||typeof scanner.analyzeFile!=='function'){uploadStatus(ut('unavailable'),'bad');return false}
-  scanBusy=true;scanPending=false;scanResults=[];refreshUpload();
-  var errors=[];
+  // Recheck only still-pending files. Already analyzed files are NOT uploaded a second time.
+  var resume=scanPending&&pendingScanFiles.length>0,files=resume?pendingScanFiles.slice():chosenFiles.slice();
+  if(!resume)scanResults=[];
+  scanBusy=true;scanPending=false;pendingScanFiles=[];refreshUpload();
+  var errors=[],pendingMessages=[];
   try{
-   for(var i=0;i<chosenFiles.length;i++){
-    var file=chosenFiles[i];uploadStatus(ut('checking')+' '+file.name,'info');
+   for(var i=0;i<files.length;i++){
+    var file=files[i];uploadStatus(ut('checking')+' '+file.name,'info');
     try{
      var response=await scanner.analyzeFile(file),analysis=response&&response.analysis;
      if(!analysis)throw new Error('ANALYSIS_EMPTY');
      var docs=Array.isArray(analysis.deliveryDocuments)&&analysis.deliveryDocuments.length?analysis.deliveryDocuments:[analysis];
      docs.forEach(function(doc,n){if(doc&&Array.isArray(doc.positions)&&doc.positions.length)scanResults.push({fileName:file.name+(docs.length>1?' #'+(n+1):''),analysis:doc});else errors.push(file.name+': 0 '+ut('positions'))})
     }catch(error){
-     if(error&&error.code==='ABD_SCAN_PENDING')scanPending=true;
-     errors.push(file.name+': '+(error&&error.code==='ABD_SCAN_PENDING'?ut('pending'):(error&&error.message||error&&error.code||ut('failed'))))
+     if(error&&error.code==='ABD_SCAN_PENDING'){
+      scanPending=true;pendingScanFiles.push(file);pendingMessages.push(file.name+': '+ut('pending'))
+     }else errors.push(file.name+': '+(error&&error.message||error&&error.code||ut('failed')))
     }
    }
-   refreshUpload();uploadStatus((scanResults.length?ut('ready'):'')+(errors.length?' '+ut('failed')+' '+errors.join('; '):''),errors.length?'warn':'ok');
+   var messages=[];
+   if(scanResults.length)messages.push(ut('ready'));
+   if(pendingMessages.length)messages.push(pendingMessages.join('; '));
+   if(errors.length)messages.push(ut('failed')+' '+errors.join('; '));
+   refreshUpload();uploadStatus(messages.join(' '),errors.length?'warn':scanPending?'info':'ok');
    return !!scanResults.length
   }finally{scanBusy=false;refreshUpload()}
  }
