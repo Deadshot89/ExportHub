@@ -200,6 +200,65 @@ async function renderedPdf(sh,cause){
  return out.blob
 }
 function fileName(sh){return 'POD_'+(refOf(sh)||t('fallback'))+'_Ladeliste_unterschrieben.pdf'}
+
+/* RC1938: print-copy action intentionally never changes the archived original. */
+var RC1938_COPY='[data-rc1938-layout-copy="1"]';
+var RC1938_LABELS={
+ de:'Ladeliste drucken (Layoutkopie)',en:'Print loading list (layout copy)',
+ pl:'Drukuj listę (kopia)',es:'Imprimir lista (copia)',
+ fr:'Imprimer liste (copie)',it:'Stampa lista (copia)'
+};
+function rc1938Label(){
+ var lang=q((d.documentElement&&d.documentElement.lang)||(w.navigator&&w.navigator.language)||'de').slice(0,2).toLowerCase();
+ return RC1938_LABELS[lang]||RC1938_LABELS.de
+}
+async function rc1938DownloadCopy(button){
+ if(button.dataset.rc1938Busy==='1')return;
+ button.dataset.rc1938Busy='1';button.disabled=true;
+ try{
+  var sh=shipment(button);
+  // A layout copy must not synchronize or persist pickup/team state. Render
+  // solely from the already selected shipment; missing signature evidence
+  // fails visibly rather than altering any archived original.
+  // The existing browser renderer creates a new in-memory PDF only;
+  // it does not use saveAzurePod, overwrite an archive, or replace an ID.
+  var pdf=await renderedPdf(sh,null);
+  if(!pdf||pdf.size<1000)throw Error(t('empty'));
+  var href=URL.createObjectURL(pdf),a=d.createElement('a');
+  a.href=href;a.download='LAYOUTKOPIE_'+(refOf(sh)||t('fallback'))+'_Ladeliste.pdf';
+  a.rel='noopener';d.body.appendChild(a);a.click();a.remove();
+  w.setTimeout(function(){URL.revokeObjectURL(href)},120000);
+ }catch(error){if(typeof w.alert==='function')w.alert(t('failed')+'\n\n'+q(error&&error.message||error))}
+ finally{delete button.dataset.rc1938Busy;button.disabled=false}
+}
+function rc1938Install(){
+ if(!d.querySelectorAll||!d.createElement)return;
+ Array.from(d.querySelectorAll('[data-rc628-official-pod-download="1"],[data-index352-action="download-pod"]')).forEach(function(original){
+  if(!original.parentNode)return;
+  if(original.nextElementSibling&&original.nextElementSibling.matches(RC1938_COPY))return;
+  var copy=d.createElement('button');copy.type='button';
+  copy.className=q(original.className);
+  copy.setAttribute('data-rc1938-layout-copy','1');
+  copy.textContent=rc1938Label();
+  copy.title=rc1938Label();
+  if(original.dataset&&original.dataset.id)copy.dataset.id=original.dataset.id;
+  copy.style.marginLeft='8px';original.parentNode.insertBefore(copy,original.nextSibling);
+ });
+}
+function rc1938Observe(){
+ rc1938Install();
+ if(w.MutationObserver&&d.body){
+  var queued=false,observer=new w.MutationObserver(function(records){
+   if(queued||!records.some(function(x){return x.addedNodes&&x.addedNodes.length}))return;
+   queued=true;
+   var schedule=w.requestAnimationFrame||function(fn){w.setTimeout(fn,0)};
+   schedule(function(){queued=false;rc1938Install()});
+  });
+  observer.observe(d.body,{childList:true,subtree:true});
+ }
+ if(typeof w.addEventListener==='function')w.addEventListener('exporthub:viewchange',rc1938Install);
+}
+
 function openPdf(blob,sh,mode,popup){
  var href=URL.createObjectURL(blob);
  if(mode==='open'){
@@ -245,10 +304,17 @@ async function handle(button){
  }
 }
 d.addEventListener('click',function(e){
+ var copy=e.target&&e.target.closest&&e.target.closest(RC1938_COPY);
+ if(copy&&!copy.disabled&&copy.getAttribute&&copy.getAttribute('data-rc1938-layout-copy')==='1'){
+  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
+  rc1938DownloadCopy(copy);return
+ }
  var button=e.target&&e.target.closest&&e.target.closest(SELECTOR);
  if(!button||button.disabled)return;
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',rc1938Observe,{once:true});
+else rc1938Observe();
 w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1630',selector:SELECTOR,canonicalPdf:canonicalPdf,renderedPdf:renderedPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
 })(window,document);
