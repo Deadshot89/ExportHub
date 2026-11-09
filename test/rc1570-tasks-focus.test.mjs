@@ -206,7 +206,7 @@ test('RC1570 Aufgabenansicht entfernt den Listen-Fokus, sonst blendet das CSS di
 
 
 /* RC1811: real task-view form writes must be confirmed, not merely queued. */
-function editorHarness(tasks,flushSave){
+function editorHarness(tasks,flushSave,runtime){
   const store={tasks,users:[],taskSeries:[]},calls=[];
   const win={
     __EXPORTHUB_GET_STATE__:()=>store,
@@ -219,6 +219,7 @@ function editorHarness(tasks,flushSave){
       operationStatus(){}
     }
   };
+  if(runtime)win.ExportHUBRC1014TaskRuntime=runtime;
   const context={window:win,Date,Intl,console:{...console,error(){}}};
   vm.runInNewContext(texts,context);
   vm.runInNewContext(source,context);
@@ -315,4 +316,163 @@ test('RC1811: edited task has a fresh sync timestamp so server merge cannot pref
   assert.equal(task._syncUpdatedAt,task.updatedAt);
   assert.equal(task.statusUpdatedAt,task.updatedAt);
   assert.equal(store.taskStatusLedger['id:m'].done,true);
+});
+
+
+test('Aufgabenansicht: persönlicher kompletter Bestand und Überfälligkeit nach POD, AV, Sendung',()=>{
+  const tasks=[
+    {id:'pod',title:'POD fehlt',group:'Fehlende POD',dueDate:'2026-11-05',owner:'Tobias'},
+    {id:'av',title:'AV hochladen',sourceType:'av_missing',group:'Ausgangsvermerk',dueDate:'2026-11-06',owner:'Tobias'},
+    {id:'shipment',title:'Offene Sendung',group:'Offene Sendungen',dueDate:'2026-11-07',owner:'Tobias'},
+    {id:'weekly',title:'Kontrolle Montag',recurrence:'weekly',dueDate:'2026-11-09',owner:'Tobias'},
+    {id:'once',title:'Einzelaufgabe',dueDate:'2026-11-10',owner:'Tobias'},
+    {id:'done',title:'Schon erledigt',status:'done',done:true,owner:'Tobias'},
+    {id:'other',title:'Fremde Aufgabe',owner:'Sevastian',dueDate:'2026-11-08'}
+  ];
+  const api=load(tasks,me,'2026-11-09T08:45:00');
+  const roster=api.managedRows();
+  assert.equal(roster.counts.all,6,'Meine Aufgaben umfassen auch erledigte und einmalige');
+  assert.equal(roster.counts.overdue,3);
+  assert.equal(roster.counts.weekly,1);
+  assert.equal(roster.counts.once,5);
+  assert.equal(roster.counts.done,1);
+  assert.deepEqual(ids(api.buildModel().overdue),['pod','av','shipment']);
+  assert.equal(api.workGroup(tasks[1]),'av','AV ist keine Kundenavisierung');
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-kind="overdue"/);
+  assert.match(html,/data-rc1570-tv-kind="weekly"/);
+  assert.match(html,/data-rc1570-tv-kind="once"/);
+  assert.match(html,/data-rc1570-tv-kind="done"/);
+  assert.doesNotMatch(html,/data-rc1570-tv-open="other"/,'Standardansicht zeigt persönliche Aufgaben');
+});
+
+test('Aufgabenansicht: nicht nach 200 Aufgaben abschneiden; stückweise alle laden',()=>{
+  const tasks=Array.from({length:245},(_,i)=>({id:'t'+i,title:'Aufgabe '+i,owner:'Tobias',sourceType:'manual'}));
+  const api=load(tasks,me,'2026-11-09T08:45:00');
+  let html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-more="1"/);
+  assert.match(html,/245 Aufgaben/);
+  assert.doesNotMatch(html,/data-rc1570-tv-open="t244"/);
+  api._tv.moreCount=300;
+  html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="t244"/);
+  assert.doesNotMatch(html,/data-rc1570-tv-more="1"/);
+});
+
+test('Aufgabenansicht: manuelle Einzelaufgabe dauerhaft löschen und serverseitig quittieren',async()=>{
+  const {api,store,calls}=editorHarness([
+    {id:'manual1',title:'Einmalig',owner:'Tobias',sourceType:'manual',dueDate:'2026-11-09'},
+    {id:'manual2',title:'Bleibt erhalten',owner:'Tobias',sourceType:'manual'}
+  ],()=>true);
+  assert.equal(await api._deleteManagedTask('manual1'),true);
+  assert.deepEqual(store.tasks.map(x=>x.id),['manual2']);
+  assert.equal(store._teamSyncMeta.tombstones[0].collection,'tasks');
+  assert.equal(store._teamSyncMeta.tombstones[0].id,'manual1');
+  assert.equal(store._teamSyncMeta.tombstones[0].explicitUserAction,true);
+  assert.equal(calls[1][0],'flush');
+  assert.equal(calls[1][2].userInitiated,true);
+});
+
+test('Aufgabenansicht: wenn Speichern fehlschlägt, Löschung vollständig zurückrollen',async()=>{
+  const tasks=[{id:'manual1',title:'Bleibt',sourceType:'manual',owner:'Tobias'}];
+  const {api,store}=editorHarness(tasks,()=>false);
+  const before=store.tasks;
+  assert.equal(await api._deleteManagedTask('manual1'),false);
+  assert.strictEqual(store.tasks,before);
+  assert.strictEqual(store._teamSyncMeta,undefined);
+});
+
+test('Aufgabenansicht: manuelle Wochenserie samt Instanzen und Stammsatz entfernen',async()=>{
+  const sid='rc1570-series:abc';
+  const {api,store}=editorHarness([
+    {id:'abc',title:'Wochenstamm',sourceType:'manual',seriesId:sid,isTemplate:true,owner:'Tobias'},
+    {id:'occ1',title:'Diese Woche',sourceType:'manual',seriesId:sid,owner:'Tobias'},
+    {id:'occ2',title:'Nächste Woche',sourceType:'manual',seriesId:sid,owner:'Tobias'},
+    {id:'other',title:'Bleibt',sourceType:'manual',owner:'Tobias'}
+  ],()=>true);
+  store.taskSeries=[{id:sid,rule:{type:'weekly',weekdays:[1]}}];
+  assert.equal(await api._deleteManagedTask('occ1'),true);
+  assert.deepEqual(store.tasks.map(x=>x.id),['other']);
+  assert.equal(store.taskSeries.length,0);
+  assert.equal(store._teamSyncMeta.tombstones.filter(x=>x.collection==='tasks').length,3);
+  assert.equal(store._teamSyncMeta.tombstones.filter(x=>x.collection==='taskSeries').length,1);
+});
+
+test('Aufgabenansicht: echte Pflichtaufgaben bleiben geschützt statt unbemerkt zu verschwinden',async()=>{
+  const tasks=[
+    {id:'task:av-missing:ABC123',title:'AV fehlt',sourceType:'av_missing',owner:'Tobias'},
+    {id:'pod1',title:'POD fehlt',group:'Fehlende POD',owner:'Tobias'},
+    {id:'sys1',title:'Offene Sendung',group:'Offene Sendungen',owner:'Tobias'}
+  ];
+  const {api,store}=editorHarness(tasks,()=>true);
+  for(const x of tasks)assert.equal(await api._deleteManagedTask(x.id),false);
+  assert.strictEqual(store.tasks,tasks);
+  assert.match(api.taskViewHtml(),/data-rc1570-tv-open="pod1"/);
+  assert.doesNotMatch(api.taskViewHtml(),/data-rc1570-tv-delete="pod1"/);
+});
+
+
+test('Aufgabenansicht: verwaltete Wochenroutine dauerhaft abschalten, nicht nur Tagesinstanz löschen',async()=>{
+  const {api,store}=editorHarness([
+    {id:'managed:wuerth-industrie:2026-11-10',title:'Würth Industrie',managedBy:'RC1152',managedKind:'recurring',managedKey:'wuerth-industrie',sourceType:'manual',owner:'Tobias'},
+    {id:'managed:wuerth-industrie:2026-11-12',title:'Würth Industrie',managedBy:'RC1152',managedKind:'recurring',managedKey:'wuerth-industrie',sourceType:'manual',owner:'Tobias'},
+    {id:'manual',title:'Manuell',sourceType:'manual',owner:'Tobias'}
+  ],()=>true);
+  assert.equal(api.managedRows().counts.weekly,2);
+  assert.equal(await api._deleteManagedTask('managed:wuerth-industrie:2026-11-10'),true);
+  assert.deepEqual(store.tasks.map(x=>x.id),['manual']);
+  assert.ok(store.taskManagedDisabled['wuerth-industrie'].disabledAt);
+  assert.equal(store._teamSyncMeta.tombstones.filter(x=>x.collection==='tasks').length,2);
+});
+
+
+test('Aufgabenansicht: alle Wochenstämme auch ohne Instanz an einem anderen Wochentag sichtbar und löschbar',async()=>{
+  const runtime={managedTaskPlanItems:({state})=>state.taskManagedDisabled&&state.taskManagedDisabled['wuerth-industrie']?[]:[
+    {key:'wuerth-industrie',title:'Würth Industrie',group:'Anmeldung',weekdays:[2,4],dueTime:'13:00'}
+  ]};
+  const {api,store}=editorHarness([{id:'manual',title:'Einmalig',owner:'Tobias',sourceType:'manual'}],()=>true,runtime);
+  assert.equal(api.managedRows().counts.weekly,1,'Wochenregel ohne heute erzeugte Instanz sichtbar');
+  let html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="managed:template:wuerth-industrie"/);
+  assert.match(html,/data-rc1570-tv-delete="managed:template:wuerth-industrie"/);
+  assert.equal(await api._deleteManagedTask('managed:template:wuerth-industrie'),true);
+  assert.ok(store.taskManagedDisabled['wuerth-industrie'].disabledAt);
+  assert.deepEqual(store.tasks.map(t=>t.id),['manual']);
+  assert.equal(api.managedRows().counts.weekly,0,'dauerhaft abgeschaltete Serie ist nicht wieder sichtbar');
+});
+
+
+test('Aufgabenansicht: V2 Wochenserie erscheint ohne heutige Instanz und wird vollständig deaktiviert',async()=>{
+  const {api,store}=editorHarness([{id:'remain',title:'Einmalig',sourceType:'manual',owner:'Tobias'}],()=>true);
+  store.taskSeries=[{id:'series-uk',title:'UK anmelden',owner:'Tobias',rule:{type:'weekly',weekdays:[1,4]},task:{sourceType:'manual'}}];
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="series:template:series-uk"/);
+  assert.match(html,/data-rc1570-tv-delete="series:template:series-uk"/);
+  assert.equal(api.managedRows().counts.weekly,1);
+  assert.equal(await api._deleteManagedTask('series:template:series-uk'),true);
+  assert.equal(store.taskSeries.length,0);
+  assert.deepEqual(store.tasks.map(t=>t.id),['remain']);
+  assert.ok(store._teamSyncMeta.tombstones.some(t=>t.collection==='taskSeries'&&t.id==='series-uk'));
+  assert.equal(api.managedRows().counts.weekly,0);
+});
+
+test('Aufgabenansicht: Wochenstamm kann weder als Tagesinstanz erledigt noch fälschlich bearbeitet werden',async()=>{
+  const {api,store}=editorHarness([],
+    ()=>true,{managedTaskPlanItems:()=>[{key:'sweden',title:'Schweden anmelden',weekdays:[3]}]});
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="managed:template:sweden"/);
+  api.openTask('managed:template:sweden');
+  const detail=api.taskViewHtml();
+  assert.doesNotMatch(detail,/data-rc1570-tv="edit"/);
+  assert.doesNotMatch(detail,/data-rc1570-tv-status="done"/);
+  assert.equal(await api._changeTaskStatus('done'),false);
+  assert.equal(store.tasks.length,0);
+});
+
+
+test('Aufgaben: POD wird nach expliziter Systemgruppe klassifiziert, auch wenn Bereich Versand lautet',()=>{
+  const api=load([],me,'2026-11-09T08:45:00');
+  assert.equal(api.workGroup({title:'POD fehlt',area:'Versand',group:'Fehlende POD',status:'offen'}),'pod');
+  assert.equal(api.workGroup({title:'POD hochgeladen',area:'Versand',group:'Fehlende POD',status:'done',podUrl:'x'}),'pod');
+  assert.equal(api.workGroup({title:'AV hochladen',area:'Versand',sourceType:'av_missing'}),'av');
 });
