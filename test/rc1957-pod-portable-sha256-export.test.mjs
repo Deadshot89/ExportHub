@@ -37,8 +37,8 @@ const bytes = text => new Uint8Array(Buffer.from(text, 'utf8'));
 const digest = data => createHash('sha256').update(data).digest('hex');
 
 test('RC1957: portable ZIP contains SHA256SUMS for the actual signed and manual PDF bytes', async () => {
-  const digital = bytes('%PDF-1.7\\nSAVED SIGNED ORIGINAL');
-  const manual = bytes('%PDF-1.7\\nMANUAL SUPPLEMENT');
+  const digital = bytes('%PDF-1.7\nSAVED SIGNED ORIGINAL');
+  const manual = bytes('%PDF-1.7\nMANUAL SUPPLEMENT');
   const { entries, fail } = await run([
     { name: 'POD_ABC123_Ladeliste.pdf', data: digital },
     { name: 'POD_ABC123_Manual.pdf', data: manual }
@@ -55,24 +55,24 @@ test('RC1957: portable ZIP contains SHA256SUMS for the actual signed and manual 
 });
 
 test('RC1957: filename collisions are normalized before checksums are assigned', async () => {
-  const first = bytes('%PDF-1.7\\nONE');
-  const second = bytes('%PDF-1.7\\nTWO');
+  const first = bytes('%PDF-1.7\nONE');
+  const second = bytes('%PDF-1.7\nTWO');
   const { entries, fail } = await run([
     { name: 'POD_ABC123.pdf', data: first },
     { name: 'pod_abc123.PDF', data: second }
   ]);
   assert.deepEqual(fail, []);
-  const fileNames = entries.filter(entry => /\\.pdf$/i.test(entry.name)).map(entry => entry.name);
+  const fileNames = entries.filter(entry => /\.pdf$/i.test(entry.name)).map(entry => entry.name);
   assert.equal(new Set(fileNames.map(n => n.toLowerCase())).size, 2);
   const sums = new TextDecoder().decode(entries.find(e => e.name === 'SHA256SUMS.txt').data);
   assert.ok(sums.includes(digest(first) + '  ' + fileNames[0]));
   assert.ok(sums.includes(digest(second) + '  ' + fileNames[1]));
   const afterZipNaming = uniqueArchiveEntries(entries);
-  assert.deepEqual(afterZipNaming.filter(e => /\\.pdf$/i.test(e.name)).map(e => e.name), fileNames);
+  assert.deepEqual(afterZipNaming.filter(e => /\.pdf$/i.test(e.name)).map(e => e.name), fileNames);
 });
 
 test('RC1957: unavailable WebCrypto and empty exports fail closed without inventing proof', async () => {
-  const noCrypto = await run([{ name: 'POD_ABC123.pdf', data: bytes('%PDF-1.7\\nONE') }], null);
+  const noCrypto = await run([{ name: 'POD_ABC123.pdf', data: bytes('%PDF-1.7\nONE') }], null);
   assert.ok(noCrypto.fail.includes('RC1957_SHA256_UNAVAILABLE'));
   assert.equal(noCrypto.entries.some(e => e.name === 'SHA256SUMS.txt'), false);
   const empty = await run([{ name: 'README.txt', data: bytes('some text') }]);
@@ -81,8 +81,8 @@ test('RC1957: unavailable WebCrypto and empty exports fail closed without invent
 });
 
 test('RC1957: no Graph access, upload or original POD mutation added to the export stage', () => {
-  assert.doesNotMatch(stage, /fetch\\(|XMLHttpRequest|upload|saveAzurePod|copyToDrive|sharePoint|graphDrive/i);
-  assert.match(controller, /btn\\.disabled=false;return fail\\.length===0/);
-  assert.match(controller, /function zip\\(entries\\)\\{uniqueArchiveEntries\\(entries\\);/);
+  assert.doesNotMatch(stage, /fetch\(|XMLHttpRequest|upload|saveAzurePod|copyToDrive|sharePoint|graphDrive/i);
+  assert.match(controller, /btn\.disabled=false;return fail\.length===0/);
+  assert.match(controller, /function zip\(entries\)\{uniqueArchiveEntries\(entries\);/);
   assert.doesNotThrow(() => new Function(controller));
 });
