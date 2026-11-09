@@ -77,6 +77,18 @@ test('RC1875: another weekday cannot receive same REF; canceled shipments never 
  assert.equal(noTasks.shipments,0,'unrelated legacy FIX customer 999 cannot auto-match UK');
 });
 
+test('RC1875: cancellation in any canonical status overrides open pickup state',()=>{
+ const canceled={...a,pickupStatus:'open',shipmentStatus:'Storniert',status:'Bereit zur Abholung'};
+ const result=model([pick],[canceled,b]).days[0];
+ assert.deepEqual(result.fixedStatus['FIX-UK'].refs,['UK-B']);
+ assert.deepEqual(result.shipments.map(sh=>sh.reference),['UK-B'],
+   'a canceled shipment must not appear as independently open on the calendar');
+ const deleted={...a,pickupStatus:'open',processStatus:'Gelöscht'};
+ const another=model([pick],[deleted,b]).days[0];
+ assert.deepEqual(another.fixedStatus['FIX-UK'].refs,['UK-B']);
+ assert.deepEqual(another.shipments.map(sh=>sh.reference),['UK-B']);
+});
+
 test('RC1875: clearing all Pick accounts never restores legacy FIX account',()=>{
  const cleared={...pick,customerNumber:'',linkedAccount:'',customerNumberSetAt:'2026-11-08T08:00:00Z'};
  const result=model([cleared],[a,b]).days[0].fixedStatus['FIX-UK'];
