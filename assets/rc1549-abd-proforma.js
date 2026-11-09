@@ -48,7 +48,7 @@ var packs={
  it:{title:'Inserisci posizioni manualmente',help:'In alternativa al caricamento di documenti o Excel puoi inserire qui le posizioni. Tutti i percorsi usano la stessa verifica ABD.',number:'N. proforma',date:'Data',recipient:'Destinatario',country:'Paese di destinazione',currency:'Valuta',add:'Aggiungi posizione',create:'Verifica posizioni',proforma:'Scarica proforma PDF',item:'Articolo',description:'Descrizione',qty:'Quantità',unit:'Unità',unitPrice:'Prezzo unitario',value:'Valore merce',net:'Netto kg',gross:'Lordo kg',volume:'Volume m³',hs:'Codice HS',origin:'Paese di origine',actions:'Azioni',remove:'Rimuovi',duplicate:'Duplica',summary:'Analisi manuale',total:'Valore totale',groups:'Riepilogo doganale',required:'Inserisci almeno una posizione completa.',recipientRequired:'Inserisci un destinatario.',ready:'Analisi completa. È possibile creare la proforma.',review:'Completa i dati obbligatori.',error:'Operazione non riuscita.'}
 };
 var extras={
- de:{invoiceTitle:'Rechnung für ABD erstellen',
+ de:{invoiceTitle:'Rechnung / Proforma erstellen',
   savedAbdSearchLabel:
    'Suchen',
   savedAbdSearchPlaceholder:
@@ -57,8 +57,8 @@ var extras={
    'Gespeicherte ABD-Anfragen durchsuchen',
   savedAbdSearchCount:
    '{visible} von {total} Anfragen',
- editorHelp:'Rechnung hochladen und erkannte Positionen zur Korrektur übernehmen – oder alle Angaben hier manuell erfassen.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.',logoMissingHint:'Standard-Essentra-Logo aus der SOP-Vorlage. Bei Bedarf hier ersetzen.',logoLoadedHint:'Das ausgewählte Firmenlogo wird im PDF verwendet und auf diesem Gerät gespeichert.',logoRemove:'Eigenes Logo zurücksetzen',logoRemoved:'Standardlogo wiederhergestellt.'},
- en:{invoiceTitle:'Create an invoice for export declaration',
+ editorHelp:'Rechnungsdaten und Positionen manuell erfassen. Geprüfte Daten aus der Rechnungsanalyse können übernommen werden.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.',logoMissingHint:'Standard-Essentra-Logo aus der SOP-Vorlage. Bei Bedarf hier ersetzen.',logoLoadedHint:'Das ausgewählte Firmenlogo wird im PDF verwendet und auf diesem Gerät gespeichert.',logoRemove:'Eigenes Logo zurücksetzen',logoRemoved:'Standardlogo wiederhergestellt.'},
+ en:{invoiceTitle:'Create an invoice / proforma',
   savedAbdSearchLabel:
    'Search',
   savedAbdSearchPlaceholder:
@@ -67,8 +67,8 @@ var extras={
    'Search saved export declaration requests',
   savedAbdSearchCount:
    '{visible} of {total} requests',
- editorHelp:'Import and correct positions from an uploaded invoice or enter all information manually.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.',logoMissingHint:'Essentra logo from the SOP template. You can replace it here.',logoLoadedHint:'This logo will be used in the PDF and saved on this device.',logoRemove:'Reset custom logo',logoRemoved:'Default logo restored.'},
- pl:{invoiceTitle:'Utwórz fakturę do zgłoszenia eksportowego',
+ editorHelp:'Enter invoice details and items manually, or transfer reviewed items from invoice analysis.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.',logoMissingHint:'Essentra logo from the SOP template. You can replace it here.',logoLoadedHint:'This logo will be used in the PDF and saved on this device.',logoRemove:'Reset custom logo',logoRemoved:'Default logo restored.'},
+ pl:{invoiceTitle:'Utwórz fakturę / proformę',
   savedAbdSearchLabel:
    'Szukaj',
   savedAbdSearchPlaceholder:
@@ -77,8 +77,8 @@ var extras={
    'Przeszukaj zapisane zgłoszenia eksportowe',
   savedAbdSearchCount:
    '{visible} z {total} zgłoszeń',
- editorHelp:'Przenieś i popraw dane przesłanej faktury lub wpisz wszystko ręcznie.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.',logoMissingHint:'Domyślne logo Essentra z szablonu SOP. Można je zastąpić.',logoLoadedHint:'Wybrane logo pojawi się w PDF i zostanie zapisane na tym urządzeniu.',logoRemove:'Przywróć logo domyślne',logoRemoved:'Przywrócono logo domyślne.'},
- es:{invoiceTitle:'Crear factura para declaración de exportación',
+ editorHelp:'Wprowadź dane i pozycje ręcznie lub przenieś sprawdzone dane z analizy faktury.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.',logoMissingHint:'Domyślne logo Essentra z szablonu SOP. Można je zastąpić.',logoLoadedHint:'Wybrane logo pojawi się w PDF i zostanie zapisane na tym urządzeniu.',logoRemove:'Przywróć logo domyślne',logoRemoved:'Przywrócono logo domyślne.'},
+ es:{invoiceTitle:'Crear factura / proforma',
   savedAbdSearchLabel:
    'Buscar',
   savedAbdSearchPlaceholder:
@@ -87,8 +87,8 @@ var extras={
    'Buscar solicitudes de exportación guardadas',
   savedAbdSearchCount:
    '{visible} de {total} solicitudes',
- editorHelp:'Importa y corrige los datos de una factura cargada o introdúcelos manualmente.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.',logoMissingHint:'Logotipo Essentra de la plantilla SOP. Puedes sustituirlo aquí.',logoLoadedHint:'El logotipo se usará en el PDF y se guardará en este dispositivo.',logoRemove:'Restaurar logo estándar',logoRemoved:'Logo estándar restaurado.'},
- fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',
+ editorHelp:'Introduce los datos y las partidas manualmente o transfiere datos revisados del análisis de facturas.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.',logoMissingHint:'Logotipo Essentra de la plantilla SOP. Puedes sustituirlo aquí.',logoLoadedHint:'El logotipo se usará en el PDF y se guardará en este dispositivo.',logoRemove:'Restaurar logo estándar',logoRemoved:'Logo estándar restaurado.'},
+ fr:{invoiceTitle:'Créer une facture / proforma',
   savedAbdSearchLabel:
    'Rechercher',
   savedAbdSearchPlaceholder:
@@ -97,8 +97,8 @@ var extras={
    'Rechercher des demandes d’exportation enregistrées',
   savedAbdSearchCount:
    '{visible} sur {total} demandes',
- editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Logo Essentra issu du modèle SOP. Vous pouvez le remplacer.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Restaurer le logo par défaut',logoRemoved:'Logo par défaut restauré.'},
- it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',
+ editorHelp:'Saisissez les données et les articles ou transférez les données vérifiées depuis l’analyse des factures.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Logo Essentra issu du modèle SOP. Vous pouvez le remplacer.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Restaurer le logo par défaut',logoRemoved:'Logo par défaut restauré.'},
+ it:{invoiceTitle:'Crea fattura / proforma',
   savedAbdSearchLabel:
    'Cerca',
   savedAbdSearchPlaceholder:
@@ -107,7 +107,7 @@ var extras={
    'Cerca richieste di esportazione salvate',
   savedAbdSearchCount:
    '{visible} di {total} richieste',
- editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Logo Essentra dal modello SOP. Puoi sostituirlo qui.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Ripristina logo predefinito',logoRemoved:'Logo predefinito ripristinato.'}
+ editorHelp:'Inserisci dati e articoli manualmente oppure trasferisci quelli verificati dall’analisi fatture.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Logo Essentra dal modello SOP. Puoi sostituirlo qui.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Ripristina logo predefinito',logoRemoved:'Logo predefinito ripristinato.'}
 };
 var customsLabels={
  de:{companyDetails:'Firmen- und Steuerdaten',shippingDetails:'Versand- und Zollangaben',senderEori:'EORI des Ausführers (freiwillig)',senderVatId:'USt-IdNr.',senderTaxNumber:'Steuernummer (freiwillig)',senderRegister:'Handelsregister / Sitz',incoterm:'Incoterms 2020',exportReason:'Ausfuhrgrund (freiwillig)',packageCount:'Anzahl Packstücke',packageType:'Verpackungsart',transportMode:'Versandart',shipmentReference:'Sendungs-/Bestellreferenz',freightCost:'Frachtkosten (freiwillig)',customsRequired:'Bitte Bestimmungsland als zweistelligen ISO-Code (z. B. GB) und gültige freiwillige EORI-/Frachtangaben erfassen.',customsHelp:'Bei kostenloser Ware realistischen Warenwert für Zollzwecke angeben. Der PDF-Einzelwert wird aus Warenwert / Menge berechnet.'},
