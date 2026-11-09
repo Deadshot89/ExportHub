@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import '../assets/abholkalender.js';
 // This package is ESM; the browser IIFE publishes its testable API on globalThis.
 const cal=globalThis.ExportHubPickupCalendar;
@@ -138,6 +139,37 @@ test('RC1875: cancelled tasks never create a FIX shipment link',()=>{
  const status=model([cancelled],[a,b]).days[0].fixedStatus['FIX-UK'];
  assert.deepEqual(status.refs,[]);
  assert.equal(status.fromTasks,false);
+});
+
+test('RC1875: wrong-environment FIX response and failed refresh cannot retain old REF links',async()=>{
+ const source=fs.readFileSync('assets/abholkalender.js','utf8');
+ const responses=[
+  {ok:true,environment:'testservice',companyKey:'essentra',items:fix,canEdit:true},
+  {ok:true,environment:'production',companyKey:'essentra',items:fix,canEdit:true},
+  {ok:true,environment:'testservice',companyKey:'essentra',items:fix,canEdit:true},
+  null
+ ];
+ const element={innerHTML:'',addEventListener(){},querySelector(selector){return selector==='.pickup-calendar'&&this.innerHTML.includes('pickup-calendar')?{}:null}};
+ const context=vm.createContext({Date,Intl,Math,Number,String,Array,Object,JSON,Promise,console,
+  fetch:async()=>{const next=responses.shift();if(!next)throw Error('FIX_NETWORK_UNREACHABLE');return{ok:true,status:200,json:async()=>next}}});
+ vm.runInContext(source,context,{filename:'assets/abholkalender.js'});
+ const view=context.ExportHubPickupCalendar.mount(element,{environment:'testservice',today:monday,tasks:[pick],shipments:[a]});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ assert.equal(view.state.companyKey,'essentra');
+ await view.refresh();
+ assert.deepEqual(Array.from(view.state.fixedPickups),[]);
+ assert.equal(view.state.companyKey,'');
+ assert.equal(view.state.canEdit,false);
+ assert.match(view.state.fixedError,/FIX_ENVIRONMENT_MISMATCH/);
+ assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ await view.refresh();
+ assert.match(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ await view.refresh();
+ assert.deepEqual(Array.from(view.state.fixedPickups),[]);
+ assert.equal(view.state.companyKey,'');
+ assert.equal(view.state.canEdit,false);
+ assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
 });
 
 test('RC1875: recurring Pick task mapping is deterministic by weekday and explicit target',()=>{
