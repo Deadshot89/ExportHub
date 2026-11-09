@@ -2660,5 +2660,7 @@
   "closureMail.mailTitle": "Wichtige Information zu unseren Betriebsferien",
   "closureMail.mailLast": "Letzte Abholung",
   "closureMail.mailClosed": "Geschlossen",
-  "closureMail.mailResume": "Wieder geöffnet ab"
+  "closureMail.mailResume": "Wieder geöffnet ab",
+  "closureMail.htmlPreview": "HTML-Vorschau anzeigen",
+  "closureMail.previewFailed": "Die E-Mail-Vorschau konnte nicht geladen werden."
 }
