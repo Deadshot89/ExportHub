@@ -191,7 +191,7 @@ async function exportProforma(snapshot,button){
  finally{busy=false;if(button)button.disabled=false;schedule()}
 }
 function host(){return root.document&&root.document.getElementById('rc1294AbdAnalysis')}
-function invoicePanel(){var h=host();return h&&h.querySelector('[data-rc1294-invoice-panel]')}
+function invoicePanel(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')}
 function manualPanel(){return root.document&&root.document.getElementById('rc1549AbdManual')}
 function setStatus(message,kind){var box=manualPanel()&&manualPanel().querySelector('[data-rc1549-status]');if(!box)return;box.hidden=!q(message);box.textContent=q(message);box.setAttribute('data-kind',kind||'info')}
 function input(name,type,placeholder){return'<input '+(type?'type="'+type+'" ':'')+'data-field="'+name+'" placeholder="'+esc(placeholder||'')+'" autocomplete="off">'}
@@ -282,6 +282,7 @@ function importUploaded(index){
  if(q(header.senderName))headerDraft.senderName=q(header.senderName);
  if(q(header.senderAddress))headerDraft.senderAddress=q(header.senderAddress);
  if(uploadDate(header.invoiceDate))headerDraft.invoiceDate=uploadDate(header.invoiceDate);
+ var workspace=root.ExportHUBDocuments1940;if(!workspace||typeof workspace.open!=='function'||!workspace.open('invoice')){setStatus(t('error'),'bad');return false}
  mountManual();fillHeader();renderRows();invalidate();setStatus(t('importSuccess'),'ok');
  var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
  return true
@@ -291,12 +292,8 @@ function enhanceUploaded(){
  var docs=box.querySelectorAll('.rc1294-document'),api=root.ExportHUBRC1294ABDAnalysis;
  for(var i=0;i<docs.length;i++){
   var head=docs[i].querySelector('.rc1294-document-head');if(!head)continue;
-  var button=head.querySelector('[data-rc1549-proforma]');
-  if(!button){button=root.document.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1549-proforma','');head.appendChild(button)}
-  var exportLabel=t('proforma');if(button.textContent!==exportLabel)button.textContent=exportLabel;
-  var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;
-  button.disabled=!readyInvoice(snapshot);button.title=button.disabled?t('addressesRequired'):'';button.setAttribute('data-result-index',String(i));
-  button.onclick=(function(index,target){return function(){var current=api&&typeof api.snapshot==='function'?api.snapshot(index):null;exportProforma(current,target)}})(i,button);
+  // PDF creation lives in the separate documents workspace.
+  var oldPdf=head.querySelector('[data-rc1549-proforma]');if(oldPdf)oldPdf.remove();
   var importButton=head.querySelector('[data-rc1549-import]');
   if(!importButton){importButton=root.document.createElement('button');importButton.type='button';importButton.className='ghost';importButton.setAttribute('data-rc1549-import','');head.appendChild(importButton)}
   var importLabel=t('editUpload');if(importButton.textContent!==importLabel)importButton.textContent=importLabel;importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
@@ -471,8 +468,7 @@ function enhanceSavedAbdLayout(){
  return true
 }
 function enhance(){
- var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
- if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)entry.textContent=title}
+ // Keep the ABD invoice-analysis tab; the invoice editor belongs to document creation.
  mountManual();enhanceSavedAbdLayout();enhanceUploaded();bindObserver();return true
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
