@@ -409,3 +409,17 @@ test('Aufgabenansicht: echte Pflichtaufgaben bleiben geschützt statt unbemerkt 
   assert.match(api.taskViewHtml(),/data-rc1570-tv-open="pod1"/);
   assert.doesNotMatch(api.taskViewHtml(),/data-rc1570-tv-delete="pod1"/);
 });
+
+
+test('Aufgabenansicht: verwaltete Wochenroutine dauerhaft abschalten, nicht nur Tagesinstanz löschen',async()=>{
+  const {api,store}=editorHarness([
+    {id:'managed:wuerth-industrie:2026-11-10',title:'Würth Industrie',managedBy:'RC1152',managedKind:'recurring',managedKey:'wuerth-industrie',sourceType:'manual',owner:'Tobias'},
+    {id:'managed:wuerth-industrie:2026-11-12',title:'Würth Industrie',managedBy:'RC1152',managedKind:'recurring',managedKey:'wuerth-industrie',sourceType:'manual',owner:'Tobias'},
+    {id:'manual',title:'Manuell',sourceType:'manual',owner:'Tobias'}
+  ],()=>true);
+  assert.equal(api.managedRows().counts.weekly,2);
+  assert.equal(await api._deleteManagedTask('managed:wuerth-industrie:2026-11-10'),true);
+  assert.deepEqual(store.tasks.map(x=>x.id),['manual']);
+  assert.ok(store.taskManagedDisabled['wuerth-industrie'].disabledAt);
+  assert.equal(store._teamSyncMeta.tombstones.filter(x=>x.collection==='tasks').length,2);
+});
