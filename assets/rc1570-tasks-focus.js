@@ -85,7 +85,7 @@ function isMine(task){
 function priority(task){var p=q(task&&task.priority).toUpperCase();return /^P\d$/.test(p)?p:''}
 function urgent(p){return /^P[0-2]$/.test(p)}
 function priorityRank(task){var p=priority(task);return p?Number(p.slice(1)):5}
-function isWeekly(task){return !!(task&&(task.masterTaskRC848||task.weeklySeriesId||task.seriesId||task.recurringSeriesId||/week|woch/i.test(q(task.recurrence))))}
+function isWeekly(task){return !!(task&&((q(task.managedBy)==='RC1152'&&q(task.managedKind)==='recurring')||task.masterTaskRC848||task.weeklySeriesId||task.seriesId||task.recurringSeriesId||/week|woch/i.test(q(task.recurrence))))}
 function ref(task){return q(task&&(task.linkedShipmentRef||task.shipmentRef||task.sourceRef||task.reference))}
 
 /* model */
@@ -497,10 +497,11 @@ async function deleteManagedTask(id){
     return false;
   }
   var seriesId=q(task.seriesId),entireSeries=!!seriesId&&isWeekly(task);
-  var message=t(entireSeries?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
+  var message=t(entireSeries||managedKey?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
   if(typeof w.confirm==='function'&&!w.confirm(message))return false;
-  var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta};
-  var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)});
+  var managedKey=q(task.managedBy)==='RC1152'?q(task.managedKey):'';
+  var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta,disabled:s.taskManagedDisabled};
+  var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)||(managedKey&&q(row&&row.managedBy)==='RC1152'&&q(row.managedKey)===managedKey)});
   var ids=new Set(targets.map(taskId).filter(Boolean));
   if(!ids.size)return false;
   var now=new Date().toISOString(),user=q(currentUser().name||currentUser().displayName||currentUser().user)||'Benutzer';
@@ -512,6 +513,7 @@ async function deleteManagedTask(id){
   meta.tombstones=arr(meta.tombstones).filter(function(row){return row&&!keys.has(q(row.collection)+':'+low(row.id))}).concat(deletions);
   s.tasks=arr(s.tasks).filter(function(row){return !ids.has(taskId(row))});
   if(entireSeries)s.taskSeries=arr(s.taskSeries).filter(function(row){return q(row&&row.id)!==seriesId});
+  if(managedKey){s.taskManagedDisabled=Object.assign({},s.taskManagedDisabled||{});s.taskManagedDisabled[managedKey]={disabledAt:now,disabledBy:user};}
   s._teamSyncMeta=meta;
   savePending=true;
   try{
@@ -520,7 +522,7 @@ async function deleteManagedTask(id){
     lastHtml='';lastView='';renderTaskView(true);
     return true;
   }catch(err){
-    s.tasks=originals.tasks;s.taskSeries=originals.series;s._teamSyncMeta=originals.meta;
+    s.tasks=originals.tasks;s.taskSeries=originals.series;s._teamSyncMeta=originals.meta;s.taskManagedDisabled=originals.disabled;
     tv.error=t('deleteFailed');tv.saved='';
     if(typeof w.alert==='function')w.alert(t('deleteFailed'));
     try{console.error('RC1570 delete was not confirmed by server',err)}catch(_){}
@@ -597,7 +599,7 @@ function managedRows(){
 }
 function isSystemManagedTask(x){
   if(x&&(x.masterTaskRC848||x.masterTaskRC846))return true;
-  if(isWeekly(x)&&!q(x&&x.seriesId))return true;
+  if(isWeekly(x)&&!q(x&&x.seriesId)&&q(x&&x.managedBy)!=='RC1152')return true;
   if(low(x&&x.sourceType)==='manual'&&!/^(m848:|task:av-missing:)/i.test(taskId(x)))return false;
   if(/^(m848:|task:av-missing:)/i.test(taskId(x)))return true;
   var source=low(x&&x.sourceType);
