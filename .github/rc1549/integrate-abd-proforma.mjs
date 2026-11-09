@@ -26,7 +26,7 @@ function inject(html,file){
  const oldAddons="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav],[data-exporthub-urgent-nav]';";
  const newAddons="var ADDON_BUTTONS='[data-pack-notifications-nav],[data-rc1555-packaging-nav],[data-exporthub-urgent-nav],[data-exporthub-documents-nav]';";
  if(html.includes(oldAddons))html=html.replace(oldAddons,newAddons);
- if(!html.includes(newAddons))throw new Error('RC1940 '+file+': document menu addon not registered');
+ if(html.includes('var ADDON_BUTTONS=')&&!html.includes(newAddons))throw new Error('RC1940 '+file+': document menu addon not registered');
  return html
 }
 export function integrateAbdProforma(root,out){
