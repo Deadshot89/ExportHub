@@ -82,7 +82,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
 <label class="field">Lieferart *<select name="delivery" required><option value="" data-i18n="urgentOrderV2.chooseOrder">Bitte wählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label>
 <label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label>
-<label class="field">Gewünschter Versandtag * (deutsche Ortszeit)<input id="internalRequestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
+<label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="internalRequestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
 <datalist id="internalUrgentEmailHistory"></datalist>
@@ -347,7 +347,7 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- return $('newOrder').elements.language.value==='en'
+ return localeV2('cutoffLateWarning',$('newOrder').elements.language.value==='en'
   ?'After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.'
   :'Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.';
 }
@@ -459,6 +459,7 @@ $('mailIssue').addEventListener('input',()=>{if($('mailIssue').value.trim().leng
 $('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
 window.addEventListener('exporthub:language-changed',render);
+window.addEventListener('exporthub:language-changed',syncInternalCutoff);
 $('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
 $('urgentBackToHub').href=urgentPublicOrigin()+'/';
 renderSavedEmails();lineField();syncInternalCutoff();showInternalStep(1);refresh();
