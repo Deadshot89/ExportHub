@@ -471,7 +471,7 @@ async function saveForm(form){
   // Linking a FIX target without a customer number cannot produce a verifiable shipment association.
   if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
   if(v.pickupTargetId){
-    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey);
+    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey)&&(!pickupCompanyKey||q(originalTarget.pickupTargetCompanyKey)===pickupCompanyKey);
     if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
   }
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
