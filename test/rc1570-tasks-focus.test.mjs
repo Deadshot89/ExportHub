@@ -468,3 +468,11 @@ test('Aufgabenansicht: Wochenstamm kann weder als Tagesinstanz erledigt noch fä
   assert.equal(await api._changeTaskStatus('done'),false);
   assert.equal(store.tasks.length,0);
 });
+
+
+test('Aufgaben: POD wird nach expliziter Systemgruppe klassifiziert, auch wenn Bereich Versand lautet',()=>{
+  const api=load([],me,'2026-11-09T08:45:00');
+  assert.equal(api.workGroup({title:'POD fehlt',area:'Versand',group:'Fehlende POD',status:'offen'}),'pod');
+  assert.equal(api.workGroup({title:'POD hochgeladen',area:'Versand',group:'Fehlende POD',status:'done',podUrl:'x'}),'pod');
+  assert.equal(api.workGroup({title:'AV hochladen',area:'Versand',sourceType:'av_missing'}),'av');
+});
