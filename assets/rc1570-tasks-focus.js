@@ -265,7 +265,7 @@ function renderHtml(model,now){
 }
 
 /* actions */
-function findTask(id){return arr(state().tasks).find(function(x){return taskId(x)===q(id)})||null}
+function findTask(id){return arr(state().tasks).find(function(x){return taskId(x)===q(id)})||weeklyMasterTasks().find(function(x){return taskId(x)===q(id)})||null}
 var pendingToggles=new Set();
 async function toggle(id){
   if(!canWrite()){alert(t('noRights'));return}
@@ -490,7 +490,7 @@ async function changeTaskStatus(status){
 
 async function deleteManagedTask(id){
   if(savePending||!canWrite())return false;
-  var s=state(),task=arr(s.tasks).find(function(x){return taskId(x)===q(id)});
+  var s=state(),task=findTask(id);
   if(!task)return false;
   if(isSystemManagedTask(task)){
     if(typeof w.alert==='function')w.alert(t('managedByShipment'));
@@ -503,7 +503,7 @@ async function deleteManagedTask(id){
   var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta,disabled:s.taskManagedDisabled};
   var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)||(managedKey&&q(row&&row.managedBy)==='RC1152'&&q(row.managedKey)===managedKey)});
   var ids=new Set(targets.map(taskId).filter(Boolean));
-  if(!ids.size)return false;
+  if(!ids.size&&!managedKey)return false;
   var now=new Date().toISOString(),user=q(currentUser().name||currentUser().displayName||currentUser().user)||'Benutzer';
   var deletedSeries=entireSeries?arr(s.taskSeries).filter(function(row){return q(row&&row.id)===seriesId}):[];
   var meta=Object.assign({fields:{},tombstones:[]},s._teamSyncMeta||{});
@@ -572,8 +572,20 @@ function detailHtml(task){
       (!isSystemManagedTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
       (isSystemManagedTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
 }
+function weeklyMasterTasks(){
+  var runtime=w.ExportHUBRC1014TaskRuntime,u=currentUser(),s=state();
+  if(!runtime||typeof runtime.managedTaskPlanItems!=='function')return[];
+  var entries=[];
+  try{entries=runtime.managedTaskPlanItems({state:s,currentUser:u,currentUserId:q(u.id||u.userId||u.user||u.username||u.login||u.name),now:new Date()})||[]}catch(_){return[]}
+  return arr(entries).filter(function(item){return item&&q(item.key)&&q(item.title)}).map(function(item){
+    return{id:'managed:template:'+q(item.key),title:q(item.title),name:q(item.title),area:q(item.group),group:q(item.group),
+      sourceType:'manual',managedBy:'RC1152',managedKey:q(item.key),managedKind:item.referenceArea?'reference-area':'recurring',
+      recurrence:'weekly',weekdays:arr(item.weekdays).slice(),time:q(item.dueTime),description:q(item.description),
+      owner:q(u.name||u.displayName||u.user||u.login||u.id),isVirtualTaskMaster:true}
+  })
+}
 function managedRows(){
-  var today=dayKey(new Date()),us=users(),rows=arr(state().tasks).filter(function(x){
+  var today=dayKey(new Date()),us=users(),rows=arr(state().tasks).concat(weeklyMasterTasks()).filter(function(x){
     return x&&title(x)&&(!isTemplate(x)||(low(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
   });
   if(tv.scope==='mine')rows=rows.filter(isMine);
