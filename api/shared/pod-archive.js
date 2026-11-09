@@ -899,7 +899,7 @@ async function retryDriveBackup(accessKey, environment) {
     // Graph-only success. A conflicting archive must remain blocked.
     if (archiveCheck.repairable) return retryArchiveBackup(accessKey, environment);
     throw store.err(archiveCheck.code || 'POD_ARCHIVE_VERIFY_FAILED',
-      archiveCheck.message || 'Das POD-Archiv konnte nicht verifiziert werden.', 409);
+      archiveCheck.message || 'POD_ARCHIVE_VERIFY_FAILED', 409);
   }
   if (!m365Enabled() || !graphDrive.readiness().configured) {
     return { ok: true, record, file: existing.file, backup, archiveSaved: true, driveSaved: confirmedDriveBackup(backup) };
