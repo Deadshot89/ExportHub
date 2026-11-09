@@ -182,6 +182,30 @@ test('RC1875: wrong-environment FIX response and failed refresh cannot retain ol
  assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
 });
 
+test('RC1875: late first FIX response cannot overwrite a newer successful refresh',async()=>{
+ const source=fs.readFileSync('assets/abholkalender.js','utf8');
+ const pending=[];
+ const context=vm.createContext({Date,Intl,Math,Number,String,Array,Object,JSON,Promise,console,
+   fetch:()=>new Promise(resolve=>pending.push(resolve))});
+ vm.runInContext(source,context,{filename:'assets/abholkalender.js'});
+ const root={innerHTML:'',addEventListener(){},querySelector(selector){return selector==='.pickup-calendar'&&this.innerHTML.includes('pickup-calendar')?{}:null}};
+ const calendar=context.ExportHubPickupCalendar;
+ const view=calendar.mount(root,{environment:'testservice',today:monday,tasks:[pick],shipments:[a]});
+ assert.equal(pending.length,1);
+ const newer=view.refresh();
+ assert.equal(pending.length,2);
+ pending[1]({ok:true,status:200,json:async()=>({ok:true,environment:'testservice',companyKey:'essentra',items:fix,canEdit:false})});
+ await newer;
+ assert.equal(view.state.fixedPickups.length,2);
+ assert.equal(view.state.companyKey,'essentra');
+ pending[0]({ok:true,status:200,json:async()=>({ok:true,environment:'testservice',companyKey:'legacy',items:[{id:'OLD',weekday:1,active:true}],canEdit:true})});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(view.state.fixedPickups.length,2);
+ assert.equal(view.state.companyKey,'essentra');
+ assert.equal(view.state.canEdit,false);
+ assert.match(root.innerHTML,/data-pickup-shipment-key="/);
+});
+
 test('RC1875: opening FIX REF never selects another shipment with recycled ID',()=>{
  const source=fs.readFileSync('assets/abholkalender.js','utf8');
  let onClick=null;
