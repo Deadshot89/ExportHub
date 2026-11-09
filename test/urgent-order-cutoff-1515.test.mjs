@@ -60,7 +60,7 @@ test('both forms show a two-action choice only on late submission',()=>{
   assert.doesNotMatch(html,/id="(?:cutoffWarning|internalCutoffWarning)"/);
   assert.match(html,/15:15 Uhr/);
   assert.match(html,/requestedDispatchDate:/);
-  assert.match(html,/lateSameDay/);
+  assert.match(html,/if\(lateToday&&!approved\)/);
   const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   for(const script of scripts)assert.doesNotThrow(()=>new vm.Script(script[1]),file+' inline JS syntax');
  }
