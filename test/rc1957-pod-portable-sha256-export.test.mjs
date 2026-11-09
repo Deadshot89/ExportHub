@@ -80,6 +80,18 @@ test('RC1957: unavailable WebCrypto and empty exports fail closed without invent
   assert.equal(empty.entries.some(e => e.name === 'SHA256SUMS.txt'), false);
 });
 
+test('RC1957: one corrupt empty PDF among valid originals cannot be reported complete', async () => {
+  const valid = bytes('%PDF-1.7\nVALID ORIGINAL');
+  const { entries, fail } = await run([
+    { name: 'POD_ABC123_Ladeliste.pdf', data: valid },
+    { name: 'POD_ABC123_Manual.pdf', data: new Uint8Array(0) }
+  ]);
+  assert.ok(fail.includes('RC1957_EMPTY_PDF'));
+  assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false,
+    'must not emit a misleading complete checksum manifest');
+  assert.deepEqual(entries[0].data, valid, 'the valid signed original is untouched');
+});
+
 test('RC1957: no Graph access, upload or original POD mutation added to the export stage', () => {
   assert.doesNotMatch(stage, /fetch\(|XMLHttpRequest|upload|saveAzurePod|copyToDrive|sharePoint|graphDrive/i);
   assert.match(controller, /btn\.disabled=false;return fail\.length===0/);
