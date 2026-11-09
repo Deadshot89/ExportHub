@@ -68,7 +68,7 @@ test('Issue #1328: customer and manual booking reject closure before a slot writ
  const end=api.indexOf('function sessionFromRequest(',second);
  assert.ok(first>0&&second>first&&end>second);
  for(const fn of [api.slice(first,second),api.slice(second,end)]){
-  const guard=fn.indexOf('closureMail.closureForPickupDate(state,checked.date)');
+  const guard=fn.indexOf('closureMail.closureForPickupSlot(state,checked.date,checked.from,checked.to)');
   const slot=fn.indexOf('avisSlots.slotState');
   const apply=fn.indexOf('applyAppointment(')>=0?fn.indexOf('applyAppointment('):fn.indexOf('applyManualAppointment(');
   assert.ok(guard>=0&&slot>guard&&apply>slot,'booking must reject closed date before capacity check and writing');
