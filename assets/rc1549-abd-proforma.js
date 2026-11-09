@@ -167,7 +167,7 @@ function decodeBase64(raw){var binary=root.atob(q(raw)),bytes=new Uint8Array(bin
 function download(file){
  if(!file||!file.base64)throw new Error('ABD_EXPORT_EMPTY');
  var blob=new root.Blob([decodeBase64(file.base64)],{type:q(file.mimeType)||'application/pdf'}),url=root.URL.createObjectURL(blob),link=root.document.createElement('a');
- link.href=url;link.download=q(file.name)||'Proforma.pdf';link.style.display='none';root.document.body.appendChild(link);link.click();link.remove();root.setTimeout(function(){try{root.URL.revokeObjectURL(url)}catch(_){}},30000)
+ link.href=url;link.download=q(file.name)||'Proforma.pdf';link.style.display='none';root.document.body.appendChild(link);link.click();link.remove();root.setTimeout(function(){try{root.URL.revokeObjectURL(url)}catch(_){}},1000)
 }
 function ready(snapshot){
  snapshot=snapshot&&typeof snapshot==='object'?snapshot:{};var review=snapshot.review||{},totals=snapshot.totals||{},groups=Array.isArray(snapshot.groups)?snapshot.groups:[],unassigned=Array.isArray(snapshot.unassigned)?snapshot.unassigned:[];
@@ -188,7 +188,7 @@ async function exportProforma(snapshot,button){
  if(!readyInvoice(snapshot)||busy){setStatus(t('addressesRequired'),'bad');return false}busy=true;if(button)button.disabled=true;
  try{var exportSnapshot=Object.assign({},snapshot);if(logoDataUri)exportSnapshot.logoDataUri=logoDataUri;var result=await post('/api/abd-analysis/export',{action:'export',format:'proforma',snapshot:exportSnapshot});download(result.file);return true}
  catch(error){setStatus(q(error&&error.message)||t('error'),'bad');return false}
- finally{busy=false;if(button)button.disabled=false}
+ finally{busy=false;if(button)button.disabled=false;schedule()}
 }
 function host(){return root.document&&root.document.getElementById('rc1294AbdAnalysis')}
 function invoicePanel(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')}
@@ -242,8 +242,6 @@ function renderManualResult(snapshot){
  var totals=snapshot.totals||{},groups=Array.isArray(snapshot.groups)?snapshot.groups:[],review=snapshot.review||{},currency=q(totals.currency||snapshot.header&&snapshot.header.currency);
  var table=groups.map(function(g){return'<tr><td><b>'+esc(g.commodityCode)+'</b></td><td>'+esc(g.originCountry)+'</td><td>'+esc(money(g.value))+' '+esc(g.currency)+'</td><td>'+esc(metric(g.netMassKg))+'</td><td>'+esc(metric(g.grossMassKg))+'</td><td>'+esc(metric(g.volumeM3))+'</td></tr>'}).join('');
  box.hidden=false;box.innerHTML='<div class="rc1549-result-head"><div><small>'+esc(t('summary'))+'</small><strong>'+esc(review.complete?t('ready'):t('review'))+'</strong></div><button type="button" class="btn" data-rc1549-proforma '+(readyInvoice(snapshot)?'':'disabled')+'>'+esc(t('proforma'))+'</button></div><div class="rc1549-metrics"><div><span>'+esc(t('total'))+'</span><strong>'+esc(money(totals.invoiceTotal))+' '+esc(currency)+'</strong></div><div><span>'+esc(t('net'))+'</span><strong>'+esc(metric(totals.netMassKg))+' kg</strong></div><div><span>'+esc(t('gross'))+'</span><strong>'+esc(metric(totals.grossMassKg))+' kg</strong></div><div><span>'+esc(t('volume'))+'</span><strong>'+esc(metric(totals.volumeM3))+' m³</strong></div></div><h5>'+esc(t('groups'))+'</h5><div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th></tr></thead><tbody>'+table+'</tbody></table></div>';
- var exportButton=box.querySelector('[data-rc1549-proforma]');
- if(exportButton)exportButton.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();exportProforma(manualSnapshot,exportButton)});
  setStatus(review.complete?t('ready'):t('review'),review.complete?'ok':'warn')
 }
 async function analyzeManual(button){
@@ -260,9 +258,9 @@ async function analyzeManual(button){
  if(positions.some(function(p){return !(p.quantity>0)||p.value==null||p.value<0||p.netMassKg==null||p.netMassKg<0||p.grossMassKg==null||p.grossMassKg<p.netMassKg||!/^[0-9]{6,10}$/.test(p.commodityCode)||!/^[A-Z]{2}$/.test(p.originCountry)||!(p.itemNumber||p.description)})){setStatus(t('invalidPosition'),'bad');return false}
  var total=positions.reduce(function(sum,row){return sum+Number(row.value||0)},0);header.invoiceTotal=Math.round(total*100)/100;
  busy=true;if(button)button.disabled=true;setStatus('…','info');
- try{var result=await post('/api/abd-analysis',{action:'reanalyze',header:header,positions:positions});manualSnapshot=result.analysis||null;return !!manualSnapshot}
- catch(error){manualSnapshot=null;setStatus(q(error&&error.message)||t('error'),'bad');return false}
- finally{busy=false;if(button)button.disabled=false;renderManualResult(manualSnapshot)}
+ try{var result=await post('/api/abd-analysis',{action:'reanalyze',header:header,positions:positions});manualSnapshot=result.analysis||null;renderManualResult(manualSnapshot);return !!manualSnapshot}
+ catch(error){manualSnapshot=null;renderManualResult(null);setStatus(q(error&&error.message)||t('error'),'bad');return false}
+ finally{busy=false;if(button)button.disabled=false}
 }
 function uploadDate(value){
  var raw=q(value);
@@ -385,6 +383,7 @@ function mountManual(){
   var remove=event.target&&event.target.closest&&event.target.closest('[data-rc1549-remove]');if(remove){var ri=Number(remove.getAttribute('data-rc1549-remove'));if(rows.length>1&&Number.isInteger(ri)){rows.splice(ri,1);renderRows();invalidate()}return}
   var duplicate=event.target&&event.target.closest&&event.target.closest('[data-rc1549-duplicate]');if(duplicate){var di=Number(duplicate.getAttribute('data-rc1549-duplicate'));if(Number.isInteger(di)&&rows[di]){rows.splice(di+1,0,Object.assign({},rows[di]));renderRows();invalidate()}return}
   var create=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-create]');if(create){analyzeManual(create);return}
+  var proforma=event.target&&event.target.closest&&event.target.closest('[data-rc1549-proforma]');if(proforma&&proforma.closest('#rc1549AbdManual'))exportProforma(manualSnapshot,proforma)
  });
  return true
 }
