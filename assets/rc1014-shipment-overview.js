@@ -529,7 +529,7 @@
       select.innerHTML='<option value="">'+tr('manualPickup.selectSlot')+'</option>';
       slots.forEach(slot=>{
         const option=root.document.createElement('option'),value=q(slot.from)+'|'+q(slot.to);
-        option.value=value;option.textContent=tr('manualPickup.slotRemaining',{from:q(slot.from),to:q(slot.to),remaining:String(Number(slot.remaining)||0)});
+        option.value=value;option.textContent=slot.closedForPickup===true?(q(slot.from)+'–'+q(slot.to)+' · '+tr('closureMail.bookingClosed')):tr('manualPickup.slotRemaining',{from:q(slot.from),to:q(slot.to),remaining:String(Number(slot.remaining)||0)});
         option.disabled=slot.available!==true&&value!==wanted;select.appendChild(option);
       });
       if(wanted&&Array.from(select.options||[]).some(o=>o.value===wanted&&!o.disabled))select.value=wanted;
