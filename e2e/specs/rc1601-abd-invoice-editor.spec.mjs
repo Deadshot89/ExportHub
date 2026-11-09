@@ -43,6 +43,43 @@ test('RC1940: eigene Dokumentenerstellung im Menü öffnen und zwischen Rechnung
  await expect(workspace.locator('[data-rc1294-abd-analysis]')).toHaveCount(0);
 });
 
+test('RC1941: Rechnung und Lieferschein im eigenen Bereich aus CSV analysieren und übernehmen',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='laptop','Chromium Laptop');
+ await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+ await waitReady(page);
+ await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+ await page.evaluate(analysis=>{
+  const original=window.fetch.bind(window);
+  window.fetch=async function(input,options){
+   const url=typeof input==='string'?input:String(input&&input.url||'');
+   if(url==='/api/abd-analysis'||url.endsWith('/api/abd-analysis')){
+    const payload=JSON.parse(options&&options.body||'{}');
+    if(payload.action==='upload')return new Response(JSON.stringify({ok:true,status:'scanning',upload:{id:'mock-defender',name:payload.file&&payload.file.name}}),{status:202,headers:{'Content-Type':'application/json'}});
+    if(payload.action==='status')return new Response(JSON.stringify({ok:true,status:'ready',analysis}),{status:200,headers:{'Content-Type':'application/json'}});
+   }
+   return original(input,options);
+  };
+ },uploaded());
+ const nav=page.locator('#nav > [data-exporthub-documents-nav]');
+ await expect(nav).toBeVisible({timeout:10_000});
+ await nav.click();
+ const workspace=page.locator('#rc1940Documents');
+ await workspace.locator('[data-rc1940-files]').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from('Artikelnummer;Warenbeschreibung;Menge\\nCAP-10;Test component;10','utf8')});
+ await workspace.locator('[data-rc1940-analyze]').click();
+ const result=workspace.locator('[data-rc1940-upload-results] .rc1940-preview');
+ await expect(result).toHaveCount(1,{timeout:10_000});
+ await expect(result).toContainText('CAP-10');
+ await result.locator('[data-rc1940-use]').click();
+ await expect(workspace.locator('#rc1549AbdManual tbody [data-field="itemNumber"]').first()).toHaveValue('CAP-10');
+ await expect(workspace.locator('#rc1549AbdManual tbody [data-field="description"]').first()).toHaveValue('Test component');
+ await workspace.locator('[data-rc1790-tab="delivery"]').click();
+ await result.locator('[data-rc1940-use]').click();
+ await expect(workspace.locator('#rc1790DeliveryNote tbody [data-field="itemNumber"]').first()).toHaveValue('CAP-10');
+ await expect(workspace.locator('#rc1790DeliveryNote tbody [data-field="quantity"]').first()).toHaveValue('10');
+ await expect(workspace.locator('#rc1790DeliveryNote [data-rc1790-header="recipient"]')).toHaveValue('Example Customer Ltd');
+ await expect(workspace.locator('[data-rc1294-invoice-panel]')).toHaveCount(0);
+});
+
 test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportieren',async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='laptop','Test läuft einmal im Chromium-Laptop-Profil.');
  test.setTimeout(90_000);
