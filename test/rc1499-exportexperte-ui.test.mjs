@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const runtime=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
+const documents=fs.readFileSync('assets/rc1940-documents-workspace.js','utf8');
 const handoff=fs.readFileSync('assets/rc1499-exportexperte-handoff.js','utf8');
 const exportUi=fs.readFileSync('assets/rc1499-abd-export.js','utf8');
 const pack=fs.readFileSync('assets/i18n/rc1499-exportexperte.js','utf8');
@@ -12,7 +13,9 @@ const exporter=fs.readFileSync('api/shared/abd-analysis-export.js','utf8');
 test('RC1499 UI release contract: three start routes remain routing-only',()=>{
   assert.match(runtime,/data-rc1294-mode=["']manual["']/,'Manueller ABD-Einstieg fehlt');
   assert.match(runtime,/data-rc1294-mode=["']shipment["']/,'Sendungs-ABD-Einstieg fehlt');
-  assert.match(runtime,/data-rc1294-mode=["']invoice["']/,'Rechnungsanalyse-Einstieg fehlt');
+  assert.match(runtime,/data-rc1294-mode=["']saved["']/,'Gespeicherte ABD-Anfragen fehlen');
+  assert.doesNotMatch(runtime,/data-rc1294-mode=["']invoice["']/,'Rechnungsanalyse darf nicht im ABD-Menü erscheinen');
+  assert.match(documents,/data-rc1940-files/,'Dateiupload fehlt in Dokumente erstellen');
   assert.match(runtime,/if\(mode==='shipment'\)[\s\S]*?ExportHUBRC626\.openAbd\(true\)/,'Bestehender Sendungsflow wird nicht verwendet');
   assert.doesNotMatch(runtime,/if\(mode==='manual'\)[\s\S]{0,500}(replaceChildren|innerHTML\s*=)/,'Manueller Altflow darf nicht ersetzt werden');
 });
@@ -30,9 +33,11 @@ test('RC1499 UI release contract: grouped review is primary and original positio
 });
 
 test('RC1499 UI release contract: mandatory formats and server safety gates remain connected',()=>{
-  assert.match(runtime,/accept=["'][^"']*\.pdf[^"']*\.jpg[^"']*\.jpeg[^"']*\.png[^"']*\.xlsx[^"']*\.csv/i,'Pflichtformate fehlen im Dateiupload');
+  for(const ext of ['pdf','jpg','jpeg','png','xlsx','csv','txt','tsv'])
+    assert.match(documents,new RegExp('\\\\.'+ext+'(?:[,\\\\s]|$)','i'),'Upload-Format fehlt: '+ext);
   assert.match(analysisApi,/pdf\|xlsx\|csv\|txt\|tsv\|jpg\|jpeg\|png/,'Server akzeptiert nicht alle Pflichtformate inklusive D365 TXT/TSV');
-  assert.match(runtime,/accept=["'][^"']*\.txt[^"']*\.tsv/,'D365 TXT/TSV fehlen im Dateiupload');
+  assert.match(documents,/data-rc1940-files/,'D365 TXT/TSV Upload wird über Dokumente bereitgestellt');
+  assert.match(documents,/scanner\.analyzeFile\(file\)/,'Geschützte Scanner-API wird nicht benutzt');
   assert.match(analysisApi,/Microsoft Defender for Storage/,'Defender-/Quarantänepfad fehlt');
   assert.match(analysisApi,/analyzeWithOcr/,'OCR-Pfad für Scan/Bild fehlt');
 });
