@@ -313,3 +313,42 @@ test('Issue #1328: Sendungsanmeldung erhält einen sprachrichtigen, idempotenten
     assert.doesNotMatch(new URL(api.prepare(mail).url).searchParams.get('body'),/=== ExportHUB360 ===/);
   }
 });
+
+
+test('Issue #1328: prepared mailto updates an existing notice when mail language or active closure changes',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ class FixedDate extends Date {
+  constructor(...a){super(...(a.length?a:['2026-12-14T12:00:00.000Z']))}
+  static now(){return Date.parse('2026-12-14T12:00:00.000Z')}
+ }
+ const languageSelect={value:'en'};
+ const state={settings:{closureNotices:[{
+  enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+  lastPickupDate:'2026-12-18',lastPickupTime:'15:00',
+  reopenDate:'2027-01-04',leadDays:14
+ }]}};
+ const w={
+  __EXPORTHUB_GET_STATE__:()=>state,
+  ExportHUBI18n:createTestI18n('de'),
+  document:{getElementById:id=>id==='rc543MailLang'?languageSelect:null}
+ };
+ vm.runInNewContext(source,{window:w,Date:FixedDate,Intl,URLSearchParams,console});
+ const api=w.ExportHUBRC1065RegistrationCC;
+ const mail='mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&body='+encodeURIComponent('Hello,\n\nPlease arrange the pickup.\n\nBest regards');
+ const first=api.prepare(mail).url;
+ assert.match(new URL(first).searchParams.get('body'),/Important notice/,'mail selection has priority over site language');
+ languageSelect.value='fr';
+ const second=api.prepare(first).url,secondText=new URL(second).searchParams.get('body');
+ assert.match(secondText,/Information importante/);
+ assert.doesNotMatch(secondText,/Important notice/);
+ assert.equal((secondText.match(/=== ExportHUB360 ===/g)||[]).length,1);
+ assert.match(secondText,/Best regards/);
+ const third=api.prepare(second).url;
+ assert.equal(third,second,'unchanged language and closure must be stable');
+ state.settings.closureNotices[0].enabled=false;
+ const disabled=api.prepare(third).url;
+ const disabledText=new URL(disabled).searchParams.get('body');
+ assert.doesNotMatch(disabledText,/=== ExportHUB360 ===/);
+ assert.equal(disabledText,'Hello,\n\nPlease arrange the pickup.\n\nBest regards');
+ assert.match(new URL(disabled).searchParams.get('cc'),/danielollmann@essentra.com/i);
+});
