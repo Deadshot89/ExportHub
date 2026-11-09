@@ -364,13 +364,13 @@ test('Issue #1328: pickup warning only for valid, enabled closures and inclusive
  vm.runInNewContext(source,{window,URLSearchParams,console,Date,Intl});
  const check=window.ExportHUBRC1065RegistrationCC.pickupClosureWarning;
  assert.equal(typeof check,'function');
- for(const day of ['2026-12-21','2026-12-25','2027-01-01','2027-01-02','2027-01-03']){
+ for(const day of ['2026-12-19','2026-12-20','2026-12-21','2026-12-25','2027-01-01','2027-01-02','2027-01-03']){
   const found=check(day);
   assert.ok(found,day);
   assert.equal(found.pickupDate,day);
   assert.equal(found.reopenDate,'2027-01-04');
  }
- for(const day of ['2026-12-20','2027-01-04','','2026-02-30','something']){
+ for(const day of ['2026-12-18','2027-01-04','','2026-02-30','something']){
   assert.equal(check(day),null,day);
  }
  closure.enabled=false;
