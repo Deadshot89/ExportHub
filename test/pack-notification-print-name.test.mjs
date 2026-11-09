@@ -96,3 +96,34 @@ test('P0 pack loading list ignores stale SalesPackingSlip text when stored deliv
   assert.deepEqual(Array.from(print.deliveryFilesForPrint({deliveryFiles:[]},stale)),[stale],
     'legacy shipments with no structured attachments must retain their printable fallback');
 });
+
+test('Ladeliste und Deckblatt nehmen kanonische DNC/SIDE auch aus bereits gespeicherten Dokumenten',()=>{
+  const print=runtimeOnlyApi();
+  const stored={id:'same-document',name:'scan_001.pdf',documentReference:'DNC3019222063',type:'Lieferschein'};
+  const second={id:'second-document',name:'original.pdf',normalizedName:'SIDE250071282.pdf',documentType:'delivery_note'};
+  const shipment={
+    deliveryFiles:[{id:'same-document',name:'scan_001.pdf'},'SalesPackingSlip-User-123456_P.pdf'],
+    documents:[stored,{name:'Rechnung.pdf',type:'Rechnung'}],
+    files:[second,{name:'foto.png',type:'image/png'}]
+  };
+  const original=JSON.stringify(shipment);
+  assert.deepEqual(Array.from(print.deliveryFiles(shipment)),['DNC3019222063','SIDE250071282']);
+  assert.equal(JSON.stringify(shipment),original,'Originaldateien und gespeicherte Metadaten bleiben unveraendert');
+});
+
+test('DNC/SIDE aus allgemeiner Dokumentliste werden nicht mehr von alter Lieferscheinliste verdeckt',()=>{
+  const print=runtimeOnlyApi();
+  assert.deepEqual(Array.from(print.deliveryFiles({
+    deliveryFiles:[{name:'SalesPackingSlip-Alt.pdf'}],
+    documents:[{name:'DNC3019222063.pdf',type:'Lieferschein'}]
+  })),['DNC3019222063']);
+  assert.deepEqual(Array.from(print.deliveryFiles({
+    deliveryFiles:[{name:'Lieferschein Kunde.pdf'}],
+    documents:[{name:'invoice.pdf',documentType:'invoice'},{name:'foto.jpg',type:'image/jpeg'}]
+  })),['Lieferschein Kunde.pdf'],'Fremddokumente werden nicht als Lieferschein gedruckt');
+});
+
+test('Deckblatt und Ladeliste verwenden beide dieselbe Druck-Dokumentenliste',()=>{
+  assert.match(runtime,/function enhance\(html,sh,withQr\)[\s\S]*?enhanceDocuments\(root,sh\|\|\{\}\)/);
+  assert.match(runtime,/function enhanceCover\(html,sh\)[\s\S]*?enhanceDocuments\(root,sh\|\|\{\}\)/);
+});
