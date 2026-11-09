@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {assertDocumentUploadAssets,verifyDocumentUploadLive} from '../scripts/rc1943-documents-upload-live.mjs';
 
-const html='<html><head><script defer src="/assets/rc1940-documents-workspace.js?v=1940"></script></head></html>';
+const html='<html><head><script defer src="/assets/rc1940-documents-workspace.js?v=1943"></script></head></html>';
 const js='function ensureUpload(){ var a="data-rc1940-files"; var b="data-rc1940-analyze"; editor.importAnalysis(result.analysis); }';
 const sha='a'.repeat(40);
 const fakeFetch=async (url)=>({status:200,text:async()=>url.includes('/assets/')?js:html});
