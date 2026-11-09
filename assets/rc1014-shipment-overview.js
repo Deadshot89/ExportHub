@@ -188,13 +188,70 @@
     });
   }
 
-  async function openContainerPhoto(shipment,photo,download){
+  let closeActiveContainerPhotoPreview=null;
+
+  function showContainerPhotoPreview(url,photo,trigger){
+    if(closeActiveContainerPhotoPreview)closeActiveContainerPhotoPreview();
+    const doc=root.document,overlay=doc.createElement('div'),dialog=doc.createElement('section');
+    const header=doc.createElement('div'),title=doc.createElement('strong');
+    const closeButton=doc.createElement('button'),image=doc.createElement('img');
+    const previousFocus=doc.activeElement;
+    overlay.className='rc1259-photo-preview';
+    overlay.setAttribute('data-rc1934-photo-preview','1');
+    dialog.className='rc1259-photo-preview-dialog';
+    dialog.setAttribute('role','dialog');
+    dialog.setAttribute('aria-modal','true');
+    dialog.setAttribute('aria-label','Containerfoto ansehen');
+    header.className='rc1259-photo-preview-header';
+    title.textContent=q(photo&&photo.name)||'Containerfoto';
+    closeButton.type='button';
+    closeButton.textContent='Schließen';
+    closeButton.setAttribute('aria-label','Fotovorschau schließen');
+    image.className='rc1259-photo-preview-image';
+    image.alt=q(photo&&photo.label||photo&&photo.name)||'Containerfoto';
+    image.src=url;
+    let closed=false;
+    function close(){
+      if(closed)return;
+      closed=true;
+      doc.removeEventListener('keydown',onKey,true);
+      root.removeEventListener('exporthub:viewchange',close);
+      overlay.remove();
+      URL.revokeObjectURL(url);
+      if(closeActiveContainerPhotoPreview===close)closeActiveContainerPhotoPreview=null;
+      const focusTarget=trigger&&trigger.isConnected?trigger:previousFocus&&previousFocus.isConnected?previousFocus:null;
+      if(focusTarget&&typeof focusTarget.focus==='function')focusTarget.focus();
+    }
+    function onKey(event){
+      if(event.key==='Escape'){event.preventDefault();close();return;}
+      if(event.key==='Tab'){
+        // A one-control modal must not let keyboard focus escape to the page.
+        event.preventDefault();closeButton.focus();
+      }
+    }
+    closeButton.addEventListener('click',close);
+    overlay.addEventListener('click',event=>{if(event.target===overlay)close()});
+    doc.addEventListener('keydown',onKey,true);
+    root.addEventListener('exporthub:viewchange',close,{once:true});
+    header.appendChild(title);header.appendChild(closeButton);
+    dialog.appendChild(header);dialog.appendChild(image);
+    overlay.appendChild(dialog);doc.body.appendChild(overlay);
+    closeActiveContainerPhotoPreview=close;
+    closeButton.focus();
+  }
+
+  async function openContainerPhoto(shipment,photo,download,trigger){
     try{
       const blob=await fetchContainerBlob(shipment,photo),url=URL.createObjectURL(blob);
+      // Do not display an old shipment after an asynchronous request and navigation.
+      if(trigger&&trigger.isConnected===false){URL.revokeObjectURL(url);return false;}
       if(download){
-        const a=root.document.createElement('a');a.href=url;a.download=q(photo&&photo.name)||'Containerfoto.jpg';root.document.body.appendChild(a);a.click();a.remove();setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000)
+        const a=root.document.createElement('a');
+        a.href=url;a.download=q(photo&&photo.name)||'Containerfoto.jpg';
+        root.document.body.appendChild(a);a.click();a.remove();
+        setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000);
       }else{
-        const w=root.open(url,'_blank','noopener');if(!w)setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000);else setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},120000)
+        showContainerPhotoPreview(url,photo,trigger);
       }
     }catch(e){try{root.alert('Containerfoto konnte nicht geöffnet werden.\n\n'+q(e&&e.message||e))}catch(_){}}
     return false;
@@ -258,8 +315,8 @@
         const img=doc.createElement('img');img.alt=q(photo.label||photo.name)||'Containerfoto';img.loading='lazy';img.setAttribute('data-rc1259-photo-id',q(photo.id));
         const label=doc.createElement('b');label.textContent=q(photo.label||photo.name)||'Containerfoto';
         const actions=doc.createElement('div');actions.className='rc1259-photo-actions';
-        const open=doc.createElement('button');open.type='button';open.textContent='Ansehen';open.addEventListener('click',()=>openContainerPhoto(shipment,photo,false));
-        const down=doc.createElement('button');down.type='button';down.textContent='Herunterladen';down.addEventListener('click',()=>openContainerPhoto(shipment,photo,true));
+        const open=doc.createElement('button');open.type='button';open.textContent='Ansehen';open.addEventListener('click',()=>openContainerPhoto(shipment,photo,false,open));
+        const down=doc.createElement('button');down.type='button';down.textContent='Herunterladen';down.addEventListener('click',()=>openContainerPhoto(shipment,photo,true,down));
         actions.appendChild(open);actions.appendChild(down);item.appendChild(img);item.appendChild(label);item.appendChild(actions);grid.appendChild(item);
       });
       wrap.appendChild(grid);
