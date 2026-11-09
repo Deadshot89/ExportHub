@@ -497,9 +497,9 @@ async function deleteManagedTask(id){
     return false;
   }
   var seriesId=q(task.seriesId),entireSeries=!!seriesId&&isWeekly(task);
+  var managedKey=q(task.managedBy)==='RC1152'?q(task.managedKey):'';
   var message=t(entireSeries||managedKey?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
   if(typeof w.confirm==='function'&&!w.confirm(message))return false;
-  var managedKey=q(task.managedBy)==='RC1152'?q(task.managedKey):'';
   var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta,disabled:s.taskManagedDisabled};
   var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)||(managedKey&&q(row&&row.managedBy)==='RC1152'&&q(row.managedKey)===managedKey)});
   var ids=new Set(targets.map(taskId).filter(Boolean));
