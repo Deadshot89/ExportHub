@@ -15,6 +15,16 @@ export function verifyUploadAsset(status,source){
  return true;
 }
 
+export function verifyExportAsset(status,source,name){
+ if(status!==200)throw new Error('RC1932: ABD export UI not served ('+name+', HTTP '+status+')');
+ const code=String(source||'');
+ for(const marker of ['function authToken(){',"getItem('exporthub_rc301_tab_session')",'function headers(){']){
+  if(!code.includes(marker))throw new Error('RC1932: outdated ABD export UI ('+name+', missing '+marker+')');
+ }
+ if(code.includes('sessionStorage.length'))throw new Error('RC1932: unsafe arbitrary-token fallback in ABD export UI ('+name+')');
+ return true;
+}
+
 export function verifyUnauthenticatedApi(status,type,body){
  // The POST-only upload route validates its dedicated ExportHUB token before any
  // file or storage operation. An unauthenticated probe MUST return API JSON/401,
@@ -37,13 +47,20 @@ export async function verifyLiveUploadRoute(environment,sha,fetcher=fetch){
   method:'GET',redirect:'manual',headers:{Accept:'text/javascript','Cache-Control':'no-cache'},signal:AbortSignal.timeout(20000)
  });
  verifyUploadAsset(asset.status,await asset.text());
+ // All three stages must be deployed together; no credentials or documents sent.
+ for(const name of ['rc1549-abd-proforma.js','rc1499-abd-export.js']){
+  const exported=await fetcher(base+'/assets/'+name+'?rc1932='+sha,{
+   method:'GET',redirect:'manual',headers:{Accept:'text/javascript','Cache-Control':'no-cache'},signal:AbortSignal.timeout(20000)
+  });
+  verifyExportAsset(exported.status,await exported.text(),name);
+ }
  const probe=await fetcher(base+'/api/abd-analysis?rc1787='+sha,{
   method:'POST',redirect:'manual',headers:{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache'},
   body:JSON.stringify({action:'status',uploadId:'rc1787-nonexistent'}),
   signal:AbortSignal.timeout(20000)
  });
  verifyUnauthenticatedApi(probe.status,probe.headers&&probe.headers.get('content-type'),await probe.text());
- return {environment,uploadUi:'verified',apiRoute:'verified',authGuard:'AUTH_REQUIRED'};
+ return {environment,uploadUi:'verified',exportUi:'verified',apiRoute:'verified',authGuard:'AUTH_REQUIRED'};
 }
 
 async function main(){
