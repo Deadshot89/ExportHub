@@ -73,7 +73,9 @@ function closureForPickupDate(state,value){
  const entries=state&&state.settings&&state.settings.closureNotices;
  if(!day||!Array.isArray(entries))return null;
  return entries.slice(0,100).map(normalizeClosureNotice).filter(Boolean)
-  .filter(notice=>day>=notice.startDate&&day<=notice.endDate)
+  // Even if the named closure end is Friday, collections resume only on the
+  // explicitly configured reopening date (e.g. Monday after the weekend).
+  .filter(notice=>day>=notice.startDate&&day<notice.reopenDate)
   .sort((a,b)=>a.startDate.localeCompare(b.startDate))[0]||null;
 }
 function mailDate(value,lang){
