@@ -67,19 +67,6 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await expect(doc.locator('[data-rc1549-import]')).toBeEnabled({timeout:10_000});
  await expect(doc.locator('[data-rc1549-proforma]')).toHaveCount(0);
  await doc.locator('[data-rc1549-import]').click();
- if(!(await page.locator('#rc1940Documents').count())){
-   const state=await page.evaluate(()=>({
-     api:typeof window.ExportHUBDocuments1940,
-     permitted:window.ExportHUBDocuments1940?.permitted?.()||false,
-     abdHost:!!document.getElementById('rc626Abd'),
-     nav:!!document.getElementById('nav'),
-     menu:!!document.querySelector('[data-exporthub-documents-nav]'),
-     currentView:document.body?.getAttribute('data-exporthub-view')||'',
-     snapshotItems:window.ExportHUBRC1294ABDAnalysis?.snapshot?.(0)?.positions?.length||0,
-     contentRoot:document.getElementById('content')?.firstElementChild?.id||''
-   }));
-   console.log('RC1940 invoice handoff diagnostics:',JSON.stringify(state));
- }
  const editor=page.locator('#rc1940Documents #rc1549AbdManual');
   await expect(page.locator('#rc1940Documents')).toBeVisible({timeout:10_000});
  await expect(editor.locator('tbody tr')).toHaveCount(1);
@@ -172,14 +159,6 @@ test('RC1784: D365-TXT-Upload erzeugt getrennte Empfänger-Rechnungsentwürfe',a
  await expect(docs).toHaveCount(2,{timeout:20_000});
  await expect(docs.nth(0)).toContainText('Customer A');
  await expect(docs.nth(1)).toContainText('Customer B');
- const controls=await page.evaluate(()=>({
-   documents:document.querySelectorAll('.rc1294-document').length,
-   imports:document.querySelectorAll('.rc1294-document [data-rc1549-import]').length,
-   invoiceRuntime:typeof window.ExportHUBRC1549Proforma,
-   analysisRuntime:typeof window.ExportHUBRC1294ABDAnalysis,
-   currentView:document.body?.getAttribute('data-exporthub-view')||''
- }));
- console.log('RC1940 multi-document diagnostics:',JSON.stringify(controls));
  await docs.nth(1).locator('[data-rc1549-import]').click();
  const editor=page.locator('#rc1940Documents #rc1549AbdManual');
   await expect(page.locator('#rc1940Documents')).toBeVisible({timeout:10_000});
