@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "Impossible de supprimer la fermeture",
   "closureMail.invalid": "Vérifiez les dates : dernier enlèvement avant la fermeture, réouverture après.",
   "closureMail.saved": "Fermeture enregistrée et activée pour les e-mails",
-  "closureMail.saveFailed": "Impossible d'enregistrer"
+  "closureMail.saveFailed": "Impossible d'enregistrer",
+  "closureMail.mailTitle": "Information importante – Fermeture",
+  "closureMail.mailLast": "Dernier enlèvement",
+  "closureMail.mailClosed": "Fermé",
+  "closureMail.mailResume": "Réouverture"
 }
