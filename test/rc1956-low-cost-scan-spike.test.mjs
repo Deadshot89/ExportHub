@@ -146,3 +146,27 @@ test('RC1956: internal scan-time skip cannot turn into clean',async()=>{
  assert.match(helper,/SIGKILL/);
  assert.match(helper,/scan\.timedOut/);
 });
+
+
+test('RC1956: cleanup failure cannot approve a scan or leak internal errors',async t=>{
+ const input=await fixture(t);
+ const originalRm=fs.rm;
+ let stagedDir='';
+ fs.rm=async(target,options)=>{
+  if(String(target).includes('exporthub-rc1956-scan-')){
+   stagedDir=String(target);
+   throw Error('SECRET_TEMP_PATH_MUST_NOT_LEAK');
+  }
+  return originalRm(target,options);
+ };
+ try{
+  const result=await scanLocalQuarantine({...input,runner:success});
+  assert.equal(result.verdict,'unverified');
+  assert.equal(result.reason,'cleanup-failed');
+  assert.equal(result.authorizedForRelease,false);
+  assert.doesNotMatch(JSON.stringify(result),/SECRET_TEMP_PATH|exporthub-rc1956-scan-/);
+ }finally{
+  fs.rm=originalRm;
+  if(stagedDir)await originalRm(stagedDir,{recursive:true,force:true});
+ }
+});
