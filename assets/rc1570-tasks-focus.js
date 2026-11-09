@@ -382,6 +382,11 @@ function pickupEnv(){
  if(forced==='testservice'||host.indexOf('-testservice.')>=0)return 'testservice';
  return 'production'
 }
+function pickupRequestedCompany(){
+ var s=state(),u=currentUser();
+ return q(s.activeCompanyId||s.currentCompanyId||s.companyId||u.companyId||u.companyKey||'')
+}
+function pickupCompanyKeyOf(value){return low(value).normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)}
 function pickupOptions(selected){
  var key=q(selected),rows=pickupTargets.filter(function(x){return x&&x.active!==false});
  var html='<option value="">'+esc(t('fPickupNone'))+'</option>';
@@ -395,14 +400,17 @@ function pickupOptions(selected){
 }
 async function loadPickupTargets(){
  if(pickupTargetsState==='loading')return;
- var env=pickupEnv(),taskIdAtStart=tv.id,modeAtStart=tv.mode;
+ var env=pickupEnv(),requestedCompany=pickupRequestedCompany(),taskIdAtStart=tv.id,modeAtStart=tv.mode;
  pickupTargetsState='loading';
  try{
+  var headers={'Accept':'application/json','X-ExportHUB-Environment':env};
+  if(requestedCompany)headers['X-ExportHUB-Company-Id']=requestedCompany;
   var res=await w.fetch('/api/fixed-pickups?includeInactive=1',{
-   method:'GET',credentials:'same-origin',headers:{'Accept':'application/json','X-ExportHUB-Environment':env}
+   method:'GET',credentials:'same-origin',headers:headers
   });
   var data=await res.json();
   if(!res.ok||!data||data.ok===false||data.environment!==env||!Array.isArray(data.items))throw Error('FIX_TARGETS_UNAVAILABLE');
+  if(requestedCompany!==pickupRequestedCompany()||(requestedCompany&&pickupCompanyKeyOf(data.companyKey)!==pickupCompanyKeyOf(requestedCompany)))throw Error('FIX_COMPANY_MISMATCH');
   pickupTargets=data.items.filter(function(x){return x&&x.active!==false&&q(x.id)});
   pickupTargetsEnv=env;pickupCompanyKey=q(data.companyKey);pickupTargetsState=pickupCompanyKey?'ready':'error';
  }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv='';pickupCompanyKey=''}
@@ -471,8 +479,9 @@ async function saveForm(form){
   // Linking a FIX target without a customer number cannot produce a verifiable shipment association.
   if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
   if(v.pickupTargetId){
-    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey)&&(!pickupCompanyKey||q(originalTarget.pickupTargetCompanyKey)===pickupCompanyKey);
-    if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
+    var requestedCompany=pickupRequestedCompany(),companyMatches=!requestedCompany||pickupCompanyKeyOf(pickupCompanyKey)===pickupCompanyKeyOf(requestedCompany);
+    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey)&&(!requestedCompany||pickupCompanyKeyOf(originalTarget.pickupTargetCompanyKey)===pickupCompanyKeyOf(requestedCompany))&&(!pickupCompanyKey||q(originalTarget.pickupTargetCompanyKey)===pickupCompanyKey);
+    if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&companyMatches&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
   }
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}

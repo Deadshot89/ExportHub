@@ -113,6 +113,12 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
 
   function companyId(){
     const state = getState();
+    // The active company chosen in the app takes precedence over the first company on a multi-company user.
+    // The API independently verifies this requested context against the authenticated user's grants.
+    for (const candidate of [state && state.activeCompanyId,state && state.currentCompanyId,state && state.companyId]) {
+      const selected = String(candidate == null ? '' : candidate).trim();
+      if (selected) return selected;
+    }
     const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : null;
     if (user) {
       const userCandidates = [user.companyId,user.companyKey,user.tenantId,user.tenant];

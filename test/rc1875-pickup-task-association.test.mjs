@@ -146,12 +146,27 @@ test('RC1875: task editor persists stable target ID using canonical guarded task
  assert.match(tasksSource,/var template=Object\.assign\(\{\},task\)/);
  assert.match(tasksSource,/fetch\('\/api\/fixed-pickups\?includeInactive=1'/);
  assert.match(tasksSource,/data\.environment!==env/);
+ assert.match(tasksSource,/headers\['X-ExportHUB-Company-Id'\]=requestedCompany/);
+ assert.match(tasksSource,/pickupCompanyKeyOf\(data\.companyKey\)!==pickupCompanyKeyOf\(requestedCompany\)/);
  assert.match(tasksSource,/if\(forced==='demo'/);
  assert.match(runtime,/tasks: tasks\(\)/);
  assert.match(runtime,/calendar\.setTasks\(tasks\(\)\)/);
  assert.match(runtime,/exporthub:tasks-updated/);
  for(const key of ['fPickupTarget','fPickupNone','fPickupMissing','fPickupNeedsNumbers'])
   assert.equal((dict.match(new RegExp(key+':','g'))||[]).length,6,key+' must exist in every language');
+});
+
+test('RC1875: calendar uses active company, not first company granted to the user',()=>{
+ let options=null;
+ const window={
+  __EXPORTHUB_GET_STATE__:()=>({activeCompanyId:'company-b',currentUser:{companyId:'company-a',allowedCompanyIds:['company-a','company-b']},shipments:[],tasks:[]}),
+  document:{getElementById:id=>id==='content'?{innerHTML:''}:null},
+  ExportHubPickupCalendar:{mount(_root,value){options=value}},
+  canRead:()=>true,location:{hostname:'example.test',pathname:'/index.html'}
+ };
+ vm.runInNewContext(runtime,{window,globalThis:window});
+ assert.equal(window.pickupcalendar(),true);
+ assert.equal(options.companyId,'company-b');
 });
 
 test('RC1875: cancelled tasks never create a FIX shipment link',()=>{
