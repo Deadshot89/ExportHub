@@ -142,11 +142,88 @@ function ensureCcStyle(){
  style.textContent='.rc1065-cc-settings{margin-top:16px}.rc1065-cc-settings .rc1065-cc-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.rc1065-cc-settings label{display:grid;gap:6px;font-weight:700}.rc1065-cc-settings input{min-height:42px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px}.rc1065-cc-settings .rc1065-cc-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}.rc1065-cc-settings [data-kind="error"]{color:#b91c1c}.rc1065-cc-settings [data-kind="ok"]{color:#166534}@media(max-width:720px){.rc1065-cc-settings .rc1065-cc-grid{grid-template-columns:1fr}}';
  (w.document.head||w.document.documentElement).appendChild(style)
 }
+
+/* Shipping closure notices are deliberately separate from the task planner calendar:
+   a task closure does not prove the final carrier collection or reopening date. */
+function closureEntries(){
+ var v=state().settings&&state().settings.closureNotices;
+ return Array.isArray(v)?v.map(function(x){return Object.assign({},x)}):[]
+}
+function safeDay(v){
+ v=q(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return'';
+ var t=new Date(v+'T12:00:00Z');return Number.isFinite(t.getTime())&&t.toISOString().slice(0,10)===v?v:''
+}
+async function persistClosureEntries(next){
+ if(!globalAdmin())throw new Error('Nur Administratoren dürfen Schließzeiten ändern.');
+ var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
+ var previous=s.settings.closureNotices;
+ s.settings.closureNotices=next;
+ try{
+  var clean=w.ExportHUBClean;
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Zentrale Speicherung nicht verfügbar');
+  await clean.queueSave('Schließzeiten für E-Mails geändert');
+  var ok=await clean.flushSave('Schließzeiten für E-Mails geändert',{force:true,userInitiated:true});
+  if(ok!==true)throw new Error('Azure-Speicherung nicht bestätigt');
+  try{w.dispatchEvent(new CustomEvent('exporthub:closure-notices-updated',{detail:{count:next.length}}))}catch(_){}
+  return true
+ }catch(e){if(previous===undefined)delete s.settings.closureNotices;else s.settings.closureNotices=previous;throw e}
+}
+function installClosureSettings(host){
+ if(!w.document||!globalAdmin()||!settingsVisible())return false;
+ if(w.document.getElementById('rc1328ClosureSettings'))return true;
+ host=host||w.document.getElementById('content')||w.document.querySelector('main')||w.document.body;
+ if(!host)return false;
+ var style=w.document.getElementById('rc1328ClosureStyle');
+ if(!style){
+  style=w.document.createElement('style');style.id='rc1328ClosureStyle';
+  style.textContent='.rc1328-closure{margin-top:16px}.rc1328-fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.rc1328-fields label{display:grid;gap:5px;font-weight:700}.rc1328-fields input{padding:9px;border:1px solid #94a3b8;border-radius:8px;min-height:40px}.rc1328-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rc1328-entries{padding-left:22px}.rc1328-entries li{margin-bottom:9px}.rc1328-entries button{margin-left:8px}.rc1328-status[data-kind="error"]{color:#b91c1c}.rc1328-status[data-kind="ok"]{color:#166534}@media(max-width:700px){.rc1328-fields{grid-template-columns:1fr}}';
+  (w.document.head||w.document.documentElement).appendChild(style)
+ }
+ var box=w.document.createElement('section');box.id='rc1328ClosureSettings';box.className='card rc1328-closure';
+ box.innerHTML='<h3>Betriebszeiten &amp; Schließtage – E-Mail-Hinweis</h3><p>Nur bestätigte Schließzeiten mit letzter Abholung werden in AVIS-E-Mails angezeigt. Aufgabenplaner-Feiertage werden nicht automatisch übernommen.</p><form data-rc1328-form><div class="rc1328-fields"><label>Geschlossen ab<input type="date" name="startDate" required></label><label>Geschlossen bis<input type="date" name="endDate" required></label><label>Letzte Abholung<input type="date" name="lastPickupDate" required></label><label>Letzte Abholzeit<input type="time" name="lastPickupTime" value="15:00" required></label><label>Wieder geöffnet ab<input type="date" name="reopenDate" required></label><label>Hinweis vorher (Tage)<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1328-actions"><button class="btn" type="submit">Schließzeit hinzufügen</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>Gespeicherte Schließzeiten</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
+ host.appendChild(box);
+ var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]');
+ function show(message,kind){status.textContent=message||'';status.setAttribute('data-kind',kind||'info')}
+ function display(){
+  list.textContent='';
+  var entries=closureEntries();
+  if(!entries.length){var empty=w.document.createElement('li');empty.textContent='Keine Schließzeiten hinterlegt';list.appendChild(empty);return}
+  entries.forEach(function(item,index){
+   var li=w.document.createElement('li'),text=w.document.createElement('span'),remove=w.document.createElement('button');
+   text.textContent=[item.startDate+' – '+item.endDate,'letzte Abholung: '+item.lastPickupDate+' '+item.lastPickupTime,'wieder offen: '+item.reopenDate,'Vorlauf: '+item.leadDays+' Tage',item.enabled?'aktiv':'inaktiv'].join(' · ');
+   remove.type='button';remove.className='btn flat small';remove.textContent='Entfernen';remove.setAttribute('aria-label','Schließzeit '+(index+1)+' entfernen');
+   remove.addEventListener('click',async function(){
+    remove.disabled=true;show('Wird gespeichert …');
+    try{var entries=closureEntries();entries.splice(index,1);await persistClosureEntries(entries);display();show('Schließzeit entfernt','ok')}
+    catch(e){show('Entfernen fehlgeschlagen: '+q(e&&e.message),'error');remove.disabled=false}
+   });
+   li.appendChild(text);li.appendChild(remove);list.appendChild(li)
+  })
+ }
+ form.addEventListener('submit',async function(ev){
+  ev.preventDefault();
+  var field=function(k){return q(form.elements.namedItem(k)&&form.elements.namedItem(k).value)};
+  var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays'))};
+  if(!entry.startDate||!entry.endDate||!entry.lastPickupDate||!entry.reopenDate||
+    entry.startDate>entry.endDate||entry.lastPickupDate>=entry.startDate||entry.reopenDate<=entry.endDate||
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.lastPickupTime)||!Number.isInteger(entry.leadDays)||entry.leadDays<0||entry.leadDays>90){
+   show('Bitte die Daten prüfen: letzte Abholung vor Schließbeginn, Wiederöffnung danach.','error');return
+  }
+  var button=form.querySelector('[type="submit"]');button.disabled=true;show('Wird zentral gespeichert …');
+  try{
+   var entries=closureEntries();entries.push(entry);await persistClosureEntries(entries);
+   form.reset();display();show('Schließzeit gespeichert und für E-Mails aktiviert','ok')
+  }catch(e){show('Speichern fehlgeschlagen: '+q(e&&e.message),'error')}
+  finally{button.disabled=false}
+ });
+ display();return true
+}
+
 function installSettings(){
  if(!w.document||!w.document.body)return false;
  var old=w.document.getElementById('rc1065RegistrationCcSettings');
- if(!globalAdmin()||!settingsVisible()){if(old&&old.parentNode)old.parentNode.removeChild(old);return false}
- if(old)return true;
+ if(!globalAdmin()||!settingsVisible()){if(old&&old.parentNode)old.parentNode.removeChild(old);var oldClosure=w.document.getElementById('rc1328ClosureSettings');if(oldClosure)oldClosure.remove();return false}
+ if(old){installClosureSettings();return true}
  var host=w.document.getElementById('content')||w.document.querySelector('main')||w.document.body;
  if(!host)return false;
  ensureCcStyle();
@@ -168,13 +245,14 @@ function installSettings(){
   }catch(e){ccSettingsStatus(status,tr('registrationCc.saveFailed',{error:q(e&&e.message||e)}),'error')}
   finally{save.disabled=false}
  });
+ installClosureSettings(host);
  return true
 }
 
 function scheduleSettings(){try{if(typeof w.setTimeout==='function')w.setTimeout(installSettings,0);else installSettings()}catch(_){}}
 if(w.addEventListener){
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){w.addEventListener(name,scheduleSettings)});
- w.addEventListener('exporthub:language-changed',function(){var old=w.document&&w.document.getElementById('rc1065RegistrationCcSettings');if(old)old.remove();scheduleSettings()});
+ w.addEventListener('exporthub:language-changed',function(){var old=w.document&&w.document.getElementById('rc1065RegistrationCcSettings');if(old)old.remove();var closure=w.document&&w.document.getElementById('rc1328ClosureSettings');if(closure)closure.remove();scheduleSettings()});
  w.addEventListener('click',scheduleSettings,true)
 }
 if(w.document){
