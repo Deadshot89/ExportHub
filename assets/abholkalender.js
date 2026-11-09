@@ -77,8 +77,11 @@
   }
   // RC1650: picked-up shipments stay in the calendar (green) on the day they were collected
   function shipmentCancelled(shipment){
-    const status = String(shipment && (shipment.pickupStatus || shipment.shipmentStatus || shipment.processStatus || shipment.status) || '').trim().toLocaleLowerCase('de-DE');
-    return /^(?:storniert|cancelled|canceled|gelöscht|deleted)$/.test(status);
+    const sh=shipment&&typeof shipment==='object'?shipment:{};
+    // An open pickupStatus must never hide a cancellation in another canonical status.
+    return ['pickupStatus','shipmentStatus','processStatus','status'].some(key=>
+      /^(?:storniert|cancelled|canceled|gelöscht|deleted)$/.test(String(sh[key]||'').trim().toLocaleLowerCase('de-DE'))
+    );
   }
   function shipmentCollectedDate(shipment){
     const sh = shipment && typeof shipment === 'object' ? shipment : {};
@@ -234,7 +237,7 @@
     const weekday = date.getDay();
     const dateKey = dateKeyLocal(date);
     const fixed = weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [];
-    const open = shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment));
+    const open = shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentCancelled(shipment) && !shipmentIsCompleted(shipment));
     const doneShipments = shipments.filter(shipment => shipment && shipmentIsCompleted(shipment) && !shipmentCancelled(shipment) && shipmentDoneDate(shipment) === dateKey);
     const fixedStatus = {};
     Object.assign(fixedStatus,pickupAssociationForDate(fixed,open,doneShipments,tasks,dateKey,weekday,companyKey));
