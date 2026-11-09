@@ -88,7 +88,7 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
   if(name==='crypto')return crypto;
   if(name==='../shared/auth-store')return auth;
   if(name==='../shared/graph-mail')return{async sendHtmlMail(value){mail=value;return{attempts:1}}};
-  if(name==='../shared/avis-mail-html')return{renderAvisMailHtml:(body)=>body};
+  if(name==='../shared/avis-mail-html')return{renderAvisMailHtml:(body)=>body,activeClosureNotices:()=>[],closureNoticeHtml:()=>''};
   return{};
  }};
  vm.runInNewContext(fs.readFileSync('api/avis-reminder-mail/index.js','utf8'),sandbox);
