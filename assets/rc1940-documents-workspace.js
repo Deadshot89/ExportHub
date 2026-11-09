@@ -27,6 +27,8 @@
    b=d.createElement('button');b.type='button';b.className='rc1940-documents-nav';
    b.setAttribute('data-exporthub-documents-nav','1');
    b.setAttribute('data-rc1579-proxy','documents');
+   // Reuse the canonical menu's responsive, light/dark and accessibility styling.
+   b.setAttribute('data-index321-view','documents');
    b.setAttribute('data-rc626-view','documents');
    var icon=d.createElement('span');icon.className='index308-nav-icon';icon.setAttribute('aria-hidden','true');
    icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3z"/><path d="M16 3v5h4M8 13h8M8 17h8"/></svg>';
