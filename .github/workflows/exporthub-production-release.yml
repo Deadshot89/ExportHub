@@ -263,6 +263,12 @@ jobs:
       # Read-only live check: no customer data and no test order creation.
       # A 403 with reporter-specific JSON proves storage and host resolution;
       # URGENT_HOST_UNTRUSTED / missing storage / 503 must block this release.
+      - name: RC1943 Dokumente erstellen Excel-Upload auf PRODUCTION ausgeliefert
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1943-documents-upload-live.mjs production "$RELEASE_SHA"
+
       - name: RC1810 Urgent Order PRODUCTION API Live-Gate
         shell: bash
         run: |
