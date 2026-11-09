@@ -130,7 +130,10 @@
   // A calendar association is read-only: it never changes a shipment, its pickup or its documents.
   function taskCustomerNumbers(task){
     const x=task&&typeof task==='object'?task:{};
-    return customerNumberKeys(x.customerNumber||x.linkedAccount||x.customerAccount||'');
+    // An explicitly saved empty customerNumber is a deliberate removal. Never
+    // resurrect it from stale linkedAccount/customerAccount migration aliases.
+    if(Object.prototype.hasOwnProperty.call(x,'customerNumber'))return customerNumberKeys(x.customerNumber);
+    return customerNumberKeys(x.linkedAccount||x.customerAccount||'');
   }
   function taskOnPickupDay(task,dateKey,weekday){
     const x=task&&typeof task==='object'?task:{};
