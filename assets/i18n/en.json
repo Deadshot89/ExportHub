@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "Could not remove closure",
   "closureMail.invalid": "Check the dates: last collection before closure; reopening afterwards.",
   "closureMail.saved": "Closure saved and enabled for emails",
-  "closureMail.saveFailed": "Could not save"
+  "closureMail.saveFailed": "Could not save",
+  "closureMail.mailTitle": "Important notice – Holiday closure",
+  "closureMail.mailLast": "Last collection",
+  "closureMail.mailClosed": "Closed",
+  "closureMail.mailResume": "Reopening"
 }
