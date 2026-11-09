@@ -2662,5 +2662,6 @@
   "closureMail.mailClosed": "Fermé",
   "closureMail.mailResume": "Réouverture",
   "closureMail.htmlPreview": "Aperçu de l’e-mail HTML",
-  "closureMail.previewFailed": "Impossible de charger l’aperçu de l’e-mail."
+  "closureMail.previewFailed": "Impossible de charger l’aperçu de l’e-mail.",
+  "closureMail.pickupWarning": "Attention : l’enlèvement prévu le {{date}} tombe pendant la fermeture (du {{from}} au {{to}}). Réouverture le {{reopen}}. Veuillez vérifier la date."
 }
