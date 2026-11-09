@@ -130,9 +130,19 @@ test('RC1956: scanner options must alert on archive limits, macros and encryptio
  const source=await fs.readFile('tools/rc1956-clamav/scan-local.cjs','utf8');
  for(const opt of ['--alert-exceeds-max=yes','--alert-encrypted=yes','--alert-macros=yes',
   '--max-filesize=20M','--max-scansize=80M','--max-files=1000',
-  '--max-recursion=8','--max-scantime=90000']){
+  '--max-recursion=8','--max-scantime=0']){
   assert.ok(source.includes(opt),'required scanner option '+opt);
  }
  assert.match(source,/shell:false/);
  assert.match(source,/fs\.promises\.mkdtemp/);
+});
+
+
+test('RC1956: internal scan-time skip cannot turn into clean',async()=>{
+ const helper=await fs.readFile('tools/rc1956-clamav/scan-local.cjs','utf8');
+ assert.match(helper,/--max-scantime=0/);
+ assert.doesNotMatch(helper,/--max-scantime=(?!0(?:['",]|$))[1-9][0-9]*/);
+ assert.match(helper,/timedOut=true/);
+ assert.match(helper,/SIGKILL/);
+ assert.match(helper,/scan\.timedOut/);
 });
