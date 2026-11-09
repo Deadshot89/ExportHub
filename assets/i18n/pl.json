@@ -2656,5 +2656,9 @@
   "closureMail.removeFailed": "Nie udało się usunąć",
   "closureMail.invalid": "Sprawdź daty: ostatni odbiór przed zamknięciem, ponowne otwarcie po jego zakończeniu.",
   "closureMail.saved": "Zamknięcie zapisane i włączone do wiadomości e-mail",
-  "closureMail.saveFailed": "Nie udało się zapisać"
+  "closureMail.saveFailed": "Nie udało się zapisać",
+  "closureMail.mailTitle": "Ważna informacja – Przerwa w pracy",
+  "closureMail.mailLast": "Ostatni odbiór",
+  "closureMail.mailClosed": "Zamknięte",
+  "closureMail.mailResume": "Ponowne otwarcie"
 }
