@@ -188,7 +188,7 @@ async function exportProforma(snapshot,button){
  if(!readyInvoice(snapshot)||busy){setStatus(t('addressesRequired'),'bad');return false}busy=true;if(button)button.disabled=true;
  try{var exportSnapshot=Object.assign({},snapshot);if(logoDataUri)exportSnapshot.logoDataUri=logoDataUri;var result=await post('/api/abd-analysis/export',{action:'export',format:'proforma',snapshot:exportSnapshot});download(result.file);return true}
  catch(error){setStatus(q(error&&error.message)||t('error'),'bad');return false}
- finally{busy=false;if(button)button.disabled=false;schedule()}
+ finally{busy=false;if(button)button.disabled=false}
 }
 function host(){return root.document&&root.document.getElementById('rc1294AbdAnalysis')}
 function invoicePanel(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')}
