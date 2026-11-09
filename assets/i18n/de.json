@@ -2426,7 +2426,7 @@
   "urgentOrderV2.formTitle": "Neue Anfrage erfassen",
   "urgentOrderV2.formIntro": "Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.",
   "urgentOrderV2.requestedDispatchDate": "Gewünschter Versandtag * (deutsche Ortszeit)",
-  "urgentOrderV2.cutoffLateWarning": "Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.",
+  "urgentOrderV2.cutoffLateWarning": "Meldefrist für heute abgelaufen! Aufträge für heute müssen bis 15:15 Uhr gemeldet werden. Bitte verschiebe den Auftrag auf morgen. Meldest du ihn trotzdem für heute, wird er nur noch heute bearbeitet, wenn das System ihn automatisch freigibt. Sonst erst morgen.",
   "urgentOrderV2.priorityLabel": "Priorität / Anfragegrund *",
   "urgentOrderV2.typeLabel": "Art der Anfrage *",
   "urgentOrderV2.typeStandard": "Lagerauftrag – Ware ist bereits verfügbar",
