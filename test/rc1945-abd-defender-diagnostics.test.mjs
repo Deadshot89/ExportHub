@@ -108,3 +108,26 @@ test('RC1945: TESTSERVICE CI uses existing OIDC fixture and never changes Azure 
  assert.match(workflowSource,/RC1945.*Defender/i);
  assert.doesNotMatch(workflowSource,/az security pricing create|az security pricing update|defender-plan enable/i);
 });
+
+test('RC1945: stale slow tag response never yields verified inventory',async()=>{
+ const h=harness([{name:'delayed.xlsx',ageMs:180000,tags:{}}]);
+ let calls=0;
+ const report=await collectTestserviceAbdDefenderDiagnostics({
+  service:h.service,containerName:'exporthub-abd-quarantine',budgetMs:12000,
+  clock:()=>NOW+([0,0,12001][Math.min(calls++,2)])
+ });
+ assert.equal(report.status,'unverified');
+ assert.equal(report.reason,'incomplete');
+ assert.equal(report.recordCount,null);
+ assert.deepEqual(h.methods,['CONTAINER','LIST','GET_TAGS']);
+});
+
+test('RC1945: SDK connection-string failures are redacted before generic fixture error handler',()=>{
+ const start=fixtureSource.indexOf("if(action==='diagnose-abd-defender')");
+ const end=fixtureSource.indexOf("if(action==='inventory-blob-policy')",start);
+ assert.ok(start>0&&end>start);
+ const block=fixtureSource.slice(start,end);
+ assert.match(block,/try\s*\{[\s\S]*BlobServiceClient\.fromConnectionString\(cs\)/);
+ assert.match(block,/catch\s*\(_\)\s*\{[\s\S]*diagnostics=await collectTestserviceAbdDefenderDiagnostics\(\)/);
+ assert.doesNotMatch(block,/context\.log|console\.log|message\s*:\s*[^,}]+/);
+});
