@@ -379,4 +379,11 @@ test('Issue #1328: pickup warning only for valid, enabled closures and inclusive
  assert.equal(check('2026-12-25'),null,'invalid hour must not warn falsely');
  closure.lastPickupTime='15:00';closure.reopenDate='2027-01-01';
  assert.equal(check('2026-12-25'),null,'invalid reopening must not warn falsely');
+ closure.reopenDate='2027-01-04';
+ assert.equal(check('2026-12-18'),null,'last pickup date alone does not prove a conflict');
+ assert.equal(check('2026-12-18','15:00'),null,'slot ending at exact cutoff is permitted');
+ const late=check('2026-12-18','15:30');
+ assert.equal(late.lastPickupDate,'2026-12-18');
+ assert.equal(late.lastPickupTime,'15:00');
+ assert.equal(check('2026-12-18','garbage'),null,'invalid time cannot create an unsupported warning');
 });
