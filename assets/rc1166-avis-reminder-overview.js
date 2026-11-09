@@ -370,14 +370,14 @@ function openDialog(sh,mode){
 
 function renderPickupClosureWarning(card,sh){
  var current=card&&card.querySelector&&card.querySelector('[data-rc1328-pickup-warning]');
- var date=pickupDateOf(sh),api=w.ExportHUBRC1065RegistrationCC,hit=null;
- try{if(api&&typeof api.pickupClosureWarning==='function')hit=api.pickupClosureWarning(date)}catch(_){}
+ var date=pickupDateOf(sh),slotEnd=q(sh&&(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo)),api=w.ExportHUBRC1065RegistrationCC,hit=null;
+ try{if(api&&typeof api.pickupClosureWarning==='function')hit=api.pickupClosureWarning(date,slotEnd)}catch(_){}
  if(!hit){if(current)current.remove();return false}
  var lang='de';
  try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
  var locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
  function formatted(v){return new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z'))}
- var message=tr('closureMail.pickupWarning',{date:formatted(hit.pickupDate),from:formatted(hit.startDate),to:formatted(hit.endDate),reopen:formatted(hit.reopenDate)},lang);
+ var message=tr('closureMail.pickupWarning',{date:formatted(hit.pickupDate),last:formatted(hit.lastPickupDate),time:hit.lastPickupTime,from:formatted(hit.startDate),to:formatted(hit.endDate),reopen:formatted(hit.reopenDate)},lang);
  if(!current){
   current=d.createElement('div');current.className='rc1328-pickup-warning';
   current.setAttribute('data-rc1328-pickup-warning','1');current.setAttribute('role','alert');
