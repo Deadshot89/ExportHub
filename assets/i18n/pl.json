@@ -2662,5 +2662,6 @@
   "closureMail.mailClosed": "Zamknięte",
   "closureMail.mailResume": "Ponowne otwarcie",
   "closureMail.htmlPreview": "Podgląd wiadomości HTML",
-  "closureMail.previewFailed": "Nie udało się wczytać podglądu wiadomości."
+  "closureMail.previewFailed": "Nie udało się wczytać podglądu wiadomości.",
+  "closureMail.pickupWarning": "Uwaga: odbiór {{date}} przypada w okresie zamknięcia ({{from}} – {{to}}). Ponowne otwarcie: {{reopen}}. Prosimy sprawdzić termin odbioru."
 }
