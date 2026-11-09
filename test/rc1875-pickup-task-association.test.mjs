@@ -172,14 +172,18 @@ test('RC1875: wrong-environment FIX response and failed refresh cannot retain ol
  assert.equal(view.state.companyKey,'');
  assert.equal(view.state.canEdit,false);
  assert.match(view.state.fixedError,/FIX_ENVIRONMENT_MISMATCH/);
- assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ assert.doesNotMatch(element.innerHTML,/pickup-item pickup-item-fix/,'failed FIX refresh removes only unverified FIX links');
+ assert.match(element.innerHTML,/pickup-item pickup-item-shipment/,'the standalone valid shipment remains visible');
+ assert.match(element.innerHTML,/data-pickup-shipment-ref="UK-A"/,'standalone shipment stays independently openable');
  await view.refresh();
  assert.match(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
  await view.refresh();
  assert.deepEqual(Array.from(view.state.fixedPickups),[]);
  assert.equal(view.state.companyKey,'');
  assert.equal(view.state.canEdit,false);
- assert.doesNotMatch(element.innerHTML,/data-pickup-shipment-key="UK-A"/);
+ assert.doesNotMatch(element.innerHTML,/pickup-item pickup-item-fix/,'failed FIX refresh removes only unverified FIX links');
+ assert.match(element.innerHTML,/pickup-item pickup-item-shipment/,'the standalone valid shipment remains visible');
+ assert.match(element.innerHTML,/data-pickup-shipment-ref="UK-A"/,'standalone shipment stays independently openable');
 });
 
 test('RC1875: late first FIX response cannot overwrite a newer successful refresh',async()=>{
