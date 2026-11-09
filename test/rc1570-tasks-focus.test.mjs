@@ -440,3 +440,31 @@ test('Aufgabenansicht: alle Wochenstämme auch ohne Instanz an einem anderen Woc
   assert.deepEqual(store.tasks.map(t=>t.id),['manual']);
   assert.equal(api.managedRows().counts.weekly,0,'dauerhaft abgeschaltete Serie ist nicht wieder sichtbar');
 });
+
+
+test('Aufgabenansicht: V2 Wochenserie erscheint ohne heutige Instanz und wird vollständig deaktiviert',async()=>{
+  const {api,store}=editorHarness([{id:'remain',title:'Einmalig',sourceType:'manual',owner:'Tobias'}],()=>true);
+  store.taskSeries=[{id:'series-uk',title:'UK anmelden',owner:'Tobias',rule:{type:'weekly',weekdays:[1,4]},task:{sourceType:'manual'}}];
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="series:template:series-uk"/);
+  assert.match(html,/data-rc1570-tv-delete="series:template:series-uk"/);
+  assert.equal(api.managedRows().counts.weekly,1);
+  assert.equal(await api._deleteManagedTask('series:template:series-uk'),true);
+  assert.equal(store.taskSeries.length,0);
+  assert.deepEqual(store.tasks.map(t=>t.id),['remain']);
+  assert.ok(store._teamSyncMeta.tombstones.some(t=>t.collection==='taskSeries'&&t.id==='series-uk'));
+  assert.equal(api.managedRows().counts.weekly,0);
+});
+
+test('Aufgabenansicht: Wochenstamm kann weder als Tagesinstanz erledigt noch fälschlich bearbeitet werden',async()=>{
+  const {api,store}=editorHarness([],
+    ()=>true,{managedTaskPlanItems:()=>[{key:'sweden',title:'Schweden anmelden',weekdays:[3]}]});
+  const html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="managed:template:sweden"/);
+  api.openTask('managed:template:sweden');
+  const detail=api.taskViewHtml();
+  assert.doesNotMatch(detail,/data-rc1570-tv="edit"/);
+  assert.doesNotMatch(detail,/data-rc1570-tv-status="done"/);
+  assert.equal(await api._changeTaskStatus('done'),false);
+  assert.equal(store.tasks.length,0);
+});
