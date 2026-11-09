@@ -110,7 +110,7 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
       "rc1957Sums.push(Array.from(rc1957Hash).map(function(b){return b.toString(16).padStart(2,'0')}).join('')+'  '+rc1957Pdf.name);",
       "}catch(_){fail.push('RC1957_SHA256_FAILED');break}}",
       "}",
-      "if(rc1957Pdfs.length>0&&rc1957Pdfs.length===rc1957Expected.length&&rc1957Sums.length===rc1957Pdfs.length){",
+      "if(fail.length===0&&rc1957Pdfs.length>0&&rc1957Pdfs.length===rc1957Expected.length&&rc1957Sums.length===rc1957Pdfs.length){",
       "entries.push({name:'SHA256SUMS.txt',data:new TextEncoder().encode(rc1957Sums.join('\\n')+'\\n')})",
       "}else if(rc1957Expected.length===0){fail.push('RC1957_NO_PDF')}",
       "/* RC1957_SHA256_END */",
