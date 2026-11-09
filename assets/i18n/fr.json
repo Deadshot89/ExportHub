@@ -2426,7 +2426,7 @@
   "urgentOrderV2.formTitle": "Créer une nouvelle demande",
   "urgentOrderV2.formIntro": "Saisissez la commande et le flux de marchandises. Les demandes figurent dans leur onglet respectif.",
   "urgentOrderV2.requestedDispatchDate": "Date d'expédition souhaitée * (heure locale allemande)",
-  "urgentOrderV2.cutoffLateWarning": "Le délai de déclaration pour aujourd'hui est dépassé ! Les commandes pour aujourd'hui doivent être signalées avant 15 h 15. Reporte cette commande à demain. Si tu la signales quand même pour aujourd'hui, elle ne sera traitée aujourd'hui que si le système la libère automatiquement. Sinon, ce sera demain.",
+  "urgentOrderV2.cutoffLateWarning": "Petit rappel pour aujourd'hui : merci de signaler les commandes du jour avant 15 h 15. S'il est déjà plus tard, choisis de préférence demain comme date d'expédition. Tu peux quand même signaler la commande pour aujourd'hui. Si le système ne la libère pas automatiquement, nous nous en occuperons demain.",
   "urgentOrderV2.priorityLabel": "Priorité / motif de la demande *",
   "urgentOrderV2.typeLabel": "Type de demande *",
   "urgentOrderV2.typeStandard": "Commande en stock – marchandises déjà disponibles",
