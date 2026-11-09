@@ -20,7 +20,9 @@ test('RC1065: Main Contract reagiert auch auf beide Static-Web-App-Routenverträ
 
 test('RC1065: Abholkalender zeigt nur nicht abgeholte Sendungen und bleibt kompakt',()=>{
   const js=read('assets/abholkalender.js'),css=read('assets/abholkalender.css');
-  assert.match(js,/shipments\.filter\(shipment => shipmentPickupDate\(shipment\) === dateKey && !shipmentIsCompleted\(shipment\)\)/);
+  // RC1875 also excludes cancelled shipments, including conflicting status aliases.
+  assert.match(js,/shipments\.filter\(shipment\s*=>\s*shipmentPickupDate\(shipment\)\s*===\s*dateKey\s*&&\s*!shipmentCancelled\(shipment\)\s*&&\s*!shipmentIsCompleted\(shipment\)\)/);
+  assert.match(js,/function shipmentCancelled\(shipment\)/);
   assert.match(js,/abgeholt\|pod vorhanden\|abgeschlossen\|archiviert/);
   assert.match(css,/RC1052: kompaktere Kalenderkarten/);
   assert.match(css,/\.pickup-item\{padding:7px 8px/);
