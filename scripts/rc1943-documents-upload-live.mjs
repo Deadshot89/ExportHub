@@ -9,7 +9,7 @@ export const HOSTS=Object.freeze({
 });
 
 export function assertDocumentUploadAssets(html,runtime,label){
- assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1940'),label+': document workspace script is not linked in the deployed HTML');
+ assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1943'),label+': document workspace script is not linked in the deployed HTML');
  for(const token of ['data-rc1940-files','data-rc1940-analyze','function ensureUpload()','editor.importAnalysis(result.analysis)']){
   assert.ok(runtime.includes(token),label+': deployed document-upload asset misses '+token);
  }
@@ -26,7 +26,7 @@ export async function verifyDocumentUploadLive(env,sha,{fetchImpl=fetch,attempts
    const opts={redirect:'follow',headers:{'cache-control':'no-cache'},signal:AbortSignal.timeout(15000)};
    const root=await fetchImpl(base+'/?rc1943='+sha+'-'+attempt,opts);
    assert.equal(root.status,200,env+': root document HTTP '+root.status);
-   const asset=await fetchImpl(base+'/assets/rc1940-documents-workspace.js?v=1940&rc1943='+sha+'-'+attempt,opts);
+   const asset=await fetchImpl(base+'/assets/rc1940-documents-workspace.js?v=1943&rc1943='+sha+'-'+attempt,opts);
    assert.equal(asset.status,200,env+': document upload asset HTTP '+asset.status);
    assertDocumentUploadAssets(await root.text(),await asset.text(),env);
    return {environment:env,sha,verified:true};
