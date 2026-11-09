@@ -518,6 +518,14 @@
       const data=await manualPickupApi('manual-availability',shipment,{pickupDate:safeDate});
       if(panel.dataset.rc1370ShipmentIdentity!==identity||panel.dataset.rc1370RequestSequence!==requestSeq)return false;
       const availability=data&&data.availability||{},slots=arr(availability.slots);
+      if(availability.closed===true){
+        select.innerHTML='<option value="">'+tr('closureMail.bookingClosed')+'</option>';
+        select.disabled=true;panel.dataset.rc1328ClosureBlocked='1';
+        setManualPickupStatus(panel,tr('closureMail.bookingClosed'),'error');return false
+      }
+      if(panel.dataset.rc1328ClosureBlocked==='1'){
+        panel.dataset.rc1328ClosureBlocked='';setManualPickupStatus(panel,'','info')
+      }
       select.innerHTML='<option value="">'+tr('manualPickup.selectSlot')+'</option>';
       slots.forEach(slot=>{
         const option=root.document.createElement('option'),value=q(slot.from)+'|'+q(slot.to);
@@ -558,8 +566,8 @@
         panel.dataset.rc1370Dirty='';setManualPickupStatus(panel,tr('manualPickup.saved',{date:dateValue,from:parts[0],to:parts[1]}),'ok');
         await loadManualPickupAvailability(panel,sh,dateValue,parts[0]+'|'+parts[1]);
       }catch(e){
-        setManualPickupStatus(panel,tr('manualPickup.failed'),'error');
-        if(e&&e.code==='PICKUP_SLOT_FULL')await loadManualPickupAvailability(panel,sh,dateValue,'');
+        setManualPickupStatus(panel,e&&e.code==='PICKUP_BUSINESS_CLOSED'?tr('closureMail.bookingClosed'):tr('manualPickup.failed'),'error');
+        if(e&&(e.code==='PICKUP_SLOT_FULL'||e.code==='PICKUP_BUSINESS_CLOSED'))await loadManualPickupAvailability(panel,sh,dateValue,'');
       }finally{save.disabled=false}
     });
     return panel;
