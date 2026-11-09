@@ -387,3 +387,29 @@ test('Issue #1328: pickup warning only for valid, enabled closures and inclusive
  assert.equal(late.lastPickupTime,'15:00');
  assert.equal(check('2026-12-18','garbage'),null,'invalid time cannot create an unsupported warning');
 });
+
+
+test('Issue #1328: Outlook closure notes remain translated without a loaded i18n resource',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ class FrozenDate extends Date{
+  constructor(...args){super(...(args.length?args:['2026-12-14T12:00:00Z']))}
+  static now(){return Date.parse('2026-12-14T12:00:00Z')}
+ }
+ const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+  lastPickupDate:'2026-12-18',lastPickupTime:'14:30',reopenDate:'2027-01-04',leadDays:14};
+ const state={settings:{closureNotices:[closure]}};
+ const window={__EXPORTHUB_GET_STATE__:()=>state};
+ vm.runInNewContext(source,{window,Date:FrozenDate,Intl,console,URLSearchParams});
+ const api=window.ExportHUBRC1065RegistrationCC;
+ const headings={
+  de:'Wichtige Information',en:'Important notice',pl:'Ważna informacja',
+  es:'Información importante',fr:'Information importante',it:'Informazione importante'
+ };
+ for(const [lang,heading] of Object.entries(headings)){
+  const text=api.closureNoticeText(lang);
+  assert.match(text,new RegExp(heading),lang);
+  assert.match(text,/14:30/,lang);
+  assert.doesNotMatch(text,/closureMail\.mail(?:Title|Last|Closed|Resume)/,lang);
+  assert.match(text,/=== ExportHUB360 ===/,lang);
+ }
+});
