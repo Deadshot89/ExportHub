@@ -14,7 +14,7 @@ function tr(key,vars,fallback){try{var i=w.ExportHUBI18n;if(i&&typeof i.t==='fun
 // RC1786: The invoice file picker must work even when its optional translation asset fails to load.
 var languageFallback={
  de:{
-  workspaceTitle:'ABD & Rechnungen',
+  workspaceTitle:'ABD erstellen',
   tabIntro:'Arbeitsbereich auswählen – nur die passenden Felder werden angezeigt.',
   savedMode:'Gespeicherte Anfragen',
   entryAria:'ABD-Einstieg auswählen',
@@ -34,7 +34,7 @@ var languageFallback={
   openShort:'offen'
  },
  en:{
-  workspaceTitle:'Export declarations & invoices',
+  workspaceTitle:'Create export declaration',
   tabIntro:'Choose a workspace – only the relevant fields are shown.',
   savedMode:'Saved requests',
   entryAria:'Select export declaration entry point',
@@ -54,7 +54,7 @@ var languageFallback={
   openShort:'open'
  },
  pl:{
-  workspaceTitle:'Zgłoszenia eksportowe i faktury',
+  workspaceTitle:'Utwórz zgłoszenie eksportowe',
   tabIntro:'Wybierz obszar pracy – wyświetlane są tylko odpowiednie pola.',
   savedMode:'Zapisane wnioski',
   entryAria:'Wybierz sposób rozpoczęcia ABD',
@@ -74,7 +74,7 @@ var languageFallback={
   openShort:'otwarte'
  },
  es:{
-  workspaceTitle:'Declaraciones de exportación y facturas',
+  workspaceTitle:'Crear declaración de exportación',
   tabIntro:'Selecciona una sección – solo se muestran los campos necesarios.',
   savedMode:'Solicitudes guardadas',
   entryAria:'Seleccionar entrada de ABD',
@@ -94,7 +94,7 @@ var languageFallback={
   openShort:'abiertas'
  },
  fr:{
-  workspaceTitle:'Déclarations d\'exportation et factures',
+  workspaceTitle:'Créer une déclaration d\'exportation',
   tabIntro:'Choisissez une section – seuls les champs utiles sont affichés.',
   savedMode:'Demandes enregistrées',
   entryAria:'Sélectionner le point d’entrée ABD',
@@ -114,7 +114,7 @@ var languageFallback={
   openShort:'ouvertes'
  },
  it:{
-  workspaceTitle:'Dichiarazioni di esportazione e fatture',
+  workspaceTitle:'Crea dichiarazione di esportazione',
   tabIntro:'Scegli una sezione – vengono mostrati solo i campi pertinenti.',
   savedMode:'Richieste salvate',
   entryAria:'Seleziona il punto di ingresso ABD',
@@ -434,7 +434,7 @@ function fallbackCopy(raw,message){
    preserving draft state, uploads and event handlers. */
 function setMode(mode,skipShipmentPrefill){
  mode=q(mode)||'manual';
- if(['manual','shipment','invoice','saved'].indexOf(mode)<0)mode='manual';
+ if(['manual','shipment','saved'].indexOf(mode)<0)mode='manual';
  currentMode=mode;
  var host=d.getElementById('rc626Abd'),p=panel();
  if(host){
@@ -443,15 +443,14 @@ function setMode(mode,skipShipmentPrefill){
   if(header)header.textContent=xtr('workspaceTitle');
   // New ABD belongs to the creation workspace, not invoice analysis or history.
   var createButton=host.querySelector('.rc626-head > button[onclick*="newAbd"]');
-  if(createButton)createButton.hidden=mode==='invoice'||mode==='saved';
+  if(createButton)createButton.hidden=mode==='saved';
   var form=host.querySelector(':scope > .rc626-grid2');
-  if(form){form.id='rc1294AbdForm';form.setAttribute('role','tabpanel');form.hidden=mode==='invoice'||mode==='saved'}
+  if(form){form.id='rc1294AbdForm';form.setAttribute('role','tabpanel');form.hidden=mode==='saved'}
   var history=host.querySelector('.rc1760-abd-history');
   if(history){history.id='rc1294SavedRequests';history.setAttribute('role','tabpanel');history.hidden=mode!=='saved'}
  }
  if(p){
-  var invoice=p.querySelector('[data-rc1294-invoice-panel]'),buttons=p.querySelectorAll('[data-rc1294-mode]');
-  if(invoice){invoice.setAttribute('role','tabpanel');invoice.hidden=mode!=='invoice'}
+  var buttons=p.querySelectorAll('[data-rc1294-mode]');
   for(var i=0;i<buttons.length;i++){
    var active=buttons[i].getAttribute('data-rc1294-mode')===mode;
    buttons[i].setAttribute('aria-pressed',active?'true':'false');
@@ -488,16 +487,8 @@ function mount(){
   '<div class="rc1294-router" role="tablist" aria-label="'+esc(xtr('entryAria'))+'">'+
    '<button type="button" role="tab" data-rc1294-mode="manual" aria-selected="true" aria-pressed="true" aria-controls="rc1294AbdForm">'+esc(xtr('manualMode'))+'</button>'+
    '<button type="button" role="tab" data-rc1294-mode="shipment" aria-selected="false" aria-pressed="false" aria-controls="rc1294AbdForm">'+esc(xtr('shipmentMode'))+'</button>'+
-   '<button type="button" role="tab" data-rc1294-mode="invoice" aria-selected="false" aria-pressed="false" aria-controls="rc1294InvoicePanel">'+esc(xtr('invoiceMode'))+'</button>'+
-   '<button type="button" role="tab" data-rc1294-mode="saved" aria-selected="false" aria-pressed="false" aria-controls="rc1294SavedRequests">'+esc(xtr('savedMode'))+'</button></div>'+
-  '<div id="rc1294InvoicePanel" class="rc1294-invoice-panel" data-rc1294-invoice-panel hidden><h4>'+esc(xtr('invoiceMode'))+'</h4>'+
-   '<p>'+esc(xtr('invoiceHelp'))+'</p>'+
-   '<div class="rc1294-note">'+esc(xtr('previewOnly'))+'</div>'+
-   '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(xtr('chooseFiles'))+'</span><input type="file" multiple data-rc1294-files accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv,.txt,.tsv,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain,text/tab-separated-values"></label>'+
-   '<button type="button" class="btn" data-rc1294-start>'+esc(xtr('start'))+'</button></div>'+
-   '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div></div>';
+   '<button type="button" role="tab" data-rc1294-mode="saved" aria-selected="false" aria-pressed="false" aria-controls="rc1294SavedRequests">'+esc(xtr('savedMode'))+'</button></div>';
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
- p.querySelector('[data-rc1294-start]').addEventListener('click',start);
  // The ABD form re-renders #rc626Abd on change/input events from its own fields; the file picker must not trigger that.
  function keepFileEventLocal(e){var f=e.target&&e.target.closest&&e.target.closest('[data-rc1294-files]');if(!f)return false;e.stopPropagation();if(e.type==='change'){pendingFiles=Array.from(f.files||[]);var start=p.querySelector('[data-rc1294-start]');if(start)start.textContent=hasPendingUploads()?xtr('resumeScan'):xtr('start')}return true}
  p.addEventListener('input',keepFileEventLocal);
@@ -525,10 +516,6 @@ function mount(){
  });
  // Mode is reapplied after RC626 replaces #rc626Abd, without re-running the shipment prefill.
  setMode(currentMode,true);
- if(currentMode==='invoice'&&pendingFiles.length){
-  // The native file input is empty after a re-render; keep the selected documents in memory.
-  setStatus(pendingFiles.map(function(f){return q(f&&f.name)}).filter(Boolean).join(', '),'scan');
- }
  // New/edit actions are still handled by RC626. Switch to the manual tab before its re-render.
  host.addEventListener('click',function(e){
   var control=e.target&&e.target.closest&&e.target.closest('[onclick]');
@@ -573,5 +560,5 @@ function activate(){if(syncObserver())schedule()}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,activate)});
 w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();activate()});
-w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults,snapshot:snapshot});
+w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults,snapshot:snapshot,analyzeFile:analyzeFile});
 })(window,document);

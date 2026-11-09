@@ -68,52 +68,46 @@ test('RC1499: Rechnungsanalyse verarbeitet alle Pflichtformate, mehrere Rechnung
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
   await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
-
-  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
-  await expect(panel).toBeVisible({timeout:10_000});
-  await panel.locator('[data-rc1294-mode="invoice"]').click();
-  await expect(panel.locator('[data-rc1294-invoice-panel]')).toBeVisible();
-
-  await panel.locator('[data-rc1294-files]').setInputFiles([
-    {name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from('Position;HS;Origin;Value\n10;39269097;CN;100')},
-    {name:'invoice.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('PK\u0003\u0004E2E-XLSX')},
-    {name:'invoice.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%E2E')},
+  const abd=page.locator('[data-rc1294-abd-analysis="1"]');
+  await expect(abd).toBeVisible({timeout:10000});
+  await expect(abd.locator('[data-rc1294-mode="invoice"]')).toHaveCount(0);
+  await expect(abd.locator('[data-rc1294-invoice-panel]')).toHaveCount(0);
+  await page.locator('#nav > [data-exporthub-documents-nav]').click();
+  const panel=page.locator('#rc1940Documents');
+  await expect(panel).toBeVisible({timeout:10000});
+  const picker=panel.locator('[data-rc1940-files]');
+  await picker.setInputFiles([
+    {name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from('Position;HS;Origin;Value\\n10;39269097;CN;100')},
+    {name:'invoice.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('PK\\u0003\\u0004E2E-XLSX')},
+    {name:'invoice.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\\n%E2E')},
     {name:'invoice.png',mimeType:'image/png',buffer:Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x45,0x32,0x45])}
   ]);
-  await panel.locator('[data-rc1294-start]').click();
-
-  const documents=panel.locator('.rc1294-document');
-  await expect(documents).toHaveCount(4,{timeout:20_000});
+  await expect(panel.locator('[data-rc1940-analyze]')).toBeEnabled();
+  await panel.locator('[data-rc1940-analyze]').click();
+  const documents=panel.locator('[data-rc1940-upload-results] .rc1940-preview');
+  await expect(documents).toHaveCount(4,{timeout:20000});
   for(const name of ['invoice.csv','invoice.xlsx','invoice.pdf','invoice.png'])await expect(panel).toContainText(name);
   for(const invoice of ['INV-E2E-1','INV-E2E-2','INV-E2E-3','INV-E2E-4'])await expect(panel).toContainText(invoice);
-
   const csvDoc=documents.filter({hasText:'invoice.csv'}).first();
   const xlsxDoc=documents.filter({hasText:'invoice.xlsx'}).first();
   const pdfDoc=documents.filter({hasText:'invoice.pdf'}).first();
   const pngDoc=documents.filter({hasText:'invoice.png'}).first();
-  await expect(csvDoc.locator('.rc1294-group-table tbody tr')).toHaveCount(1);
-  await expect(xlsxDoc.locator('.rc1294-group-table tbody tr')).toHaveCount(1);
-  await expect(pngDoc.locator('.rc1294-group-table tbody tr')).toHaveCount(1);
-  await expect(csvDoc.locator('.rc1294-metric').last()).toHaveClass(/ok/);
-  await expect(csvDoc.locator('.rc1294-metric').last()).toContainText(/0/);
-
-  await expect(pdfDoc.locator('.rc1294-unassigned')).toBeVisible();
-  await expect(pdfDoc.locator('.rc1294-state.review')).toBeVisible();
-  await expect(pdfDoc).toContainText(/prüfen|review|missing|fehlt/i);
-
-  await expect(csvDoc.locator('[data-rc1499-export-pdf]')).toBeEnabled({timeout:10_000});
-  await expect(csvDoc.locator('[data-rc1499-export-xlsx]')).toBeEnabled();
-  await expect(pdfDoc.locator('[data-rc1499-export-pdf]')).toBeDisabled();
-  await expect(page.locator('[data-rc1499-prepare-abd]')).toBeDisabled();
-
-  await panel.locator('[data-rc1294-mode="manual"]').click();
-  await expect(panel.locator('[data-rc1294-invoice-panel]')).toBeHidden();
-  await expect(page.locator('#rc626Abd')).toBeVisible();
-  await expect(page.locator('#rc626Abd')).toContainText(/ABD-Anfrage|Grunddaten|Colli/i);
-
-  await panel.locator('[data-rc1294-mode="shipment"]').click();
-  await expect(page.locator('#rc626Abd')).toBeVisible();
-
+  await expect(csvDoc.locator('.rc1940-group-table tbody tr')).toHaveCount(1);
+  await expect(xlsxDoc.locator('.rc1940-group-table tbody tr')).toHaveCount(1);
+  await expect(pngDoc.locator('.rc1940-group-table tbody tr')).toHaveCount(1);
+  await expect(pdfDoc.locator('.rc1940-review-note')).toBeVisible();
+  await expect(pdfDoc.locator('.rc1940-group-table')).toHaveCount(0);
+  await csvDoc.locator('[data-rc1940-use]').click();
+  await expect(panel.locator('#rc1549AbdManual [data-rc1549-header="invoiceNumber"]')).toHaveValue('INV-E2E-1');
+  await expect(panel.locator('#rc1549AbdManual tbody [data-field="itemNumber"]').first()).toHaveValue('ITEM-1');
+  await panel.locator('[data-rc1790-tab="delivery"]').click();
+  await xlsxDoc.locator('[data-rc1940-use]').click();
+  await expect(panel.locator('#rc1790DeliveryNote tbody [data-field="itemNumber"]').first()).toHaveValue('ITEM-2');
+  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+  const returned=page.locator('#rc626Abd');
+  await expect(returned).toBeVisible();
+  await expect(returned).toContainText(/ABD-Anfrage|Grunddaten|Colli/i);
+  await expect(returned.locator('[data-rc1294-mode="invoice"]')).toHaveCount(0);
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
