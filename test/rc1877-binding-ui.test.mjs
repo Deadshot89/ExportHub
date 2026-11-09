@@ -31,7 +31,8 @@ test('binding selection uses FIX ids internally but displays site labels and cal
 });
 test('a changed binding requires explicit double confirmation and revision checks',()=>{
  assert.match(runtime,/panel\.dataset\.rc1877Confirm!==target\+'\|'\+day/);
- assert.match(runtime,/const confirmOverride=!!current&&current!==target/);
+ assert.match(runtime,/const changedExisting=!!current&&\(current!==target\|\|currentDate!==day\)/);
+ assert.match(runtime,/const confirmOverride=changedExisting/);
  assert.match(runtime,/expectedRevision:revision,confirmOverride/);
  assert.match(runtime,/BINDING_REVISION_CONFLICT/);
 });

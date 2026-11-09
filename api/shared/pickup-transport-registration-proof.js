@@ -57,10 +57,13 @@ function verify({environment,companyKey,pickupDate,pickupTargetId,subject,pickup
  const old=storedBinding&&typeof storedBinding==='object'?storedBinding:null;
  if(old&&old.active!==false&&(
    text(old.shipmentId)!==id||text(old.reference).toUpperCase()!==reference||
-   old.companyKey!==company||old.environment!==env||old.pickupDate!==day))
+   old.companyKey!==company||old.environment!==env))
    fail('TRANSPORT_BINDING_IDENTITY_MISMATCH','Stored binding does not match main shipment');
- if(old&&old.active!==false&&old.pickupTargetId!==target&&(!permitNewBinding||!confirmOverride))
-   fail('TRANSPORT_FIX_BINDING_CONFLICT','A different explicit FIX target is already saved');
+ // A date or FIX change requires both an explicit edit request and the
+ // user's confirmation; it cannot be inferred by a read-only GET request.
+ if(old&&old.active!==false&&(old.pickupTargetId!==target||old.pickupDate!==day)&&
+   (!permitNewBinding||!confirmOverride))
+   fail('TRANSPORT_FIX_BINDING_CONFLICT','An existing date or FIX assignment requires confirmation');
  if(!permitNewBinding&&!teamTarget&&!(old&&old.active===true&&old.pickupTargetId===target))
    fail('TRANSPORT_FIX_BINDING_MISSING','No persisted main shipment to FIX binding');
  return {id,shipmentId:id,primaryShipmentId:id,reference,pickupTargetId:target,

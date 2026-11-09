@@ -29,6 +29,15 @@ test('a conflicting existing binding cannot be silently overwritten',()=>{
  assert.throws(()=>verify(req({storedBinding:old,permitNewBinding:true})),{code:'TRANSPORT_FIX_BINDING_CONFLICT'});
  assert.equal(verify(req({storedBinding:old,permitNewBinding:true,confirmOverride:true})).registered,true);
 });
+test('a date-only main pickup move needs confirmation and preserves the shipment identity',()=>{
+ const later='2026-11-16';
+ const newShipment={...shipment,plannedPickupDate:later};
+ const newTarget={...target,weekday:1};
+ const request=req({pickupDate:later,shipments:[newShipment],fixedTargets:[newTarget],
+   storedBinding:binding,permitNewBinding:true});
+ assert.throws(()=>verify(request),{code:'TRANSPORT_FIX_BINDING_CONFLICT'});
+ assert.equal(verify({...request,confirmOverride:true}).pickupDate,later);
+});
 test('stale main shipment team field is never silently replaced by the separate binding',()=>{
  const stale={...shipment,pickupTargetId:'FIX-FR',pickupTargetCompanyKey:companyKey};
  assert.throws(()=>verify(req({shipments:[stale],storedBinding:binding,permitNewBinding:true,confirmOverride:true})),
@@ -36,9 +45,11 @@ test('stale main shipment team field is never silently replaced by the separate 
 });
 test('a saved binding with mismatched company, date or REF blocks verification',()=>{
  for(const corrupt of [{...binding,companyKey:'foreign'},{...binding,environment:'production'},
-  {...binding,pickupDate:'2026-11-10'},{...binding,reference:'WRONG-REF'}]){
+  {...binding,reference:'WRONG-REF'}]){
   assert.throws(()=>verify(req({storedBinding:corrupt})),{code:'TRANSPORT_BINDING_IDENTITY_MISMATCH'});
  }
+ assert.throws(()=>verify(req({storedBinding:{...binding,pickupDate:'2026-11-10'}})),
+   {code:'TRANSPORT_FIX_BINDING_CONFLICT'});
 });
 test('inspect loads previously saved binding from the authenticated server store, not caller fields',async()=>{
  const read=[];

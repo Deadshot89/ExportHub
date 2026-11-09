@@ -789,6 +789,7 @@
       });
       panel.dataset.rc1877Revision=String(stored.revision);
       panel.dataset.rc1877Current=binding?q(binding.pickupTargetId):'';
+      panel.dataset.rc1877CurrentDate=binding?q(binding.pickupDate):'';
       panel.dataset.rc1877CanEdit=stored.canEdit===true?'1':'0';
       panel.dataset.rc1877Confirm='';
       if(binding)date.value=q(binding.pickupDate);
@@ -854,11 +855,13 @@
         return bindingStatus(panel,bt('failed'),'error');
       }
       if(!bindingWeekday(day))return bindingStatus(panel,bt('wrongDate'),'error');
-      if(current&&current!==target&&panel.dataset.rc1877Confirm!==target+'|'+day){
+      const currentDate=q(panel.dataset.rc1877CurrentDate);
+      const changedExisting=!!current&&(current!==target||currentDate!==day);
+      if(changedExisting&&panel.dataset.rc1877Confirm!==target+'|'+day){
         panel.dataset.rc1877Confirm=target+'|'+day;save.textContent=bt('confirm');
         return bindingStatus(panel,bt('confirmHelp'));
       }
-      const confirmOverride=!!current&&current!==target;
+      const confirmOverride=changedExisting;
       save.disabled=true;refresh.disabled=true;bindingStatus(panel,bt('loading'));
       try{
         await bindingFetch('/api/pickup-transport-bindings','POST',{

@@ -99,6 +99,18 @@ test('rebind requires explicit confirmation and leaves an audit trail',async()=>
  assert.equal(snapshot.audit[1].oldPickupTargetId,'FIX-UK');
  assert.equal(snapshot.audit[1].pickupTargetId,'FIX-FR');
 });
+test('date-only move needs confirmation and is audited with the new calendar day',async()=>{
+ const store=load(memory());await bind(store);
+ const later={...proof,pickupDate:'2026-11-16'};
+ await assert.rejects(bind(store,{expectedRevision:1,proof:later}),{code:'BINDING_OVERRIDE_CONFIRMATION_REQUIRED'});
+ const changed=await bind(store,{expectedRevision:1,proof:later,confirmOverride:true,
+   reason:'Kunde hat Abholtag auf nächste Woche verschoben'});
+ assert.equal(changed.changed,true);
+ assert.equal(changed.bindings[0].pickupDate,'2026-11-16');
+ const snapshot=await store.read(scope,{includeAudit:true});
+ assert.equal(snapshot.audit[1].action,'rebind-main');
+ assert.equal(snapshot.bindings.length,1);
+});
 test('stale revision cannot overwrite a newly stored binding',async()=>{
  const store=load(memory());await bind(store);
  await assert.rejects(bind(store,{expectedRevision:0}),{code:'BINDING_REVISION_CONFLICT'});
