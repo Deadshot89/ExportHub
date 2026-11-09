@@ -66,12 +66,14 @@
   })
  }
  function ensureUpload(){
-  var parent=d.querySelector('#rc1940Documents [data-rc1940-document-editor]'),invoice=parent&&parent.querySelector('#rc1549AbdManual');if(!parent||!invoice)return false;
+  var parent=d.querySelector('#rc1940Documents [data-rc1940-document-editor]');if(!parent)return false;
+  // Mount the file picker independently of the invoice editor: that editor can initialize later.
+  var anchor=parent.querySelector('#rc1790DocTabs')||parent.querySelector('#rc1549AbdManual')||parent.firstChild||null;
   var p=uploadHost();
   if(!p){
    p=d.createElement('section');p.id='rc1940DocumentUpload';p.className='rc1940-upload';
    p.innerHTML='<h3 data-rc1940-upload-heading></h3><p data-rc1940-upload-hint></p><div class="rc1940-upload-controls"><label><span data-rc1940-choose></span><input type="file" multiple data-rc1940-files accept=".pdf,.xlsx,.csv,.tsv,.txt,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,text/csv,text/plain"></label><button type="button" class="btn" data-rc1940-analyze></button></div><p class="rc1940-small" data-rc1940-upload-limits></p><p class="rc1940-small" data-rc1940-selection></p><div role="status" aria-live="polite" data-rc1940-upload-status hidden></div><div data-rc1940-upload-results></div>';
-   parent.insertBefore(p,invoice);
+   parent.insertBefore(p,anchor);
    p.addEventListener('change',function(e){
     if(!e.target||!e.target.matches('[data-rc1940-files]'))return;
     e.stopPropagation();chosenFiles=Array.from(e.target.files||[]);scanResults=[];scanPending=false;uploadStatus('', 'info');refreshUpload()
