@@ -52,3 +52,13 @@ test('RC1941: uploaded content is shown with textContent, never interpolated int
  assert.doesNotMatch(workspace,/innerHTML\s*=\s*[^;]*file\.name/);
  assert.doesNotMatch(workspace,/innerHTML\s*=\s*[^;]*analysis\./);
 });
+
+const reminderCss=fs.readFileSync('assets/taskplanner-v2.css','utf8');
+test('RC1941: task reminders stay accessible without covering document PDF actions',()=>{
+ assert.match(reminderCss,/@supports selector\(body:has\(#rc1940Documents\)\)/);
+ assert.match(reminderCss,/body:has\(#rc1940Documents\) \.tpv2-reminder-host\s*\{\s*top:96px;bottom:auto;/);
+ assert.match(reminderCss,/body:has\(#rc1940Documents\) \.tpv2-reminder-expand\{display:inline-flex\}/);
+ assert.match(reminderCss,/body:has\(#rc1940Documents\) \.tpv2-reminder-toast:not\(\[data-expanded="true"\]\) ul/);
+ assert.match(reminderCss,/body\[data-eh-layout="top"\]:has\(#rc1940Documents\) #tpv2ReminderToast\s*\{\s*top:96px!important;bottom:auto!important/);
+ assert.doesNotMatch(reminderCss,/body:has\(#rc1940Documents\) \.tpv2-reminder-toast\s*\{display:none/);
+});
