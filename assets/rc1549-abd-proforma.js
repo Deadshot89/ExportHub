@@ -294,6 +294,7 @@ function enhanceUploaded(){
   var head=docs[i].querySelector('.rc1294-document-head');if(!head)continue;
   // PDF creation lives in the separate documents workspace.
   var oldPdf=head.querySelector('[data-rc1549-proforma]');if(oldPdf)oldPdf.remove();
+  var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;
   var importButton=head.querySelector('[data-rc1549-import]');
   if(!importButton){importButton=root.document.createElement('button');importButton.type='button';importButton.className='ghost';importButton.setAttribute('data-rc1549-import','');head.appendChild(importButton)}
   var importLabel=t('editUpload');if(importButton.textContent!==importLabel)importButton.textContent=importLabel;importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
