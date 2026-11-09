@@ -84,3 +84,17 @@ test('Issue #1328: external AVIS page shows the notice in six languages and hide
   assert.match(portal,new RegExp('\\b'+name+':\\{title:'));
  }
 });
+
+
+test('Issue #1328: internal manual pickup shows localized closed-day warnings and disables selection',()=>{
+ const manual=fs.readFileSync('assets/rc1014-shipment-overview.js','utf8');
+ assert.match(manual,/if\(availability\.closed===true\)\{/);
+ assert.match(manual,/panel\.dataset\.rc1328ClosureBlocked='1'/);
+ assert.match(manual,/setManualPickupStatus\(panel,tr\('closureMail\.bookingClosed'\),'error'\)/);
+ assert.match(manual,/if\(panel\.dataset\.rc1328ClosureBlocked==='1'\)/);
+ assert.match(manual,/e\.code==='PICKUP_BUSINESS_CLOSED'/);
+ for(const language of ['de','en','pl','es','fr','it']){
+  const dict=JSON.parse(fs.readFileSync('assets/i18n/'+language+'.json','utf8'));
+  assert.ok(dict['closureMail.bookingClosed']?.length>25,language+' needs booking warning');
+ }
+});
