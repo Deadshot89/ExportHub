@@ -75,7 +75,7 @@ test('RC1601: upload export cannot bypass complete invoice address and weight va
  assert.ok(frontend.includes('function readyInvoice(snapshot)'));
  assert.ok(frontend.includes('if(!q(h.senderName||h.customer)||!q(h.senderAddress)||!q(h.recipient)||!q(h.recipientAddress))return false'));
  assert.ok(frontend.includes('if(!readyInvoice(snapshot)||busy)'));
- assert.ok(frontend.includes('if(!readyInvoice(snapshot)||busy)'));
+ assert.ok(frontend.includes("format:'proforma'"));
 });
 
 test('RC1601: standard production/Testservice build includes the invoice editor',()=>{
