@@ -27,6 +27,20 @@ includes('dist-rc1112/demo.html','ExportHUB RC1112 environment=demo');
 for(const file of pages)includes(file,"version:'RC1112'");
 includes('dist-rc1112/production-version.js',"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'");
 
+// RC1943: Die separat ausgelieferte Dokumentenerstellung muss auf allen drei
+// Build-Einstiegspunkten die Datei-Auswahl samt Analyse- und Import-Runtime enthalten.
+for(const file of pages){
+  includes(file,'assets/rc1940-documents-workspace.js?v=1940');
+  includes(file,'assets/rc1549-abd-proforma.js?v=1549');
+  includes(file,'assets/rc1790-delivery-note.js?v=1790');
+}
+exists('dist-rc1112/assets/rc1940-documents-workspace.js');
+includes('dist-rc1112/assets/rc1940-documents-workspace.js','data-rc1940-files');
+includes('dist-rc1112/assets/rc1940-documents-workspace.js','data-rc1940-analyze');
+includes('dist-rc1112/assets/rc1940-documents-workspace.js','function ensureUpload()');
+includes('dist-rc1112/assets/rc1940-documents-workspace.js','editor.importAnalysis(result.analysis)');
+
+
 // Gemeinsame Buildbasis: historische Funktions- und Cache-Verträge bleiben vor jedem Deploy zwingend.
 for(const file of pages){
   includes(file,'assets/rc1016-mobile-navigation.js?v=1400');
