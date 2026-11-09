@@ -94,6 +94,11 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     return 'production';
   }
 
+  function tasks(){
+    const state=getState();
+    return Array.isArray(state.tasks)?state.tasks:[];
+  }
+
   function shipments(){
     const state = getState();
     return Array.isArray(state.shipments) ? state.shipments : [];
@@ -109,41 +114,24 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
   function companyId(){
     const state = getState();
     const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : null;
-    if (user) {
-      const userCandidates = [user.companyId,user.companyKey,user.tenantId,user.tenant];
-      for (const candidate of userCandidates) {
-        const value = String(candidate == null ? '' : candidate).trim();
-        if (value) return value;
-      }
-      for (const listName of ['companyIds','allowedCompanyIds']) {
-        const list = Array.isArray(user[listName]) ? user[listName] : [];
-        for (const candidate of list) {
-          const value = String(candidate == null ? '' : candidate).trim();
-          if (value) return value;
-        }
-      }
-      if (Array.isArray(user.companies)) {
-        for (const company of user.companies) {
-          const candidate = typeof company === 'string' ? company : company && (company.id || company.key || company.companyId);
-          const value = String(candidate == null ? '' : candidate).trim();
-          if (value) return value;
-        }
-      }
-      if (!userIsAdmin(user)) return '';
+    const explicit = [state && state.activeCompanyId,state && state.currentCompanyId,state && state.companyId,state && state.companyKey];
+    const chosen = explicit.map(v=>String(v==null?'':v).trim()).find(Boolean) || '';
+    if (!user) return chosen || String(rootCompanyId()).trim();
+    const allowedRaw=[user.companyId,user.companyKey,user.tenantId,user.tenant];
+    for (const listName of ['companyIds','allowedCompanyIds']) {
+      if (Array.isArray(user[listName])) allowedRaw.push(...user[listName]);
     }
-    const candidates = [
-      state && state.companyId,
-      state && state.currentCompanyId,
-      state && state.activeCompanyId,
-      state && state.companyKey,
-      window.__EXPORTHUB_COMPANY_ID__
-    ];
-    for (const candidate of candidates) {
-      const value = String(candidate == null ? '' : candidate).trim();
-      if (value) return value;
+    if (Array.isArray(user.companies)) {
+      for (const company of user.companies) allowedRaw.push(typeof company === 'string' ? company : company && (company.id||company.key||company.companyId));
     }
-    return '';
+    const allowed=allowedRaw.map(v=>String(v==null?'':v).trim()).filter(Boolean);
+    const key=v=>String(v).toLowerCase().normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+    if (userIsAdmin(user)) return chosen || allowed[0] || String(rootCompanyId()).trim();
+    // Never forward a global state company unless this user is actually assigned to it.
+    if (chosen && allowed.some(value=>key(value)===key(chosen))) return chosen;
+    return allowed[0] || '';
   }
+  function rootCompanyId(){ return window.__EXPORTHUB_COMPANY_ID__ || ''; }
 
   function shipmentTarget(shipment){
     if (shipment == null) return '';
@@ -191,6 +179,7 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
       environment: environment(),
       companyId: companyId(),
       shipments: shipments(),
+      tasks: tasks(),
       onOpenShipment: openShipment
     });
     return true;
@@ -203,9 +192,9 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
       refreshTimer = 0;
       const calendar = window.ExportHubPickupCalendar;
       if (!calendar || typeof calendar.setShipments !== 'function') return;
-      try { calendar.setShipments(shipments()); } catch (_) {}
+      try { calendar.setShipments(shipments()); if(typeof calendar.setTasks==='function')calendar.setTasks(tasks()); } catch (_) {}
     };
-    ['exporthub:sync','exporthub:pickup-updated','exporthub:shipment-saved'].forEach(function(name){
+    ['exporthub:sync','exporthub:pickup-updated','exporthub:shipment-saved','exporthub:tasks-updated'].forEach(function(name){
       window.addEventListener(name,function(){ if (!refreshTimer && typeof window.setTimeout === 'function') refreshTimer = window.setTimeout(refreshShipments,300); });
     });
   }
