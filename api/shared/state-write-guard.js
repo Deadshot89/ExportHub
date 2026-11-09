@@ -17,6 +17,7 @@ const DIRECT_RIGHTS = Object.freeze({
   taskMigrationMeta: ['tasks'],
   taskWeek: ['tasks'],
   taskMasterRC848: ['tasks'],
+  taskManagedDisabled: ['tasks'],
   taskMasterSourceVersion: ['tasks'],
   taskMasterUpdatedAt: ['tasks'],
   taskStatusLedger: ['tasks'],

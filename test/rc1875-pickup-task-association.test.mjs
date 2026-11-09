@@ -169,6 +169,19 @@ test('RC1875: calendar uses active company, not first company granted to the use
  assert.equal(options.companyId,'company-b');
 });
 
+test('RC1875: unassigned active company is never forwarded for a regular user',()=>{
+ let options=null;
+ const window={
+  __EXPORTHUB_GET_STATE__:()=>({activeCompanyId:'company-b',currentUser:{role:'user',companyId:'company-a'},shipments:[],tasks:[]}),
+  document:{getElementById:id=>id==='content'?{innerHTML:''}:null},
+  ExportHubPickupCalendar:{mount(_root,value){options=value}},
+  canRead:()=>true,location:{hostname:'example.test',pathname:'/index.html'}
+ };
+ vm.runInNewContext(runtime,{window,globalThis:window});
+ assert.equal(window.pickupcalendar(),true);
+ assert.equal(options.companyId,'company-a');
+});
+
 test('RC1875: cancelled tasks never create a FIX shipment link',()=>{
  const cancelled={...pick,status:'cancelled',cancelledAt:'2026-11-08T10:00:00Z'};
  const status=model([cancelled],[a,b]).days[0].fixedStatus['FIX-UK'];

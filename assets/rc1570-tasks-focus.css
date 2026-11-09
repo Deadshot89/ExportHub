@@ -134,3 +134,22 @@ body[data-rc1570-taskview="1"] #content > :not(#rc1570TaskView){display:none!imp
 .rc1570-autodone>span{display:flex;align-items:center;gap:8px}
 .rc1570-field.rc1570-autodone input[type="checkbox"]{width:18px;height:18px;min-height:0;padding:0;margin:0;flex:0 0 auto;accent-color:#16a34a}
 .rc1570-autodone small{font-weight:400;opacity:.75;line-height:1.4}
+
+/* Task-management roster: full list, category counters and deliberate deletion. */
+.rc1570-tv-list{grid-template-rows:auto auto auto auto minmax(120px,1fr) auto;max-height:calc(100dvh - 90px)}
+.rc1570-tv-scope{width:100%}
+.rc1570-tv-scope button{width:auto;flex:1;display:block;text-align:center;padding:6px 8px}
+.rc1570-tv-kind{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.rc1570-tv-list .rc1570-tv-kind button{display:flex;justify-content:space-between;align-items:center;gap:5px;border:1px solid var(--rc1570-line);background:var(--rc1570-surface-2);font-size:12px}
+.rc1570-tv-list .rc1570-tv-kind button[aria-pressed="true"]{border-color:var(--rc1570-primary);background:var(--rc1570-primary-soft);color:var(--rc1570-text)}
+.rc1570-tv-kind strong{font-variant-numeric:tabular-nums}
+.rc1570-tv-row{display:flex;align-items:center;gap:3px;min-width:0;border-bottom:1px solid var(--rc1570-line)}
+.rc1570-tv-row[data-late="true"]{border-left:3px solid var(--rc1570-crit)}
+.rc1570-tv-row > [data-rc1570-tv-open]{flex:1;min-width:0}
+.rc1570-tv-list .rc1570-tv-delete{flex:0 0 32px;width:32px;min-height:38px;display:grid;place-items:center;text-align:center;color:var(--rc1570-crit);font-size:22px;font-weight:700}
+.rc1570-tv-list .rc1570-tv-delete:hover,.rc1570-tv-delete-action:hover{background:var(--rc1570-crit-soft);color:var(--rc1570-crit)}
+.rc1570-tv-list .rc1570-tv-more{width:100%;justify-content:center;text-align:center;border:1px solid var(--rc1570-line);font-size:13px}
+.rc1570-tv-delete-action{color:var(--rc1570-crit)!important}
+.rc1570-tv-managed-hint{font-size:12px;color:var(--rc1570-muted);max-width:320px;line-height:1.45}
+@media (max-width:760px){.rc1570-tv-list{position:static;max-height:none;grid-template-rows:none}.rc1570-tv-list ul{max-height:65dvh}.rc1570-tv-kind{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.rc1570-tv-kind,.rc1570-tv-scope,.rc1570-tv-delete,.rc1570-tv-delete-action,.rc1570-tv-more{display:none!important}}
