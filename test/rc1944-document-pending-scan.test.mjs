@@ -67,6 +67,20 @@ test('RC1944: retry only the pending file, retain completed document preview',as
  assert.equal(testPage.calls.filter(f=>f===pending).length,2);
 });
 
+test('RC1944: Defender delay is a warning, but is not misreported as a failed analysis',async()=>{
+ const page=fixture([file('slow.xlsx')],()=>{
+  const error=new Error('Defender result is delayed');
+  error.code='ABD_SCAN_PENDING';
+  error.scanDelayed=true;
+  throw error
+ });
+ assert.equal(await page.runScan(),false);
+ assert.equal(page.snapshot().pending,true);
+ assert.equal(page.messages.at(-1).kind,'warn');
+ assert.doesNotMatch(page.messages.at(-1).message,/Analysis failed/);
+ assert.match(runtime,/delayed:'Microsoft Defender/);
+});
+
 test('RC1944: terminal scan failures still display an error',async()=>{
  const testPage=fixture([file('blocked.xlsx')],()=>{
   const error=new Error('Blocked by Defender');error.code='ABD_SCAN_FAILED';throw error
