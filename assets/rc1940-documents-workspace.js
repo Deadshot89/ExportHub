@@ -45,10 +45,8 @@
   var tab=d.querySelector('#rc1790DocTabs [data-rc1790-tab="'+mode+'"]');
   if(tab)tab.click();
  }
- function render(fromAbd){
-  // An already-open ABD invoice analysis can hand off without requiring a visible sidebar button.
-  // Direct menu access remains governed by the existing ABD permission gate.
-  if(!permitted()&&!fromAbd)return false;
+ function render(){
+  if(!permitted())return false;
   var host=d.getElementById('content');if(!host)return false;
   var page=d.createElement('main');page.id='rc1940Documents';page.setAttribute('data-rc1940-documents','1');
   var head=d.createElement('header');head.className='rc1940-head';
@@ -69,10 +67,9 @@
   if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')
  }
  function open(mode){
-  var fromAbd=mode==='invoice'&&!!d.getElementById('rc626Abd');
   if(mode==='invoice'||mode==='delivery')lastMode=mode;
-  if(!ensureNav()&&!fromAbd)return false;
-  return render(fromAbd)
+  if(!ensureNav())return false;
+  return render()
  }
  function sync(){
   scheduled=false;ensureNav();
