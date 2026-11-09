@@ -44,13 +44,26 @@ function printableDeliveryFiles(files){
  return list.filter(function(name){return !/^Sales(?:PackingSlip|Invoice)[-_ ]/i.test(q(name))});
 }
 function deliveryFiles(sh){
- var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};
- function push(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))}
- function add(v){var ref=deliveryReference(v);if(ref){push(ref);return}splitPdfNames(v).forEach(push)}
+ var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={},byIdentity={};
+ function identity(v){if(!v||typeof v!=='object')return'';return q(v.blobName||v.id||v.documentId||v.storageId)}
+ function push(name,source){
+  var shown=printName(name),key=canonicalDeliveryKey(shown),id=identity(source);
+  if(!key)return;
+  if(id&&Object.prototype.hasOwnProperty.call(byIdentity,id)){
+   var index=byIdentity[id],existing=out[index];
+   // The same uploaded blob may still have its scanner/ERP name in an old
+   // deliveryFiles snapshot and its verified name in documents or files.
+   if(isReferenceName(shown)&&!isReferenceName(existing)&&!seen[key]){
+    delete seen[canonicalDeliveryKey(existing)];out[index]=shown;seen[key]=1;
+   }
+   return;
+  }
+  if(seen[key])return;seen[key]=1;out.push(shown);if(id)byIdentity[id]=out.length-1
+ }
+ function add(v){var ref=deliveryReference(v);if(ref){push(ref,v);return}splitPdfNames(v).forEach(function(name){push(name,v)})}
  fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});
- // AVIS/Packmeldung also save normalized attachments in the general document
- // collections. A legacy deliveryFiles entry must not suppress these authoritative
- // DNC/SIDE names on the Ladeliste and Deckblatt.
+ // AVIS/Packmeldung also save normalized attachments in general document
+ // collections; existing legacy deliveryFiles must not suppress them.
  ['documents','files'].forEach(function(field){arr(sh&&sh[field]).forEach(function(item){
   var kind=q(item&&typeof item==='object'&&(item.documentType||item.category||item.group||item.kind||item.type)).toLowerCase();
   if(/^(?:application\/pdf|application\/x-pdf|pdf|document|file)$/.test(kind))kind='';
