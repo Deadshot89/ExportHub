@@ -63,7 +63,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
 <datalist id="urgentEmailHistory"></datalist>
 <div class="actions"><span class="muted" id="emailHistoryHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span><button type="button" class="btn secondary small" id="clearEmailHistory" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button></div>
-<label class="field">Gewünschter Versandtag * (deutsche Ortszeit)<input id="requestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
+<label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="requestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <div id="cutoffWarning" class="type-explanation" role="alert" hidden></div>
 <div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
@@ -216,7 +216,7 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- return $('reportForm').elements.language.value==='en'
+ return localeV2('cutoffLateWarning',$('reportForm').elements.language.value==='en'
   ?'After 3:15 pm, please move this order to tomorrow. You can still report it today. If the system does not release it automatically, the request will not be handled until tomorrow.'
   :'Nach 15:15 Uhr: Bitte verschiebe den Auftrag auf morgen. Du kannst ihn trotzdem melden. Wenn das System ihn nicht automatisch freigibt, wird die Anfrage erst morgen bearbeitet.';
 }
@@ -343,6 +343,7 @@ for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
+window.addEventListener('exporthub:language-changed',syncCutoff);
 $('clearEmailHistory').addEventListener('click',clearEmailChoices);
 refreshEmailChoices();
 secret=accessFromHash();lineCard();syncType();syncCutoff();showWizardStep(1);refresh();
