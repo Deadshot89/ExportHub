@@ -93,3 +93,46 @@ test('RC1956: prototype is not wired into production upload, analysis or Defende
  assert.match(api,/scanResultFromTags/);
  assert.match(api,/scan\.status!=='clean'/);
 });
+
+test('RC1956: scan a private immutable copy and delete it afterwards',async t=>{
+ const input=await fixture(t);
+ let scanPath='';
+ const runner=async staged=>{
+  scanPath=staged;
+  assert.notEqual(staged,input.filePath,'scanner must not read mutable upload path');
+  assert.match(staged,/exporthub-rc1956-scan-/);
+  assert.equal((await fs.readFile(staged)).toString(),'RC1956 SAFE SYNTHETIC TEST FILE');
+  const dirStat=await fs.stat(path.dirname(staged));
+  assert.equal(dirStat.mode&0o077,0,'temporary directory must not be group/world accessible');
+  const fileStat=await fs.stat(staged);
+  assert.equal(fileStat.mode&0o077,0,'temporary scan file must not be group/world accessible');
+  return{exitCode:0};
+ };
+ const result=await scanLocalQuarantine({...input,runner});
+ assert.equal(result.verdict,'candidate-clean');
+ assert.equal(result.authorizedForRelease,false);
+ await assert.rejects(fs.access(scanPath),'private scan copy must be erased after the run');
+});
+
+test('RC1956: changing the private staged copy during scan fails closed',async t=>{
+ const input=await fixture(t);
+ const runner=async staged=>{
+  await fs.writeFile(staged,'REPLACED AFTER STAGING');
+  return{exitCode:0};
+ };
+ const result=await scanLocalQuarantine({...input,runner});
+ assert.equal(result.verdict,'unverified');
+ assert.equal(result.reason,'stage-changed');
+ assert.equal(result.authorizedForRelease,false);
+});
+
+test('RC1956: scanner options must alert on archive limits, macros and encryption',async()=>{
+ const source=await fs.readFile('tools/rc1956-clamav/scan-local.cjs','utf8');
+ for(const opt of ['--alert-exceeds-max=yes','--alert-encrypted=yes','--alert-macros=yes',
+  '--max-filesize=20M','--max-scansize=80M','--max-files=1000',
+  '--max-recursion=8','--max-scantime=90000']){
+  assert.ok(source.includes(opt),'required scanner option '+opt);
+ }
+ assert.match(source,/shell:false/);
+ assert.match(source,/fs\.promises\.mkdtemp/);
+});
