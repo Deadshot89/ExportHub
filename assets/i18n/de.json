@@ -2663,5 +2663,6 @@
   "closureMail.mailResume": "Wieder geöffnet ab",
   "closureMail.htmlPreview": "HTML-Vorschau anzeigen",
   "closureMail.previewFailed": "Die E-Mail-Vorschau konnte nicht geladen werden.",
-  "closureMail.pickupWarning": "Achtung: Die Abholung am {{date}} liegt in unserer Betriebsschließung ({{from}} – {{to}}). Wieder geöffnet ab {{reopen}}. Bitte den Abholtermin prüfen."
+  "closureMail.pickupWarning": "Achtung: Die Abholung am {{date}} liegt in unserer Betriebsschließung ({{from}} – {{to}}). Wieder geöffnet ab {{reopen}}. Bitte den Abholtermin prüfen.",
+  "closureMail.bookingClosed": "Dieser Abholtag liegt innerhalb unserer Betriebsschließung. Bitte einen Termin ab Wiedereröffnung wählen."
 }
