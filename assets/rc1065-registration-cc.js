@@ -220,7 +220,7 @@ function pickupClosureWarning(value){
   if(!c||c.enabled!==true)return false;
   var a=safeDay(c.startDate),b=safeDay(c.endDate),last=safeDay(c.lastPickupDate),reopen=safeDay(c.reopenDate),lead=c.leadDays==null?14:Number(c.leadDays);
   return !!(a&&b&&last&&reopen&&a<=b&&last<a&&reopen>b&&
-   /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(q(c.lastPickupTime))&&Number.isInteger(lead)&&lead>=0&&lead<=90&&day>=a&&day<=b)
+   /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(q(c.lastPickupTime))&&Number.isInteger(lead)&&lead>=0&&lead<=90&&day>=a&&day<reopen)
  }).sort(function(a,b){return q(a.startDate).localeCompare(q(b.startDate))});
  if(!matches.length)return null;
  var c=matches[0];
