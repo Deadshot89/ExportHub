@@ -573,5 +573,5 @@ function activate(){if(syncObserver())schedule()}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,activate)});
 w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();activate()});
-w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults,snapshot:snapshot});
+w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults,snapshot:snapshot,analyzeFile:analyzeFile});
 })(window,document);
