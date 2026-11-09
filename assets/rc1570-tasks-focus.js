@@ -164,11 +164,11 @@ var GROUP_LIMIT=6;
 var GROUP_KEYS={shipments:'gShipments',pod:'gPod',av:'gAv',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
 function fold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function workGroup(task){
-  var x=task||{},a=fold(x.area||x.category||x.section||x.type),tt=fold(x.title||x.name),hay=fold([a,tt,x.note,x.source,x.recurringSource].join(' '));
+  var x=task||{},a=fold(x.area||x.category||x.section||x.type),group=fold(x.group),tt=fold(x.title||x.name),hay=fold([a,group,tt,x.note,x.source,x.recurringSource].join(' '));
   var ship=fold(x.shipmentStatus||x.linkedShipmentStatus||x.deliveryStatus);
   var pickedUp=!!(x.pickedUp===true||x.pickupConfirmed===true||x.pickedUpAt||x.pickupAt||x.abgeholtAt)||/abgeholt|picked up|pickedup/.test(ship);
   var hasPod=!!(x.pod===true||x.hasPod===true||x.podAvailable===true||x.podAt||x.podUrl||x.podFile||x.podDocument);
-  if(/^(fehlende pod|missing pod)$/.test(a)||((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod))return'pod';
+  if(/^(fehlende pod|missing pod)$/.test(group)||/^(fehlende pod|missing pod)$/.test(a)||((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod))return'pod';
   if(low(x.sourceType)==='av_missing'||/ausgangsvermerk|\bav\s+hochladen\b/.test(hay))return'av';
   if(/kontroll|pruf/.test(a))return'check';
   if(/zusatz|additional/.test(a))return'extra';
