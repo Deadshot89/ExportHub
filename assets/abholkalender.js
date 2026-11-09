@@ -524,12 +524,19 @@
     try {
       const response = await fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers:requestHeaders(requestOptions)});
       const data = await readResponse(response);
+      if (data.environment && String(data.environment).toLowerCase() !== environmentOf(requestOptions)) {
+        throw new Error('FIX_ENVIRONMENT_MISMATCH');
+      }
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
       requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
       requestState.companyKey=String(data.companyKey||'');
       requestState.canEdit = data.canEdit === true;
     } catch (e) {
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      // An unsuccessful refresh must not leave old customer/REF associations displayed as current.
+      requestState.fixedPickups = [];
+      requestState.companyKey = '';
+      requestState.canEdit = false;
       requestState.fixedError = e && e.message || tr('pickupCalendar.error.fixedLoad');
     } finally {
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
