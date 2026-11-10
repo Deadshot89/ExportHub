@@ -4,7 +4,7 @@
 // sonstige Dateien landen über /api/reference-files direkt im REF-Ordner der Sendung und
 // erscheinen danach unter "Dateien & Dokumente".
 if(window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__)return;window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__=true;
-var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,picked=[],kind='lieferschein',log=[];
+var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,picked=[],kind='lieferschein',log=[],selectionRef='';
 var KINDS=['lieferschein','rechnung','packliste','excel','sonstiges'];
 var EXT=['.pdf','.jpg','.jpeg','.png','.xlsx','.xlsm','.xls','.csv','.docx','.doc','.txt','.msg','.eml'];
 function q(v){return String(v==null?'':v).trim()}
@@ -27,7 +27,8 @@ function ensureStyle(){
     '.eh-docup-drop.is-over{border-color:currentColor;background:rgba(127,127,127,.08)}'+
     '.eh-docup-hint{font-size:12px;opacity:.75;margin:0}.eh-docup-list{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}'+
     '.eh-docup-list li[data-state=error]{color:#b42318}.eh-docup-list li[data-state=ok]{color:#067647}'+
-    'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}';
+    'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}'+
+    '.rc786-doc-actions[data-docup-managed]{display:flex!important;gap:8px!important;flex-wrap:wrap!important}';
   document.head.appendChild(s);
 }
 function card(){return document.getElementById('rc786ReferenceFilesCard')}
@@ -38,7 +39,7 @@ function renderList(){
   rows.forEach(function(r){list.appendChild(el('li',{'data-state':r.state||''},r.text))});
   var up=p.querySelector('[data-docup-start]');if(up)up.disabled=busy||!picked.length;
 }
-function addFiles(files){if(busy)return;log=[];Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
+function addFiles(files){if(busy)return;log=[];picked=[];selectionRef=refOf(currentShipment());Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
 function buildPanel(){
   var p=el('div',{class:'eh-docup','data-docup-panel':'1',role:'group','aria-label':t('title')});
   p.appendChild(el('h4',{},t('title')));
@@ -63,7 +64,7 @@ function buildPanel(){
 }
 function togglePanel(){
   var c=card();if(!c)return;var p=panel();
-  if(p){if(!busy){p.remove();picked=[];log=[]}return}
+  if(p){if(!busy){p.remove();picked=[];log=[];selectionRef=''}return}
   ensureStyle();p=buildPanel();
   var actions=c.querySelector('.rc786-doc-head-actions'),head=actions&&actions.parentElement;
   if(head&&head.parentElement===c)head.insertAdjacentElement('afterend',p);else c.appendChild(p);
@@ -72,9 +73,11 @@ function togglePanel(){
 function ensureButton(){
   scheduled=false;
   var actions=document.querySelector('#rc786ReferenceFilesCard .rc786-doc-head-actions');
-  if(!actions||actions.querySelector('[data-doc-upload]'))return;
+  if(!actions)return;
+  if(actions.querySelector('[data-doc-upload]')){syncFileActions();return;}
   var b=el('button',{type:'button',class:'ghost','data-doc-upload':'1'},t('button'));
   actions.insertBefore(b,actions.firstChild);
+  syncFileActions();
 }
 function scheduleEnsure(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||setTimeout)(ensureButton)}
 function readBase64(file){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');resolve(i>=0?s.slice(i+1):s)};r.onerror=function(){reject(r.error||new Error('read'))};r.readAsDataURL(file)})}
@@ -90,26 +93,102 @@ async function uploadOne(ref,file,docKind){
 async function uploadAll(){
   var ref=refOf(currentShipment());
   if(!ref||busy)return false;
+  if(picked.length&&selectionRef!==ref){picked=[];log=[];selectionRef='';renderList();window.alert(t('listChanged'));return false}
   if(!picked.length){window.alert(t('noFiles'));return false}
   busy=true;var files=picked.slice(),docKind=KINDS.indexOf(kind)>=0?kind:'sonstiges',ok=0;
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
   for(var i=0;i<files.length;i++){
     log[i]={state:'busy',text:t('busy',{name:files[i].name})};renderList();
-    try{var info=await uploadOne(ref,files[i],docKind);ok++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
+    try{
+      var info=await uploadOne(ref,files[i],docKind);
+      ok++;
+      var original=q(files[i].name).replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').trim();
+      var unexpected=info.name&&info.name.slice(-original.length-1)!=='_'+original;
+      log[i]={state:unexpected?'error':'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})+
+        (info.name?' → '+info.name:'')+(unexpected?' · '+t('changedName'):'')};
+    }
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
   }
   log.push({state:ok===files.length?'ok':'error',text:t('summary',{ok:ok,total:files.length})});
-  picked=[];busy=false;renderList();
+  picked=[];selectionRef='';busy=false;renderList();
   if(ok){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:docKind,count:ok,referenceFolder:true}}))}catch(_){}
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   return ok===files.length;
 }
+
+function docRows(){var c=card();return c?Array.prototype.slice.call(c.querySelectorAll('#rc786ReferenceFilesPanel .rc786-doc-row')):[]}
+function documentRows(){return Array.isArray(window.__EXPORTHUB_RC776_VIEW_DOCS__)?window.__EXPORTHUB_RC776_VIEW_DOCS__:[]}
+function canRemoveDocument(d){
+  var ref=q(d&&d.reference).toUpperCase();
+  if(!/^[A-Z0-9]{6}$/.test(ref)||!q(d.itemId))return false;
+  return new RegExp('^(?:Lieferschein|Rechnung|Packliste|Excel|Dokument)_'+ref+'_[0-9]{8}-[0-9]{6}_.+\\.(?:pdf|jpe?g|png|xlsx|xlsm|xls|csv|docx|doc|txt|msg|eml)$','i').test(q(d.name));
+}
+function syncFileActions(){
+  ensureStyle();
+  var rows=docRows(),docs=documentRows();
+  rows.forEach(function(row,i){
+    var d=docs[i],actions=row.querySelector('.rc786-doc-actions');
+    if(!d||!actions||d.source!=='referenceFolder'||!q(d.itemId))return;
+    // Keep the original internal viewer, download and print handlers. Only add removal.
+    var open=actions.querySelector('[data-rc786-open-file]');
+    var download=actions.querySelector('[data-rc786-download-file]');
+    if(open&&open.textContent!==t('open'))open.textContent=t('open');
+    if(download&&download.textContent!==t('download'))download.textContent=t('download');
+    var oldRemove=actions.querySelector('[data-docup-file-action="delete"]');
+    if(oldRemove && oldRemove.getAttribute('data-docup-id')!==q(d.itemId)){
+      oldRemove.remove();oldRemove=null;
+    }
+    if(!oldRemove&&canRemoveDocument(d)){
+      var remove=el('button',{type:'button',class:'ghost eh-docup-file-action',
+        'data-docup-file-action':'delete','data-docup-index':String(i),'data-docup-id':q(d.itemId)},t('remove'));
+      actions.appendChild(remove);
+    }else if(oldRemove){
+      if(oldRemove.getAttribute('data-docup-index')!==String(i))oldRemove.setAttribute('data-docup-index',String(i));
+      if(oldRemove.textContent!==t('remove'))oldRemove.textContent=t('remove');
+    }
+    if(actions.getAttribute('data-docup-managed')!==q(d.itemId))actions.setAttribute('data-docup-managed',q(d.itemId));
+    if(!row.hasAttribute('data-docup-layout')){
+      var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
+      if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
+      if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
+      row.setAttribute('data-docup-layout','1');
+    }
+  });
+}
+function fileContext(btn){
+  var index=Number(btn.getAttribute('data-docup-index')),docs=documentRows(),d=docs[index],sh=currentShipment(),ref=refOf(sh);
+  if(!d||!ref||d.source!=='referenceFolder'||q(d.reference)!==ref||q(d.itemId)!==q(btn.getAttribute('data-docup-id')))
+    throw new Error(t('listChanged'));
+  return {document:d,reference:ref};
+}
+async function actOnFile(btn){
+  if(btn.disabled)return;
+  var ctx=fileContext(btn),d=ctx.document;
+  if(!canRemoveDocument(d))throw new Error(t('protectedOriginal'));
+  if(!window.confirm(t('removeConfirm',{name:d.name})))return;
+  btn.disabled=true;
+  try{
+    var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'delete-document',reference:ctx.reference,itemId:d.itemId})}),result={};
+    try{result=await res.json()}catch(_){}
+    if(!res.ok||result.ok===false)throw new Error(q(result.message)||('HTTP '+res.status));
+    var view=window.ExportHUBShipmentView;
+    if(view&&typeof view.refreshReferenceFiles==='function')await view.refreshReferenceFiles();
+    window.alert(t('removed'));
+  }finally{btn.disabled=false}
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest&&e.target.closest('[data-docup-file-action]');
+  if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  actOnFile(b).catch(function(error){window.alert(t('actionError',{message:q(error&&error.message||error)}))});
+},true);
+
 document.addEventListener('click',function(e){
   var target=e.target&&e.target.closest?e.target:null;if(!target)return;
   if(target.closest('[data-doc-upload]')){e.preventDefault();e.stopImmediatePropagation();togglePanel();return}
   if(target.closest('[data-docup-start]')){e.preventDefault();uploadAll();return}
-  if(target.closest('[data-docup-close]')){e.preventDefault();if(!busy){var p=panel();if(p)p.remove();picked=[];log=[]}}
+  if(target.closest('[data-docup-close]')){e.preventDefault();if(!busy){var p=panel();if(p)p.remove();picked=[];log=[];selectionRef=''}}
 },true);
 function start(){ensureButton();if(window.MutationObserver)new MutationObserver(scheduleEnsure).observe(document.body,{childList:true,subtree:true})}
 if(document.body)start();else document.addEventListener('DOMContentLoaded',start);

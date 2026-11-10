@@ -162,7 +162,7 @@ async function reflectedAvTask(ref,environment){
  });
 }
 async function handleUpload(req){
- await validateSession(req);
+ const sessionInfo=await validateSession(req);
  const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
  const environment=publicAccess.environment(req,payload);
  if(action==='upload-av'){
@@ -195,6 +195,21 @@ async function handleUpload(req){
   return json(200,{ok:true,reference:ref,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
    azureSaved:!!azureSaved,azureError,sharepointSaved:!!sharepointSaved,sharepointError});
  }
+ if(action==='delete-document'){
+  const id=text(payload.itemId);
+  if(!id||id.length>512)throw error('DOCUMENT_DELETE_FORBIDDEN','Ungültige Dateikennung.',403);
+  let removed;
+  if(/^refdoc:[0-9a-f]{32}$/.test(id)){
+   removed=await refDocBlob.softDelete(ref,environment,id,usernameOf(sessionInfo.user));
+  }else{
+   // Only a Graph item found within the authenticated reference folder may be hidden.
+   // This leaves the physical SharePoint original untouched.
+   const listed=await listFiles(ref,req),matches=listed.files.filter(f=>f.id===id);
+   if(matches.length!==1)throw error('DOCUMENT_NOT_FOUND','Datei im Referenzordner nicht eindeutig gefunden.',404);
+   removed=await refDocBlob.hideSharePoint(ref,environment,matches[0],usernameOf(sessionInfo.user));
+  }
+  return json(200,{ok:true,reference:ref,removed,archiveRetained:true});
+ }
  throw error('ACTION_INVALID','Unbekannte Aktion.',400);
 }
 module.exports=async function(context,req){
@@ -219,18 +234,33 @@ module.exports=async function(context,req){
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
   const azure=await avBlob.list(ref,env);
-  // Azure-Kopien von Sendungsdokumenten: ein Lesefehler im Speicher darf die SharePoint-Liste nicht blockieren.
-  let docs=[];try{docs=await refDocBlob.list(ref,env)}catch(_){docs=[]}
+  // A verified removal ledger is shared with the private Azure-document listing.
+  // Never publish a stale Graph copy if the removal ledger cannot be read.
+  const removal=await refDocBlob.removalFilters(ref,env);
+  let docs=[];try{docs=await refDocBlob.list(ref,env,removal)}catch(_){docs=[]}
   let listed,graphError=null;
   try{listed=await listFiles(ref,req)}
   catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
-  const files=Array.from(listed.files||[]);
+  // Read the reversible-removal ledger before listing any source: archived documents
+  // must not reappear from SharePoint after being removed from the shipment.
+  const removedNames=removal.names,removedGraphHashes=removal.graphHashes;
+  const azureDocNames=new Set(docs.map(f=>text(f.name).toLowerCase()));
+  // A Graph-only removal hides exactly the selected item, never a same-name sibling.
+  // A removed Azure upload also hides its old SharePoint mirror by filename.
+  const files=Array.from(listed.files||[]).filter(f=>
+   !removedNames.has(text(f.name).toLowerCase())&&
+   !removedGraphHashes.has(crypto.createHash('sha256').update(text(f.id)).digest('hex'))&&
+   !azureDocNames.has(text(f.name).toLowerCase()));
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
-  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
+  // Azure document IDs are unique. Two intentionally uploaded invoices with
+  // the same filename must remain individually visible and removable.
+  for(const file of docs){
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
+  // Latest shipment uploads appear first, regardless of Graph/Azure source.
+  files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||text(a.name).localeCompare(text(b.name),'de'));
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
     folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
   const item=files.find(f=>f.id===itemId);

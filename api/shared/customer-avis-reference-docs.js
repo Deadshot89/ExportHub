@@ -1,4 +1,5 @@
 'use strict';
+const crypto=require('crypto');
 // Kunden-Avis: Dokumente aus der Sendungsansicht (REF-Ordner in SharePoint und unabhängige Azure-Kopie).
 // Der Upload benennt Dateien "<Art>_<REF>_<JJJJMMTT-hhmmss>_<Originalname>".
 // Nur Lieferschein, Rechnung und Packliste sind für Kunden sichtbar; Excel und
@@ -30,15 +31,25 @@ function toRecords(files,reference,source='graph'){
 // Azure-Dokumente stehen vor gleichnamigen SharePoint-Dateien (gleicher Upload, verifizierte Kopie), Doppelte entfallen.
 async function load(referenceFolder,reference,environment,log,refDocStore){
  const warn=code=>{if(typeof log==='function')log('customer-avis REF-Dokumente nicht lesbar',code)};
- let azure=[],graph=[];
+ let azure=[],graph=[],hidden=new Set(),hiddenGraphHashes=new Set(),removal=null;
+ if(refDocStore&&typeof refDocStore.removalFilters==='function'){
+  try{
+   removal=await refDocStore.removalFilters(reference,environment);
+   hidden=removal.names;hiddenGraphHashes=removal.graphHashes;
+  }catch(e){warn('removal-ledger:'+text(e&&e.code));return []}
+ }else if(refDocStore&&typeof refDocStore.hiddenNames==='function'){
+  try{hidden=await refDocStore.hiddenNames(reference,environment)}catch(e){warn('removal-ledger:'+text(e&&e.code));return []}
+ }
  if(refDocStore&&typeof refDocStore.list==='function'){
-  try{azure=toRecords(await refDocStore.list(reference,environment),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
+  try{azure=toRecords(await refDocStore.list(reference,environment,removal),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
  }
  try{graph=toRecords(await referenceFolder.listFiles(reference,environment),reference,'graph')}catch(e){warn(text(e&&e.code))}
  const seen=new Set(),out=[];
  for(const d of azure.concat(graph)){
   const key=d.sourceName.toLowerCase();
-  if(seen.has(key))continue;
+  // Azure list already excludes removed IDs; suppress tombstoned names only from Graph.
+  // A freshly re-uploaded Azure file with the same name must remain visible.
+  if(seen.has(key)||(d.refSource==='graph'&&(hidden.has(key)||hiddenGraphHashes.has(crypto.createHash('sha256').update(d.refItemId).digest('hex')))))continue;
   seen.add(key);out.push(d);
   if(out.length>=MAX_DOCS)break;
  }
