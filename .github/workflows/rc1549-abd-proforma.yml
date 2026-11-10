@@ -13,6 +13,9 @@ on:
       - 'api/abd-analysis-export/**'
       - 'assets/rc1549-abd-proforma.js'
       - 'assets/rc1940-documents-workspace.js'
+      - 'assets/rc1962-d365-local-import.js'
+      - 'assets/rc1962-d365-xlsx-worker.js'
+      - 'test/rc1962-d365-local-import.test.mjs'
       - 'assets/rc1790-delivery-note.js'
       - 'assets/rc1499-abd-export.js'
       - 'assets/rc1499-exportexperte-handoff.js'
@@ -37,11 +40,14 @@ jobs:
       - name: Install API runtime dependencies
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: RC1549 browser runtime syntax
-        run: node --check assets/rc1549-abd-proforma.js && node --check assets/rc1940-documents-workspace.js && node --check assets/rc1790-delivery-note.js && node --check assets/rc1294-abd-self-service.js && node --check api/shared/abd-d365-import.js && node --check api/abd-analysis/index.js
+        run: node --check assets/rc1549-abd-proforma.js && node --check assets/rc1940-documents-workspace.js && node --check assets/rc1962-d365-local-import.js && node --check assets/rc1962-d365-xlsx-worker.js && node --check assets/rc1790-delivery-note.js && node --check assets/rc1294-abd-self-service.js && node --check api/shared/abd-d365-import.js && node --check api/abd-analysis/index.js
       - name: RC1549 ABD Proforma and A4 print-layout contracts
         env:
           EXPORTHUB_PDF_SAMPLE_DIR: pdf-proof/rc1603
         run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs test/rc1784-d365-invoice-import.test.mjs test/rc1940-documents-workspace.test.mjs test/rc1790-delivery-note.test.mjs
+
+      - name: RC1962 D365 XLSX local-only security and positions-only regressions
+        run: node --test test/rc1962-d365-local-import.test.mjs
 
       - name: Preserve real PDF samples for layout review
         if: always()
