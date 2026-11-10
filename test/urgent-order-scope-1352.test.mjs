@@ -54,3 +54,30 @@ test('internal and public forms include confirmation, all-lines scope and valid 
   }
  }
 });
+
+test('internal P1 details show the recorded confirmer and time, never fabricate old approvals',()=>{
+ const html=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
+ const begin=html.indexOf('function approvalDetailMarkup(order)');
+ const end=html.indexOf('function render(){',begin);
+ assert.ok(begin>=0&&end>begin,'P1 evidence renderer is defined');
+ assert.match(html,/\+approvalDetailMarkup\(order\)\+freightHtml/,'order details must include confirmation evidence');
+ const snippet=html.slice(begin,end);
+ const context={
+  txt:v=>String(v==null?'':v),
+  mailDate:iso=>String(iso),
+  localeV2:(_key,fallback)=>fallback,
+  escapeHtml:v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+ };
+ const render=vm.runInNewContext(snippet+';approvalDetailMarkup',context);
+ const confirmed=render({priority:'P1',transportCostsApproval:{confirmedBy:{id:'CS-17',name:'CS <script>'},confirmedAt:at}});
+ assert.match(confirmed,/data-p1-approval="recorded"/);
+ assert.match(confirmed,/CS &lt;script&gt;/);
+ assert.match(confirmed,/2026-11-10T11:30:00/);
+ assert.doesNotMatch(confirmed,/<script>/);
+ assert.match(render({priority:'P1'}),/data-p1-approval="missing"/);
+ assert.equal(render({priority:'P2'}),'');
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dict=JSON.parse(fs.readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
+  for(const key of ['urgentOrderV2.p1ApprovalDetailLabel','urgentOrderV2.p1ApprovalDetailBy','urgentOrderV2.p1ApprovalDetailMissing'])assert.ok(dict[key],lang+' missing '+key);
+ }
+});
