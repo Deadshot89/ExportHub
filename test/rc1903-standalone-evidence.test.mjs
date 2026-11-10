@@ -561,3 +561,30 @@ test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, o
  assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
  assert.match(build,/shipment-evidence\.js\?v=1907/,'Staff runtime must have cache-busted version');
 });
+
+
+test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cache-Busting',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const html=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const context={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),context);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const strings=context.window.ExportHUBEvidenceI18n[locale];
+  for(const key of ['docId','referencePending','copyReference','referenceCopied'])assert.ok(strings[key],locale+' '+key);
+ }
+ assert.equal(context.window.ExportHUBEvidenceI18n.de.docId,'Referenznummer');
+ assert.match(staff,/reference\.appendChild\(make\('strong',null,r\.id\)\)/);
+ assert.match(staff,/clipboard\.writeText\(r\.id\)/);
+ assert.match(staff,/t\('referencePending'\)/);
+ assert.match(guest,/t\('docId'\)\+': '\+record\.id/);
+ assert.match(guest,/clipboard\.writeText\(record\.id\)/);
+ assert.match(guest,/t\('referencePending'\)/);
+ assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
+ assert.match(build,/shipment-evidence\.js\?v=1907/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=1907/);
+ assert.match(build,/shipment-evidence-guest\.js\?v=1906/);
+ assert.match(html,/i18n\/shipment-evidence\.js\?v=1907-ref/);
+ assert.match(html,/shipment-evidence-guest\.js\?v=1906/);
+});
