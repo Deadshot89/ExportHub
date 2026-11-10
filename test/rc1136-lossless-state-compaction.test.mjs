@@ -53,5 +53,13 @@ test('RC1136: State-Save kompaktisiert erst nach Merge und vor Upload',()=>{
   const fs=require('node:fs');
   const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
   assert.match(source,/require\('\.\.\/shared\/state-compaction'\)/);
-  assert.match(source,/compactStateForStorage\(pruneTombstones\(mergeState\(current\.state\|\|\{\},incoming\.state\|\|\{\}\)\)\)/);
+  // RC1961 measures merge and compaction separately but must preserve this exact order.
+  const save=source.slice(source.indexOf('async function saveMerged('),source.indexOf('/* RC614:',source.indexOf('async function saveMerged(')));
+  assert.match(save,/const combined=mergeState\(current\.state\|\|\{\},incoming\.state\|\|\{\}\)/);
+  assert.match(save,/const merged=compactStateForStorage\(pruneTombstones\(combined\)\)/);
+  const mergeAt=save.indexOf('const combined=mergeState(');
+  const compactAt=save.indexOf('const merged=compactStateForStorage(');
+  const uploadAt=save.indexOf('uploaded=await uploadJson(');
+  assert.ok(mergeAt>=0&&compactAt>mergeAt&&uploadAt>compactAt,
+    'Merge, verlustfreie Kompaktierung und ETag-geschützter Upload müssen in Reihenfolge erfolgen');
 });
