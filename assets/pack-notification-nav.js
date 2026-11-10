@@ -332,10 +332,12 @@
    ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(name=>w.addEventListener(name,()=>{
     sessionEpoch++;loggedOut=true;lastRefresh=0;authBackoffUntil=0;hideBadge();
    }));
-   w.addEventListener('exporthub:state-loaded',()=>refresh(true));
-   w.addEventListener('focus',()=>refresh(true));
+   // The 45s interval already keeps a successful count fresh. State-load
+   // and focus bursts must not bypass that interval on every event.
+   w.addEventListener('exporthub:state-loaded',()=>refresh(false));
+   w.addEventListener('focus',()=>refresh(false));
   }
-  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(true)});
+  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(false)});
   if(typeof w.setInterval==='function')w.setInterval(()=>refresh(false),45000);
  }
  register();
