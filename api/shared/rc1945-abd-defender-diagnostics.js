@@ -23,6 +23,24 @@ function matchesObservedPortalAccount(blobServiceUrl){
   return host==='exporthubdata89.blob.core.windows.net';
  }catch(_){return null}
 }
+// RC1962: Match only the three accounts independently shown in the Azure portal.
+// This is an endpoint classification, NOT proof of ownership, Defender coverage,
+// correct Azure subscription, or permission to change any paid plan.
+// Return fixed labels only; never return a hostname or connection string.
+function knownExportHubBlobAccount(blobServiceUrl){
+ try{
+  const url=new URL(String(blobServiceUrl||''));
+  if(url.protocol!=='https:'||url.username||url.password||
+     (url.port&&url.port!=='443')||url.search||url.hash||url.pathname!=='/')return null;
+  const host=url.hostname.toLowerCase();
+  if(!/^[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(host))return null;
+  if(host==='exporthubdata89.blob.core.windows.net')return 'main-portal';
+  if(host==='exporthubtestdata89.blob.core.windows.net')return 'test-central-us';
+  if(host==='exporthubtestde89.blob.core.windows.net')return 'test-germany-west-central';
+  return 'other-standard-azure';
+ }catch(_){return null}
+}
+
 
 function reasonFor(error){
  const code=String(error&&error.code||'');
@@ -84,4 +102,4 @@ async function collectTestserviceAbdDefenderDiagnostics(options={}){
  }catch(error){return report(reasonFor(error))}
 }
 
-module.exports={PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount};
+module.exports={PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount,knownExportHubBlobAccount};
