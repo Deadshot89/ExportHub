@@ -237,7 +237,7 @@ function renderHtml(model,meta){
       (route?'<button type="button" class="rc1558-link" data-rc1558-route="'+esc(route)+'">'+esc(t(linkKey))+'</button>':'')+'</div>'
   }
 
-  return'<div class="rc1558-top">'+(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+'</div></div>'+
+  return'<div class="rc1558-top">'+(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+openWorkTopKpi()+'</div></div>'+
     '<div class="rc1558-grid">'+
       '<section class="rc1558-panel rc1558-today">'+head('dashboard.overview.today.title',model.todayTotal,'shipmentoverview','dashboard.overview.today.link')+table+'</section>'+
       '<div class="rc1558-stack">'+
@@ -398,6 +398,8 @@ function bind(section){
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
     if(target.closest('[data-rc1573-edit]')){e.preventDefault();openTilePanel();return}
+    var module=target.closest('[data-rc1558-open-module]');
+    if(module){e.preventDefault();var name=module.getAttribute('data-rc1558-open-module');if((name==='urgentorders'||name==='quality')&&w.ExportHUBEmbeddedModules&&typeof w.ExportHUBEmbeddedModules.open==='function')w.ExportHUBEmbeddedModules.open(name);return}
     var k=target.closest('[data-rc1558-kpi]');if(k){e.preventDefault();startDrill(k.getAttribute('data-rc1558-kpi'),k.getAttribute('data-rc1558-route'));return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
@@ -413,13 +415,12 @@ var lastHtml='';
    Legacy tiles (quick access, ABD, pallet account) are reused as they are; warehouse and week charts are rendered here.
    Up to five tiles share one row, so the one-page layout stays intact when tiles are added. */
 var TILE_STORE='exporthub.rc1573.tiles.';
-var TILE_IDS=['quick','lager','abd','pallet','openwork','week'];
-var TILE_DEFAULT={quick:true,lager:true,abd:true,pallet:true,openwork:true,week:false};
+var TILE_IDS=['quick','lager','abd','pallet','week'];
+var TILE_DEFAULT={quick:true,lager:true,abd:true,pallet:true,week:false};
 var TILE_TEXT={
   quick:['dashboard.overview.tile.quick','dashboard.overview.tile.quickDesc'],lager:['dashboard.overview.tile.lager','dashboard.overview.tile.lagerDesc'],
   abd:['dashboard.overview.tile.abd','dashboard.overview.tile.abdDesc'],pallet:['dashboard.overview.tile.pallet','dashboard.overview.tile.palletDesc'],
-  week:['dashboard.overview.tile.week','dashboard.overview.tile.weekDesc'],
-  openwork:['dashboard.overview.tile.openWork','dashboard.overview.tile.openWorkDesc']
+  week:['dashboard.overview.tile.week','dashboard.overview.tile.weekDesc']
 };
 var tileOverride=null;
 function tileUserKey(){var s=getState(),u=s.currentUser||s.activeUser||{};try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()||u}catch(_){}return TILE_STORE+low(u.id||u.user||u.username||u.login||'standard')}
@@ -522,7 +523,6 @@ async function boundedOpenWorkCount(path){
 }
 function loadOpenWorkCounts(){
   if(openWorkLoggedOut||openWorkInFlight||!w.fetch||!w.document||w.document.hidden||!isDashboard())return;
-  var tiles=readTiles();if(!tiles.on.openwork)return;
   var now=Date.now();if(now-openWorkLastFetch<45000)return;
   openWorkLastFetch=now;openWorkInFlight=true;var epoch=openWorkEpoch;
   Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa')]).then(function(results){
@@ -538,17 +538,25 @@ function loadOpenWorkCounts(){
     else if(!openWorkLoggedOut)loadOpenWorkCounts()
   })
 }
-function openWorkMetric(kind){
-  var count=openWorkCounts[kind],available=Number.isSafeInteger(count),route=kind==='urgent'?'urgentorders':'quality';
-  var key=kind==='urgent'?'dashboard.overview.tile.openUrgent':'dashboard.overview.tile.openQuality';
-  return'<button type="button" class="rc1573-openwork-metric" data-rc1558-open-module="'+route+'" aria-label="'+esc(t(key)+': '+(available?count:t('dashboard.overview.tile.unavailable')))+'">'+
-    '<strong class="rc1573-openwork-count" aria-hidden="true">'+(available?count:'–')+'</strong>'+
-    '<span class="rc1573-openwork-name">'+esc(t(key))+'</span>'+
-    '<span class="rc1573-openwork-action">'+esc(t('dashboard.overview.tile.openModule'))+'</span></button>'
+function openWorkTopKpi(){
+  // One regular KPI tile in the top status grid, not an additional lower dashboard area.
+  // Each count is separately actionable; missing permission/data is always '–', never 0.
+  var items=[
+    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent'},
+    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality'}
+  ];
+  var actions=items.map(function(item){
+    var count=openWorkCounts[item.kind],available=Number.isSafeInteger(count)&&count>=0;
+    var label=t(item.key),display=available?String(count):t('dashboard.overview.tile.unavailable');
+    return'<button type="button" class="rc1558-openwork-action" data-rc1558-open-module="'+item.route+'" data-open="'+(available&&count>0?'1':'0')+'" aria-label="'+esc(label+': '+display)+'">'+
+      '<span class="rc1558-openwork-name">'+esc(label)+'</span>'+
+      '<strong class="rc1558-openwork-value" aria-hidden="true">'+(available?count:'–')+'</strong></button>'
+  }).join('');
+  return'<div class="rc1558-kpi rc1558-kpi-openwork" role="group" aria-label="'+esc(t('dashboard.overview.tile.openWork'))+'">'+
+    '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(t('dashboard.overview.tile.openWork'))+'</span>'+icon('tasks')+'</span>'+
+    '<div class="rc1558-openwork-actions">'+actions+'</div></div>'
 }
 function tileHtml(id,shipments){
-  if(id==='openwork')return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.openWork'))+'</h3></div>'+
-    '<div class="rc1573-openwork-grid">'+openWorkMetric('urgent')+openWorkMetric('quality')+'</div>';
   if(id==='lager'){
     var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
     var items=m.rows.map(function(r){var label=locationLabel(r.code);return{value:r.count,route:'warehouse',short:LOCATION_SHORT[r.code],title:t('dashboard.overview.lager.bar',{label:label,count:r.count,colli:r.colli})}});
@@ -566,13 +574,14 @@ function tileHtml(id,shipments){
 }
 function applyTiles(root,shipments){
   var d=w.document;if(!d||!root)return;
+  var old=root.querySelector(':scope > [data-rc1573-own="openwork"]');if(old)old.remove();
   var cfg=readTiles(),visible=cfg.order.filter(function(id){return cfg.on[id]});
   // rows of up to five tiles on a 60-column grid (5 → 12, 4 → 15, 3 → 20, 2 → 30, 1 → 60); a further row only from six tiles
   var PER_ROW=5,rows=Math.ceil(visible.length/PER_ROW)||1,span={};
   visible.forEach(function(id,i){var row=Math.floor(i/PER_ROW),inRow=row<rows-1?PER_ROW:visible.length-PER_ROW*(rows-1);span[id]=60/inRow});
   cfg.order.forEach(function(id,index){
     var el=legacyTile(root,id);
-    if(!el&&(id==='lager'||id==='week'||id==='openwork')){
+    if(!el&&(id==='lager'||id==='week')){
       el=root.querySelector(':scope > [data-rc1573-own="'+id+'"]');
       if(cfg.on[id]){
         if(!el){el=d.createElement('section');el.className='card rc1573-tile';el.setAttribute('data-rc1573-own',id);root.appendChild(el)}
@@ -590,9 +599,8 @@ function applyTiles(root,shipments){
 function bindTiles(root){
   if(!root||root.__rc1573Bound)return;root.__rc1573Bound=true;
   root.addEventListener('click',function(e){
-    var module=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-open-module]'):null;
-    if(module){e.preventDefault();var name=module.getAttribute('data-rc1558-open-module');if((name==='urgentorders'||name==='quality')&&w.ExportHUBEmbeddedModules&&typeof w.ExportHUBEmbeddedModules.open==='function')w.ExportHUBEmbeddedModules.open(name);return}
-    var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))
+    var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;
+    if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))
   })
 }
 function openTilePanel(){
