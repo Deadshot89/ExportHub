@@ -217,7 +217,9 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  assert.match(ui,/receipt\.azureSaved/);
  assert.match(ui,/uploadNotListed/);
  assert.match(ui,/referenceFolder:azureOnly===0/);
- assert.match(api,/else files\[index\]=azureDoc/,'Azure readback wins over duplicate SharePoint metadata');
+ assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs\)/,'Keep separate source identities for same-name originals');
+ assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs\)/);
+ assert.match(api,/partial:!!\(graphError\|\|azureError\|\|docsError\)/,'Report incomplete storage sources');
  const ctx={};
  new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
  for(const locale of ['de','en','pl','es','fr','it']){
