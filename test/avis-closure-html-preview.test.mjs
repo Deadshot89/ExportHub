@@ -37,6 +37,7 @@ function setup({authorized=true}={}){
    if(name==='crypto')return crypto;
    if(name==='../shared/auth-store')return auth;
    if(name==='../shared/graph-mail')return graphMail;
+   if(name==='../shared/public-access-store')return{async issue(){throw Error('Preview must never issue access records')},async resolve(){throw Error('Preview must not read access records')}};
    if(name==='../shared/avis-mail-html')return renderer;
    throw new Error('Unexpected dependency '+name);
   },URL,Date:InAdvanceDate,process:{env:{}},console};
