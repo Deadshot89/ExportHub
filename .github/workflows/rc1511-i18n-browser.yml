@@ -10,6 +10,7 @@ on:
       - 'assets/i18n/**'
       - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
       - 'e2e/specs/rc1337-seasonal-banner.spec.mjs'
+      - 'e2e/specs/rc1328-admin-closure-readback.spec.mjs'
       - 'e2e/specs/rc1730-ui-language-gaps.spec.mjs'
       - 'index.html'
       - 'assets/*.js'
@@ -27,6 +28,7 @@ on:
       - 'assets/i18n/**'
       - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
       - 'e2e/specs/rc1337-seasonal-banner.spec.mjs'
+      - 'e2e/specs/rc1328-admin-closure-readback.spec.mjs'
       - 'e2e/specs/rc1730-ui-language-gaps.spec.mjs'
       - 'index.html'
       - 'assets/*.js'
@@ -76,6 +78,12 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/rc1337-seasonal-banner.spec.mjs --project=mobile-small --project=laptop
+
+      - name: RC1328 closure admin save and reload (synthetic confirmed state, no API)
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1328-admin-closure-readback.spec.mjs --project=mobile-small --project=laptop
 
       - name: RC1730 no German leftovers in the English interface
         env:
