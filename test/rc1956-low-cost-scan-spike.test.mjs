@@ -170,3 +170,30 @@ test('RC1956: cleanup failure cannot approve a scan or leak internal errors',asy
   if(stagedDir)await originalRm(stagedDir,{recursive:true,force:true});
  }
 });
+
+
+test('RC1956: timeout waits for confirmed scanner close before releasing private scan copy',async t=>{
+ const {EventEmitter}=await import('node:events');
+ const cp=await import('node:child_process');
+ const {runClamscan}=require('../tools/rc1956-clamav/scan-local.cjs');
+ const originalSpawn=cp.default.spawn;
+ const fake=new EventEmitter();
+ let killedWith='';
+ let signalKill;
+ const killed=new Promise(resolve=>{signalKill=resolve});
+ fake.kill=signal=>{killedWith=signal;signalKill();return true};
+ cp.default.spawn=()=>fake;
+ t.after(()=>{cp.default.spawn=originalSpawn});
+ const pending=runClamscan('/private/scan-copy.bin',10);
+ await killed;
+ let settled=false;
+ pending.then(()=>{settled=true});
+ await Promise.resolve();
+ await Promise.resolve();
+ assert.equal(killedWith,'SIGKILL');
+ assert.equal(settled,false,'a timeout must not resolve before process close');
+ fake.emit('close',null,'SIGKILL');
+ const result=await pending;
+ assert.equal(result.timedOut,true);
+ assert.equal(result.exitCode,null);
+});
