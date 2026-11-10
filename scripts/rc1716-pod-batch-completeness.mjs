@@ -103,6 +103,9 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
       "var rc1957Expected=entries.filter(function(e){return e&&/\\.pdf$/i.test(String(e.name||''))});",
       "var rc1957Pdfs=rc1957Expected.filter(function(e){return e.data&&e.data.byteLength>0});",
       "if(rc1957Expected.length!==entries.length)fail.push('RC1957_UNEXPECTED_ENTRY');",
+      // Keep checksum-list filenames unambiguous and safe for extraction.
+      // No line breaks, ASCII control chars, path separators or huge names.
+      "if(rc1957Expected.some(function(e){var n=String(e.name||'');return n.length>180||n.indexOf('/')!==-1||n.indexOf(String.fromCharCode(92))!==-1||Array.from(n).some(function(c){var k=c.charCodeAt(0);return k<32||k===127})}))fail.push('RC1957_UNSAFE_FILENAME');",
       "if(rc1957Expected.length!==rc1957Pdfs.length)fail.push('RC1957_EMPTY_PDF');",
       // A successful HTTP response may still be an HTML error page. The hash
       // must not attest that such bytes represent a saved original PDF.
