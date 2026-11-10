@@ -217,6 +217,8 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  assert.match(ui,/q\(f\.id\)===q\(receipt\.id\)/,'Upload receipt must match exact persisted file ID, not a same-name older original');
  assert.match(ui,/receipt\.azureSaved/);
  assert.match(ui,/uploadNotListed/);
+ assert.match(ui,/if\(data\.partial===true\)/,'Never hide partial Azure/SharePoint listing failures');
+ assert.match(ui,/tr\('refPartial'\)/,'Inform employees when the REF list is incomplete');
  assert.match(ui,/referenceFolder:azureOnly===0/);
  assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs\)/,'Keep separate source identities for same-name originals');
  assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs\)/);
@@ -224,7 +226,7 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  const ctx={};
  new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
  for(const locale of ['de','en','pl','es','fr','it']){
-  for(const key of ['filesVerified','azureOnly','uploadNotListed','uploadNotConfirmed'])
+  for(const key of ['filesVerified','azureOnly','uploadNotListed','uploadNotConfirmed','refPartial'])
    assert.ok(ctx.ExportHUBShipmentDocumentationI18n.packs[locale][key],locale+' '+key);
  }
 });
