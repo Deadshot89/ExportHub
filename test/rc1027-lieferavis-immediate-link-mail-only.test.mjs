@@ -139,8 +139,8 @@ test('RC1349: Speditionslink lehnt unpassenden Token und fremde Empfängerart ab
   const sh={...shipment};
   const {api,rc}=load(sh,{reference:'7RZ5W9',carrierIssueResponse});
   await assert.rejects(()=>rc.carrierAvisUrl(sh));
-  const body=api.injectMailBody(sh,'carrier',expandedDetails,'de');
-  assert.doesNotMatch(body,/\/avis\/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/i,'Customer token must never become a carrier link');
+  assert.throws(()=>api.injectMailBody(sh,'carrier',expandedDetails,'de'),e=>e&&e.code==='AVIS_CARRIER_LINK_PENDING',
+   'Ein zurückgewiesener Speditionslink darf keinen Mailentwurf mit Kundentoken oder Platzhalter erzeugen');
  }
 });
 
