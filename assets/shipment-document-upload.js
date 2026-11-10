@@ -132,8 +132,8 @@ function syncFileActions(){
     // Keep the original internal viewer, download and print handlers. Only add removal.
     var open=actions.querySelector('[data-rc786-open-file]');
     var download=actions.querySelector('[data-rc786-download-file]');
-    if(open)open.textContent=t('open');
-    if(download)download.textContent=t('download');
+    if(open&&open.textContent!==t('open'))open.textContent=t('open');
+    if(download&&download.textContent!==t('download'))download.textContent=t('download');
     var oldRemove=actions.querySelector('[data-docup-file-action="delete"]');
     if(oldRemove && oldRemove.getAttribute('data-docup-id')!==q(d.itemId)){
       oldRemove.remove();oldRemove=null;
@@ -143,13 +143,16 @@ function syncFileActions(){
         'data-docup-file-action':'delete','data-docup-index':String(i),'data-docup-id':q(d.itemId)},t('remove'));
       actions.appendChild(remove);
     }else if(oldRemove){
-      oldRemove.setAttribute('data-docup-index',String(i));
-      oldRemove.textContent=t('remove');
+      if(oldRemove.getAttribute('data-docup-index')!==String(i))oldRemove.setAttribute('data-docup-index',String(i));
+      if(oldRemove.textContent!==t('remove'))oldRemove.textContent=t('remove');
     }
-    actions.setAttribute('data-docup-managed',q(d.itemId));
-    var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
-    if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
-    if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
+    if(actions.getAttribute('data-docup-managed')!==q(d.itemId))actions.setAttribute('data-docup-managed',q(d.itemId));
+    if(!row.hasAttribute('data-docup-layout')){
+      var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
+      if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
+      if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
+      row.setAttribute('data-docup-layout','1');
+    }
   });
 }
 function fileContext(btn){
