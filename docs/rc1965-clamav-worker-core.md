@@ -80,3 +80,26 @@ Azure API references:
 - https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobclient
 - https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobdownloadoptions
 - https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobrequestconditions
+
+## RC1968 – Hard deadline even when SDK ignores cancellation
+
+A specific failure mode remained in RC1967: the AbortController timeout
+only signalled the SDK, but a noncooperative or stalled
+`getProperties()`, `download()` or async stream iterator could ignore the
+signal and leave the awaited Promise unresolved indefinitely.
+
+RC1968 now races the complete read against a separate bounded rejection.
+The active stream is destroyed when the deadline fires. A download response
+that resolves **after** the deadline is still adopted and its stream
+destroyed before its data can be accepted. All errors return only
+`RC1966_BLOB_UNVERIFIED` and never authorize parsing.
+
+Three isolated synthetic tests cover an SDK ignoring the abort signal,
+a late download response and an iterator that never returns. This is still
+not a live Azure test or a guarantee that a noncooperative underlying SDK
+task frees every resource instantly: a separately enforced container/job
+execution timeout remains mandatory.
+
+No Azure client, queue, Container Apps job or paid resource was created.
+The existing ABD API and its scan gate remain untouched; no deployment
+is authorized by this change.
