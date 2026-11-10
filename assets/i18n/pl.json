@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "Podgląd wiadomości HTML",
   "closureMail.previewFailed": "Nie udało się wczytać podglądu wiadomości.",
   "closureMail.pickupWarning": "Uwaga: odbiór {{date}} przypada po ostatnim możliwym odbiorze {{last}} o {{time}}. Zamknięcie: {{from}} – {{to}}. Ponowne otwarcie: {{reopen}}. Prosimy zmienić termin.",
-  "closureMail.bookingClosed": "Ten termin odbioru przypada na okres zamknięcia. Prosimy wybrać datę po ponownym otwarciu."
+  "closureMail.bookingClosed": "Ten termin odbioru przypada na okres zamknięcia. Prosimy wybrać datę po ponownym otwarciu.",
+  "closureMail.snowAnimation": "Delikatna animacja świąteczna w portalu odbioru",
+  "closureMail.snowEnable": "Włącz animację",
+  "closureMail.snowDisable": "Wyłącz animację",
+  "closureMail.snowOn": "Animacja świąteczna włączona",
+  "closureMail.snowOff": "Animacja świąteczna wyłączona"
 }
