@@ -234,14 +234,15 @@ module.exports=async function(context,req){
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
   const azure=await avBlob.list(ref,env);
-  // Azure-Kopien von Sendungsdokumenten: ein Lesefehler im Speicher darf die SharePoint-Liste nicht blockieren.
-  let docs=[];try{docs=await refDocBlob.list(ref,env)}catch(_){docs=[]}
+  // A verified removal ledger is shared with the private Azure-document listing.
+  // Never publish a stale Graph copy if the removal ledger cannot be read.
+  const removal=await refDocBlob.removalFilters(ref,env);
+  let docs=[];try{docs=await refDocBlob.list(ref,env,removal)}catch(_){docs=[]}
   let listed,graphError=null;
   try{listed=await listFiles(ref,req)}
   catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
   // Read the reversible-removal ledger before listing any source: archived documents
   // must not reappear from SharePoint after being removed from the shipment.
-  const removal=await refDocBlob.removalFilters(ref,env);
   const removedNames=removal.names,removedGraphHashes=removal.graphHashes;
   const azureDocNames=new Set(docs.map(f=>text(f.name).toLowerCase()));
   // A Graph-only removal hides exactly the selected item, never a same-name sibling.
