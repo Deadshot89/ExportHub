@@ -82,6 +82,32 @@ test('RC1349 review UI: carrier selection prevents PDF item parsing on request',
  }
 });
  
+test('RC1349 API review: no PDF processing for carrier or unspecified recipient type',async()=>{
+ const source=fs.readFileSync('api/reference-files/index.js','utf8');
+ const start=source.indexOf("if(lower(req.query&&req.query.action)==='delivery-items-review'){");
+ const end=source.indexOf('const itemId=',start);
+ assert.ok(start>=0&&end>start);
+ let runs=0;
+ const rights={canReadAny:()=>true,canEditAny:()=>true};
+ const deliveryItems={async processPending(){runs++;return [{id:'mock'}]}};
+ const json=(status,result)=>({status,body:result});
+ const fn=new Function('req','internal','rights','deliveryItems','ref','env','json','lower','error','context',
+  'return (async function(){'+source.slice(start,end)+'})();');
+ for(const recipientType of [undefined,'carrier','unknown']){
+  const context={},req={query:{action:'delivery-items-review',recipientType}};
+  await fn(req,{user:{}},rights,deliveryItems,'ABC123','testservice',json,v=>String(v||'').toLowerCase(),()=>Error('blocked'),context);
+  assert.equal(context.res.body.analysisSkipped,true);
+  assert.equal(context.res.body.documents.length,0);
+ }
+ assert.equal(runs,0,'carrier and unknown audiences may never parse a PDF');
+ const context={};
+ await fn({query:{action:'delivery-items-review',recipientType:'customer'}},{user:{}},rights,deliveryItems,'ABC123','testservice',json,v=>String(v||'').toLowerCase(),()=>Error('blocked'),context);
+ assert.equal(runs,1);
+ assert.equal(context.res.body.documents.length,1);
+ const ui=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ assert.match(ui,/&recipientType=customer/);
+});
+
 test('RC1349 HTML carrier link replaces path and removes hidden customer token parameters',()=>{
  const source=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
  const begin=source.indexOf('function replaceAvisToken('),end=source.indexOf('async function audienceBoundMailUrl(',begin);
