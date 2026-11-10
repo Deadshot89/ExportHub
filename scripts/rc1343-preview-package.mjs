@@ -102,11 +102,11 @@ once("async function processRequest(req){\n const method=req.method,query=req.qu
  " if(verifiedDeploymentEnvironment()!=='testservice')",
  "  fail('RC1343_ENVIRONMENT_DENIED','Preview is not running as TESTSERVICE.',503);",
  " const method=req.method,query=req.query||{},payload=method==='POST'?body(req):query;",
- " const action=txt(payload.action,32);",
- " if(!((method==='POST'&&['public-create','public-upload','public-submit'].includes(action))||",
+ " const previewAction=txt(payload.action,32);",
+ " if(!((method==='POST'&&['public-create','public-upload','public-submit'].includes(previewAction))||",
  "      (method==='GET'&&['public-get','public-file'].includes(action))))",
  "  fail('RC1343_TEST_ONLY','Only synthetic guest evidence tests are permitted.',403);",
- " if(action==='public-create'&&(txt(payload.fields&&payload.fields.customerMode,32)||",
+ " if(previewAction==='public-create'&&(txt(payload.fields&&payload.fields.customerMode,32)||",
  "   txt(payload.fields&&payload.fields.customerNumber,50)||txt(payload.fields&&payload.fields.exporthubRef,50)))",
  "  fail('RC1343_NO_CUSTOMER_MASTER','No customer master lookup or REF linking in isolated preview.',403);"
 ].join('\n'), 'test-only APIs');
