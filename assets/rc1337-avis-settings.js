@@ -63,7 +63,7 @@ function readForm(){
 }
 function persist(button,status){
  button.disabled=true;status.textContent='Wird gespeichert …';status.dataset.error='false';
- w.fetch('/api/avis-notice',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(readForm())})
+ w.fetch('/api/avis-notice',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json','X-ExportHUB-Avis-Settings':'1'},body:JSON.stringify(readForm())})
   .then(function(r){return r.json().then(function(data){if(!r.ok||!data.ok)throw new Error(data.message||'HTTP '+r.status);return data})})
   .then(function(data){render(data.config);var state=card.querySelector('.rc1337-state');state.dataset.error='false';state.textContent='Einstellungen gespeichert.'})
   .catch(function(e){button.disabled=false;status.dataset.error='true';status.textContent=e.message||'Speichern fehlgeschlagen.'});
