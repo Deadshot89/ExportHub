@@ -21,15 +21,15 @@ test('Open-work dashboard renders independently actionable counts; unavailable n
     'dashboard.overview.tile.openQuality':'Fehler & Verbesserungen',
     'dashboard.overview.tile.openModule':'Öffnen',
     'dashboard.overview.tile.unavailable':'Nicht verfügbar'
-  }[key]||key),esc:v=>String(v)};
-  vm.createContext(ctx);vm.runInContext(fn('openWorkMetric')+'\n'+fn('tileHtml'),ctx);
-  const html=ctx.tileHtml('openwork',[]);
+  }[key]||key),esc:v=>String(v),icon:()=>''};
+  vm.createContext(ctx);vm.runInContext(fn('openWorkTopKpi'),ctx);
+  const html=ctx.openWorkTopKpi();
   assert.match(html,/data-rc1558-open-module="urgentorders"/);
   assert.match(html,/data-rc1558-open-module="quality"/);
   assert.match(html,/aria-label="Urgent Orders: 8"/);
   assert.match(html,/aria-label="Fehler & Verbesserungen: 3"/);
   ctx.openWorkCounts.quality=null;
-  const unavailable=ctx.tileHtml('openwork',[]);
+  const unavailable=ctx.openWorkTopKpi();
   assert.match(unavailable,/Fehler & Verbesserungen: Nicht verfügbar/);
   assert.doesNotMatch(unavailable,/Fehler & Verbesserungen: 0/);
 });
@@ -75,7 +75,10 @@ test('QM counts stay server-side after read rights, omit case details, and exclu
 
 test('Open-work does not navigate to new windows or to external apps',()=>{
   assert.match(runtime,/ExportHUBEmbeddedModules\.open\(name\)/);
-  assert.doesNotMatch(fn('bindTiles'),/window\.open\(|w\.open\(/);
+  assert.doesNotMatch(fn('bind'),/window\.open\(|w\.open\(/);
+  assert.match(fn('bind'),/data-rc1558-open-module/);
+  assert.match(runtime,/kpis\+openWorkTopKpi\(\)/,'top KPI is part of the existing dashboard band');
+  assert.doesNotMatch(runtime,/if\(id==='openwork'\)/,'no duplicate lower card');
 });
 
 test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Zahlen noch Sperre überschreiben',async()=>{
@@ -83,7 +86,7 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
   const ctx={
     w:{fetch:()=>{},document:{hidden:false}},
     isDashboard:()=>true,
-    readTiles:()=>({on:{openwork:true}}),
+    readTiles:()=>({on:{openwork:false}}),
     boundedOpenWorkCount:()=>new Promise(resolve=>queued.push(resolve)),
     Promise,Date,
     refreshNow:()=>ctx.loadOpenWorkCounts()
