@@ -309,8 +309,32 @@ function rc1024ReplaceSystemSlot(body,block){
  for(var i=0;i<patterns.length;i++)if(patterns[i].test(source))return source.replace(patterns[i],block);
  return source+(source?'\n\n':'')+block
 }
+/* RC1337: insert the configured seasonal notice only in active Lieferavis mail bodies. */
+var rc1337MailNoticeCache=Object.create(null);
+function rc1337MailNoticeRequest(lang){
+ lang=rc1267NormalizeLanguage(lang);
+ var current=rc1337MailNoticeCache[lang],now=Date.now();
+ if(current&&(current.pending||current.expires>now))return;
+ if(typeof window.fetch!=='function')return;
+ rc1337MailNoticeCache[lang]={pending:true,text:''};
+ var env=/-testservice\./i.test(String(window.location&&window.location.hostname||''))?'testservice':'production';
+ window.fetch('/api/avis-notice?mail=1&lang='+encodeURIComponent(lang),{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-ExportHUB-Environment':env}})
+ .then(function(r){return r.json().then(function(x){if(!r.ok||!x.ok)throw new Error(x.message||'Avis-Hinweis nicht verfügbar');return q(x.mailText)})})
+ .then(function(value){rc1337MailNoticeCache[lang]={pending:false,text:value,expires:Date.now()+60000};rc1024ScheduleVisibleMail()})
+ .catch(function(){rc1337MailNoticeCache[lang]={pending:false,text:'',expires:Date.now()+10000}});
+}
+function rc1337AppendNotice(body,lang){
+ var source=String(body==null?'':body),l=rc1267NormalizeLanguage(lang),cached=rc1337MailNoticeCache[l];
+ if(!cached||cached.expires<Date.now())rc1337MailNoticeRequest(l);
+ var extra=cached&&cached.expires>Date.now()?q(cached.text):'';
+ if(!extra||source.includes(extra))return source;
+ var endings={de:/\n(?:Mit freundlichen Grüßen|Viele Grüße|Gruß)[^\n]*(?:\n[^\n]*)?$/i,en:/\n(?:Kind regards|Best regards)[^\n]*(?:\n[^\n]*)?$/i,pl:/\nZ poważaniem[^\n]*(?:\n[^\n]*)?$/i,es:/\nAtentamente[^\n]*(?:\n[^\n]*)?$/i,fr:/\nCordialement[^\n]*(?:\n[^\n]*)?$/i,it:/\nCordiali saluti[^\n]*(?:\n[^\n]*)?$/i};
+ var match=source.match(endings[l]);
+ return match?source.slice(0,match.index).trimEnd()+'\n\n'+extra+'\n\n'+source.slice(match.index).trimStart():source+'\n\n'+extra;
+}
+
 function rc1015AvisMailVariant(clean,u,reference,lang,target){
- return rc1024ReplaceSystemSlot(clean,rc1024AvisBlock(u,reference,lang,target||'customer'))
+ return rc1337AppendNotice(rc1024ReplaceSystemSlot(clean,rc1024AvisBlock(u,reference,lang,target||'customer')),lang)
 }
 function rc1024MailKey(sh,target,lang){return (shipmentReference(sh)||'draft')+'|'+q(target).toLowerCase()+'|'+rc1267NormalizeLanguage(lang)}
 function rc1024IsOurAvis(text){return /(?:^|\n)(?:LIEFERAVIS|COLLECTION NOTICE)(?:\s*[–-]\s*(?:ABHOLUNG|PICKUP))?\n/i.test(String(text||''))}
