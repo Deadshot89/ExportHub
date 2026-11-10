@@ -54,8 +54,8 @@ test('Dokument-Upload: Fehlermeldungen in allen sechs API-Sprachen',()=>{
 
 test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8'),asset=fs.readFileSync('assets/shipment-document-upload.js','utf8');
-  assert.match(build,/assets\/i18n\/shipment-document-upload\\.js\\?v=2/);
-  assert.match(build,/assets\/shipment-document-upload\\.js\\?v=2/);
+  assert.match(build,/assets\/i18n\/shipment-document-upload\.js\?v=2/);
+  assert.match(build,/assets\/shipment-document-upload\.js\?v=2/);
   assert.match(build,/'assets\/shipment-document-upload\.js',/);
   assert.match(fs.readFileSync('staticwebapp.config.json','utf8'),/"route": "\/assets\/shipment-document-upload\.js"/);
   assert.match(asset,/#rc786ReferenceFilesCard \.rc786-doc-head-actions/);
