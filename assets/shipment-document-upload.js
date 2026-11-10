@@ -109,7 +109,7 @@ async function uploadAll(){
       var original=q(files[i].name).replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').trim();
       var unexpected=info.name&&info.name.slice(-original.length-1)!=='_'+original;
       log[i]={state:unexpected?'error':'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})+
-        (info.name?' → '+info.name:'')+(unexpected?' · WARNUNG: Server-Dateiname weicht von der Auswahl ab.':'')};
+        (info.name?' → '+info.name:'')+(unexpected?' · '+t('changedName'):'')};
     }
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
@@ -131,7 +131,7 @@ function syncFileActions(){
     if(!d||!actions||d.source!=='referenceFolder'||!q(d.itemId))return;
     if(actions.getAttribute('data-docup-managed')===q(d.itemId))return;
     actions.textContent='';actions.setAttribute('data-docup-managed',q(d.itemId));
-    [['open','Öffnen'],['download','Herunterladen']].concat(/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId))?[['delete','Löschen']]:[]).forEach(function(action){
+    [['open',t('open')],['download',t('download')]].concat(/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId))?[['delete',t('remove')]]:[]).forEach(function(action){
       var b=el('button',{type:'button',class:'ghost eh-docup-file-action','data-docup-file-action':action[0],'data-docup-index':String(i),'data-docup-id':q(d.itemId)},action[1]);
       actions.appendChild(b);
     });
@@ -143,7 +143,7 @@ function syncFileActions(){
 function fileContext(btn){
   var index=Number(btn.getAttribute('data-docup-index')),docs=documentRows(),d=docs[index],sh=currentShipment(),ref=refOf(sh);
   if(!d||!ref||d.source!=='referenceFolder'||q(d.reference)!==ref||q(d.itemId)!==q(btn.getAttribute('data-docup-id')))
-    throw new Error('Die Dateiliste hat sich geändert. Bitte die Sendung erneut öffnen.');
+    throw new Error(t('listChanged'));
   return {document:d,reference:ref};
 }
 async function fetchStoredFile(ref,d){
@@ -151,7 +151,7 @@ async function fetchStoredFile(ref,d){
   var res=await fetch(url,{method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'});
   if(!res.ok){var result={};try{result=await res.json()}catch(_){}throw new Error(q(result.message)||('HTTP '+res.status))}
   var blob=await res.blob();
-  if(!blob.size)throw new Error('Die gespeicherte Datei ist leer.');
+  if(!blob.size)throw new Error(t('fileEmpty'));
   return blob;
 }
 function downloadBlob(blob,name){
@@ -162,9 +162,9 @@ function downloadBlob(blob,name){
 function previewBlob(blob,name){
   var existing=document.getElementById('eh-docup-preview');if(existing&&existing.closePreview)existing.closePreview();
   var url=URL.createObjectURL(blob),mime=q(blob.type).toLowerCase(),ext=extOf(name);
-  var overlay=el('div',{id:'eh-docup-preview',class:'eh-docup-preview',role:'dialog','aria-modal':'true','aria-label':'Dateivorschau'});
+  var overlay=el('div',{id:'eh-docup-preview',class:'eh-docup-preview',role:'dialog','aria-modal':'true','aria-label':t('previewTitle')});
   var panel=el('div',{class:'eh-docup-preview-panel'}),head=el('div',{class:'eh-docup-preview-head'});
-  var title=el('strong',{},name),download=el('button',{type:'button',class:'ghost'},'Herunterladen'),close=el('button',{type:'button',class:'ghost'},'Schließen');
+  var title=el('strong',{},name),download=el('button',{type:'button',class:'ghost'},t('download')),close=el('button',{type:'button',class:'ghost'},t('close'));
   overlay.closePreview=function(){overlay.remove();URL.revokeObjectURL(url)};
   download.addEventListener('click',function(){downloadBlob(blob,name)});
   close.addEventListener('click',overlay.closePreview);
@@ -173,15 +173,15 @@ function previewBlob(blob,name){
   var content;
   if(mime==='application/pdf'||ext==='.pdf')content=el('iframe',{src:url,title:name,class:'eh-docup-preview-media'});
   else if(mime.indexOf('image/')===0||['.jpg','.jpeg','.png'].indexOf(ext)>=0)content=el('img',{src:url,alt:name,class:'eh-docup-preview-media'});
-  else content=el('p',{class:'eh-docup-no-preview'},'Für diesen Dateityp ist keine direkte Vorschau verfügbar. Du kannst die Originaldatei herunterladen.');
+  else content=el('p',{class:'eh-docup-no-preview'},t('noPreview'));
   panel.appendChild(content);overlay.appendChild(panel);document.body.appendChild(overlay);close.focus();
 }
 async function actOnFile(btn){
   if(btn.disabled)return;
   var action=btn.getAttribute('data-docup-file-action'),ctx=fileContext(btn),d=ctx.document;
   if(action==='delete'){
-    if(!/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId)))throw new Error('Geschützte Originale dürfen hier nicht gelöscht werden.');
-    if(!window.confirm('Dokument "'+d.name+'" aus dieser Sendung entfernen?\n\nEs verschwindet aus der Sendungsansicht und dem Kundenavis. Original- und Archivkopien bleiben für die Nachvollziehbarkeit geschützt.'))return;
+    if(!/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId)))throw new Error(t('protectedOriginal'));
+    if(!window.confirm(t('removeConfirm',{name:d.name})))return;
     btn.disabled=true;
     try{
       var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'delete-document',reference:ctx.reference,itemId:d.itemId})}),result={};
@@ -189,7 +189,7 @@ async function actOnFile(btn){
       if(!res.ok||result.ok===false)throw new Error(q(result.message)||('HTTP '+res.status));
       var view=window.ExportHUBShipmentView;
       if(view&&typeof view.refreshReferenceFiles==='function')await view.refreshReferenceFiles();
-      window.alert('Das Dokument wurde aus der Sendung entfernt. Archivkopien bleiben geschützt.');
+      window.alert(t('removed'));
     }finally{btn.disabled=false}
     return;
   }
@@ -204,7 +204,7 @@ document.addEventListener('click',function(e){
   var b=e.target&&e.target.closest&&e.target.closest('[data-docup-file-action]');
   if(!b)return;
   e.preventDefault();e.stopPropagation();
-  actOnFile(b).catch(function(error){window.alert('Datei-Aktion fehlgeschlagen:\n'+q(error&&error.message||error))});
+  actOnFile(b).catch(function(error){window.alert(t('actionError',{message:q(error&&error.message||error)}))});
 },true);
 
 document.addEventListener('click',function(e){
