@@ -309,6 +309,17 @@ function rc1024ReplaceSystemSlot(body,block){
  for(var i=0;i<patterns.length;i++)if(patterns[i].test(source))return source.replace(patterns[i],block);
  return source+(source?'\n\n':'')+block
 }
+function rc1349CarrierUrl(sh){
+ const api=window.ExportHUBRC1027Lieferavis;
+ if(!api||typeof api.carrierAvisUrl!=='function'||typeof api.carrierAvisCached!=='function')return'';
+ const cached=q(api.carrierAvisCached(sh));
+ if(cached)return cached;
+ // A customer URL may NEVER appear in a carrier email while the dedicated URL is pending.
+ Promise.resolve(api.carrierAvisUrl(sh)).then(function(){rc1024ScheduleVisibleMail()}).catch(function(e){
+  try{console.warn('RC1349 Speditionsavis nicht bereit',e&&e.code)}catch(_){}
+ });
+ return'';
+}
 function rc1015AvisMailVariant(clean,u,reference,lang,target){
  return rc1024ReplaceSystemSlot(clean,rc1024AvisBlock(u,reference,lang,target||'customer'))
 }
@@ -321,7 +332,8 @@ function rc1015InjectMailBody(sh,target,body,langOverride){
  if(rc1291AvisMailExcluded(sh)||rc1292AvisRecipientExcluded(sh,type))return stripAvisBlocks(source);
  var key=rc1024MailKey(sh,type,lang);if(!rc1024IsOurAvis(source))mailSourceCache.set(key,source);
  if(!rc1018Enabled(sh))return source;
- var u=q(base&&base.link&&base.link(sh));if(!u)return source;
+ var u=type==='carrier'?rc1349CarrierUrl(sh):q(base&&base.link&&base.link(sh));
+ if(!u)return stripAvisBlocks(source);
  return rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type)
 }
 function rc1024SyncVisibleMail(){
@@ -333,7 +345,7 @@ function rc1024SyncVisibleMail(){
  var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),key=rc1024MailKey(sh,type,lang),current=String(bodyEl.value==null?'':bodyEl.value),source=mailSourceCache.get(key)||'';
  if(!source&&!rc1024IsOurAvis(current)){source=current;mailSourceCache.set(key,current)}
  if(!source)return false;
- var next=source,u=q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh)&&!rc1292AvisRecipientExcluded(sh,type))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
+ var next=stripAvisBlocks(source),u=type==='carrier'?rc1349CarrierUrl(sh):q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh)&&!rc1292AvisRecipientExcluded(sh,type))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
  if(next===current)return false;
  visibleMailSyncing=true;try{bodyEl.value=next;try{bodyEl.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{bodyEl.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleMailSyncing=false}
  return true
