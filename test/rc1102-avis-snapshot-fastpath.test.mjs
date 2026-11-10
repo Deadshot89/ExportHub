@@ -14,4 +14,9 @@ test('RC1102: sicherer Avis-Snapshot wird vor einem Team-State-Read ausgewertet'
   assert.ok(snapshot>=0,'Snapshot-Fast-Path fehlt');
   assert.ok(teamRead>=0,'Team-State-Fallback fehlt');
   assert.ok(snapshot<teamRead,'Der sichere Snapshot muss vor dem großen Team-State-Fallback geprüft werden.');
+  assert.match(block,/fastSnapshotIssue=action==='issue'&&!!draftSnapshot/,'Kunden-Draft-Issue muss den schnellen, geprüften Snapshot ohne Team-Read verwenden');
+  assert.match(block,/d=fastSnapshotIssue\?\{value:\{state:\{\}\},etag:null\}/,'Der sichere Snapshot muss den Team-Read wirklich vermeiden');
+  assert.match(block,/fastSnapshotIssue\?0:elapsed\(readStarted\)/,'Ohne Team-Read darf keine fiktive Lesezeit gemeldet werden');
+  assert.doesNotMatch(block,/fastSnapshotIssue=\(action==='issue'\|\|action==='issue-carrier'\)/,'Speditionslinks brauchen die autoritative Prüfung');
+
 });
