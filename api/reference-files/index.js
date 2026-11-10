@@ -228,9 +228,16 @@ module.exports=async function(context,req){
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
-  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
-   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
+  // Azure is the authoritative read-back copy for REF documents uploaded by this
+  // application. A SharePoint listing may show the same name while its download
+  // is temporarily unavailable; don't hide a verified, readable Azure copy.
+  for(const file of docs){
+   const azureDoc={id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,
+     createdDateTime:file.createdDateTime,lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'};
+   const index=files.findIndex(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase());
+   if(index<0)files.push(azureDoc);
+   else files[index]=azureDoc;
+  }
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
     folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
   const item=files.find(f=>f.id===itemId);
