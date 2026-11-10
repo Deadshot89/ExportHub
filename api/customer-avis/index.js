@@ -390,10 +390,13 @@ module.exports=async function(context,req){
   }
   if(req.method==='POST'&&(action==='issue'||action==='issue-carrier'||action==='disable')){
    const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
+   // Validate the minimal draft before any team-blob read or write.
+   const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);
+   const draftSnapshot=payload.shipmentSnapshot?sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference):null;
    const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),canReuseAuthTeam=env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=canReuseAuthTeam?internal.teamDoc:await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
    const timing={authMs,teamBlobMs,teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
-   const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);let target=findShipment(state,subjectId,reference),draftOnly=false;
-   if(!target&&payload.shipmentSnapshot){target=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference);draftOnly=true}
+   let target=findShipment(state,subjectId,reference),draftOnly=false;
+   if(!target&&draftSnapshot){target=draftSnapshot;draftOnly=true}
    if(!target)throw error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
    const actualSubject=sid(target)||subjectId,actualRef=sref(target),snapshot=sanitizeDraftSnapshot(target,actualSubject,actualRef);
    if(action==='disable'){await access.revokeSubject(req,'avis',actualSubject,'disabled',internal.user.name||internal.user.user||'ExportHUB',payload);if(!draftOnly){const flagStarted=Date.now();await setAvisFlags(blob,actualSubject,actualRef,false,internal.user.name||internal.user.user,d);timing.flagWriteMs=elapsed(flagStarted)}timing.totalMs=elapsed(requestStarted);context.res=json(200,{ok:true,disabled:true,shipmentId:actualSubject,reference:actualRef,timing,version:'RC1129'},timingHeaders(timing));return}
