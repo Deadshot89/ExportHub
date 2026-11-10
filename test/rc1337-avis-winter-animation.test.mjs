@@ -114,6 +114,26 @@ test('RC1337: changed runtime, server and embedded scripts parse',()=>{
 });
 
 
+test('RC1337: closure row switches reject stale snapshots and serialize local saves',()=>{
+ const start=admin.indexOf('function sameClosureRow(rows,index,expected){');
+ const end=admin.indexOf('function installClosureSettings(',start);
+ assert.ok(start>0&&end>start);
+ const sandbox={module:{exports:{}}};
+ vm.runInNewContext(admin.slice(start,end)+'\nmodule.exports=sameClosureRow;',sandbox);
+ const same=sandbox.module.exports;
+ const old={...base,enabled:true,animateSnow:false,mailEnabled:true,portalEnabled:true};
+ assert.equal(same([{...old}],0,old),true);
+ assert.equal(same([{...old,mailEnabled:false}],0,old),false);
+ assert.equal(same([{...old,portalEnabled:false}],0,old),false);
+ assert.equal(same([{...old,animateSnow:true}],0,old),false);
+ assert.equal(same([{...old,startDate:'2027-12-21'}],0,old),false);
+ assert.equal(same([],0,old),false);
+ const section=admin.slice(admin.indexOf('function installClosureSettings('),admin.indexOf('function installSettings()'));
+ assert.ok((section.match(/if\(mutationBusy\)return;/g)||[]).length>=5);
+ assert.ok((section.match(/finally\{mutationBusy=false\}/g)||[]).length>=4);
+ assert.match(section,/sameClosureRow\(entries,index,item\)/);
+ assert.ok((section.match(/sameClosureRow\(rows,index,item\)/g)||[]).length>=3);
+});
 test('RC1328: global admin can suspend and resume a closure without removing its dates',()=>{
  const now=new Date('2026-12-14T12:00:00Z');
  const active={...base,enabled:true};

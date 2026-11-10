@@ -255,6 +255,14 @@ async function persistClosureEntries(next){
   return true
  }catch(e){if(previous===undefined)delete s.settings.closureNotices;else s.settings.closureNotices=previous;throw e}
 }
+function sameClosureRow(rows,index,expected){
+ var current=Array.isArray(rows)&&rows[index];
+ if(!current||!expected)return false;
+ return ['startDate','endDate','lastPickupDate','lastPickupTime','reopenDate','leadDays','enabled','mailEnabled','portalEnabled','animateSnow'].every(function(k){
+  return current[k]===expected[k]
+ })
+}
+
 function installClosureSettings(host){
  if(!w.document||!globalAdmin()||!settingsVisible())return false;
  if(w.document.getElementById('rc1328ClosureSettings'))return true;
@@ -269,7 +277,7 @@ function installClosureSettings(host){
  var box=w.document.createElement('section');box.id='rc1328ClosureSettings';box.className='card rc1328-closure';
  box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1337-delivery-channels"><label><input type="checkbox" name="mailEnabled" checked>' +tr('closureMail.mailVisible')+'</label><label><input type="checkbox" name="portalEnabled" checked>' +tr('closureMail.portalVisible')+'</label></div><label class="rc1337-snow-setting"><input type="checkbox" name="animateSnow">' +tr('closureMail.snowAnimation')+'</label><div class="rc1328-actions"><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
  host.appendChild(box);
- var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]');
+ var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]'),mutationBusy=false;
  function show(message,kind){status.textContent=message||'';status.setAttribute('data-kind',kind||'info')}
  function display(){
   list.textContent='';
@@ -280,12 +288,14 @@ function installClosureSettings(host){
    text.textContent=[item.startDate+' – '+item.endDate,tr('closureMail.lastPickup')+': '+item.lastPickupDate+' '+item.lastPickupTime,tr('closureMail.reopens')+': '+item.reopenDate,tr('closureMail.advance')+': '+item.leadDays+ ' '+tr('closureMail.days'),item.enabled?tr('closureMail.on'):tr('closureMail.off'),item.animateSnow===true?tr('closureMail.snowOn'):tr('closureMail.snowOff')].join(' · ');
    remove.type='button';remove.className='btn flat small';remove.textContent=tr('closureMail.remove');remove.setAttribute('aria-label',tr('closureMail.removeAria')+' '+(index+1));
    remove.addEventListener('click',async function(){
+    if(mutationBusy)return;
     // Removing a closure also reopens booking. Never do that from a single
     // accidental click, even when the admin has permission to edit settings.
     if(!w.confirm||!w.confirm(tr('closureMail.removeConfirm')))return;
-    remove.disabled=true;show(tr('closureMail.saving'));
+    mutationBusy=true;remove.disabled=true;show(tr('closureMail.saving'));
     try{
      var entries=closureEntries(),current=entries[index];
+     if(!sameClosureRow(entries,index,item))throw new Error(tr('closureMail.invalid'));
      if(!current||current.startDate!==item.startDate||current.endDate!==item.endDate||
         current.lastPickupDate!==item.lastPickupDate||current.lastPickupTime!==item.lastPickupTime||
         current.reopenDate!==item.reopenDate||current.enabled!==item.enabled)
@@ -293,6 +303,7 @@ function installClosureSettings(host){
      entries.splice(index,1);
      await persistClosureEntries(entries);display();show(tr('closureMail.removed'),'ok')
     }catch(e){show(tr('closureMail.removeFailed')+': '+q(e&&e.message),'error');remove.disabled=false}
+    finally{mutationBusy=false}
    });
    var snowToggle=w.document.createElement('button');
    snowToggle.type='button';snowToggle.className='btn flat small rc1337-snow-toggle';
@@ -300,13 +311,15 @@ function installClosureSettings(host){
    snowToggle.setAttribute('aria-pressed',item.animateSnow===true?'true':'false');
    snowToggle.setAttribute('data-rc1337-snow-toggle','1');
    snowToggle.addEventListener('click',async function(){
-    snowToggle.disabled=true;show(tr('closureMail.saving'));
+    if(mutationBusy)return;
+    mutationBusy=true;snowToggle.disabled=true;show(tr('closureMail.saving'));
     try{
      var rows=closureEntries();
-     if(!rows[index])throw new Error(tr('closureMail.invalid'));
+     if(!sameClosureRow(rows,index,item))throw new Error(tr('closureMail.invalid'));
      rows[index].animateSnow=rows[index].animateSnow!==true;
      await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
     }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');snowToggle.disabled=false}
+    finally{mutationBusy=false}
    });
    function channelToggle(prop,showKey,hideKey){
     var button=w.document.createElement('button'),enabled=item[prop]!==false;
@@ -315,13 +328,15 @@ function installClosureSettings(host){
     button.setAttribute('aria-pressed',enabled?'true':'false');
     button.setAttribute('aria-label',button.textContent+' · '+item.startDate);
     button.addEventListener('click',async function(){
-     button.disabled=true;show(tr('closureMail.saving'));
+     if(mutationBusy)return;
+     mutationBusy=true;button.disabled=true;show(tr('closureMail.saving'));
      try{
       var rows=closureEntries();
-      if(!rows[index])throw new Error(tr('closureMail.invalid'));
+      if(!sameClosureRow(rows,index,item))throw new Error(tr('closureMail.invalid'));
       rows[index][prop]=rows[index][prop]===false;
       await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
      }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');button.disabled=false}
+     finally{mutationBusy=false}
     });
     return button
    }
@@ -331,11 +346,13 @@ function installClosureSettings(host){
    activeToggle.setAttribute('aria-pressed',item.enabled===true?'true':'false');
    activeToggle.setAttribute('aria-label',activeToggle.textContent+' · '+item.startDate);
    activeToggle.addEventListener('click',async function(){
+    if(mutationBusy)return;
     // Disabling reopens customer pickup booking; require explicit confirmation.
     if(item.enabled===true&&(!w.confirm||!w.confirm(tr('closureMail.disableConfirm'))))return;
-    activeToggle.disabled=true;show(tr('closureMail.saving'));
+    mutationBusy=true;activeToggle.disabled=true;show(tr('closureMail.saving'));
     try{
      var rows=closureEntries(),current=rows[index];
+     if(!sameClosureRow(rows,index,item))throw new Error(tr('closureMail.invalid'));
      if(!current||current.startDate!==item.startDate||current.endDate!==item.endDate||
         current.lastPickupDate!==item.lastPickupDate||current.lastPickupTime!==item.lastPickupTime||
         current.reopenDate!==item.reopenDate||current.enabled!==item.enabled)
@@ -343,6 +360,7 @@ function installClosureSettings(host){
      current.enabled=current.enabled!==true;
      await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
     }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');activeToggle.disabled=false}
+    finally{mutationBusy=false}
    });
    li.appendChild(text);
    li.appendChild(activeToggle);
@@ -353,6 +371,7 @@ function installClosureSettings(host){
  }
  form.addEventListener('submit',async function(ev){
   ev.preventDefault();
+  if(mutationBusy)return;
   var field=function(k){return q(form.elements.namedItem(k)&&form.elements.namedItem(k).value)};
   var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays')),animateSnow:!!(form.elements.namedItem('animateSnow')&&form.elements.namedItem('animateSnow').checked),mailEnabled:!!(form.elements.namedItem('mailEnabled')&&form.elements.namedItem('mailEnabled').checked),portalEnabled:!!(form.elements.namedItem('portalEnabled')&&form.elements.namedItem('portalEnabled').checked)};
   if(!entry.startDate||!entry.endDate||!entry.lastPickupDate||!entry.reopenDate||
@@ -360,12 +379,12 @@ function installClosureSettings(host){
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.lastPickupTime)||!Number.isInteger(entry.leadDays)||entry.leadDays<0||entry.leadDays>90){
    show(tr('closureMail.invalid'),'error');return
   }
-  var button=form.querySelector('[type="submit"]');button.disabled=true;show(tr('closureMail.saving'));
+  var button=form.querySelector('[type="submit"]');mutationBusy=true;button.disabled=true;show(tr('closureMail.saving'));
   try{
    var entries=closureEntries();entries.push(entry);await persistClosureEntries(entries);
    form.reset();display();show(tr('closureMail.saved'),'ok')
   }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error')}
-  finally{button.disabled=false}
+  finally{button.disabled=false;mutationBusy=false}
  });
  display();return true
 }
