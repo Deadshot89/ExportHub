@@ -39,10 +39,57 @@ function parseQuantityCell(cell,defaultUnit){
  const amount=qty(m[1]),u=unit(m[2]||defaultUnit);
  return amount&&u?{deliveredQuantity:amount,quantityUnit:u}:null;
 }
+// DNC / D365 SalesPackingSlip: Customer Part ist NICHT Essentra Part.
+// Qty Shipped ist die gelieferte Menge, niemals Qty Ordered.
+// Nur klar spaltenorientierte Textzeilen; bei verlorener PDF-Spaltenordnung
+// kein Raten und automatische Freigabe bleibt ohnehin gesperrt.
+function dncCustomerOrder(lines){
+ const input=lines.join('\n');
+ const direct=input.match(/(?:^|\n)\s*Customer Order Number[ \t]{2,}([A-Z0-9][A-Z0-9._/-]{3,39})(?:[ \t]|$)/i);
+ if(direct&&cleanToken(direct[1],40))return direct[1];
+ // Manche PDF-Textextraktoren geben alle Feldnamen, dann die Werte aus.
+ // Diese Zuordnung ist nur bei der belegbaren DNC -> SO -> Kunden-PO-Folge gültig.
+ if(!/(?:^|\n)\s*Delivery Note number\s*\n\s*Essentra Order Number\s*\n\s*Customer Order Number\s*\n/i.test(input))return'';
+ const ordered=input.match(/(?:^|\n)\s*DNC[0-9]{8,}\s*\n\s*SO[0-9]{8,}\s*\n\s*([0-9]{6,20})\s*(?:\n|$)/i);
+ return ordered?cleanToken(ordered[1],40):'';
+}
+function parseDncDeliveryText(lines){
+ const head=lines.join('\n');
+ if(!/\bDelivery Note\b/i.test(head)||!/\bCustomer Part\b/i.test(head)||
+    !/\bEssentra Part\b/i.test(head)||!/\bQty Shipped\b/i.test(head)||
+    !/\bQty Ordered\b/i.test(head)||!/\bUnit of Measure\b/i.test(head))return null;
+ const order=dncCustomerOrder(lines);
+ if(!order)return{rows:[],issues:['Customer Order Number im DNC nicht eindeutig lesbar.']};
+ const rows=[],issues=[];
+ // Bei dieser DNC-Version folgen jeweils Customer Part, Essentra Part,
+ // Beschreibung, UoM, Qty Ordered und als LETZTE Spalte Qty Shipped.
+ // Die Spaltentrennung benötigt keine feste Anzahl Leerzeichen.
+ const itemRow=/^([A-Z0-9][A-Z0-9._/-]{3,59})[ \t]+([A-Z0-9][A-Z0-9._/-]{3,59})[ \t]+(.+?)[ \t]+(EA|PC|PCS|STK\.?|Stk\.?|kg|g|mm|m|l|L)[ \t]+([0-9][0-9., ]{0,19})[ \t]+([0-9][0-9., ]{0,19})$/i;
+ let withinTable=false;
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i];
+  if(/\bQty Shipped\b/i.test(line))withinTable=true;
+  if(!withinTable)continue;
+  if(/^\s*(?:ContainerID|Essentra Components Terms and Conditions|Certification for Essentra|Page\s+\d+)/i.test(line))break;
+  const match=line.match(itemRow);
+  if(!match)continue;
+  const customerItemNumber=cleanToken(match[1],60),ordered=parseQuantityCell(match[5],match[4]),
+   shipped=parseQuantityCell(match[6],match[4]);
+  if(!customerItemNumber||!ordered||!shipped){
+   issues.push('DNC Zeile '+(i+1)+': Mengen/Artikel nicht eindeutig.');continue;
+  }
+  rows.push({customerOrderNumber:order,customerItemNumber,
+   deliveredQuantity:shipped.deliveredQuantity,quantityUnit:shipped.quantityUnit,sourceLine:i+1});
+ }
+ if(!rows.length)issues.push('DNC-Artikelzeile nicht spaltentreu lesbar: manuelle Belegprüfung erforderlich.');
+ return{rows,issues};
+}
 function parseDeliveryText(source){
  const input=txt(source).slice(0,250000),lines=input.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,5000);
  const orders=[...new Set(lines.map(s=>(s.match(PO)||[])[1]).filter(Boolean))],onlyOrder=orders.length===1?orders[0]:'';
  const found=[],issues=[];let header=null;
+ const dnc=parseDncDeliveryText(lines);
+ if(dnc){found.push(...dnc.rows);issues.push(...dnc.issues)}
  for(let i=0;i<lines.length;i++){
   const line=lines[i],p=line.match(PO),article=line.match(ITEM),amount=line.match(QUANTITY);
   // Explizit beschriftete Positionszeile, niemals interne Artikelnummer oder bestellte Menge übernehmen.
