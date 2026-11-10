@@ -22,7 +22,7 @@ function setup({hostname='www.exporthub360.de',launchFails=false,clock=''}={}){
  // A carrier receives a dedicated, audience-scoped link; never the customer's token.
  sandbox.ExportHUBRC1027Lieferavis={async carrierAvisUrl(current){
   if(hostname.includes('-testservice.'))return 'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=carrier-audience-token&environment=testservice';
-  if(/\\bessentra\\b/i.test(current.customerName||''))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=carrier-audience-token';
+  if(/\bessentra\b/i.test(current.customerName||''))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=carrier-audience-token';
   return 'https://www.exporthub360.de/avis/carrier-audience-token';
  }};
  for(const file of ['assets/rc1065-registration-cc.js','assets/rc1071-shipment-history.js','assets/rc1166-avis-reminder-overview.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox);
