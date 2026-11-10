@@ -297,6 +297,25 @@ function importAnalysis(source){
  var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
  return true
 }
+/* RC1962: local D365 importer updates item rows ONLY; no document header. */
+function importPositionsOnly(positions){
+ if(!Array.isArray(positions)||positions.length<1||positions.length>500||
+    positions.some(function(p){return !p||typeof p!=='object'||!(number(p.quantity)>0)})){setStatus(t('uploadEmpty'),'bad');return false}
+ var edited=rows.some(function(r){return !!(q(r.itemNumber)||q(r.description)||q(r.quantity)||q(r.unitPrice)||q(r.value)||q(r.netMassKg)||q(r.grossMassKg)||q(r.commodityCode)||q(r.originCountry))});
+ if(edited&&typeof root.confirm==='function'&&!root.confirm('Bereits erfasste Artikelpositionen ersetzen?'))return false;
+ var workspace=root.ExportHUBDocuments1940,existing=root.document&&root.document.getElementById('rc1940Documents');
+ if(!existing&&(!workspace||typeof workspace.open!=='function'||!workspace.open('invoice'))){setStatus(t('error'),'bad');return false}
+ if(existing){var tab=existing.querySelector('[data-rc1790-tab="invoice"]');if(tab)tab.click()}
+ rows=positions.map(function(p){
+  var item=emptyRow();
+  ['itemNumber','description','quantity','unit','unitPrice','value','netMassKg','grossMassKg','volumeM3','commodityCode','originCountry'].forEach(function(key){if(p[key]!=null)item[key]=String(p[key])});
+  item.manualValue=p.value!=null;return item
+ });
+ // Keep headerDraft unmodified: all invoice, sender, recipient and shipping fields are entered manually.
+ mountManual();fillHeader();renderRows();invalidate();setStatus(t('importSuccess'),'ok');
+ var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
+ return true
+}
 function importUploaded(index){
  var api=root.ExportHUBRC1294ABDAnalysis,source=api&&typeof api.snapshot==='function'?api.snapshot(index):null;
  return importAnalysis(source)
@@ -488,7 +507,7 @@ function enhance(){
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
-root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},importAnalysis:importAnalysis,createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
+root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},importAnalysis:importAnalysis,importPositionsOnly:importPositionsOnly,createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,activate)});
 })(typeof window!=='undefined'?window:globalThis);

@@ -84,7 +84,7 @@
     var use=e.target&&e.target.closest('[data-rc1940-use]');if(use){e.preventDefault();applyScanResult(Number(use.getAttribute('data-rc1940-use')))}
    })
   }
-  refreshUpload();return true
+  refreshUpload();var local=w.ExportHUBRC1962D365LocalImport;if(local&&typeof local.mount==='function')local.mount(lastMode);return true
  }
  function applyScanResult(index){
   var result=scanResults[index];if(!result)return false;
@@ -215,7 +215,7 @@
    var target=e.target&&e.target.closest&&e.target.closest('[data-exporthub-documents-nav]');
    if(target){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();open();return}
    var tab=e.target&&e.target.closest&&e.target.closest('#rc1940Documents [data-rc1790-tab]');
-   if(tab){lastMode=tab.getAttribute('data-rc1790-tab');refreshUpload()}
+   if(tab){lastMode=tab.getAttribute('data-rc1790-tab');refreshUpload();var local=w.ExportHUBRC1962D365LocalImport;if(local&&typeof local.mount==='function')local.mount(lastMode)}
   },true);
   if(w.MutationObserver){var n=nav();if(n){observer=new w.MutationObserver(schedule);observer.observe(n,{childList:true,subtree:false,attributes:false})}}
   ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){w.addEventListener(name,schedule)});
