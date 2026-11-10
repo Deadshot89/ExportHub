@@ -71,6 +71,17 @@ test('RC1349: reales DNC-Spaltenlayout (anonymisierte Werte): Qty Shipped statt 
  assert.notEqual(result.rows[0].deliveredQuantity,'50.000,00');
 });
 
+test('RC1349: pdf-parse Tabspalten beim DNC sind gültig, mehrere Kunden-POs dagegen gesperrt',()=>{
+ const common=['Delivery Note','Customer Part    Essentra Part   Unit of Measure    Qty Ordered    Qty Shipped'];
+ const rows=['9000000059\t10013106\tLCKNG SUPP NAT STNDFF\tEA\t50.000,00\t30.000,00'];
+ const one=items.parseDeliveryText(['Customer Order Number\t5530000099',...common,...rows].join('\n'));
+ assert.deepEqual(one.rows.map(x=>[x.customerOrderNumber,x.customerItemNumber,x.deliveredQuantity]),
+  [['5530000099','9000000059','30.000,00']]);
+ const ambiguity=items.parseDeliveryText(['Customer Order Number\t5530000099',
+ 'Customer Order Number\t5530000100',...common,...rows].join('\n'));
+ assert.equal(ambiguity.rows.length,0);
+});
+
 test('RC1349: DNC darf Spaltenverlust im PDF-Text nicht erraten',()=>{
  const unsorted=[
  'Delivery Note',
