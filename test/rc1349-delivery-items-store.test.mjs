@@ -73,6 +73,24 @@ test('RC1349 metadata: bei ausstehendem Defender-Scan darf keine PDF-Textextrakt
  /nicht als schadsoftwarefrei/);
 });
 
+test('RC1349 metadata: nach behobener Scanner-Störung wird nur mit neuem clean-Tag verarbeitet',async()=>{
+ const h=harness(),source=h.add({id:'f'.repeat(32),scan:'error'});
+ await h.store.register('ABC123','testservice',source.file,source.hash);
+ let docs=await h.store.processPending('ABC123','testservice');
+ assert.equal(docs[0].status,'blocked');
+ assert.equal(h.extractions,0);
+ h.scanStatuses.set(source.file.id,'pending');
+ docs=await h.store.processPending('ABC123','testservice');
+ assert.equal(docs[0].status,'blocked');
+ assert.equal(h.extractions,0);
+ h.scanStatuses.set(source.file.id,'clean');
+ docs=await h.store.processPending('ABC123','testservice');
+ assert.equal(docs[0].status,'review_required');
+ assert.equal(docs[0].scanStatus,'clean');
+ assert.equal(h.extractions,1);
+ assert.equal((await h.store.publicRows('ABC123','testservice')).length,0); // bleibt bis zur Freigabe gesperrt
+});
+
 test('RC1349 metadata: Freigabe ist sendungs- und umgebungsspezifisch',async()=>{
  const h=harness(),source=h.add();
  await h.store.register('ABC123','testservice',source.file,source.hash);
