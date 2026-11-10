@@ -11,8 +11,9 @@ module.exports=async function(context,req){
    if(admin){const current=await auth.validateSession(req);if(!auth.isAdmin(current.user))throw auth.error('AVIS_NOTICE_FORBIDDEN','Nur Administratoren dürfen Avis-Einstellungen verwalten.',403)}
    const wantsMail=String((req.query||{}).mail||'')==='1';
    if(wantsMail){
-    const current=await auth.validateSession(req),rights=current.user&&current.user.rights||{},r=rights.shipmentoverview||{};
-    if(!auth.isAdmin(current.user)&&r.edit!==true&&r.admin!==true&&r.functionAdmin!==true&&!['edit','admin'].includes(String(r.level||r.access||'').toLowerCase()))throw auth.error('AVIS_NOTICE_FORBIDDEN','Für Mailvorlagen ist Bearbeitungsrecht in der Sendungsübersicht erforderlich.',403);
+    const current=await auth.validateSession(req),rights=current.user&&current.user.rights||{};
+    const canEdit=r=>r&&(r.edit===true||r.admin===true||r.functionAdmin===true||['edit','admin'].includes(String(r.level||r.access||'').toLowerCase()));
+    if(!auth.isAdmin(current.user)&&!canEdit(rights.shipmentoverview)&&!canEdit(rights.shipment))throw auth.error('AVIS_NOTICE_FORBIDDEN','Für Mailvorlagen ist Bearbeitungsrecht in der Sendungsübersicht erforderlich.',403);
    }
    const data=(await notice.load(env)).value;
    context.res=response(200,admin?{ok:true,config:data}:wantsMail?{ok:true,mailText:notice.emailBlock(data,(req.query||{}).lang,new Date())}:{ok:true,notice:notice.publicNotice(data,(req.query||{}).lang,new Date())});
