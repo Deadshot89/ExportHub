@@ -681,6 +681,11 @@ jobs:
                    v.environment!=="testservice"||v.scope!=="abd-quarantine"||
                    v.resourceOwnershipVerified!==false||v.billingVerified!==false||
                    v.configurationChangeApproved!==false){process.exitCode=2;return}
+                // RC1961: only a validated tri-state may leave the OIDC fixture.
+                // Never expose Azure service endpoints or account identifiers.
+                const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob;
+                if(!(observedAccountMatch===true||observedAccountMatch===false||observedAccountMatch===null)||
+                   (v.status!=="verified"&&observedAccountMatch!==null)){process.exitCode=5;return}
                 const states=["clean","pending","malicious","not-scanned","error"];
                 const reasons=["unknown","configuration","client-unavailable","incomplete",
                   "access-denied","not-found","transport-error","other"];
@@ -700,12 +705,16 @@ jobs:
                          v.pendingOver120Seconds===null&&v.pendingOverTwoHours===null){
                   report={status:"unverified",reason:v.reason};
                 }else{process.exitCode=3;return}
+                report.observedPortalAccountMatchesActiveBlob=observedAccountMatch;
                 console.log("RC1945 Defender-Scan-Diagnose "+JSON.stringify(report));
                 if(process.env.GITHUB_STEP_SUMMARY){
                   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
                     "\n## RC1945 · Defender-XLSX-Scan (nur lesend)\n\n"+
                     "TESTSERVICE Quarantäne, nur aggregierte Statuszahlen; keine Dateiinhalte oder Namen.\n\n"+
                     "Status: "+report.status+
+                    "\\n- Tatsächliches ABD-Speicherkonto entspricht Portalbefund: "+
+                    (report.observedPortalAccountMatchesActiveBlob===true?"ja":
+                     report.observedPortalAccountMatchesActiveBlob===false?"nein":"nicht verifizierbar")+
                     (report.status==="verified"?
                       "\n- Dateien: "+report.records+
                       "\n- Sauber: "+report.states.clean+
