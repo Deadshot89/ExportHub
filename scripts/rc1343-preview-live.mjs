@@ -45,6 +45,10 @@ assert.equal(unauth.status,403,'Preview key gate missing');
 const master=await request('POST','public-customer-lookup',{customerNumber:'A0001'});
 assert.equal(master.status,403,'Customer master exposed');
 const isolation=await request('GET','public-get',{id:'DOK-20000101-AAAAAAAA'},'invalid');
+if(isolation.status!==404){
+ console.error('RC1343 safe storage diagnostic:',JSON.stringify({httpStatus:isolation.status,
+  code:String(isolation.body?.code||'NO_CODE').slice(0,90)}));
+}
 assert.equal(isolation.status,404,'Separate TESTSERVICE storage not verified: refuse writes');
 
 const fields={
