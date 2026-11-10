@@ -9,6 +9,11 @@ on:
       - main
   workflow_dispatch:
 
+# RC1958: latest commit per PR/branch only; independent PRs never cancel one another.
+concurrency:
+  group: rc1012-abholkalender-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

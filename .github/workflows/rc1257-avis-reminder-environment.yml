@@ -13,6 +13,11 @@ on:
       - 'test/rc1257-avis-reminder-environment.test.mjs'
       - '.github/workflows/rc1257-avis-reminder-environment.yml'
 
+# RC1958: latest commit per PR/branch only; independent PRs never cancel one another.
+concurrency:
+  group: rc1257-avis-reminder-environment-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
