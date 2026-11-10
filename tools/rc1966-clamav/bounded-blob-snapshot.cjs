@@ -34,14 +34,18 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
      locator.scopeHash!==scope.scopeHash||locator.blobKeyHash!==scope.blobKeyHash||
      !HEX32.test(locator.jobId||''))return fail();
   const controller=new AbortController();
-  let activeStream=null;
-  // RC1967: the byte cap alone cannot bound a stalled SDK/stream operation.
-  // Abort both SDK RPCs and destroy any active response stream on deadline.
-  const watchdog=setTimeout(()=>{
-   controller.abort();
-   if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
-  },timeoutMs);
-  try{
+  let activeStream=null,watchdog;
+  // RC1968: SDK transports may ignore AbortSignal. A separate deadline
+  // rejects even if getProperties, download, or an async iterator never ends.
+  const deadline=new Promise((_,reject)=>{
+   watchdog=setTimeout(()=>{
+    controller.abort();
+    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+    reject(Error('RC1966_BLOB_TIMEOUT'));
+   },timeoutMs);
+  });
+  const performRead=async()=>{
+   try{
    const blob=container.getBlobClient(name);
    if(!blob||typeof blob.getProperties!=='function'||typeof blob.download!=='function')return fail();
    const conditions={ifMatch:scope.blobEtag};
@@ -53,9 +57,11 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    // maxRetryRequests:0 avoids automatic hidden stream retry consumption.
    const response=await blob.download(0,scope.bytes,{conditions,maxRetryRequests:0,
     abortSignal:controller.signal});
-   if(controller.signal.aborted)return fail();
+   // A late SDK response can arrive after the outer deadline settled. Adopt
+   // its stream before checking cancellation so it cannot leak resources.
    const stream=response&&response.readableStreamBody;
    activeStream=stream;
+   if(controller.signal.aborted)return fail();
    if(!response||response.etag!==scope.blobEtag||
       response.contentLength!==scope.bytes||
       !stream||typeof stream[Symbol.asyncIterator]!=='function'){
@@ -77,6 +83,13 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    const bytes=Buffer.concat(parts,total);
    if(hash(bytes)!==scope.uploadSha256){bytes.fill(0);return fail();}
    return{bytes,etag:scope.blobEtag};
+   }catch(_){return fail();}
+   finally{
+    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+   }
+  };
+  try{
+   return await Promise.race([performRead(),deadline]);
   }catch(_){return fail();}
   finally{
    clearTimeout(watchdog);
