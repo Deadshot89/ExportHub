@@ -93,3 +93,15 @@ test('Customer AVIS hides archived Graph copy but shows a fresh Azure re-upload'
  assert.equal(out[0].refSource,'azure');
  assert.equal(out[0].refItemId,newFile.id);
 });
+
+test('SharePoint-only invoice can be removed without deleting its physical Graph copy',async()=>{
+ const {store,blobs}=fixture();
+ const copy={id:'graph-invoice-item-1',name:INVOICE};
+ const removed=await store.hideSharePoint(REF,'production',copy,'operator');
+ assert.equal(removed.deleted,true);
+ assert.equal(removed.name,INVOICE);
+ assert.equal((await store.hiddenNames(REF,'production')).has(INVOICE.toLowerCase()),true);
+ assert.ok([...blobs.keys()].some(n=>n.startsWith('refdoc-removed-v1/production/'+REF+'/')));
+ await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-signed',name:'POD_Signed_Original.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
+ await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-wrong-ref',name:'Rechnung_ZZ99YY_20261110-071411_SIDE.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
+});
