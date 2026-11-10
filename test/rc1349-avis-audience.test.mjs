@@ -58,9 +58,11 @@ test('RC1349 all carrier email paths must use dedicated token',()=>{
  assert.match(immediate,/type==='carrier'\?carrierAvisForMail\(sh\):q\(opt\.url\)/);
  assert.match(immediate,/return link\|\|'…'/);
  assert.match(immediate,/data\.avisAudience!=='carrier'/);
- assert.match(sender,/target!=='carrier'\)return original/);
+ assert.match(sender,/const requiredAudience=target==='carrier'\?'carrier':'customer'/);
+ assert.match(sender,/record\.avisAudience===requiredAudience/);
+ assert.match(sender,/await publicAccess\.resolve\(req,'avis',suppliedToken/);
  assert.match(sender,/await publicAccess\.issue\(req,'avis'/);
- assert.match(sender,/avisAudience:'carrier'/);
+ assert.match(sender,/avisAudience:requiredAudience/);
  assert.match(sender,/await audienceBoundMailUrl\(/);
  assert.match(sender,/return replaceAvisToken\(original,issued\.token\)/);
 });
@@ -83,6 +85,41 @@ test('RC1349 HTML carrier link replaces path and removes hidden customer token p
  }
 });
 
+test('RC1349 HTML mail recipient isolation: wrong-audience and foreign shipment URLs are replaced',async()=>{
+ const source=fs.readFileSync('api/avis-reminder-mail/index.js','utf8'),
+  start=source.indexOf('function replaceAvisToken('),end=source.indexOf('function subject(',start);
+ assert.ok(start>=0&&end>start);
+ const a='a'.repeat(48),b='b'.repeat(48),c='c'.repeat(48),d='d'.repeat(48);
+ const tokens=new Map([
+  [a,{avisAudience:'customer',subjectId:'S-123',reference:'ABC123'}],
+  [b,{avisAudience:'carrier',subjectId:'S-123',reference:'ABC123'}],
+  [c,{avisAudience:'customer',subjectId:'S-999',reference:'XYZ999'}]
+ ]);
+ const issued=[];
+ const pub={
+  async resolve(req,kind,token){if(!tokens.has(token))throw Error('ACCESS_INVALID');return{record:tokens.get(token)}},
+  async issue(req,kind,meta){issued.push(meta);return{token:d}}
+ };
+ const mockAuth={environmentFromRequest(){return'testservice'},error(code,message){return Object.assign(Error(message),{code})}};
+ const fn=new Function('URL','auth','publicAccess','safeAvisUrl','text',
+  source.slice(start,end)+';return audienceBoundMailUrl;')(
+   URL,mockAuth,pub,(req,url)=>url,v=>String(v==null?'':v).trim());
+ const sh={id:'S-123',reference:'ABC123'};
+ const base='https://testservice.example/customer-avis.html?token=';
+ const reused=await fn({},sh,{},'carrier',base+b);
+ assert.equal(new URL(reused).searchParams.get('token'),b);
+ assert.equal(issued.length,0);
+ const fromCustomer=await fn({},sh,{},'carrier',base+a);
+ assert.equal(new URL(fromCustomer).searchParams.get('token'),d);
+ assert.equal(issued[0].avisAudience,'carrier');
+ const fromOther=await fn({},sh,{},'customer',base+c);
+ assert.equal(new URL(fromOther).searchParams.get('token'),d);
+ assert.equal(issued[1].avisAudience,'customer');
+ const correctCustomer=await fn({},sh,{},'customer',base+a);
+ assert.equal(new URL(correctCustomer).searchParams.get('token'),a);
+ assert.equal(issued.length,2);
+});
+ 
 test('RC1349 syntax: recipient-aware modules parse as JavaScript',()=>{
  for(const file of ['api/customer-avis/index.js','api/shared/public-access-store.js','api/shared/customer-avis-audience.js',
   'assets/rc1015-lieferavis-mail-flow.js','assets/rc1027-lieferavis-immediate.js','assets/rc1166-avis-reminder-overview.js','api/avis-reminder-mail/index.js']){
