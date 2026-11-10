@@ -1,7 +1,6 @@
 'use strict';
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
-const publicAccess=require('../shared/public-access-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml,activeClosureNotices,closureNoticeHtml}=require('../shared/avis-mail-html');
 
@@ -58,8 +57,12 @@ function replaceAvisToken(url,token){
  else throw auth.error('AVIS_URL_INVALID','Ungültiger Avis-Link.',400);
  return out.toString();
 }
-async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl){
+async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl,previewOnly=false){
  const original=safeAvisUrl(req,rawUrl,shipment,customer);
+ // Preview must be read-only: never issue access tokens or update blob indexes.
+ // A carrier preview uses a nonfunctional placeholder instead of exposing the customer link.
+ if(previewOnly)return target==='carrier'?replaceAvisToken(original,'preview-carrier-no-access'):original;
+ const publicAccess=require('../shared/public-access-store');
  const environment=auth.environmentFromRequest(req);
  const requiredAudience=target==='carrier'?'carrier':'customer';
  const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
@@ -282,7 +285,7 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=await audienceBoundMailUrl(req,shipment,customerFor(current.team,shipment),target,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const url=await audienceBoundMailUrl(req,shipment,customerFor(current.team,shipment),target,p.avisUrl,previewOnly),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   // Only explicitly enabled, validated shipment-closure notices are mailed.
   // Task-planner holidays are never treated as external business closures.
