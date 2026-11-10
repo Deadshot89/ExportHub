@@ -63,7 +63,7 @@ test('Roundtrip: Rechnung SIDE wird bytegleich gespeichert, gelesen, gelistet un
  assert.equal(Buffer.compare(read.buffer,bytes),0);
  const removed=await store.softDelete(REF,'production',saved.id,'test-operator');
  assert.equal(removed.archiveRetained,true);
- assert.deepEqual((await store.list(REF,'production')).map(f=>f.id),[]);
+ assert.equal((await store.list(REF,'production')).length,0);
  await assert.rejects(()=>store.read(REF,'production',saved.id),e=>e.code==='REFDOC_NOT_FOUND');
  assert.equal((await store.hiddenNames(REF,'production')).has(INVOICE.toLowerCase()),true);
  assert.equal(blobs.has(saved.blobName),true,'Actual original bytes stay archived');
