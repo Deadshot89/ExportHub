@@ -307,8 +307,8 @@ function approvalDetailMarkup(order){
  const evidence=order.transportCostsApproval,by=evidence&&evidence.confirmedBy;
  const person=by?txt(by.name||by.id).trim():'';
  const date=evidence&&evidence.confirmedAt?mailDate(evidence.confirmedAt):'';
- if(!person||!date)return '<p class="help" data-p1-approval="missing">'+escapeHtml(localeV2('p1ApprovalDetailMissing','Für diesen P1-Auftrag ist keine Kostenbestätigung dokumentiert.'))+'</p>';
- return '<p class="help" data-p1-approval="recorded"><strong>'+escapeHtml(localeV2('p1ApprovalDetailLabel','P1 · Genehmigung der Sondertransportkosten vom Ersteller bestätigt'))+'</strong> · '+escapeHtml(localeV2('p1ApprovalDetailBy','Bestätigt von'))+' '+escapeHtml(person)+' · '+escapeHtml(date)+'</p>';
+ if(!person||!date)return '<p class="help" data-p1-approval="missing">'+escapeHtml(localeV2('p1ApprovalDetailMissing','No transport-cost acknowledgement is recorded for this P1 order.'))+'</p>';
+ return '<p class="help" data-p1-approval="recorded"><strong>'+escapeHtml(localeV2('p1ApprovalDetailLabel','P1 · Approval of special transport costs acknowledged by the requester'))+'</strong> · '+escapeHtml(localeV2('p1ApprovalDetailBy','Confirmed by'))+' '+escapeHtml(person)+' · '+escapeHtml(date)+'</p>';
 }
 function render(){
  showView(activeView);
