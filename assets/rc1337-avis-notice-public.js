@@ -40,6 +40,13 @@
    .catch(function(){if(lang===last)render(null)})
    .finally(function(){inFlight=false});
  }
- function boot(){refresh();w.addEventListener('exporthub:language-changed',refresh);w.addEventListener('popstate',refresh)}
+ function boot(){
+  refresh();
+  w.addEventListener('exporthub:language-changed',refresh);
+  w.addEventListener('popstate',refresh);
+  // Keep already-open public pages aligned with the configured display window.
+  if(typeof w.setInterval==='function')w.setInterval(function(){if(d.visibilityState!=='hidden')refresh()},60000);
+  d.addEventListener('visibilitychange',function(){if(d.visibilityState==='visible')refresh()});
+ }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(window,document);
