@@ -35,10 +35,11 @@ const healthData=await health.json();
 assert.equal(healthData?.deployment?.environment,'testservice','Refuse non-TESTSERVICE deployment');
 assert.equal(healthData?.deployment?.verified,true,'Deployment must be verified');
 assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refuse any writes');
+// The guest upload runtime belongs to /sendungsdokumentation, NOT the
+// authenticated home/login page. Test that dedicated route below, after the
+// immutable deployment identity check and before making any synthetic writes.
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
-assert.equal(root.status,200);
-const html=await root.text();
-assert.match(html,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Updated guest runtime missing from verified TESTSERVICE HTML');
+assert.equal(root.status,200,'Existing TESTSERVICE home is unreachable');
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
