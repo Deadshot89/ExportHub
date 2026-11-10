@@ -161,7 +161,7 @@ async function disableDraftAvis(sh){
 }
 // Separate Speditionslinks are issued by the server with avisAudience='carrier'.
 var rc1349CarrierCache=Object.create(null),rc1349CarrierPending=Object.create(null);
-function rc1349CarrierCacheKey(sh){return environmentName()+'|'+explicitReference(sh)}
+function rc1349CarrierCacheKey(sh){return environmentName()+'|'+explicitReference(sh)+'|'+shipmentId(sh)}
 function carrierAvisCached(sh){return q(rc1349CarrierCache[rc1349CarrierCacheKey(sh)])}
 async function carrierAvisUrl(sh){
  var ref=explicitReference(sh),key=rc1349CarrierCacheKey(sh);
