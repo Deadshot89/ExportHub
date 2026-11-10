@@ -1890,6 +1890,9 @@ const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
 if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+// RC1337: Keep the public AVIS page in sync with its current canonical source.
+fs.copyFileSync(path.join(ROOT,'customer-avis.html'),path.join(OUT,'customer-avis.html'));
+
 const qualityPage=path.join(ROOT,'qualitaet.html');
 if(!fs.existsSync(qualityPage))throw new Error('CAPA Qualitätsseite qualitaet.html fehlt');
 fs.copyFileSync(qualityPage,path.join(OUT,'qualitaet.html'));
@@ -1926,6 +1929,9 @@ for(const rel of [
   'assets/rc1160-customer-portal-credentials.js',
   'assets/rc1165-pod-backup-status.js',
   'assets/rc1166-avis-reminder-overview.js',
+  'assets/rc1065-registration-cc.js',
+  'assets/rc1337-avis-settings.js',
+  'assets/rc1337-avis-notice-public.js',
   'assets/rc1176-shipment-location.js',
   'assets/rc1059-document-blob.js', // RC1672: viewer is required by main UI and Playwright build
   'assets/rc1203-deckblatt-print.js',
