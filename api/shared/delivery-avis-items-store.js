@@ -116,12 +116,13 @@ async function scanStatus(r,e,id){
 async function processPending(r,e){
  const current=await discover(r,e);
  // Pro Aufruf maximal zwei PDFs auswerten; kein parser-Lauf bei fehlender AV-Freigabe.
- for(const d of current.filter(x=>x.current===true&&x.status==='scan_pending').slice(0,2)){
+ for(const d of current.filter(x=>x.current===true&&['scan_pending','blocked'].includes(x.status)).slice(0,2)){
   let scan;try{scan=await scanStatus(r,e,d.id)}catch(_){scan={status:'pending'}}
   if(scan.status!=='clean'){
    if(scan.status==='pending')continue;
    await mutate(r,e,state=>{const existing=state.documents.find(x=>x.id===d.id&&x.sha256===d.sha256&&x.current);
-    if(!existing)return false;existing.scanStatus=scan.status;existing.status='blocked';existing.rows=[];});
+    if(!existing)return false;if(existing.scanStatus===scan.status&&existing.status==='blocked')return false;
+    existing.scanStatus=scan.status;existing.status='blocked';existing.rows=[];});
    continue;
   }
   const file=await docs.read(r,e,d.id);
