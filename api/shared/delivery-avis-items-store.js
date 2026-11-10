@@ -67,6 +67,19 @@ async function register(r,e,file,sha){
    current:true,status:'scan_pending',scanStatus:'pending',rows:[],createdAt:new Date().toISOString()});
  });
 }
+// Bei Ersatz eines PDF-Lieferscheins alte Freigaben sofort zurückziehen,
+// auch wenn nur SharePoint erreichbar und die neue Azure-Kopie ausgefallen ist.
+async function invalidateByName(r,e,fileName){
+ const same=originalName(fileName);
+ if(!same)return;
+ await mutate(r,e,state=>{
+  let changed=false;
+  state.documents.forEach(doc=>{if(doc.current===true&&doc.originalName===same){
+   doc.current=false;doc.status='superseded';changed=true;
+  }});
+  return changed;
+ });
+}
 async function discover(r,e){
  const files=(await docs.list(r,e)).filter(file=>isCandidate(file,r)).slice(0,MAX_DOCUMENTS);
  let current=(await load(r,e)).state.documents;
@@ -134,4 +147,4 @@ async function publicRows(r,e){
  try{return parser.verifiedPublicRows((await load(r,e)).state.documents)}
  catch(_){return []} // Keine öffentlichen Fehlermeldungen über interne Metadaten.
 }
-module.exports={register,discover,processPending,approve,publicRows,originalName,isCandidate,load};
+module.exports={register,invalidateByName,discover,processPending,approve,publicRows,originalName,isCandidate,load};
