@@ -162,7 +162,7 @@ async function reflectedAvTask(ref,environment){
  });
 }
 async function handleUpload(req){
- await validateSession(req);
+ const sessionInfo=await validateSession(req);
  const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
  const environment=publicAccess.environment(req,payload);
  if(action==='upload-av'){
@@ -195,6 +195,13 @@ async function handleUpload(req){
   return json(200,{ok:true,reference:ref,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
    azureSaved:!!azureSaved,azureError,sharepointSaved:!!sharepointSaved,sharepointError});
  }
+ if(action==='delete-document'){
+  const id=text(payload.itemId);
+  if(!/^refdoc:[0-9a-f]{32}$/.test(id))
+   throw error('DOCUMENT_DELETE_FORBIDDEN','Nur über die Sendungsansicht hochgeladene Dokumente können entfernt werden.',403);
+  const removed=await refDocBlob.softDelete(ref,environment,id,usernameOf(sessionInfo.user));
+  return json(200,{ok:true,reference:ref,removed,archiveRetained:true});
+ }
  throw error('ACTION_INVALID','Unbekannte Aktion.',400);
 }
 module.exports=async function(context,req){
@@ -224,7 +231,11 @@ module.exports=async function(context,req){
   let listed,graphError=null;
   try{listed=await listFiles(ref,req)}
   catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
-  const files=Array.from(listed.files||[]);
+  // Read the reversible-removal ledger before listing any source: archived documents
+  // must not reappear from SharePoint after being removed from the shipment.
+  const removedNames=await refDocBlob.hiddenNames(ref,env);
+  const azureDocNames=new Set(docs.map(f=>text(f.name).toLowerCase()));
+  const files=Array.from(listed.files||[]).filter(f=>!removedNames.has(text(f.name).toLowerCase())&&!azureDocNames.has(text(f.name).toLowerCase()));
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
