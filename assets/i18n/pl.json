@@ -2691,5 +2691,8 @@
   "urgentOrderV2.individualLinesNotChecked": "Poszczególne pozycje niezweryfikowane",
   "urgentOrderV2.wholeOrderOption": "Całe zamówienie – wszystkie pozycje",
   "urgentOrderV2.individualLinesOption": "Wybierz pojedyncze artykuły / pozycje",
-  "urgentOrderV2.requestScope": "Zakres zgłoszenia"
+  "urgentOrderV2.requestScope": "Zakres zgłoszenia",
+  "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Zgłaszający potwierdził zatwierdzenie kosztów transportu specjalnego",
+  "urgentOrderV2.p1ApprovalDetailBy": "Potwierdzone przez",
+  "urgentOrderV2.p1ApprovalDetailMissing": "Dla tego zlecenia P1 nie zapisano potwierdzenia kosztów transportu."
 }
