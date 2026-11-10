@@ -13,7 +13,7 @@ async function openPublished(page){
  expect(response?.status(),'Actual public TESTSERVICE page must respond 200').toBe(200);
  expect(new URL(page.url()).hostname).toBe('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
  await expect(page.locator('#eh1903-guest-root')).toBeVisible();
- await expect(page.locator('script[src*="shipment-evidence-guest.js?v=1905"]')).toHaveCount(1);
+ await expect(page.locator('script[src*="shipment-evidence-guest.js?v=1906"]')).toHaveCount(1);
  await expect(page.locator('link[href*="shipment-evidence.css?v=1906-gallery"]')).toHaveCount(1);
  await expect(page.locator('#login')).toHaveCount(0);
 }
