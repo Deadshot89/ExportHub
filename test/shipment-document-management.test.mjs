@@ -65,3 +65,7 @@ test('Dokument-Aktionen besitzen Übersetzungen in allen sechs Sprachen', () => 
  }
  for (const key of ['removeConfirm','removed','actionError','open','download','remove'])assert.match(src,new RegExp('"'+key+'":'));
 });
+
+test('Neue Dateiauswahl ersetzt alte, damit keine fremde Rechnung im Upload bleibt', () => {
+ assert.match(ui, /function addFiles\(files\)\{if\(busy\)return;log=\[\];picked=\[\];/);
+});
