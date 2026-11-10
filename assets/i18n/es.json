@@ -2683,5 +2683,6 @@
   "closureMail.portalHide": "Ocultar aviso en el portal",
   "closureMail.activate": "Activar cierre",
   "closureMail.deactivate": "Desactivar cierre",
-  "closureMail.disableConfirm": "¿Desactivar este cierre? Se podrán reservar de nuevo recogidas durante este período."
+  "closureMail.disableConfirm": "¿Desactivar este cierre? Se podrán reservar de nuevo recogidas durante este período.",
+  "closureMail.removeConfirm": "¿Eliminar definitivamente este cierre? Se podrán volver a reservar recogidas durante este período. Esta acción no se puede deshacer."
 }
