@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Activar aviso por correo",
   "closureMail.mailHide": "Desactivar aviso por correo",
   "closureMail.portalShow": "Mostrar aviso en el portal",
-  "closureMail.portalHide": "Ocultar aviso en el portal"
+  "closureMail.portalHide": "Ocultar aviso en el portal",
+  "closureMail.activate": "Activar cierre",
+  "closureMail.deactivate": "Desactivar cierre",
+  "closureMail.disableConfirm": "¿Desactivar este cierre? Se podrán reservar de nuevo recogidas durante este período."
 }
