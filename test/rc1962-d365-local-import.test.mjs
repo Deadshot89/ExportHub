@@ -78,6 +78,11 @@ test('RC1962 rejects formulas, malformed format and path traversal without parti
   const output=await run(buffer);assert.equal(output.ok,false);assert.match(output.code,/^D365_/)
  }
 });
+test('RC1962 rejects missing shipment references instead of silently mixing documents',async()=>{
+ const result=await run(xlsx([record('','ART-1',1,10)]));
+ assert.equal(result.ok,false);
+ assert.equal(result.code,'D365_REFERENCE_MISSING');
+});
 test('RC1962 never silently discards shipped positions beyond 500',async()=>{
  const rows=Array.from({length:501},(_,i)=>record('SAME','ART-'+i,1,2));
  const output=await run(xlsx(rows));assert.equal(output.ok,false);assert.equal(output.code,'D365_POSITION_LIMIT')
