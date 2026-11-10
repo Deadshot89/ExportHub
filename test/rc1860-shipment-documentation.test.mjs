@@ -214,6 +214,7 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  const api=fs.readFileSync('api/reference-files/index.js','utf8');
  assert.match(ui,/var check=await fetch\('\/api\/reference-files\?reference='/);
  assert.match(ui,/receipt\.name/);
+ assert.match(ui,/q\(f\.id\)===q\(receipt\.id\)/,'Upload receipt must match exact persisted file ID, not a same-name older original');
  assert.match(ui,/receipt\.azureSaved/);
  assert.match(ui,/uploadNotListed/);
  assert.match(ui,/referenceFolder:azureOnly===0/);
