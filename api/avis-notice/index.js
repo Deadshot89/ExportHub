@@ -33,6 +33,6 @@ module.exports=async function(context,req){
   context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED'});
  }catch(e){
   const status=e.status||e.statusCode||500;
-  context.res=response(status,{ok:false,code:status>=500?'AVIS_NOTICE_UNAVAILABLE':e.code||'AVIS_NOTICE_INVALID',message:status>=500?'Avis-Einstellungen sind momentan nicht verfügbar.':e.message||'Ungültige Avis-Einstellung.'});
+  context.res=response(status,{ok:false,code:status>=500?'AVIS_NOTICE_UNAVAILABLE':e.code||'AVIS_NOTICE_INVALID',message:status>=500?'':e.message||''});
  }
 };
