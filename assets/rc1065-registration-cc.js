@@ -263,11 +263,11 @@ function installClosureSettings(host){
  var style=w.document.getElementById('rc1328ClosureStyle');
  if(!style){
   style=w.document.createElement('style');style.id='rc1328ClosureStyle';
-  style.textContent='.rc1328-closure{margin-top:16px}.rc1328-fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.rc1328-fields label{display:grid;gap:5px;font-weight:700}.rc1328-fields input{padding:9px;border:1px solid #94a3b8;border-radius:8px;min-height:40px}.rc1328-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rc1328-entries{padding-left:22px}.rc1328-entries li{margin-bottom:9px}.rc1328-entries button{margin-left:8px}.rc1328-status[data-kind="error"]{color:#b91c1c}.rc1328-status[data-kind="ok"]{color:#166534}@media(max-width:700px){.rc1328-fields{grid-template-columns:1fr}}';
+  style.textContent='.rc1328-closure{margin-top:16px}.rc1328-fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.rc1328-fields label{display:grid;gap:5px;font-weight:700}.rc1328-fields input{padding:9px;border:1px solid #94a3b8;border-radius:8px;min-height:40px}.rc1328-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rc1328-entries{padding-left:22px}.rc1328-entries li{margin-bottom:9px}.rc1328-entries button{margin-left:8px}.rc1328-status[data-kind="error"]{color:#b91c1c}.rc1328-status[data-kind="ok"]{color:#166534}.rc1337-snow-setting{display:flex;align-items:center;gap:9px;margin-top:14px;font-weight:650}.rc1337-snow-setting input{width:18px;height:18px;accent-color:#2563eb}.rc1337-snow-toggle{margin-left:8px}@media(max-width:700px){.rc1328-fields{grid-template-columns:1fr}}';
   (w.document.head||w.document.documentElement).appendChild(style)
  }
  var box=w.document.createElement('section');box.id='rc1328ClosureSettings';box.className='card rc1328-closure';
- box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1328-actions"><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
+ box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><label class="rc1337-snow-setting"><input type="checkbox" name="animateSnow">' +tr('closureMail.snowAnimation')+'</label><div class="rc1328-actions><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
  host.appendChild(box);
  var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]');
  function show(message,kind){status.textContent=message||'';status.setAttribute('data-kind',kind||'info')}
@@ -277,20 +277,34 @@ function installClosureSettings(host){
   if(!entries.length){var empty=w.document.createElement('li');empty.textContent=tr('closureMail.none');list.appendChild(empty);return}
   entries.forEach(function(item,index){
    var li=w.document.createElement('li'),text=w.document.createElement('span'),remove=w.document.createElement('button');
-   text.textContent=[item.startDate+' – '+item.endDate,tr('closureMail.lastPickup')+': '+item.lastPickupDate+' '+item.lastPickupTime,tr('closureMail.reopens')+': '+item.reopenDate,tr('closureMail.advance')+': '+item.leadDays+ ' '+tr('closureMail.days'),item.enabled?tr('closureMail.on'):tr('closureMail.off')].join(' · ');
+   text.textContent=[item.startDate+' – '+item.endDate,tr('closureMail.lastPickup')+': '+item.lastPickupDate+' '+item.lastPickupTime,tr('closureMail.reopens')+': '+item.reopenDate,tr('closureMail.advance')+': '+item.leadDays+ ' '+tr('closureMail.days'),item.enabled?tr('closureMail.on'):tr('closureMail.off'),item.animateSnow===true?tr('closureMail.snowOn'):tr('closureMail.snowOff')].join(' · ');
    remove.type='button';remove.className='btn flat small';remove.textContent=tr('closureMail.remove');remove.setAttribute('aria-label',tr('closureMail.removeAria')+' '+(index+1));
    remove.addEventListener('click',async function(){
     remove.disabled=true;show(tr('closureMail.saving'));
     try{var entries=closureEntries();entries.splice(index,1);await persistClosureEntries(entries);display();show(tr('closureMail.removed'),'ok')}
     catch(e){show(tr('closureMail.removeFailed')+': '+q(e&&e.message),'error');remove.disabled=false}
    });
-   li.appendChild(text);li.appendChild(remove);list.appendChild(li)
+   var snowToggle=w.document.createElement('button');
+   snowToggle.type='button';snowToggle.className='btn flat small rc1337-snow-toggle';
+   snowToggle.textContent=tr(item.animateSnow===true?'closureMail.snowDisable':'closureMail.snowEnable');
+   snowToggle.setAttribute('aria-pressed',item.animateSnow===true?'true':'false');
+   snowToggle.setAttribute('data-rc1337-snow-toggle','1');
+   snowToggle.addEventListener('click',async function(){
+    snowToggle.disabled=true;show(tr('closureMail.saving'));
+    try{
+     var rows=closureEntries();
+     if(!rows[index])throw new Error(tr('closureMail.invalid'));
+     rows[index].animateSnow=rows[index].animateSnow!==true;
+     await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
+    }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');snowToggle.disabled=false}
+   });
+   li.appendChild(text);li.appendChild(snowToggle);li.appendChild(remove);list.appendChild(li)
   })
  }
  form.addEventListener('submit',async function(ev){
   ev.preventDefault();
   var field=function(k){return q(form.elements.namedItem(k)&&form.elements.namedItem(k).value)};
-  var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays'))};
+  var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays')),animateSnow:!!(form.elements.namedItem('animateSnow')&&form.elements.namedItem('animateSnow').checked)};
   if(!entry.startDate||!entry.endDate||!entry.lastPickupDate||!entry.reopenDate||
     entry.startDate>entry.endDate||entry.lastPickupDate>=entry.startDate||entry.reopenDate<=entry.endDate||
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.lastPickupTime)||!Number.isInteger(entry.leadDays)||entry.leadDays<0||entry.leadDays>90){
