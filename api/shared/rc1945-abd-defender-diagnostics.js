@@ -10,6 +10,20 @@ const DEFAULT_LIMIT=24;
 const MAX_LIMIT=48;
 const DEFAULT_BUDGET_MS=12000;
 
+// RC1960: Inspect only the SDK's selected HTTPS Blob service endpoint.
+// Return a three-state comparison against the account seen in #1329;
+// never return or log an Azure URL, SAS, account name or credential.
+function matchesObservedPortalAccount(blobServiceUrl){
+ try{
+  const url=new URL(String(blobServiceUrl||''));
+  if(url.protocol!=='https:'||url.username||url.password||
+     (url.port&&url.port!=='443'))return null;
+  const host=url.hostname.toLowerCase();
+  if(!/^[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(host))return null;
+  return host==='exporthubdata89.blob.core.windows.net';
+ }catch(_){return null}
+}
+
 function reasonFor(error){
  const code=String(error&&error.code||'');
  const status=Number(error&&(error.statusCode||error.status)||0);
@@ -70,4 +84,4 @@ async function collectTestserviceAbdDefenderDiagnostics(options={}){
  }catch(error){return report(reasonFor(error))}
 }
 
-module.exports={PREFIX,collectTestserviceAbdDefenderDiagnostics};
+module.exports={PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount};

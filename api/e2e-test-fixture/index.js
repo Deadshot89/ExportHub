@@ -8,7 +8,7 @@ const packStore=require('../shared/pack-notification-store');
 const {MODULES,normalizeUser,publicUser}=require('../shared/user-policy');
 const {collectTestserviceTeamInventory}=require('../shared/testservice-team-inventory');
 const {collectTestserviceMultiScopeInventory}=require('../shared/testservice-multi-scope-inventory');
-const {collectTestserviceAbdDefenderDiagnostics}=require('../shared/rc1945-abd-defender-diagnostics');
+const {collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount}=require('../shared/rc1945-abd-defender-diagnostics');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -345,12 +345,14 @@ module.exports=async function(context,req){
    // Same storage selection as /api/abd-analysis, fixed testservice/ prefix.
    // No scan requests, content reads, secret disclosure or storage changes.
    const cs=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'';
-   let diagnostics;
+   let diagnostics,observedAccountMatch=null;
    try{
     if(!cs)diagnostics=await collectTestserviceAbdDefenderDiagnostics();
     else{
      const {BlobServiceClient}=require('@azure/storage-blob');
      const account=BlobServiceClient.fromConnectionString(cs);
+     // Check the actual SDK endpoint, not an unverified AccountName field.
+     observedAccountMatch=matchesObservedPortalAccount(account.url);
      const name=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
      diagnostics=await collectTestserviceAbdDefenderDiagnostics({service:account,containerName:name});
     }
@@ -359,7 +361,9 @@ module.exports=async function(context,req){
     // Never pass them to the generic fixture logger or HTTP response.
     diagnostics=await collectTestserviceAbdDefenderDiagnostics();
    }
-   context.res=json(200,{ok:true,action:'diagnose-abd-defender',...diagnostics});
+   // Incomplete inventory is never sufficient as an account proof.
+   context.res=json(200,{ok:true,action:'diagnose-abd-defender',...diagnostics,
+    observedPortalAccountMatchesActiveBlob:diagnostics.status==='verified'?observedAccountMatch:null});
    return;
   }
   if(action==='inventory-blob-policy'){
