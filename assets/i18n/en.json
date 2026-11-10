@@ -2691,5 +2691,8 @@
   "urgentOrderV2.individualLinesNotChecked": "Individual lines not checked",
   "urgentOrderV2.wholeOrderOption": "Entire order – all lines",
   "urgentOrderV2.individualLinesOption": "Enter individual items / lines",
-  "urgentOrderV2.requestScope": "Request scope"
+  "urgentOrderV2.requestScope": "Request scope",
+  "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Approval of special transport costs acknowledged by the requester",
+  "urgentOrderV2.p1ApprovalDetailBy": "Confirmed by",
+  "urgentOrderV2.p1ApprovalDetailMissing": "No transport-cost acknowledgement is recorded for this P1 order."
 }
