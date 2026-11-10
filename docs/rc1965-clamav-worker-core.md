@@ -36,3 +36,45 @@ tools/rc1965-clamav/isolated-scan-core.cjs combines the still-inert HMAC queue c
 - [ ] Authenticated TESTSERVICE upload -> genuine server-verified clean -> positions -> editor E2E; then full security, CI and separate explicit deployment approvals.
 
 No cloud job has been deployed. Existing ABD_SCAN_PENDING remains a fail-closed blocker, without any fake clean tag or fallback.
+
+## RC1966 – Bounded Azure Blob reader (still offline)
+
+`tools/rc1966-clamav/bounded-blob-snapshot.cjs` is a **dependency-injected,
+unconnected** Azure-SDK-compatible reader that a future isolated worker can
+use. It does not authenticate, create an Azure client, open a network connection
+or interact with the running ExportHUB API on its own.
+
+- Exact blob identity is derived from the existing ABD quarantine scheme:
+  `rc1294/testservice/<scopeHash>/<uploadSha256>-<uploadNonce>.<kind>`.
+  The worker context must supply the **SHA-256 of this complete blob name**
+  as `blobKeyHash`; if it differs, the read adapter refuses the job.
+- A future trusted worker must supply the TESTSERVICE-only authorized
+  `ContainerClient` via managed identity. A request or browser **cannot**
+  select an arbitrary storage account, container, blob path or URL.
+- Before the download the adapter checks the Blob's ETag, `BlockBlob` type
+  and exact length; the SDK's Blob `download(0, length, ...)` call is
+  conditional on `ifMatch`, sets `maxRetryRequests:0` and limits the range.
+  A bounded stream additionally rejects too many bytes, missing data,
+  changed ETag or content-length inconsistencies.
+- SHA-256 of actual bytes must match the signed original. Every error is
+  reduced to `RC1966_BLOB_UNVERIFIED`, without revealing Azure internals.
+- The RC1965 worker already reads twice and rechecks ETag/hash. This adapter
+  is intentionally **not connected** to the RC1965 runner or `api/abd-analysis`
+  until a fully restricted, independently audited Azure worker exists.
+
+**Operational limits:** The future queue issuance must derive `blobKeyHash`
+from the server-owned blob name, enforce the correct account/container and
+bind the job to a durable atomic claim. The current HMAC candidate proof
+does not attest Azure resource ownership, provider identity or antivirus
+signature status. An Azure ETag is a conditional-read guard, **not** an
+immutable version ID or standalone release permit.
+
+No real Azure reads or charges were performed by this patch. The local
+synthetic adapter checks passed; the complete repository CI must be
+independently successful before any merge. **Do not rerun cancelled CI
+automatically or weaken gates.**
+
+Azure API references:
+- https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobclient
+- https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobdownloadoptions
+- https://learn.microsoft.com/en-us/javascript/api/@azure/storage-blob/blobrequestconditions
