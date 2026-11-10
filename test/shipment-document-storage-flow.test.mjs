@@ -100,7 +100,8 @@ test('SharePoint-only invoice can be removed without deleting its physical Graph
  const removed=await store.hideSharePoint(REF,'production',copy,'operator');
  assert.equal(removed.deleted,true);
  assert.equal(removed.name,INVOICE);
- assert.equal((await store.hiddenNames(REF,'production')).has(INVOICE.toLowerCase()),true);
+ assert.equal((await store.hiddenNames(REF,'production')).has(INVOICE.toLowerCase()),false,'Graph-only removal does not hide sibling filenames');
+ assert.equal((await store.hiddenGraphHashes(REF,'production')).has(crypto.createHash('sha256').update(copy.id).digest('hex')),true);
  assert.ok([...blobs.keys()].some(n=>n.startsWith('refdoc-removed-v1/production/'+REF+'/')));
  await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-signed',name:'POD_Signed_Original.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
  await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-wrong-ref',name:'Rechnung_ZZ99YY_20261110-071411_SIDE.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
@@ -119,4 +120,23 @@ test('Zwei identisch benannte Rechnungen bleiben einzeln per Azure-ID löschbar'
  assert.equal((await store.read(REF,'production',second.id)).buffer.toString(),'SECOND');
  assert.equal(blobs.has(first.blobName),true,'Archived removed original remains intact');
  assert.equal(blobs.has(second.blobName),true,'Visible sibling original remains intact');
+});
+
+test('Zwei gleichnamige SharePoint-Rechnungen: Entfernen blendet nur ausgewählte Graph-ID aus',async()=>{
+ const {store,blobs}=fixture();
+ const graph=[
+  {id:'graph-invoice-1',name:INVOICE,size:6},
+  {id:'graph-invoice-2',name:INVOICE,size:7}
+ ];
+ const source={listFiles:async()=>graph};
+ assert.equal((await avis.load(source,REF,'production',null,store)).length,1);
+ await store.hideSharePoint(REF,'production',graph[0],'operator');
+ const hidden=await store.removalFilters(REF,'production');
+ assert.equal(hidden.names.has(INVOICE.toLowerCase()),false);
+ assert.equal(hidden.graphHashes.has(crypto.createHash('sha256').update(graph[0].id).digest('hex')),true);
+ assert.equal(hidden.graphHashes.has(crypto.createHash('sha256').update(graph[1].id).digest('hex')),false);
+ const visible=await avis.load(source,REF,'production',null,store);
+ assert.equal(visible.length,1);
+ assert.equal(visible[0].refItemId,graph[1].id);
+ assert.ok([...blobs.keys()].some(n=>n.startsWith('refdoc-removed-v1/production/'+REF+'/')));
 });
