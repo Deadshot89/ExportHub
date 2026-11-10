@@ -18,6 +18,13 @@ test('Dokument-Upload: Name mit Dokumentart, Referenz und Zeitstempel',()=>{
   assert.equal(refFiles.documentUploadFile('ABC123',{fileName:'x.pdf',data:PDF},NOW).name,'Dokument_ABC123_20261030-180102_x.pdf');
 });
 
+test('SIDE-Rechnung: Server behält den ausgewählten Originaldateinamen bei',()=>{
+  const when=new Date('2026-11-10T07:14:11.000Z');
+  const saved=refFiles.documentUploadFile('9US6TS',{kind:'rechnung',fileName:'SIDE250075003.pdf',data:PDF},when);
+  assert.equal(saved.name,'Rechnung_9US6TS_20261110-071411_SIDE250075003.pdf');
+  assert.ok(!saved.name.includes('DNC3019228620'));
+});
+
 test('Dokument-Upload zählt nie als Ausgangsvermerk, auch wenn die Datei mit AV beginnt',()=>{
   for(const kind of ['lieferschein','rechnung','packliste','excel','sonstiges']){
     const r=refFiles.documentUploadFile('ABC123',{kind,fileName:'AV_ABC123.pdf',data:PDF},NOW);
