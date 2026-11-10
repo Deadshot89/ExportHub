@@ -253,7 +253,7 @@ module.exports=async function(context,req){
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   // Only explicitly enabled, validated shipment-closure notices are mailed.
   // Task-planner holidays are never treated as external business closures.
-  const notices=activeClosureNotices(current.team&&current.team.state,new Date());
+  const notices=activeClosureNotices(current.team&&current.team.state,new Date(),'mail');
   const htmlContent=renderAvisMailHtml(content,url,lang,closureNoticeHtml(notices,lang));
   if(previewOnly){
    // Authenticated, read-only preview: identical HTML to actual Graph send,

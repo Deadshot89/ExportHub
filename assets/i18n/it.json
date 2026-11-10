@@ -2674,5 +2674,11 @@
   "closureMail.snowEnable": "Attiva animazione",
   "closureMail.snowDisable": "Disattiva animazione",
   "closureMail.snowOn": "Animazione natalizia attiva",
-  "closureMail.snowOff": "Animazione natalizia disattivata"
+  "closureMail.snowOff": "Animazione natalizia disattivata",
+  "closureMail.mailVisible": "Mostra avviso nelle e-mail di ritiro",
+  "closureMail.portalVisible": "Mostra avviso sul portale di ritiro",
+  "closureMail.mailShow": "Attiva avviso e-mail",
+  "closureMail.mailHide": "Disattiva avviso e-mail",
+  "closureMail.portalShow": "Mostra avviso sul portale",
+  "closureMail.portalHide": "Nascondi avviso sul portale"
 }

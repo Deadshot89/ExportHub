@@ -333,7 +333,7 @@ function availabilityWithClosure(state,shipment,date){
  return Object.assign({},availability,{slots});
 }
 function publicClosureNotices(state){
- return closureMail.activeClosureNotices(state,new Date()).map(publicClosureFields);
+ return closureMail.activeClosureNotices(state,new Date(),'portal').map(publicClosureFields);
 }
 function publicShipment(sh,session,state,language='de'){
  const actual=dateTimeOf(sh),autoExpiresOn=avisExpiresOn(sh),copies=state?findCopies(state,sid(sh),sref(sh)):[],docSources=[sh].concat(copies.filter(x=>x!==sh)),docSeen=new Set(),mergedDocs=[];docSources.forEach(source=>documentRecords(source).forEach(d=>{const key=d.category+'|'+d.id;if(!docSeen.has(key)){docSeen.add(key);mergedDocs.push(d)}}));const docs=mergedDocs.map(d=>({id:d.id,name:d.name,mime:d.mime,size:d.size,category:d.category,downloadUrl:'/api/customer-avis?action=document&id='+encodeURIComponent(d.id)+'&session='+encodeURIComponent(session)})),podDocs=docs.filter(d=>d.category==='POD'),rows=rowsOf(sh).map((r,i)=>({position:i+1,type:text(r.type||r.packaging||r.verpackung),count:Math.max(0,Math.round(num(r.count||r.qty||r.quantity||r.anzahl))),weight:num(r.weight||r.gewicht),ldm:num(r.ldm||r.loadingMeter),length:num(r.l||r.length),width:num(r.w||r.width),height:num(r.h||r.height)})),totals=rows.reduce((a,r)=>{a.count+=r.count;a.weight+=r.weight;a.ldm+=r.count*r.ldm;return a},{count:0,weight:0,ldm:0});

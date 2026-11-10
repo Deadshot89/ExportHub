@@ -28,6 +28,25 @@ test('RC1337: a single admin-managed closure record provides a strictly opt-in a
  assert.equal(closure.activeClosureNotices({settings:{closureNotices:[base]}},new Date('2026-12-14T12:00:00Z'))[0].animateSnow,false);
  assert.equal(closure.activeClosureNotices({settings:{closureNotices:[{...base,animateSnow:'true'}]}},new Date('2026-12-14T12:00:00Z'))[0].animateSnow,false);
 });
+test('RC1337: mail and portal notice toggles are independent while booking stays blocked',()=>{
+ const now=new Date('2026-12-14T12:00:00Z'),hidden={...base,mailEnabled:false,portalEnabled:false,animateSnow:true};
+ const list=(record,channel)=>closure.activeClosureNotices({settings:{closureNotices:[record]}},now,channel);
+ assert.equal(list(hidden).length,1);
+ assert.equal(list(hidden,'mail').length,0);
+ assert.equal(list(hidden,'portal').length,0);
+ assert.equal(list({...hidden,mailEnabled:true},'mail').length,1);
+ assert.equal(list({...hidden,portalEnabled:true},'portal').length,1);
+ assert.equal(list(base,'mail').length,1);
+ assert.equal(list(base,'portal').length,1);
+ assert.ok(closure.closureForPickupDate({settings:{closureNotices:[hidden]}},'2026-12-24'));
+ assert.match(admin,/name="mailEnabled" checked/);
+ assert.match(admin,/name="portalEnabled" checked/);
+ assert.match(admin,/rows\[index\]\[prop\]=rows\[index\]\[prop\]===false/);
+ const mailApi=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
+ const portalApi=fs.readFileSync('api/customer-avis/index.js','utf8');
+ assert.match(mailApi,/activeClosureNotices\(current\.team&&current\.team\.state,new Date\(\),'mail'\)/);
+ assert.match(portalApi,/activeClosureNotices\(state,new Date\(\),'portal'\)/);
+});
 test('RC1337: public closure response shares only approved dates and animation preference',()=>{
  const start=api.indexOf('function publicClosureFields(notice){'),end=api.indexOf('function availabilityWithClosure(',start);
  assert.ok(start>0&&end>start);
@@ -57,7 +76,7 @@ test('RC1337: winter notice remains one existing closure card with localized wor
 test('RC1337: admin animation switches have translations in all six configured languages',()=>{
  for(const lang of ['de','en','pl','es','fr','it']){
   const dictionary=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
-  for(const key of ['snowAnimation','snowEnable','snowDisable','snowOn','snowOff']){
+  for(const key of ['snowAnimation','snowEnable','snowDisable','snowOn','snowOff','mailVisible','portalVisible','mailShow','mailHide','portalShow','portalHide']){
    assert.ok(dictionary['closureMail.'+key]?.length>8,lang+':'+key);
   }
  }

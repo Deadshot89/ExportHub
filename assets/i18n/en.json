@@ -2674,5 +2674,11 @@
   "closureMail.snowEnable": "Enable animation",
   "closureMail.snowDisable": "Disable animation",
   "closureMail.snowOn": "Christmas animation on",
-  "closureMail.snowOff": "Christmas animation off"
+  "closureMail.snowOff": "Christmas animation off",
+  "closureMail.mailVisible": "Show notice in collection emails",
+  "closureMail.portalVisible": "Show notice on the booking portal",
+  "closureMail.mailShow": "Enable email notice",
+  "closureMail.mailHide": "Disable email notice",
+  "closureMail.portalShow": "Show portal notice",
+  "closureMail.portalHide": "Hide portal notice"
 }

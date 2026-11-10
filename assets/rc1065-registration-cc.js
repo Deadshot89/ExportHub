@@ -187,7 +187,7 @@ function registrationClosureNotices(language){
  function mailDate(day){return new Intl.DateTimeFormat(locale,{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'))}
  var out=[],seen={},marker='=== ExportHUB360 ===';
  rows.slice(0,100).forEach(function(v){
-  if(!v||v.enabled!==true)return;
+  if(!v||v.enabled!==true||v.mailEnabled===false)return;
   var a=safeDay(v.startDate),b=safeDay(v.endDate),p=safeDay(v.lastPickupDate),r=safeDay(v.reopenDate),hour=q(v.lastPickupTime);
   var lead=v.leadDays==null?14:Number(v.leadDays);
   if(!a||!b||!p||!r||a>b||p>=a||r<=b||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(hour)||!Number.isInteger(lead)||lead<0||lead>90)return;
@@ -263,11 +263,11 @@ function installClosureSettings(host){
  var style=w.document.getElementById('rc1328ClosureStyle');
  if(!style){
   style=w.document.createElement('style');style.id='rc1328ClosureStyle';
-  style.textContent='.rc1328-closure{margin-top:16px}.rc1328-fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.rc1328-fields label{display:grid;gap:5px;font-weight:700}.rc1328-fields input{padding:9px;border:1px solid #94a3b8;border-radius:8px;min-height:40px}.rc1328-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rc1328-entries{padding-left:22px}.rc1328-entries li{margin-bottom:9px}.rc1328-entries button{margin-left:8px}.rc1328-status[data-kind="error"]{color:#b91c1c}.rc1328-status[data-kind="ok"]{color:#166534}.rc1337-snow-setting{display:flex;align-items:center;gap:9px;margin-top:14px;font-weight:650}.rc1337-snow-setting input{width:18px;height:18px;accent-color:#2563eb}.rc1337-snow-toggle{margin-left:8px}@media(max-width:700px){.rc1328-fields{grid-template-columns:1fr}}';
+  style.textContent='.rc1328-closure{margin-top:16px}.rc1328-fields{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px}.rc1328-fields label{display:grid;gap:5px;font-weight:700}.rc1328-fields input{padding:9px;border:1px solid #94a3b8;border-radius:8px;min-height:40px}.rc1328-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.rc1328-entries{padding-left:22px}.rc1328-entries li{margin-bottom:9px}.rc1328-entries button{margin-left:8px}.rc1328-status[data-kind="error"]{color:#b91c1c}.rc1328-status[data-kind="ok"]{color:#166534}.rc1337-snow-setting{display:flex;align-items:center;gap:9px;margin-top:14px;font-weight:650}.rc1337-snow-setting input{width:18px;height:18px;accent-color:#2563eb}.rc1337-snow-toggle{margin-left:8px}.rc1337-delivery-channels{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}.rc1337-delivery-channels label{display:flex;align-items:center;gap:8px;font-weight:650}.rc1337-delivery-channels input{width:18px;height:18px;accent-color:#2563eb}.rc1337-channel-toggle{margin-left:8px}@media(max-width:700px){.rc1328-fields{grid-template-columns:1fr}}';
   (w.document.head||w.document.documentElement).appendChild(style)
  }
  var box=w.document.createElement('section');box.id='rc1328ClosureSettings';box.className='card rc1328-closure';
- box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><label class="rc1337-snow-setting"><input type="checkbox" name="animateSnow">' +tr('closureMail.snowAnimation')+'</label><div class="rc1328-actions"><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
+ box.innerHTML='<h3>'+tr('closureMail.heading')+'</h3><p>'+tr('closureMail.help')+'</p><form data-rc1328-form><div class="rc1328-fields"><label>'+tr('closureMail.closedFrom')+'<input type="date" name="startDate" required></label><label>'+tr('closureMail.closedTo')+'<input type="date" name="endDate" required></label><label>'+tr('closureMail.lastPickupDate')+'<input type="date" name="lastPickupDate" required></label><label>'+tr('closureMail.lastPickupTime')+'<input type="time" name="lastPickupTime" required></label><label>'+tr('closureMail.reopenDate')+'<input type="date" name="reopenDate" required></label><label>'+tr('closureMail.leadDays')+'<input type="number" name="leadDays" min="0" max="90" step="1" value="14" required></label></div><div class="rc1337-delivery-channels"><label><input type="checkbox" name="mailEnabled" checked>' +tr('closureMail.mailVisible')+'</label><label><input type="checkbox" name="portalEnabled" checked>' +tr('closureMail.portalVisible')+'</label></div><label class="rc1337-snow-setting"><input type="checkbox" name="animateSnow">' +tr('closureMail.snowAnimation')+'</label><div class="rc1328-actions"><button class="btn" type="submit">'+tr('closureMail.add')+'</button><span class="rc1328-status" data-rc1328-status aria-live="polite"></span></div></form><h4>'+tr('closureMail.existing')+'</h4><ul class="rc1328-entries" data-rc1328-entries></ul>';
  host.appendChild(box);
  var form=box.querySelector('[data-rc1328-form]'),status=box.querySelector('[data-rc1328-status]'),list=box.querySelector('[data-rc1328-entries]');
  function show(message,kind){status.textContent=message||'';status.setAttribute('data-kind',kind||'info')}
@@ -298,13 +298,33 @@ function installClosureSettings(host){
      await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
     }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');snowToggle.disabled=false}
    });
-   li.appendChild(text);li.appendChild(snowToggle);li.appendChild(remove);list.appendChild(li)
+   function channelToggle(prop,showKey,hideKey){
+    var button=w.document.createElement('button'),enabled=item[prop]!==false;
+    button.type='button';button.className='btn flat small rc1337-channel-toggle';
+    button.textContent=tr(enabled?hideKey:showKey);
+    button.setAttribute('aria-pressed',enabled?'true':'false');
+    button.setAttribute('aria-label',button.textContent+' · '+item.startDate);
+    button.addEventListener('click',async function(){
+     button.disabled=true;show(tr('closureMail.saving'));
+     try{
+      var rows=closureEntries();
+      if(!rows[index])throw new Error(tr('closureMail.invalid'));
+      rows[index][prop]=rows[index][prop]===false;
+      await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
+     }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');button.disabled=false}
+    });
+    return button
+   }
+   li.appendChild(text);
+   li.appendChild(channelToggle('mailEnabled','closureMail.mailShow','closureMail.mailHide'));
+   li.appendChild(channelToggle('portalEnabled','closureMail.portalShow','closureMail.portalHide'));
+   li.appendChild(snowToggle);li.appendChild(remove);list.appendChild(li)
   })
  }
  form.addEventListener('submit',async function(ev){
   ev.preventDefault();
   var field=function(k){return q(form.elements.namedItem(k)&&form.elements.namedItem(k).value)};
-  var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays')),animateSnow:!!(form.elements.namedItem('animateSnow')&&form.elements.namedItem('animateSnow').checked)};
+  var entry={enabled:true,startDate:safeDay(field('startDate')),endDate:safeDay(field('endDate')),lastPickupDate:safeDay(field('lastPickupDate')),lastPickupTime:field('lastPickupTime'),reopenDate:safeDay(field('reopenDate')),leadDays:Number(field('leadDays')),animateSnow:!!(form.elements.namedItem('animateSnow')&&form.elements.namedItem('animateSnow').checked),mailEnabled:!!(form.elements.namedItem('mailEnabled')&&form.elements.namedItem('mailEnabled').checked),portalEnabled:!!(form.elements.namedItem('portalEnabled')&&form.elements.namedItem('portalEnabled').checked)};
   if(!entry.startDate||!entry.endDate||!entry.lastPickupDate||!entry.reopenDate||
     entry.startDate>entry.endDate||entry.lastPickupDate>=entry.startDate||entry.reopenDate<=entry.endDate||
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.lastPickupTime)||!Number.isInteger(entry.leadDays)||entry.leadDays<0||entry.leadDays>90){

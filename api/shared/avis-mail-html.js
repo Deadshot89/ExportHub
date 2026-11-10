@@ -49,9 +49,9 @@ function normalizeClosureNotice(value){
     startDate>endDate||lastPickupDate>=startDate||reopenDate<=endDate||
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(lastPickupTime)||
     !Number.isInteger(leadDays)||leadDays<0||leadDays>90)return null;
- return{startDate,endDate,lastPickupDate,lastPickupTime,reopenDate,leadDays,animateSnow:value.animateSnow===true};
+ return{startDate,endDate,lastPickupDate,lastPickupTime,reopenDate,leadDays,animateSnow:value.animateSnow===true,mailEnabled:value.mailEnabled!==false,portalEnabled:value.portalEnabled!==false};
 }
-function activeClosureNotices(state,now){
+function activeClosureNotices(state,now,channel){
  const settings=state&&state.settings;
  const entries=settings&&settings.closureNotices;
  if(!Array.isArray(entries))return [];
@@ -59,6 +59,7 @@ function activeClosureNotices(state,now){
  if(!today)return [];
  const unique=new Set();
  return entries.slice(0,100).map(normalizeClosureNotice).filter(Boolean)
+  .filter(v=>channel==='mail'?v.mailEnabled!==false:channel==='portal'?v.portalEnabled!==false:true)
   .filter(v=>{
    const from=new Date(v.startDate+'T12:00:00Z');
    from.setUTCDate(from.getUTCDate()-v.leadDays);

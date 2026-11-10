@@ -2674,5 +2674,11 @@
   "closureMail.snowEnable": "Activer l'animation",
   "closureMail.snowDisable": "Désactiver l'animation",
   "closureMail.snowOn": "Animation de Noël activée",
-  "closureMail.snowOff": "Animation de Noël désactivée"
+  "closureMail.snowOff": "Animation de Noël désactivée",
+  "closureMail.mailVisible": "Afficher l'avis dans les e-mails d'enlèvement",
+  "closureMail.portalVisible": "Afficher l'avis sur le portail",
+  "closureMail.mailShow": "Activer l'avis par e-mail",
+  "closureMail.mailHide": "Désactiver l'avis par e-mail",
+  "closureMail.portalShow": "Afficher l'avis sur le portail",
+  "closureMail.portalHide": "Masquer l'avis sur le portail"
 }

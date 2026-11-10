@@ -2674,5 +2674,11 @@
   "closureMail.snowEnable": "Animation einschalten",
   "closureMail.snowDisable": "Animation ausschalten",
   "closureMail.snowOn": "Weihnachtsanimation aktiv",
-  "closureMail.snowOff": "Weihnachtsanimation aus"
+  "closureMail.snowOff": "Weihnachtsanimation aus",
+  "closureMail.mailVisible": "Hinweis in Lieferavis-Mails anzeigen",
+  "closureMail.portalVisible": "Hinweis auf Avisierungsseite anzeigen",
+  "closureMail.mailShow": "Mailhinweis einschalten",
+  "closureMail.mailHide": "Mailhinweis ausschalten",
+  "closureMail.portalShow": "Avis-Seitenhinweis einschalten",
+  "closureMail.portalHide": "Avis-Seitenhinweis ausschalten"
 }

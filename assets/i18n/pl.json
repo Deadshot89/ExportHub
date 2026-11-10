@@ -2674,5 +2674,11 @@
   "closureMail.snowEnable": "Włącz animację",
   "closureMail.snowDisable": "Wyłącz animację",
   "closureMail.snowOn": "Animacja świąteczna włączona",
-  "closureMail.snowOff": "Animacja świąteczna wyłączona"
+  "closureMail.snowOff": "Animacja świąteczna wyłączona",
+  "closureMail.mailVisible": "Pokaż informację w e-mailach awizacyjnych",
+  "closureMail.portalVisible": "Pokaż informację w portalu odbioru",
+  "closureMail.mailShow": "Włącz informację w e-mailu",
+  "closureMail.mailHide": "Wyłącz informację w e-mailu",
+  "closureMail.portalShow": "Pokaż informację w portalu",
+  "closureMail.portalHide": "Ukryj informację w portalu"
 }
