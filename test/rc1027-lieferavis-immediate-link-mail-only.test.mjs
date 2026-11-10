@@ -113,7 +113,7 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api,rc}=load(shipment,{reference:'7RZ5W9'});
   await rc.carrierAvisUrl(shipment);
-  const out=api.injectMailBody(sh,'carrier',expandedDetails,'de');
+  const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
   assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/c{48}/i);
   assert.doesNotMatch(out,/avis\/server-token/i,'Der Kundenlink darf nicht in der Speditionsmail stehen');
@@ -131,7 +131,7 @@ test('RC1349: Speditionslink lehnt unpassenden Token und fremde Empfängerart ab
   const sh={...shipment};
   const {api,rc}=load(sh,{reference:'7RZ5W9',carrierIssueResponse});
   await assert.rejects(()=>rc.carrierAvisUrl(sh));
-  const body=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
+  const body=api.injectMailBody(sh,'carrier',expandedDetails,'de');
   assert.doesNotMatch(body,/\/avis\/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/i,'Customer token must never become a carrier link');
  }
 });
