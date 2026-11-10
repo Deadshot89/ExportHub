@@ -38,6 +38,7 @@ function render(){
  var els={title:'[data-rc1962-title]',help:'[data-rc1962-help]',choose:'[data-rc1962-choose]',start:'[data-rc1962-start]'};
  Object.keys(els).forEach(function(key){var el=h.querySelector(els[key]);if(el)el.textContent=t(key)});
  var b=h.querySelector('[data-rc1962-start]'),f=h.querySelector('[data-rc1962-file]');
+ if(f)f.disabled=busy;
  if(b)b.disabled=busy||!f||!f.files||!f.files.length;
  preview()
 }

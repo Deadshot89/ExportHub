@@ -90,6 +90,8 @@ test('RC1962 never silently discards shipped positions beyond 500',async()=>{
 test('RC1962 local import transfers only allowlisted position keys; Excel bytes never reach API',()=>{
  assert.match(ui,/new w\.Worker\('\/assets\/rc1962-d365-xlsx-worker\.js\?v=1962'\)/);
  assert.match(ui,/worker\.postMessage\(\{file:file\}\)/);
+ assert.match(ui,/if\(f\)f\.disabled=busy/);
+ assert.match(proforma,/edited&&\(typeof root\.confirm!=='function'/);
  assert.doesNotMatch(worker,/fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon\s*\(|importScripts\s*\(/);
  assert.doesNotMatch(ui,/fetch\s*\(|XMLHttpRequest|sendBeacon\s*\(|\/api\/abd-analysis[^/]/);
  assert.match(ui,/importPositionsOnly\(items\)/);

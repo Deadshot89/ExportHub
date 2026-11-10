@@ -302,7 +302,7 @@ function importPositionsOnly(positions){
  if(!Array.isArray(positions)||positions.length<1||positions.length>500||
     positions.some(function(p){return !p||typeof p!=='object'||!(number(p.quantity)>0)})){setStatus(t('uploadEmpty'),'bad');return false}
  var edited=rows.some(function(r){return !!(q(r.itemNumber)||q(r.description)||q(r.quantity)||q(r.unitPrice)||q(r.value)||q(r.netMassKg)||q(r.grossMassKg)||q(r.commodityCode)||q(r.originCountry))});
- if(edited&&typeof root.confirm==='function'&&!root.confirm('Bereits erfasste Artikelpositionen ersetzen?'))return false;
+ if(edited&&(typeof root.confirm!=='function'||!root.confirm('Bereits erfasste Artikelpositionen ersetzen?')))return false;
  var workspace=root.ExportHUBDocuments1940,existing=root.document&&root.document.getElementById('rc1940Documents');
  if(!existing&&(!workspace||typeof workspace.open!=='function'||!workspace.open('invoice'))){setStatus(t('error'),'bad');return false}
  if(existing){var tab=existing.querySelector('[data-rc1790-tab="invoice"]');if(tab)tab.click()}
