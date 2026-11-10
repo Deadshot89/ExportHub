@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
+const publicAccess=require('../shared/public-access-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml,activeClosureNotices,closureNoticeHtml}=require('../shared/avis-mail-html');
 
@@ -62,7 +63,6 @@ async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl,previewO
  // Preview must be read-only: never issue access tokens or update blob indexes.
  // A carrier preview uses a nonfunctional placeholder instead of exposing the customer link.
  if(previewOnly)return target==='carrier'?replaceAvisToken(original,'preview-carrier-no-access'):original;
- const publicAccess=require('../shared/public-access-store');
  const environment=auth.environmentFromRequest(req);
  const requiredAudience=target==='carrier'?'carrier':'customer';
  const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
