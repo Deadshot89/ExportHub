@@ -87,6 +87,8 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
 <label class="field">Lieferart *<select name="delivery" required><option value="" data-i18n="urgentOrderV2.chooseOrder">Bitte wählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label>
 <label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label>
+<p class="help" role="note" id="urgentPriorityLegend" data-i18n="urgentOrderV2.priorityLegend">P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today\u0027s order</p>
+<div class="field wide" id="p1CostApprovalField" hidden><label class="inline-check"><input id="p1CostApproved" type="checkbox"> <span id="p1CostApprovalText" data-i18n="urgentOrderV2.p1ApprovalConfirm">I confirm that coverage of the special transport costs has been approved.</span></label></div>
 <label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="internalRequestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
@@ -94,7 +96,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
-<div id="lineFields"></div>
+<fieldset class="field" style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="inline-check"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="inline-check"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lineFields"></div>
 </div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div>
 <section id="internalLateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="internalLateCutoffHeading" hidden>
 <h3 id="internalLateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
@@ -105,7 +107,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 
-<div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allLevels">Alle Stufen</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="" data-i18n="urgentOrderV2.allDeliveries">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directShortDelivery">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="Waved">Waved</option><option value="In Progress">In Progress</option><option value="Problem">Problem</option><option value="Loaded">Loaded</option><option value="Shipped">Shipped</option><option value="Invoiced">Invoiced</option><option value="exception">Check required</option></select></div>
+<div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allLevels">Alle Stufen</option><option value="P1">P1 – Sondertransport</option><option value="P2">P2 – Express-Lieferung</option><option value="P3">P3 – Backlog</option><option value="P4">P4 – Auftrag von heute</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="" data-i18n="urgentOrderV2.allDeliveries">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directShortDelivery">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="Waved">Waved</option><option value="In Progress">In Progress</option><option value="Problem">Problem</option><option value="Loaded">Loaded</option><option value="Shipped">Shipped</option><option value="Invoiced">Invoiced</option><option value="exception">Check required</option></select></div>
 <div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
 <div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail-Verlauf</span><span>Aktionen</span></div>
@@ -196,6 +198,18 @@ function lineField(){
  min.addEventListener('change',()=>{lead.hidden=!min.checked;lead.querySelector('select').required=min.checked;if(!min.checked)lead.querySelector('select').value='';});
  localizeLineChoices(box);$('lineFields').appendChild(box);
 }
+function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
+function syncScope(){
+ const all=isAllLines();$('lineFields').hidden=all;$('addLine').hidden=all;
+ for(const el of $('lineFields').querySelectorAll('input,select,textarea'))el.disabled=all;
+}
+function syncP1Approval(){
+ const p1=$('newOrder').elements.priority.value==='P1',field=$('p1CostApprovalField'),check=$('p1CostApproved');
+ field.hidden=!p1;check.required=p1;if(!p1)check.checked=false;
+ const en=$('csLanguage').value==='en';
+ $('urgentPriorityLegend').textContent=localeV2('priorityLegend','P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today');
+ $('p1CostApprovalText').textContent=localeV2('p1ApprovalConfirm','I confirm that coverage of the special transport costs has been approved.');
+}
 function formItems(){
  return [...document.querySelectorAll('.uo-item')].map(box=>{
   const get=k=>box.querySelector('[data-field="'+k+'"]'),check=k=>get(k).value==='true'?true:get(k).value==='false'?false:null;
@@ -211,14 +225,14 @@ function showInternalStep(step){
  for(const mark of document.querySelectorAll('[data-internal-mark]')){if(Number(mark.dataset.internalMark)===internalStep)mark.setAttribute('aria-current','step');else mark.removeAttribute('aria-current');}
  $('internalWizardBack').hidden=internalStep===1;$('internalWizardNext').hidden=internalStep===3;
  if(internalStep===3){
-  const form=$('newOrder'),items=formItems();
-  $('internalWizardReview').textContent=form.elements.orderNumber.value.trim()+' · '+priorityText(form.elements.priority.value)+' · '+items.length+' '+localeV2('positions','Positionen')+' · '+form.elements.email.value.trim();
+  const form=$('newOrder'),items=isAllLines()?[]:formItems();
+  $('internalWizardReview').textContent=form.elements.orderNumber.value.trim()+' · '+priorityText(form.elements.priority.value)+' · '+(isAllLines()?(localeV2('wholeOrder','Entire order (all lines)')):items.length+' '+localeV2('positions','Positionen'))+' · '+form.elements.email.value.trim();
  }
 }
 function nextInternalStep(){
  const panel=document.querySelector('[data-internal-step="'+internalStep+'"]');
  for(const field of panel.querySelectorAll('input,select,textarea'))if(field.willValidate&&!field.checkValidity()){field.reportValidity();field.focus();return;}
- if(internalStep===2){
+ if(internalStep===2&&!isAllLines()){
   const items=formItems();
   if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage',localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
   if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
@@ -299,6 +313,7 @@ function render(){
   const shippingLabel=escapeHtml(localeV2('shippingConfirmation','Versandbestätigung'));
   const shipping=canManage?'<button type="button" class="btn alt small" data-mail="shipping">'+shippingLabel+'</button>':'';
   const rows=(order.items||[]).map(item=>{
+   if(item.scope==='ALL_LINES')return '<tr><td colspan="5"><strong>'+escapeHtml(localeV2('wholeOrder','Entire order (all lines)'))+'</strong> · '+escapeHtml(localeV2('individualLinesNotChecked','Individual lines not checked'))+'</td><td>'+(canManage?'<select class="state-pill" aria-label="Status: kompletter Auftrag" data-item="'+escapeHtml(item.id)+'">'+STATUS.map(status=>'<option value="'+escapeHtml(status)+'" '+(item.status===status?'selected':'')+'>'+escapeHtml(statusText(status))+'</option>').join('')+'</select>':statusBadge(item.status))+'</td></tr>';
    const checkLabel=item.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):localeV2('confirmed','Bestätigt');
    return '<tr><td>'+escapeHtml(item.line||'–')+'</td><td>'+escapeHtml(item.article||'–')+'</td><td>'+escapeHtml(item.quantity)+'</td><td>'+escapeHtml(item.minibag?'Ja':'Nein')+'</td><td class="'+(item.checkResult==='exception'?'flag':'ok')+'">'+escapeHtml(checkLabel)+(item.exceptionReason?'<span class="sub">'+escapeHtml(item.exceptionReason)+'</span>':'')+'</td><td>'+(canManage?'<select class="state-pill state-'+escapeHtml(txt(item.status).replace(/[^A-Za-z]/g,''))+'" aria-label="Status: '+escapeHtml(item.article||item.line)+'" data-item="'+escapeHtml(item.id)+'">'+STATUS.map(s=>'<option value="'+escapeHtml(s)+'" '+(item.status===s?'selected':'')+'>'+escapeHtml(statusText(s))+'</option>').join('')+'</select>':statusBadge(item.status))+(item.status==='Problem'&&item.problemNote?'<span class="sub">'+escapeHtml(item.problemNote)+'</span>':'')+'</td></tr>'}).join('');
   const freightData=order.directOutbound;
@@ -313,7 +328,7 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml((order.items||[]).length)+' '+escapeHtml(localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+mailHistoryMarkup(order)+'</div>';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+mailHistoryMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();
@@ -403,14 +418,14 @@ async function submit(ev){
  const approved=internalCutoffApproved;internalCutoffApproved=false;
  const lateToday=syncInternalCutoff();
  if(!form.reportValidity()){showInternalStep(1);return;}
- const items=formItems();
+ const items=isAllLines()?[]:formItems();
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  if(lateToday&&!approved){showInternalCutoffChoice();return;}
  hideInternalCutoffChoice();
- const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,items};
+ const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
+ try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
@@ -492,7 +507,9 @@ $('newOrder').addEventListener('submit',submit);
 $('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
 $('internalLateSubmitToday').addEventListener('click',()=>internalLateChoice(false));
 $('internalLateMoveTomorrow').addEventListener('click',()=>internalLateChoice(true));
-$('csLanguage').addEventListener('change',syncInternalCutoff);
+$('csLanguage').addEventListener('change',()=>{syncInternalCutoff();syncP1Approval();});
+$('newOrder').elements.priority.addEventListener('change',syncP1Approval);
+document.querySelectorAll('input[name="lineScope"]').forEach(el=>el.addEventListener('change',syncScope));
 $('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('clearInternalEmailHistory').addEventListener('click',forgetEmails);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
@@ -504,7 +521,7 @@ window.addEventListener('exporthub:language-changed',render);
 window.addEventListener('exporthub:language-changed',syncInternalCutoff);
 $('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
 $('urgentBackToHub').href=urgentPublicOrigin()+'/';
-renderSavedEmails();lineField();syncInternalCutoff();showInternalStep(1);refresh();
+renderSavedEmails();lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);refresh();
 })();
 </script>
 <script>/* Eingebettet in ExportHUB360: eigene Kopfzeile und schwebende Sprachauswahl der Hauptseite überlagerten "Zurück" (2026-11-06) */if(/[?&]embedded=1(?:&|$)/.test(location.search))document.documentElement.setAttribute('data-embedded','1');</script>

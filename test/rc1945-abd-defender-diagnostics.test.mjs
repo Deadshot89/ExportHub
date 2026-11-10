@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const {PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount}=require('../api/shared/rc1945-abd-defender-diagnostics.js');
+const {PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount,knownExportHubBlobAccount}=require('../api/shared/rc1945-abd-defender-diagnostics.js');
 const fixtureSource=fs.readFileSync('api/e2e-test-fixture/index.js','utf8');
 const workflowSource=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
@@ -155,4 +155,58 @@ test('RC1960: account proof remains behind existing TESTSERVICE OIDC gate',()=>{
  assert.doesNotMatch(block,/console\.log|context\.log|\.setTags\(|\.upload\(|\.delete\(/);
  assert.ok(fixtureSource.indexOf('if(!await githubOidcAuthorized(req))')<start);
  assert.ok(fixtureSource.indexOf('requireTestservice(req,payload)')<start);
+});
+
+test('RC1961: signed TESTSERVICE workflow reports only validated storage-account tri-state',()=>{
+ assert.match(workflowSource,/const observedAccountMatch=v\.observedPortalAccountMatchesActiveBlob/);
+ assert.match(workflowSource,/observedAccountMatch===true\|\|observedAccountMatch===false\|\|observedAccountMatch===null/);
+ assert.match(workflowSource,/v\.status!=="verified"&&\(observedAccountMatch!==null\|\|knownAccount!==null\)/);
+ assert.match(workflowSource,/report\.observedPortalAccountMatchesActiveBlob=observedAccountMatch/);
+ assert.match(workflowSource,/Tatsächliches ABD-Speicherkonto entspricht Portalbefund/);
+ const begin=workflowSource.indexOf('const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob');
+ const end=workflowSource.indexOf('console.log("RC1945 Defender-Scan-Diagnose ',begin);
+ assert.ok(begin>=0&&end>begin);
+ assert.doesNotMatch(workflowSource.slice(begin,end),/account\.url|connectionString|AccountKey|sasToken/);
+});
+
+
+test('RC1962: read-only endpoint classification distinguishes all three user-confirmed Azure accounts',()=>{
+ assert.equal(knownExportHubBlobAccount('https://exporthubdata89.blob.core.windows.net/'),'main-portal');
+ assert.equal(knownExportHubBlobAccount('https://exporthubtestdata89.blob.core.windows.net/'),'test-central-us');
+ assert.equal(knownExportHubBlobAccount('https://exporthubtestde89.blob.core.windows.net/'),'test-germany-west-central');
+ assert.equal(knownExportHubBlobAccount('https://anotherstorageaccount.blob.core.windows.net/'),'other-standard-azure');
+ assert.equal(matchesObservedPortalAccount('https://exporthubtestdata89.blob.core.windows.net/'),false);
+ assert.equal(matchesObservedPortalAccount('https://exporthubtestde89.blob.core.windows.net/'),false);
+});
+
+test('RC1962: hostile or nonstandard SDK endpoints cannot be classified as known accounts',()=>{
+ for(const endpoint of [
+  '', 'https://example.org/', 'not-an-endpoint',
+  'http://exporthubtestdata89.blob.core.windows.net/',
+  'https://exporthubtestdata89.blob.core.windows.net:10000/',
+  'https://user:pass@exporthubtestdata89.blob.core.windows.net/',
+  'https://exporthubtestde89.blob.core.windows.net.attacker.invalid/',
+  'https://exporthubtestde89.blob.core.usgovcloudapi.net/',
+  'https://exporthubtestdata89.blob.core.windows.net/?sig=SENSITIVE',
+  'https://exporthubtestde89.blob.core.windows.net/fake-path'
+ ]) assert.equal(knownExportHubBlobAccount(endpoint),null,endpoint);
+});
+
+test('RC1962: signed TESTSERVICE inventory returns only a fixed class without exposing Blob URL',()=>{
+ const begin=fixtureSource.indexOf("if(action==='diagnose-abd-defender')");
+ const end=fixtureSource.indexOf("if(action==='inventory-blob-policy')",begin);
+ const block=fixtureSource.slice(begin,end);
+ assert.match(block,/knownStorageAccount=knownExportHubBlobAccount\(account\.url\)/);
+ assert.match(block,/knownExportHubStorageAccount:diagnostics\.status==='verified'\?knownStorageAccount:null/);
+ assert.ok(fixtureSource.indexOf('if(!await githubOidcAuthorized(req))')<begin);
+ assert.doesNotMatch(block,/console\.log|context\.log|\.setTags\(|\.upload\(|\.delete\(/);
+ assert.match(workflowSource,/const knownAccount=v\.knownExportHubStorageAccount/);
+ assert.match(workflowSource,/!kinds\.includes\(knownAccount\)/);
+ assert.match(workflowSource,/knownAccount==="main-portal"&&observedAccountMatch!==true/);
+ assert.match(workflowSource,/knownAccount!==null&&knownAccount!=="main-portal"&&observedAccountMatch!==false/);
+ assert.match(workflowSource,/report\.knownExportHubStorageAccount=knownAccount/);
+ assert.doesNotMatch(workflowSource.slice(
+  workflowSource.indexOf('const knownAccount=v.knownExportHubStorageAccount'),
+  workflowSource.indexOf('console.log("RC1945 Defender-Scan-Diagnose')
+ ),/AccountKey|sasToken|process\.env\.EXPORTHUB_STORAGE_CONNECTION_STRING/);
 });

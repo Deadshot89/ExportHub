@@ -150,3 +150,31 @@ test('P0: slow Azure timeout cannot trigger an additional cascade of full retrie
   assert.equal(slow.counts().uploads,1,'already timed-out Azure writes must not be multiplied');
   assert.equal(slow.counts().reads,0);
 });
+
+test('RC1961: successful state save exposes strictly numeric per-phase durations without leaking state content',async()=>{
+ const saved=await fixture(null).save();
+ const timing=saved.__timing;
+ const fields=['mergeStateMs','compactionMs','auditMs','dynamicI18nMs','equivalenceMs'];
+ for(const field of fields){
+  assert.equal(typeof timing[field],'number',field+' missing');
+  assert.ok(timing[field]>=0,field+' must never be negative');
+ }
+ const start=source.indexOf('function timingHeaders('),end=source.indexOf('\nfunction body(',start);
+ assert.ok(start>=0&&end>start,'use the actual deployed timingHeaders function');
+ const timingHeaders=vm.runInNewContext(source.slice(start,end)+'\ntimingHeaders',{Number,String,Math,text:v=>String(v??'').trim()});
+ const headers=timingHeaders(timing);
+ const names=['X-ExportHUB-Merge-State-Ms','X-ExportHUB-Compaction-Ms',
+  'X-ExportHUB-Audit-Ms','X-ExportHUB-Dynamic-I18n-Ms','X-ExportHUB-Equivalence-Ms'];
+ for(const name of names)assert.match(headers[name],/^\d+$/,'non-numeric or missing '+name);
+ assert.doesNotMatch(JSON.stringify(headers),/Kunde|shipment|secret|password/i,
+  'phase telemetry must contain no business content');
+});
+
+test('RC1961: verified no-op save still exposes comparison timing and does not write',async()=>{
+ const f=fixture(null,{alreadySaved:true,optimistic:true});
+ const saved=await f.save();
+ assert.equal(saved.noopSave,true);
+ assert.equal(typeof saved.__timing.equivalenceMs,'number');
+ assert.equal(typeof saved.__timing.compactionMs,'number');
+ assert.equal(f.counts().uploads,0);
+});

@@ -283,6 +283,7 @@ module.exports=async function(context,req){
    const q=qualityContainer(env),buffer=await q.container.getBlockBlobClient(q.prefix+meta.blobPath).downloadToBuffer();
    if(!verifyAttachmentBytes(meta,buffer))throw err('ATTACH_INTEGRITY','Der Anhang stimmt nicht mehr mit dem gespeicherten Prüfwert überein',409);
    context.res={status:200,isRaw:true,headers:{'Content-Type':meta.mime,'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(meta.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};return}
+  if(action==='counts'){const records=await readRecords(env),items=recordsOf(records.value);const open=items.filter(item=>item&&item.status!=='abgeschlossen').length;context.res=json(200,{ok:true,open,closed:items.length-open,total:items.length,environment:env});return}
   if(action==='list'){const records=await readRecords(env),items=recordsOf(records.value);context.res=json(200,{ok:true,items:items.map(withIntegrity),environment:env,canEdit:canEdit(user),canClose:canClose(user)});return}
   if(action==='patterns'){
    // Reine Berechnung über die gespeicherten Fälle: nur lesend, keine KI, keine Kosten.

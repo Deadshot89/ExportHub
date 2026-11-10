@@ -26,7 +26,7 @@ test('15:15 in Europe/Berlin remains within the same-day window; 15:16 is late',
 
 test('warning applies to all same-day priorities, but tomorrow is allowed',()=>{
  for(const priority of model.PRIORITIES){
-  const late=model.createOrder({...payload,priority,requestedDispatchDate:'2026-11-09'},actor,'2026-11-09T14:16:00Z');
+  const late=model.createOrder({...payload,priority,transportCostsApproved:priority==='P1',requestedDispatchDate:'2026-11-09'},actor,'2026-11-09T14:16:00Z');
   assert.equal(late.cutoff.lateSameDay,true,priority);
  }
  const moved=model.createOrder({...payload,requestedDispatchDate:'2026-11-10'},actor,'2026-11-09T15:00:00Z');

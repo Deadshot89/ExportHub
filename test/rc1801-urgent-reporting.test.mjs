@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const actor={id:'CS-1',name:'Customer Service'};
 const logistics={id:'OPS-1',rights:{shipmentoverview:{level:'edit'}}};
 function base(extra={}){
- return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',email:'cs@example.com',language:'de',
+ return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
   orderType:'DIRECT_OUTBOUND',directOutbound:{
    arrivalAt:'2026-11-09T08:30',arrivalMode:'TRUCK',arrivalProvider:'Example Freight',
    dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true

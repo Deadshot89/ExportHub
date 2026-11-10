@@ -37,6 +37,20 @@ Dieser Wert sagt **nichts** über eine erfolgreiche Kopie aus. `archiveSaved` un
 
 Für echte Kontentrennung muss ein **bereits autorisiertes** zweites Azure-Speicherkonto gewählt oder ein neues mit genehmigtem Kosten-/Sicherheitskonzept bereitgestellt werden. Den vollständigen Connection String ausschließlich serverseitig in `EXPORTHUB_POD_BACKUP_CONNECTION_STRING` hinterlegen, TESTSERVICE und PRODUKTION getrennt prüfen. Kein fremdes/privates Konto für Firmen-PODs verwenden. Die Umgebungskonfiguration ist keine Codeänderung und wird durch Merge/Deployment **nicht** automatisch vorgenommen. Zuerst nur ein freigegebenes TESTSERVICE-Testdokument auf dem zweiten Account ablegen und per Hash aus dem Backup rücklesen; danach kontrolliert für Produktion freigeben.
 
+## IT-freier portabler POD-Export (RC1957, zusätzlich)
+
+Der bestehende manuell aus der geschützten ExportHUB-Oberfläche gestartete POD-Sammeldownload benötigt keine zusätzlichen Microsoft-Graph-Rechte. Er sammelt das **bereits gespeicherte digitale Original-PDF** und – soweit vorhanden – jeden getrennt hochgeladenen manuellen POD in einem ZIP. Originaldateien, Unterschriften, Azure-Blob-Versionen und Team-State werden dabei **nicht** verändert.
+
+RC1957 ergänzt für jedes **tatsächlich erfolgreich geladene PDF** eine SHA-256-Prüfsumme in der ZIP-Datei `SHA256SUMS.txt`. Die Dateinamen werden zuvor kollisionsfrei normalisiert, damit bei gleicher Referenz und gleichem Dateinamen keine PDF überschrieben wird und die Prüfsumme zum endgültigen ZIP-Namen passt.
+
+- Der Download gilt nur bei vollständig geladenen Dateien und erzeugten Prüfsummen als vollständig. Fehlt eine PDF, fehlt WebCrypto oder schlägt die Hash-Berechnung fehl, muss die Sicherung **unvollständig** bleiben; keine imaginären Originale und keine stillschweigend fehlenden Dateien.
+- Für ein eindeutiges `SHA256SUMS.txt` werden vor der Prüfsummenliste außerdem PDF-Dateinamen mit Zeilenumbrüchen, Steuerzeichen, Pfadtrennern oder über 180 Zeichen zurückgewiesen (`RC1957_UNSAFE_FILENAME`). Sonst könnte die Hashliste zusätzliche Zeilen vortäuschen oder beim Entpacken Verzeichnisse beeinflussen. Zulässige Unicode-Zeichen bleiben erhalten; die PDF-Bytes werden nicht neu geschrieben.
+- Ein Dateiname mit `.pdf` reicht nicht als PDF-Nachweis. Vor dem Prüfsummenmanifest muss jede enthaltene PDF-Datei eine syntaktisch plausible PDF-Versionskennung (`%PDF-1.7`, `%PDF-2.0` usw.) innerhalb der ersten 1024 Bytes besitzen. Erkennbare HTML-/JSON- und HTTP-/Text-Fehlerantworten werden auch dann abgelehnt, wenn der Fehlertext selbst `%PDF-1.7` enthält. Fehlerhafte oder unvollständige Antworten markieren den Export als **unvollständig**. Diese schnelle Formaterkennung ist keine vollständige PDF-Strukturprüfung und ersetzt weder Virenschutz noch Echtheitsprüfung.
+- Die ZIP-Datei kann der berechtigte Nutzer ohne Terminal auf einen **freigegebenen Firmenspeicher außerhalb des bisherigen Azure-Speicherkontos** kopieren. Erst die tatsächlich vorhandene, getrennt abgelegte und erfolgreich rücklesbare ZIP ist eine unabhängige Zweitkopie.
+- `SHA256SUMS.txt` erlaubt beim späteren Prüfen der entpackten Dateien die Unverändertheit gegenüber dem Export festzustellen. **Eine Prüfsumme innerhalb derselben ZIP ist keine kryptografische Echtheitsbescheinigung für die Herkunft und kein Ersatz für signierte Originalmetadaten.**
+- Keine automatischen E-Mails, privaten Cloud-Speicher, GitHub-Actions-Artefakte oder öffentlichen Links mit POD-Kundendaten verwenden.
+- Diese manuelle, IT-freie Exportmöglichkeit ist **kein Beleg einer verifizierten SharePoint-Sicherung**. Die bisherigen getrennten Statusfelder und der P0-Vorfall #999 bleiben unverändert. Automatische unabhängige Aufbewahrung/Wiederherstellung ist weiterhin gesondert abzusichern.
+
 ## Microsoft Graph – Ziel und Berechtigungen
 
 Erforderlich sind die Azure-seitig geschützten Werte:
