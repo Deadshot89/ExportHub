@@ -34,6 +34,36 @@ test('RC1371: dashboard mounts once, preserves live cards and exposes editor con
   await openDashboard(page);
   // RC1573 replaces the visible RC1371 toolbar with the new tile editor in
   // the overview band. Verify the public UI rather than requiring a hidden legacy button.
+  // RC1965: the two new counts are siblings of the original KPI cards, never nested mini-widgets.
+  const urgent=page.locator('#rc1558Overview .rc1558-kpis > .rc1558-kpi[data-rc1558-open-module="urgentorders"]');
+  const quality=page.locator('#rc1558Overview .rc1558-kpis > .rc1558-kpi[data-rc1558-open-module="quality"]');
+  await expect(urgent).toBeVisible();
+  await expect(quality).toBeVisible();
+  await expect(page.locator('#rc1558Overview .rc1558-kpi-openwork, #rc1558Overview .rc1558-openwork-action')).toHaveCount(0);
+  await expect(page.locator('[data-rc1573-own="openwork"]')).toHaveCount(0);
+  const visual=await page.evaluate(()=>{
+    const root=document.querySelector('#rc1558Overview .rc1558-kpis');
+    const original=root&&root.querySelector('.rc1558-kpi[data-rc1558-kpi="open"]');
+    const news=root&&[...root.querySelectorAll('.rc1558-kpi[data-rc1558-open-module]')];
+    if(!original||!news||news.length!==2)return null;
+    function style(card){
+      const number=card.querySelector('.rc1558-kpi-value');
+      const label=card.querySelector('.rc1558-kpi-label');
+      const sub=card.querySelector('.rc1558-kpi-sub');
+      if(!number||!label||!sub)return null;
+      return{
+        background:getComputedStyle(card).backgroundColor,
+        radius:getComputedStyle(card).borderRadius,
+        padding:getComputedStyle(card).padding,
+        numberFont:getComputedStyle(number).fontSize,
+        labelFont:getComputedStyle(label).fontSize,
+        subFont:getComputedStyle(sub).fontSize
+      };
+    }
+    return {original:style(original),news:news.map(style)};
+  });
+  expect(visual?.original).toBeTruthy();
+  for(const card of visual.news)expect(card).toEqual(visual.original);
   const tileEditor=page.locator('#rc1558Overview [data-rc1573-edit="1"]');
   await expect(tileEditor).toBeVisible();
   await tileEditor.click();
