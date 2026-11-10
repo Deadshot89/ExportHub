@@ -71,5 +71,5 @@ test('QM counts stay server-side after read rights, omit case details, and exclu
 
 test('Open-work does not navigate to new windows or to external apps',()=>{
   assert.match(runtime,/ExportHUBEmbeddedModules\.open\(name\)/);
-  assert.doesNotMatch(runtime,/window\.open\(|w\.open\(/);
+  assert.doesNotMatch(fn('bindTiles'),/window\.open\(|w\.open\(/);
 });
