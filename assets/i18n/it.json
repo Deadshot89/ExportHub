@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "Anteprima email HTML",
   "closureMail.previewFailed": "Impossibile caricare l’anteprima dell’email.",
   "closureMail.pickupWarning": "Attenzione: il ritiro del {{date}} supera l’ultima disponibilità del {{last}} alle {{time}}. Chiusura: {{from}} – {{to}}. Riapertura: {{reopen}}. Modificare la data o l’orario.",
-  "closureMail.bookingClosed": "Questa data di ritiro coincide con la chiusura. Scegli una data dopo la riapertura."
+  "closureMail.bookingClosed": "Questa data di ritiro coincide con la chiusura. Scegli una data dopo la riapertura.",
+  "closureMail.snowAnimation": "Animazione natalizia discreta sul portale di ritiro",
+  "closureMail.snowEnable": "Attiva animazione",
+  "closureMail.snowDisable": "Disattiva animazione",
+  "closureMail.snowOn": "Animazione natalizia attiva",
+  "closureMail.snowOff": "Animazione natalizia disattivata"
 }
