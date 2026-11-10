@@ -474,6 +474,8 @@ var openWorkCounts={urgent:null,quality:null};
 var openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;
 function resetOpenWorkCounts(loggedOut){
   openWorkEpoch++;openWorkLoggedOut=!!loggedOut;openWorkCounts={urgent:null,quality:null};openWorkLastFetch=0;
+  // A previous user's stalled request must not block a fresh authorized session.
+  openWorkInFlight=false;
   // An earlier user's response is invalidated by epoch even when it finishes later.
   refreshNow()
 }
@@ -504,7 +506,11 @@ function loadOpenWorkCounts(){
       quality:results[1].status==='fulfilled'?results[1].value:null
     };
     refreshNow();
-  }).finally(function(){openWorkInFlight=false;if(epoch!==openWorkEpoch&&!openWorkLoggedOut)loadOpenWorkCounts()})
+  }).finally(function(){
+    // Only the request belonging to the current session may release its in-flight lock.
+    if(epoch===openWorkEpoch)openWorkInFlight=false;
+    else if(!openWorkLoggedOut)loadOpenWorkCounts()
+  })
 }
 function openWorkMetric(kind){
   var count=openWorkCounts[kind],available=Number.isSafeInteger(count),route=kind==='urgent'?'urgentorders':'quality';
