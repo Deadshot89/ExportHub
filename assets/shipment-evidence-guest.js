@@ -247,12 +247,25 @@ async function upload(files,kind){
    if(current!==session)return;
    if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
    status(t('uploading'),false);
+   const beforeIds=new Set((record.files||[]).map(f=>f.id));
    const encoded=await base64(file);
    const result=await api('POST','public-upload',{id:record.id,expectedRevision:record.revision,kind,fileName:file.name,base64:encoded});
    if(current!==session)return;
-   record=result.record;remember(record,token);render();status(t('uploaded'),false);
+   // Keep the server response even when the verification read later fails:
+   // uploads must not disappear from this browser's list on a network hiccup.
+   record=result.record;remember(record,token);
+   const entry=(record.files||[]).find(f=>!beforeIds.has(f.id)&&f.kind===kind&&Number(f.size)===file.size);
+   if(!entry){render();status(t('uploadUnverified'),true);return}
+   status(t('verifyingUpload'),false);
+   const verified=await api('GET','public-get',{id:record.id},token);
+   if(current!==session)return;
+   if(!verified.record||verified.record.id!==record.id||
+      !(verified.record.files||[]).some(f=>f.id===entry.id&&f.kind===kind&&Number(f.size)===file.size)){
+    render();status(t('uploadUnverified'),true);return
+   }
+   record=verified.record;remember(record,token);render();status(file.name+' · '+t('uploadVerified'),false);
   }
- }catch(e){if(current===session)status(e.message,true)}
+ }catch(e){if(current===session){render();status(t('uploadUnverified')+' '+e.message,true)}}
  finally{busy=false}
 }
 async function submit(){
