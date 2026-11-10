@@ -63,6 +63,13 @@ async function scanOfflineCandidate({
   const claimed=await claimJob({jobId,environment:'testservice'});
   if(claimed!==true){result=blocked('job-already-claimed');}
   else{
+   // RC1974: reject demonstrably stale signature metadata before the
+   // EICAR preflight OR any customer Blob read. The earlier RC1971 check
+   // happened after both expensive operations and wasted Consumption CPU.
+   const definitionsBefore=await getDefinitionsUpdatedAt();
+   if(!Number.isSafeInteger(definitionsBefore)||definitionsBefore<=0||
+      definitionsBefore>now||now-definitionsBefore>24*60*60*1000)
+    throw Error('RC1974_DEFINITIONS_NOT_CURRENT');
    // RC1973: prevent any customer-blob read unless the actual engine has
    // completed a clean-control + EICAR-detection self-test. The default
    // invokes real clamscan; only synthetic tests inject a fake check.
@@ -79,14 +86,12 @@ async function scanOfflineCandidate({
     const stage=path.join(stageDir,'candidate.bin');
     await fs.writeFile(stage,first.bytes,{flag:'wx',mode:0o600});
     // Bind the candidate proof to the trusted scanner signature snapshot
-    // observed BEFORE scanning. Never substitute a post-scan update as proof
-    // of what the engine actually used.
-    const definitionsBefore=await getDefinitionsUpdatedAt();
-    // RC1971: never start an expensive scan with invalid, future, or stale
-    // definitions. The later candidate-proof check alone was too late.
-    if(!Number.isSafeInteger(definitionsBefore)||definitionsBefore<=0||
-       definitionsBefore>now||now-definitionsBefore>24*60*60*1000)
-     throw Error('RC1971_DEFINITIONS_NOT_CURRENT');
+    // observed BEFORE scanning, including across the EICAR preflight.
+    // A refreshed database during the preflight must not be attested as
+    // the signatures actually used by the worker's scan process.
+    const definitionsImmediatelyBeforeScan=await getDefinitionsUpdatedAt();
+    if(definitionsImmediatelyBeforeScan!==definitionsBefore)
+     throw Error('RC1974_DEFINITIONS_CHANGED_DURING_PREFLIGHT');
     // The RC1956 scanner copies again into its own private, immutable directory
     // and returns no release permission even when clamscan exits 0.
     const scanned=await scanLocalQuarantine({
