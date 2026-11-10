@@ -116,6 +116,9 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
   assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/c{48}/i);
+  const composed=rc.composeAvis({shipment,target:'carrier',lang:'de'});
+  assert.match(composed,/https:\/\/www\.exporthub360\.de\/avis\/c{48}/i);
+  assert.doesNotMatch(composed,/avis\/server-token/i,'composeAvis darf keinen Kundentoken verwenden');
   assert.doesNotMatch(out,/avis\/server-token/i,'Der Kundenlink darf nicht in der Speditionsmail stehen');
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
@@ -125,6 +128,8 @@ test('RC1349: ausstehender Speditionslink kann nicht als E-Mail mit Platzhalter 
  const {api,rc}=load(sh,{reference:'7RZ5W9'});
  assert.equal(rc.carrierAvisCached(sh),'');
  assert.throws(()=>api.injectMailBody(sh,'carrier',expandedDetails,'de'),e=>e&&e.code==='AVIS_CARRIER_LINK_PENDING');
+ assert.throws(()=>rc.composeAvis({shipment:sh,target:'carrier',lang:'de'}),e=>e&&e.code==='AVIS_CARRIER_LINK_PENDING',
+  'Auch die öffentliche composeAvis-Funktion darf keinen leeren Carrier-Link ausgeben');
  assert.equal(rc.carrierAvisCached(sh),'','Ein gestarteter Request darf nicht bereits als erfolgreich gelten');
 });
 
