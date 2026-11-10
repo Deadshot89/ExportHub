@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "HTML-Vorschau anzeigen",
   "closureMail.previewFailed": "Die E-Mail-Vorschau konnte nicht geladen werden.",
   "closureMail.pickupWarning": "Achtung: Die Abholung am {{date}} liegt nach unserem letzten Abholtermin am {{last}} um {{time}} Uhr. Betriebsschließung: {{from}} – {{to}}. Wieder geöffnet ab {{reopen}}. Bitte den Termin ändern.",
-  "closureMail.bookingClosed": "Dieser Abholtag liegt innerhalb unserer Betriebsschließung. Bitte einen Termin ab Wiedereröffnung wählen."
+  "closureMail.bookingClosed": "Dieser Abholtag liegt innerhalb unserer Betriebsschließung. Bitte einen Termin ab Wiedereröffnung wählen.",
+  "closureMail.snowAnimation": "Dezente Weihnachtsanimation auf der Avisierungsseite",
+  "closureMail.snowEnable": "Animation einschalten",
+  "closureMail.snowDisable": "Animation ausschalten",
+  "closureMail.snowOn": "Weihnachtsanimation aktiv",
+  "closureMail.snowOff": "Weihnachtsanimation aus"
 }
