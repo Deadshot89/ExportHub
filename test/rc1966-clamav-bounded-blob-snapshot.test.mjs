@@ -98,6 +98,37 @@ test('RC1966: altered stream metadata, bytes or excess stream length reject',asy
  }
 });
 
+
+test('RC1969: over-limit transport chunks are rejected before Buffer.from allocates a copy',async()=>{
+ const cases=[
+  [Buffer.alloc(bytes.length+1)],
+  [Buffer.alloc(bytes.length-1),Buffer.alloc(2)]
+ ];
+ for(const chunks of cases){
+  const oversized=chunks[chunks.length-1];
+  const f=fixture({response:{readableStreamBody:Readable.from(chunks)}});
+  const original=Buffer.from;
+  let copiedRejectedChunk=false;
+  Buffer.from=function(value,...args){
+   if(value===oversized)copiedRejectedChunk=true;
+   return original.call(this,value,...args);
+  };
+  try{
+   const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx'});
+   await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+   assert.equal(copiedRejectedChunk,false,'reject the chunk BEFORE duplicating it in memory');
+  }finally{Buffer.from=original;}
+ }
+});
+
+test('RC1969: empty or nonbinary stream chunks remain fail-closed',async()=>{
+ for(const part of [Buffer.alloc(0),'untrusted text']){
+  const f=fixture({response:{readableStreamBody:Readable.from([part])}});
+  const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx'});
+  await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+ }
+});
+
 test('RC1966: SDK failures are sanitized without leaking account keys or paths',async()=>{
  const container={getBlobClient(){throw Error('FAKE_SECRET AccountKey=test blobName=secret')}};
  const read=createBoundedReadSnapshot({container,expected,kind:'xlsx'});
