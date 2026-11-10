@@ -140,6 +140,9 @@ test('RC1349: Review ist personalisiert und Portal zeigt keine ungeprüften Roht
  assert.match(store,/function publicRows/);
  assert.match(publicApi,/withApprovedDeliveryItems/);
  assert.match(publicHtml,/deliveryItemsHtml\(data\.deliveryItems\)/);
- assert.match(internalUi,/Lieferschein-Artikel prüfen/);
+ assert.match(internalUi,/t\('reviewButton'\)/);
+ const i18n=fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8');
+ for(const lang of ['de','en','pl','es','fr','it'])assert.match(i18n,new RegExp(' '+lang+':\\{[^\\n]*reviewButton:'));
+ assert.doesNotMatch(internalUi,/Lieferschein-Artikel prüfen/);
  assert.doesNotMatch(publicApi,/parseDeliveryText\(/);
 });
