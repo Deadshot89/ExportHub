@@ -29,6 +29,7 @@ function loadEndpoint(){
   Module._load=function(request,parent,isMain){
     if(request==='../shared/auth-store')return auth;
     if(request==='../shared/graph-mail')return graphMail;
+    if(request==='../shared/avis-notice-store')return{load:async()=>({value:{}}),appendEmail:body=>body};
     return original.call(this,request,parent,isMain);
   };
   delete require.cache[require.resolve(target)];
