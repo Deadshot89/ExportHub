@@ -44,7 +44,7 @@ function renderList(){
   rows.forEach(function(r){list.appendChild(el('li',{'data-state':r.state||''},r.text))});
   var up=p.querySelector('[data-docup-start]');if(up)up.disabled=busy||!picked.length;
 }
-function addFiles(files){if(busy)return;log=[];Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
+function addFiles(files){if(busy)return;log=[];picked=[];Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
 function buildPanel(){
   var p=el('div',{class:'eh-docup','data-docup-panel':'1',role:'group','aria-label':t('title')});
   p.appendChild(el('h4',{},t('title')));
