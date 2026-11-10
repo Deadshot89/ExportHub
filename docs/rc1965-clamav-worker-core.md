@@ -242,3 +242,49 @@ synthetischen Metadaten sowie einem simulierten Engine-Check.
 **Keine echte Erkennung oder Scan-Freigabe:** Auch jetzt bleiben
 `authorizedForRelease:false`, fehlende Azure-Containerlaufzeit,
 Cloudkostenprüfung und EICAR-/XLSX-Livetests zwingende Stop-Bedingungen.
+
+## RC1975 – Zeitbudget für den vorgeschlagenen 240-s-Cloudjob
+
+**Nachgewiesener Planungswiderspruch:** Der bisherige Worker erlaubte für
+die zwei ClamAV-Engine-Probes je 120 Sekunden, einen Kundendatei-Scan
+bis zu 120 Sekunden und zwei bedingte Blob-Lesevorgänge von je
+35 Sekunden. Das sind theoretisch **430 Sekunden ohne Overhead**,
+obwohl der vorgeschlagene Azure Container Apps Consumption Job in
+`RC1964.JOB_SHAPE.maxSeconds` auf **240 Sekunden** geplant ist.
+Auch die Aufnahme eines einzigen Kandidaten wäre unter ungünstigen
+Bedingungen somit zeitlich unmöglich und könnte unnötigen
+Cloud-Rechenverbrauch verursachen.
+
+**Im inerten RC1965-Worker jetzt ausdrücklich begrenzt:**
+
+| Phase | Geplante maximale Dauer |
+| --- | ---: |
+| EICAR-Klartext-Test | 25 s |
+| EICAR-Erkennungstest | 25 s |
+| Bedingter Blob-Read vor Scan | 35 s |
+| Kundendatei-Scan | 90 s |
+| Bedingter Blob-Read nach Scan | 35 s |
+| Reserviertes Zeitbudget für Metadata/Claim/Staging/Cleanup | 30 s |
+| **Gesamte geplante Obergrenze** | **240 s** |
+
+Die beiden EICAR-Probes erhalten über `engineCheck({timeoutMs:25000})`
+jeweils 25 s; der Aufruf von `scanLocalQuarantine` erhält
+`timeoutMs:90000`. Der bestehende RC1966-Reader hat weiterhin 35 s
+pro Blob-Lesevorgang. Das `TIME_BUDGET` wird aus dem
+`JOB_SHAPE.maxSeconds`-Wert überprüft und durch zwei synthetische
+Regressionen gegen unbeabsichtigte Erhöhung geschützt.
+
+**Grenzen:** Die Timeout-Summen sind lediglich *Softwareziele*, keine
+belegte reale ClamAV-Laufzeit und keine garantierte gesamte
+Wall-Clock-Ausführungsdauer. Signaturabfragen, ein sich sperrender
+Kindprozess und sonstige I/O müssen in einem späteren echten
+Containerjob durch eine **unabhängige harte 240-s-Prozess-/Job-Frist**
+begrenzt werden. Verfehlt der Scanner unter dem restriktiven
+Zeitbudget den Abschluss, bleibt der Auftrag fail-closed; Limits
+dürfen nicht durch Umgehen der Malwareprüfung gelockert werden.
+Eine Änderung des Zeitprofils erfordert eine neue Kostenrechnung
+und Sicherheitsabnahme.
+
+**Unverändert:** Keine Azure-Ressourcenanlage, kein Defender-Abonnement,
+kein echter EICAR-Scan, keine wirkliche XLSX-Analyse durch diesen PR.
+`authorizedForRelease:false` und `ABD_SCAN_PENDING` bleiben aktiv.
