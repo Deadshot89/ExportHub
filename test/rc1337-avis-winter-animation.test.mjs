@@ -58,6 +58,17 @@ test('RC1337: public closure response shares only approved dates and animation p
  assert.equal(data.internalUserId,undefined);
  assert.equal(mod.exports({...base}).animateSnow,false);
 });
+test('RC1337: hidden portal announcement keeps mandatory blocking warning without festive animation',()=>{
+ const from=api.indexOf('function publicClosureFields(notice){'),to=api.indexOf('function availabilityWithClosure(',from);
+ assert.ok(from>=0&&to>from);
+ const sandbox={module:{exports:{}}};
+ vm.runInNewContext(api.slice(from,to)+'\nmodule.exports=publicClosureFields;',sandbox);
+ const publicFields=sandbox.module.exports;
+ assert.equal(publicFields({...base,portalEnabled:false,animateSnow:true}).animateSnow,false);
+ assert.equal(publicFields({...base,portalEnabled:true,animateSnow:true}).animateSnow,true);
+ assert.equal(publicFields({...base,animateSnow:true}).animateSnow,true,'legacy rows remain visible');
+ assert.equal(publicFields({...base,portalEnabled:false,animateSnow:true}).startDate,base.startDate,'critical closure warning survives');
+});
 test('RC1337: winter notice remains one existing closure card with localized wording, never a second banner',()=>{
  const languages=['de','en','pl','es','fr','it'];
  for(const lang of languages){

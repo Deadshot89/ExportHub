@@ -319,7 +319,7 @@ async function customerPdfScanStatus(teamBlob,sessionInfo,session,sh,uploadId,st
 function publicClosureFields(notice){
  if(!notice)return null;
  return{startDate:notice.startDate,endDate:notice.endDate,lastPickupDate:notice.lastPickupDate,
-  lastPickupTime:notice.lastPickupTime,reopenDate:notice.reopenDate,animateSnow:notice.animateSnow===true};
+  lastPickupTime:notice.lastPickupTime,reopenDate:notice.reopenDate,animateSnow:notice.animateSnow===true&&notice.portalEnabled!==false};
 }
 function availabilityWithClosure(state,shipment,date){
  const availability=avisSlots.availabilityForDate(shipmentCopies(state),date,
