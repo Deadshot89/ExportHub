@@ -96,7 +96,20 @@
   return new Promise(function(resolve,reject){
    try{
     var x=new w.XMLHttpRequest();x.open('GET',url,true);x.responseType='blob';
-    x.onload=function(){if(x.status>=200&&x.status<300)resolve(x.response);else reject(new Error(tr('document.loadFailed',null,'Document could not be loaded.')+' (HTTP '+x.status+')'))};
+    x.onload=function(){
+     if(x.status>=200&&x.status<300){resolve(x.response);return}
+     var failure=new Error(tr('document.loadFailed',null,'Document could not be loaded.')+' (HTTP '+x.status+')');
+     failure.status=Number(x.status)||0;
+     // RC1963: only a small server JSON error can prove a timed-out *signed* ticket.
+     // Never parse/log document bytes, HTTP URLs, credentials or a proxy HTML page.
+     var body=x.response,mime=q(body&&body.type).toLowerCase();
+     if(x.status!==403||!body||typeof body.text!=='function'||body.size>4096||!/^application\/(?:json|problem\+json)(?:;|$)/.test(mime)){reject(failure);return}
+     Promise.resolve(body.text()).then(function(raw){
+      var parsed=null;try{parsed=JSON.parse(raw)}catch(_){}
+      if(parsed&&parsed.code==='DOCUMENT_TICKET_EXPIRED')failure.code='DOCUMENT_TICKET_EXPIRED';
+      reject(failure)
+     },function(){reject(failure)})
+    };
     x.onerror=function(){reject(new Error(tr('document.loadFailed',null,'Document could not be loaded.')))};
     x.send();
    }catch(e){reject(e)}
@@ -108,7 +121,18 @@
   catch(e){
    if(!filterRedirect(e)||typeof w.XMLHttpRequest!=='function')throw e;
    var link=await ticketUrl(file,file&&file.name);if(!link)throw e;
-   return checkBlob(file,await xhrBlob(link));
+   var blob;
+   try{blob=await xhrBlob(link)}
+   catch(ticketError){
+    // Only the signed API's explicit expiry permits ONE fresh, authenticated GET ticket.
+    // Forged/denied/foreign-scope 403, unknown proxy errors and PDF-integrity errors
+    // remain fatal; neither access rights nor original bytes are changed.
+    if(q(ticketError&&ticketError.code)!=='DOCUMENT_TICKET_EXPIRED')throw ticketError;
+    var freshLink=await ticketUrl(file,file&&file.name);
+    if(!freshLink)throw ticketError;
+    blob=await xhrBlob(freshLink)
+   }
+   return checkBlob(file,blob)
   }
   return checkBlob(file,await result.blob());
  }
