@@ -215,7 +215,7 @@ async function uploadFiles(box,ref,input,type){
     {headers:headers(),credentials:'same-origin',cache:'no-store'});
    var listed={};try{listed=await check.json()}catch(_){}
    if(!check.ok||listed.ok!==true||
-      !(listed.files||[]).some(function(f){return q(f.name)===receipt.name&&Number(f.size)===fBytes}))
+      !(listed.files||[]).some(function(f){return q(f.id)===q(receipt.id)&&q(f.name)===receipt.name&&Number(f.size)===fBytes}))
     throw new Error(tr('uploadNotListed'));
    ok++;
    if(receipt.sharepointSaved!==true)azureOnly++;
