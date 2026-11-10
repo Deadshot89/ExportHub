@@ -41,7 +41,7 @@ function fileFromBlob(blob, p) {
     blobName: blob.name
   };
 }
-async function list(ref, env) {
+async function list(ref, env, removal) {
   const c = client(env), p = prefix(ref, env), files = [];
   try {
     for await (const entry of c.listBlobsFlat({ prefix: p })) {
@@ -55,7 +55,8 @@ async function list(ref, env) {
     if (Number(e && e.statusCode) === 404 && /^(ContainerNotFound|ResourceNotFound)$/i.test(text(e && e.code))) return [];
     throw e;
   }
-  const deleted = new Set((await deletedRecords(ref, env)).map(r => r.id));
+  const deleted = removal && removal.ids && typeof removal.ids.has === 'function'
+    ? removal.ids : new Set((await deletedRecords(ref, env)).map(r => r.id));
   return files.filter(f => !deleted.has(f.id));
 }
 async function save(ref, env, name, bytes, mimeType) {
@@ -107,6 +108,7 @@ async function removalFilters(ref, env) {
   // Read the ledger once for both Graph-ID and Azure-mirror hiding.
   const records = await deletedRecords(ref, env);
   return {
+    ids: new Set(records.map(r => r.id)),
     names: new Set(records.filter(r => r.source !== 'sharepoint').map(r => text(r.name).toLowerCase())),
     graphHashes: new Set(records.filter(r => r.source === 'sharepoint' && /^[0-9a-f]{64}$/.test(text(r.itemHash))).map(r => r.itemHash))
   };
