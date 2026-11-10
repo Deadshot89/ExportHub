@@ -52,6 +52,9 @@ test('RC1931 REF + explicitly linked DOK previews stay in-page and switch shipme
  await expect(gallery.locator('.eh1860-preview-card')).toHaveCount(3);
  await expect(gallery).toContainText('Versandfoto_DOK-20261110-ABCDEF12');
  const thumbnail=gallery.locator('.eh1860-preview-frame img').first();
+ // On a narrow viewport the gallery is below the fold. The image is
+ // intentionally lazy-loaded; scroll it into view like a real mobile user.
+ await thumbnail.scrollIntoViewIfNeeded();
  await expect(thumbnail).toHaveAttribute('src',/^blob:/);
  await gallery.locator('.eh1860-preview-card').last().locator('.eh1860-preview-open').click();
  const dialog=page.getByRole('dialog');
