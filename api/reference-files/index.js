@@ -242,6 +242,8 @@ module.exports=async function(context,req){
   for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
+  // Latest shipment uploads appear first, regardless of Graph/Azure source.
+  files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||text(a.name).localeCompare(text(b.name),'de'));
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
     folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
   const item=files.find(f=>f.id===itemId);
