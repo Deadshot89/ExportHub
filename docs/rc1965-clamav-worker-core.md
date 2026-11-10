@@ -103,3 +103,22 @@ execution timeout remains mandatory.
 No Azure client, queue, Container Apps job or paid resource was created.
 The existing ABD API and its scan gate remain untouched; no deployment
 is authorized by this change.
+
+## RC1969 – bounded stream-chunk allocation
+
+Code review of RC1966/RC1968 uncovered a memory-pressure flaw:
+a single oversized or invalid `Uint8Array` transport chunk was first
+copied with `Buffer.from(part)`, **then** the maximum length was checked.
+This temporarily allocated memory proportional to an untrusted chunk.
+
+The updated offline adapter validates `part.byteLength` against both
+the remaining expected Blob length and the total 12 MiB budget **before**
+allocating a copy. Empty chunks and nonbinary chunks fail closed. Two
+additional synthetic regressions ensure that rejected transport chunks
+are never duplicated and that malformed chunks cannot produce a clean
+candidate. Exact-length, ETag and SHA-256 validation remain unchanged.
+
+No Azure storage read, ClamAV process, deployment or resource creation
+was performed. All scans and parser releases remain blocked until an
+authorized real trusted worker, malware verification and independently
+proven cost envelope are available.
