@@ -12,7 +12,7 @@ test('RC1943: all three build entrypoints use the new upload JavaScript URL',()=
   integrateAbdProforma(process.cwd(),temp);
   for(const entry of ['index.html','TESTVERSION.html','demo.html']){
    const html=fs.readFileSync(path.join(temp,entry),'utf8');
-   assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1943'),entry+': fresh URL missing');
+   assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1962'),entry+': fresh URL missing');
    assert.ok(!html.includes('assets/rc1940-documents-workspace.js?v=1940'),entry+': obsolete JS cache key');
    assert.equal((html.match(/id="exporthub-rc1940-documents"/g)||[]).length,1,entry+': upload runtime must only occur once');
   }
@@ -29,7 +29,7 @@ test('RC1943: already-injected old document script is normalized rather than dup
   for(const entry of ['index.html','TESTVERSION.html','demo.html']){
    const html=fs.readFileSync(path.join(temp,entry),'utf8');
    assert.equal((html.match(/id="exporthub-rc1940-documents"/g)||[]).length,1);
-   assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1943'));
+   assert.ok(html.includes('assets/rc1940-documents-workspace.js?v=1962'));
    assert.ok(!html.includes('assets/rc1940-documents-workspace.js?v=1940'));
   }
  }finally{fs.rmSync(temp,{recursive:true,force:true})}

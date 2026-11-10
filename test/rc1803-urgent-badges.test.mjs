@@ -148,7 +148,8 @@ test('RC1960: rejected badge counts back off 5 minutes, but a new session retrie
   assert.equal(calls,2,'bounded retry is allowed after five minutes');
   assert.equal(node.badge.textContent,'4');
   assert.equal(node.badge.hidden,false);
-  now+=1000;reply={ok:false,status:denial};handlers.focus();await flush();
+  // RC1965: a successful count is rate-limited for 45 seconds even on focus.
+  now+=45001;reply={ok:false,status:denial};handlers.focus();await flush();
   assert.equal(calls,3);
   assert.equal(node.badge.hidden,true);
   reply={ok:true,status:200,json:async()=>({ok:true,open:2})};
@@ -160,4 +161,54 @@ test('RC1960: rejected badge counts back off 5 minutes, but a new session retrie
   assert.equal(calls,4,'after logout the protected counts API is never called');
   assert.equal(node.badge.hidden,true);
  }
+});
+
+
+test('RC1965: successful Urgent badge count is not refetched on focus/state/visibility storms',async()=>{
+ const source=menu.slice(menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count'));
+ let now=1000000;
+ const requests=[],listeners={},intervals=[];
+ const styleHost={appendChild(el){this.el=el}};
+ const node={badge:null,attrs:{},setAttribute(k,v){this.attrs[k]=v},appendChild(el){this.badge=el},
+  querySelector(sel){return sel==='[data-urgent-open-count]'?this.badge:null}};
+ const d={hidden:false,readyState:'complete',head:styleHost,documentElement:styleHost,
+  querySelector(sel){return sel==='[data-exporthub-urgent-nav]'?node:null},
+  getElementById(id){return id==='exporthub-urgent-nav-counter-style'?styleHost.el||null:null},
+  createElement(name){return {tagName:name,hidden:false,dataset:{},setAttribute(){}}},
+  addEventListener(name,fn){listeners['doc:'+name]=fn}};
+ const w={document:d,sessionStorage:{getItem(){return '{}'}},
+  addEventListener(name,fn){listeners[name]=fn},
+  setInterval(fn,ms){intervals.push({fn,ms})},
+  async fetch(url,config){requests.push({url,config});return {ok:true,status:200,json:async()=>({ok:true,open:requests.length})}}};
+ vm.runInNewContext(source,{window:w,globalThis:w,document:d,Date:{now:()=>now},Promise,JSON,Number,Error});
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));
+ await flush();
+ assert.equal(requests.length,1,'one initial authenticated counts request');
+ assert.equal(node.badge.textContent,'1');
+ assert.equal(node.badge.hidden,false);
+ assert.equal(intervals[0].ms,45000,'normal periodic refresh is unchanged');
+ for(let i=0;i<8;i++){
+  listeners.focus();
+  listeners['exporthub:state-loaded']();
+  listeners['doc:visibilitychange']();
+  intervals[0].fn();
+ }
+ await flush();
+ assert.equal(requests.length,1,'repeated UI events do not bypass 45s rate limit');
+ now+=44999;
+ listeners.focus();await flush();
+ assert.equal(requests.length,1,'no extra call just before deadline');
+ now+=1;
+ listeners['doc:visibilitychange']();await flush();
+ assert.equal(requests.length,2,'an authorized refresh happens after 45s');
+ assert.equal(node.badge.textContent,'2');
+ now+=1;
+ listeners['exporthub:authenticated']();await flush();
+ assert.equal(requests.length,3,'new login must refresh immediately, bypassing cooldown');
+ assert.equal(node.badge.textContent,'3');
+ listeners['exporthub:logout']();
+ listeners.focus();listeners['exporthub:state-loaded']();intervals[0].fn();
+ await flush();
+ assert.equal(requests.length,3,'logout must disable further protected requests');
+ assert.equal(node.badge.hidden,true);
 });

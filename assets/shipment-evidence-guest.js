@@ -247,12 +247,25 @@ async function upload(files,kind){
    if(current!==session)return;
    if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
    status(t('uploading'),false);
+   const beforeIds=new Set((record.files||[]).map(f=>f.id));
    const encoded=await base64(file);
    const result=await api('POST','public-upload',{id:record.id,expectedRevision:record.revision,kind,fileName:file.name,base64:encoded});
    if(current!==session)return;
-   record=result.record;remember(record,token);render();status(t('uploaded'),false);
+   // Keep the server response even when the verification read later fails:
+   // uploads must not disappear from this browser's list on a network hiccup.
+   record=result.record;remember(record,token);
+   const entry=(record.files||[]).find(f=>!beforeIds.has(f.id)&&f.kind===kind&&Number(f.size)===file.size);
+   if(!entry){render();status(t('uploadUnverified'),true);return}
+   status(t('verifyingUpload'),false);
+   const verified=await api('GET','public-get',{id:record.id},token);
+   if(current!==session)return;
+   if(!verified.record||verified.record.id!==record.id||
+      !(verified.record.files||[]).some(f=>f.id===entry.id&&f.kind===kind&&Number(f.size)===file.size)){
+    render();status(t('uploadUnverified'),true);return
+   }
+   record=verified.record;remember(record,token);render();status(file.name+' · '+t('uploadVerified'),false);
   }
- }catch(e){if(current===session)status(e.message,true)}
+ }catch(e){if(current===session){render();status(t('uploadUnverified')+' '+e.message,true)}}
  finally{busy=false}
 }
 async function submit(){
@@ -293,13 +306,22 @@ function render(){
   entries.forEach(item=>{
    const row=make('div','eh1903-row'),details=make('div');
    details.appendChild(make('b',null,item.customer||item.id));
-   details.appendChild(make('p','eh1903-muted',(item.shipmentNumber||'')+' · '+item.id));
+   details.appendChild(make('p','eh1903-muted',t('docId')+': '+item.id+' · '+(item.shipmentNumber||'')));
    row.appendChild(details);row.appendChild(button(x('readonly'),()=>openMine(item)));panel.appendChild(row);
   });
   app.appendChild(panel)
  }else{
   const panel=make('section','eh1903-panel'),finished=record&&record.submittedAt;
-  panel.appendChild(make('h1',null,record?t('docId')+': '+record.id:x('new')));
+  panel.appendChild(make('h1',null,x('new')));
+  if(record){
+   const reference=make('div','eh1903-actions');
+   reference.appendChild(make('strong',null,t('docId')+': '+record.id));
+   reference.appendChild(button(t('copyReference'),async()=>{
+    try{await w.navigator.clipboard.writeText(record.id);status(t('referenceCopied'),false)}
+    catch(_){status(record.id,false)}
+   }));
+   panel.appendChild(reference);
+  }else panel.appendChild(make('p','eh1903-muted',t('referencePending')));
   panel.appendChild(make('p','eh1903-muted',record?(finished?x('finished'):x('draft')):t('guestIntro')));
   createFields(panel,record&&record.fields||draftFields,Boolean(record));
   const actions=make('div','eh1903-actions');

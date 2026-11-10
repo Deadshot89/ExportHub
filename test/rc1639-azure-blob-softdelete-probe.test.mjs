@@ -56,7 +56,7 @@ test('RC1639: signed OIDC only, after TESTSERVICE host guard, no PUT or policy w
  assert.match(chunk,/status:'unverified',enabled:null,days:null/);
  assert.doesNotMatch(chunk,/\.upload\(|\.delete\(|\.setProperties\(|\.createIfNotExists\(/);
  const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
- assert.match(workflow,/inventory-team\|inventory-scopes\|inventory-blob-policy\)/);
+ assert.match(workflow,/inventory-team\|inventory-scopes\|inventory-blob-policy\|diagnose-abd-defender\)/);
  assert.match(workflow,/fixture inventory-blob-policy/);
  assert.match(workflow,/RC1639 Azure-Blob-SoftDelete-Richtlinie/);
  assert.match(workflow,/v\.scope!=="storage-account"/);

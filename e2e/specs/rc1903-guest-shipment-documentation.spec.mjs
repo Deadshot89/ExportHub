@@ -31,7 +31,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
    result={ok:true,record,publicToken:token};status=201;
   }else if(action==='public-upload'&&!record.submittedAt){
    const kind=payload.kind,name=(kind==='foto'?'Versandfoto_':'Lieferschein_')+id+'_'+record.files.length+'.'+(kind==='foto'?'jpg':'pdf');
-   record={...record,revision:record.revision+1,files:[...record.files,{id:String(record.files.length+1),name,kind,mime:kind==='foto'?'image/jpeg':'application/pdf',size:16,uploadedAt:new Date().toISOString()}]};
+   record={...record,revision:record.revision+1,files:[...record.files,{id:String(record.files.length+1),name,kind,mime:kind==='foto'?'image/jpeg':'application/pdf',size:Buffer.from(payload.base64,'base64').length,uploadedAt:new Date().toISOString()}]};
    result={ok:true,record};
   }else if(action==='public-submit'){
    record={...record,submittedAt:new Date().toISOString(),revision:record.revision+1};
@@ -46,6 +46,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  const publicRoot=page.locator('#eh1903-guest-root');
  await expect(publicRoot).toBeVisible();
  await expect(page.getByRole('heading',{name:'Neue Sendung'})).toBeVisible();
+ await expect(publicRoot).toContainText('Die Referenznummer wird beim ersten Speichern automatisch vergeben.');
  await expect(page.locator('[data-eh1903-guest-open]')).toHaveCount(0);
  await expect(page.locator('#login')).toHaveCount(0);
  for(const removed of ['packaging','shippingMethod','contents','loadSecuring'])
@@ -59,6 +60,8 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  await page.locator('[data-guest-field="weightKg"]').fill('27.5');
  await page.getByRole('button',{name:'Weiter zu Fotos und Lieferscheinen'}).click();
  await expect(publicRoot).toContainText(id);
+ await expect(page.getByText('Referenznummer: '+id)).toBeVisible();
+ await expect(page.getByRole('button',{name:'Referenz kopieren'})).toBeVisible();
  const files=page.locator('.eh1903-uploads input[type="file"]');
  await expect(files).toHaveCount(2);
  await files.nth(0).setInputFiles({name:'Abfahrt.jpg',mimeType:'image/jpeg',buffer:Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x00])});
@@ -92,7 +95,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  expect(requests.filter(r=>r.action==='public-file'&&r.hasToken).length).toBeGreaterThanOrEqual(2);
  expect(requests.some(r=>r.action==='public-file'&&!r.hasToken)).toBe(false);
  expect(requests.filter(r=>r.action==='public-submit'&&r.hasToken)).toHaveLength(1);
- expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(1);
+ expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(3);
  expect(requests.some(r=>r.action==='public-save')).toBe(false);
  expect(context.pages()).toHaveLength(1);
 });
@@ -125,4 +128,58 @@ test('RC1903: new customer can be proposed without writing the official customer
  expect(posted?.fields?.customer).toBe('Neuer Testkunde GmbH');
  for(const removed of ['packaging','shippingMethod','contents','loadSecuring'])
   expect(posted?.fields?.[removed]).toBeUndefined();
+});
+
+
+test('RC1903 internal: photo picker creates DOK automatically; image and PDF survive a server re-read',async({page},testInfo)=>{
+ test.skip(process.env.EXPORTHUB_E2E_LIVE==='1','Mocked browser test never writes production.');
+ test.skip(!['laptop','mobile-small'].includes(testInfo.project.name),'Desktop and mobile test only.');
+ const docId='DOK-20261110-ABCDEF12',events=[];
+ let record=null;
+ await page.route('**/api/shipment-evidence*',async route=>{
+  const req=route.request(),url=new URL(req.url()),payload=req.method()==='POST'?req.postDataJSON()||{}:{};
+  const action=payload.action||url.searchParams.get('action')||'list';
+  events.push(action);
+  const reply=(status,data)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
+  if(action==='list')return reply(200,{ok:true,records:[],continuation:null});
+  if(action==='create'){
+   record={id:docId,revision:1,fields:payload.fields,files:[],history:[],complaints:[],
+    createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+   return reply(201,{ok:true,record});
+  }
+  if(action==='upload'&&record&&payload.id===docId){
+   const kind=payload.kind,bytes=Buffer.from(payload.base64,'base64');
+   record={...record,revision:record.revision+1,files:[...record.files,{
+    id:String(record.files.length+1),name:(kind==='foto'?'Versandfoto_':'Lieferschein_')+docId+'_'+(kind==='foto'?'Beweis.jpg':'Beleg.pdf'),
+    mime:kind==='foto'?'image/jpeg':'application/pdf',kind,size:bytes.length,
+    uploadedAt:new Date().toISOString()}]};
+   return reply(200,{ok:true,record});
+  }
+  if(action==='get'&&url.searchParams.get('id')===docId)return reply(200,{ok:true,record});
+  if(action==='file')return route.fulfill({status:200,contentType:'image/jpeg',body:Buffer.from([0xff,0xd8,0xff,0xe0])});
+  return reply(404,{ok:false,code:'NOT_FOUND',message:'Synthetic request mismatch'});
+ });
+ await page.goto('/assets/sendungsdokumentation.html',{waitUntil:'domcontentloaded'});
+ await page.evaluate(()=>{const host=document.createElement('div');host.id='content';document.body.appendChild(host)});
+ await page.addScriptTag({url:'/assets/shipment-evidence.js?v=1908'});
+ await page.evaluate(()=>window.ExportHUBStandaloneEvidence.open());
+ const root=page.locator('#eh1903-root');
+ await root.getByRole('button',{name:'Neue Dokumentation'}).click();
+ await root.locator('[data-evidence-field="shipmentNumber"]').fill('MOCK-EXPORT-001');
+ await root.locator('[data-evidence-field="customer"]').fill('Testkunde');
+ await root.locator('[data-evidence-field="dispatchDate"]').fill('2026-11-10');
+ const photos=root.locator('input[type=file][accept="image/jpeg,image/png"]');
+ await expect(photos).toBeEnabled();
+ await photos.setInputFiles({name:'Beweis.jpg',mimeType:'image/jpeg',buffer:Buffer.from([0xff,0xd8,0xff,0xe0])});
+ await expect(root).toContainText('Im Archiv gespeichert und erneut bestätigt.');
+ await expect(root).toContainText(docId);
+ await expect(root.locator('.eh1903-photo-card')).toHaveCount(1);
+ const pdf=root.locator('input[type=file][accept="application/pdf,image/jpeg,image/png"]');
+ await pdf.setInputFiles({name:'Beleg.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.7\\nmock\\n')});
+ await expect(root).toContainText('Beleg.pdf · Im Archiv gespeichert und erneut bestätigt.');
+ await expect(root.locator('.eh1903-file')).toHaveCount(1);
+ expect(events.filter(a=>a==='create')).toHaveLength(1);
+ expect(events.filter(a=>a==='upload')).toHaveLength(2);
+ expect(events.filter(a=>a==='get')).toHaveLength(2);
+ expect(record.files).toHaveLength(2);
 });
