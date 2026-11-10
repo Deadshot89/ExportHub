@@ -86,7 +86,7 @@ function selectedAvisAudience(){
 function reviewStatus(message){var p=reviewPanel(),node=p&&p.querySelector('[data-review-status]');if(node)node.textContent=q(message)}
 function apiReview(ref,action,body){
  var url='/api/reference-files',opt={credentials:'same-origin',cache:'no-store',headers:requestHeaders()};
- if(action==='GET')url+='?reference='+encodeURIComponent(ref)+'&action=delivery-items-review';
+ if(action==='GET')url+='?reference='+encodeURIComponent(ref)+'&action=delivery-items-review&recipientType=customer';
  else{opt.method='POST';opt.body=JSON.stringify(Object.assign({action:'approve-delivery-items',reference:ref},body||{}))}
  return fetch(url,opt).then(async function(response){var data={};try{data=await response.json()}catch(_){}if(!response.ok||data.ok===false)throw new Error(q(data.message)||('HTTP '+response.status));return data});
 }
