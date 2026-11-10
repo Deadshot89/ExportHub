@@ -324,7 +324,7 @@ function avisBlock(url,reference,lang,target){
 function carrierAvisForMail(sh){
  var link=carrierAvisCached(sh);
  if(!link)Promise.resolve(carrierAvisUrl(sh)).then(function(){syncVisibleMail()}).catch(function(){});
- return link||'…'; // fail closed: never borrow the customer token for a carrier.
+ return link||''; // A pending token is never printable or mail-ready.
 }
 function standaloneAvis(sh,target,lang,url){
  lang=rc1267NormalizeLanguage(lang);target=q(target).toLowerCase()==='carrier'?'carrier':'customer';
@@ -342,7 +342,15 @@ function injectMailBody(sh,target,body,langOverride){
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(type==='own')return ownAvisMail(source,url,lang);
- return standaloneAvis(sh,type,lang,type==='carrier'?carrierAvisForMail(sh):url)
+ if(type==='carrier'){
+  var carrierLink=carrierAvisForMail(sh);
+  if(!carrierLink){
+   var pending=new Error(tr('avisFlow.unavailable',null,'Speditionsavis-Link wird vorbereitet. Bitte erneut versuchen.'));
+   pending.code='AVIS_CARRIER_LINK_PENDING';throw pending
+  }
+  return standaloneAvis(sh,type,lang,carrierLink)
+ }
+ return standaloneAvis(sh,type,lang,url)
 }
 function syncVisibleMail(){
  if(visibleSyncing||typeof document==='undefined')return false;
@@ -351,7 +359,9 @@ function syncVisibleMail(){
  if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
  var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
  if(mailExcluded(sh)||recipientExcluded(sh,type)){var cleaned=stripExcludedAvis(sh,type,String(body.value==null?'':body.value),rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
- var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,type==='carrier'?carrierAvisForMail(sh):url);
+ var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),carrierLink=type==='carrier'?carrierAvisForMail(sh):'';
+ if(type==='carrier'&&!carrierLink)return false; // No Outlook-ready preview with a placeholder.
+ var next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,type==='carrier'?carrierLink:url);
  if(String(body.value==null?'':body.value)===next)return false;
  visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
  return true
