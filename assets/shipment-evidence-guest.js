@@ -293,13 +293,22 @@ function render(){
   entries.forEach(item=>{
    const row=make('div','eh1903-row'),details=make('div');
    details.appendChild(make('b',null,item.customer||item.id));
-   details.appendChild(make('p','eh1903-muted',(item.shipmentNumber||'')+' · '+item.id));
+   details.appendChild(make('p','eh1903-muted',t('docId')+': '+item.id+' · '+(item.shipmentNumber||'')));
    row.appendChild(details);row.appendChild(button(x('readonly'),()=>openMine(item)));panel.appendChild(row);
   });
   app.appendChild(panel)
  }else{
   const panel=make('section','eh1903-panel'),finished=record&&record.submittedAt;
-  panel.appendChild(make('h1',null,record?t('docId')+': '+record.id:x('new')));
+  panel.appendChild(make('h1',null,x('new')));
+  if(record){
+   const reference=make('div','eh1903-actions');
+   reference.appendChild(make('strong',null,t('docId')+': '+record.id));
+   reference.appendChild(button(t('copyReference'),async()=>{
+    try{await w.navigator.clipboard.writeText(record.id);status(t('referenceCopied'),false)}
+    catch(_){status(record.id,false)}
+   }));
+   panel.appendChild(reference);
+  }else panel.appendChild(make('p','eh1903-muted',t('referencePending')));
   panel.appendChild(make('p','eh1903-muted',record?(finished?x('finished'):x('draft')):t('guestIntro')));
   createFields(panel,record&&record.fields||draftFields,Boolean(record));
   const actions=make('div','eh1903-actions');
