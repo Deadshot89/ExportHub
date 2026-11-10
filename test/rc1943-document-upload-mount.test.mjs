@@ -31,8 +31,12 @@ function fixture({withEditor=false,withTabs=false,withContainer=true}={}){
   getElementById(id){return id==='rc1940DocumentUpload'?uploaded:null},
   createElement(tag){return {tagName:tag,addEventListener(){},innerHTML:'',id:'',className:''}}
  };
- const mount=vm.runInNewContext(mountSource+'\nensureUpload',{d:document,uploadHost:()=>uploaded,refreshUpload:()=>{refreshes++}});
- return {mount,parent,firstChild,invoice,tabs,get uploaded(){return uploaded},get placement(){return placement},get insertions(){return insertions},get refreshes(){return refreshes}};
+ // RC1962: the production closure also provides w and lastMode to mount the local D365 importer.
+ // Supply those bindings in this isolated fixture; count local mount calls explicitly.
+ let localMounts=0;
+ const w={ExportHUBRC1962D365LocalImport:{mount:(mode)=>{assert.equal(mode,'invoice');localMounts++}}};
+ const mount=vm.runInNewContext(mountSource+'\nensureUpload',{d:document,w,lastMode:'invoice',uploadHost:()=>uploaded,refreshUpload:()=>{refreshes++}});
+ return {mount,parent,firstChild,invoice,tabs,get uploaded(){return uploaded},get placement(){return placement},get insertions(){return insertions},get refreshes(){return refreshes},get localMounts(){return localMounts}};
 }
 
 test('RC1943 P0: file selector mounts when the invoice editor is not yet available',()=>{
@@ -44,6 +48,7 @@ test('RC1943 P0: file selector mounts when the invoice editor is not yet availab
  assert.match(page.uploaded.innerHTML,/data-rc1940-analyze/);
  assert.equal(page.placement,page.firstChild);
  assert.equal(page.refreshes,1);
+ assert.equal(page.localMounts,1);
 });
 
 test('RC1943: upload stays above tabs and is not duplicated on repeated re-renders',()=>{
@@ -53,6 +58,7 @@ test('RC1943: upload stays above tabs and is not duplicated on repeated re-rende
  assert.equal(page.mount(),true);
  assert.equal(page.insertions,1);
  assert.equal(page.refreshes,2);
+ assert.equal(page.localMounts,2);
 });
 
 test('RC1943: missing document workspace does not create an upload outside its view',()=>{
