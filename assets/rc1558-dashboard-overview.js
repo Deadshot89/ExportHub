@@ -486,14 +486,16 @@ function openWorkToken(){
   try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return q(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
   try{var session=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return q(session.token)}catch(_){return''}
 }
-async function requestOpenWorkCount(path){
+async function requestOpenWorkCount(path,signal){
   var kind=path==='/api/urgent-orders'?'urgent':'quality',epoch=openWorkEpoch;
   // 401/403 are permission failures. Retry no more than once every five minutes per module,
   // while a new authenticated session may retry immediately.
   if(Date.now()<openWorkAuthBackoff[kind])throw Error('COUNT_AUTH_BACKOFF');
   var headers={'Content-Type':'application/json','Accept':'application/json'},token=openWorkToken();
   if(token)headers['X-ExportHUB-Token']=token;
-  var response=await w.fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})});
+  var options={method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})};
+  if(signal)options.signal=signal;
+  var response=await w.fetch(path,options);
   if(!response||!response.ok||response.redirected||response.type==='opaqueredirect'){
     if(response&&(response.status===401||response.status===403)&&epoch===openWorkEpoch&&!openWorkLoggedOut)
       openWorkAuthBackoff[kind]=Date.now()+OPEN_WORK_AUTH_BACKOFF_MS;
@@ -506,12 +508,24 @@ async function requestOpenWorkCount(path){
   if(epoch===openWorkEpoch&&!openWorkLoggedOut)openWorkAuthBackoff[kind]=0;
   return data.open
 }
+// A stalled API cannot indefinitely block the other live counter or subsequent refreshes.
+async function boundedOpenWorkCount(path){
+  var controller=typeof w.AbortController==='function'?new w.AbortController():null;
+  var request=requestOpenWorkCount(path,controller?controller.signal:null);
+  if(typeof w.setTimeout!=='function')return request;
+  var handle=null;
+  var timeout=new Promise(function(_,reject){
+    handle=w.setTimeout(function(){if(controller)controller.abort();reject(Error('COUNT_TIMEOUT'))},12000)
+  });
+  try{return await Promise.race([request,timeout])}
+  finally{if(handle!==null&&typeof w.clearTimeout==='function')w.clearTimeout(handle)}
+}
 function loadOpenWorkCounts(){
   if(openWorkLoggedOut||openWorkInFlight||!w.fetch||!w.document||w.document.hidden||!isDashboard())return;
   var tiles=readTiles();if(!tiles.on.openwork)return;
   var now=Date.now();if(now-openWorkLastFetch<45000)return;
   openWorkLastFetch=now;openWorkInFlight=true;var epoch=openWorkEpoch;
-  Promise.allSettled([requestOpenWorkCount('/api/urgent-orders'),requestOpenWorkCount('/api/quality-capa')]).then(function(results){
+  Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa')]).then(function(results){
     if(epoch!==openWorkEpoch||openWorkLoggedOut)return;
     openWorkCounts={
       urgent:results[0].status==='fulfilled'?results[0].value:null,
