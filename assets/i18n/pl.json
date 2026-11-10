@@ -2683,5 +2683,6 @@
   "closureMail.portalHide": "Ukryj informację w portalu",
   "closureMail.activate": "Włącz zamknięcie",
   "closureMail.deactivate": "Wyłącz zamknięcie",
-  "closureMail.disableConfirm": "Czy na pewno wyłączyć zamknięcie? Terminy odbioru w tym okresie będzie można ponownie rezerwować."
+  "closureMail.disableConfirm": "Czy na pewno wyłączyć zamknięcie? Terminy odbioru w tym okresie będzie można ponownie rezerwować.",
+  "closureMail.removeConfirm": "Czy na pewno trwale usunąć ten okres zamknięcia? Terminy odbioru w tym okresie mogą być ponownie dostępne. Tej operacji nie można cofnąć."
 }
