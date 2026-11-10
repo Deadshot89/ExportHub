@@ -194,3 +194,35 @@ test('RC1957: safe Unicode PDF filenames remain valid and hashes are byte-exact'
   assert.equal(sums, digest(original) + '  ' + name + '\n');
   assert.deepEqual(entries[0].data, original);
 });
+
+
+test('RC1957: HTML and JSON error responses mentioning a PDF signature are never certified', async () => {
+  for (const [name, content] of [
+    ['response.html', '<!doctype html><html><body>Expected %PDF-1.7 bytes, request failed.</body></html>'],
+    ['response.json', '{"error":"expected %PDF-1.7 but authorization failed"}'],
+    ['response-bom.html', '\uFEFF  <html><body>%PDF-1.7 missing</body></html>']
+  ]) {
+    const data = bytes(content);
+    const { entries, fail } = await run([{ name: 'POD_' + name + '.pdf', data }]);
+    assert.ok(fail.includes('RC1957_INVALID_PDF'), name);
+    assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false, name);
+    assert.deepEqual(entries[0].data, data, name + ' original response remains byte-exact');
+  }
+});
+
+test('RC1957: malformed PDF header versions are not accepted as verified PDFs', async () => {
+  for (const data of [bytes('%PDF-'), bytes('%PDF-X.Y'), bytes('%PDF-1x7')]) {
+    const { entries, fail } = await run([{ name: 'POD_INVALID.pdf', data }]);
+    assert.ok(fail.includes('RC1957_INVALID_PDF'));
+    assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false);
+  }
+});
+
+test('RC1957: PDF 2.0 with a harmless prefix retains its original bytes', async () => {
+  const data = bytes('allowed prefix\\n%PDF-2.0\\nSIGNED ORIGINAL');
+  const { entries, fail } = await run([{ name: 'POD_VALID.pdf', data }]);
+  assert.deepEqual(fail, []);
+  const sums = new TextDecoder().decode(entries.find(e => e.name === 'SHA256SUMS.txt').data);
+  assert.equal(sums, digest(data) + '  POD_VALID.pdf\n');
+  assert.deepEqual(entries[0].data, data);
+});
