@@ -80,7 +80,7 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
     w:{fetch:()=>{},document:{hidden:false}},
     isDashboard:()=>true,
     readTiles:()=>({on:{openwork:true}}),
-    requestOpenWorkCount:()=>new Promise(resolve=>queued.push(resolve)),
+    boundedOpenWorkCount:()=>new Promise(resolve=>queued.push(resolve)),
     Promise,Date,
     refreshNow:()=>ctx.loadOpenWorkCounts()
   };
@@ -155,4 +155,25 @@ test('401/403 counts: getrennte Fünf-Minuten-Sperren, keine Dauerabfragen und L
     await assert.rejects(pending,/COUNT_UNAVAILABLE/);
     assert.equal(ctx.openWorkAuthBackoff.quality,0,'stale rejection cannot throttle a different login');
   }
+});
+
+test('Stalled count request times out and releases the refresh path without leaking data',async()=>{
+  let fireTimeout=null,aborts=0,cleared=[];
+  class Controller{
+    constructor(){this.signal={aborted:false}}
+    abort(){this.signal.aborted=true;aborts++}
+  }
+  const ctx={w:{
+    AbortController:Controller,
+    setTimeout(fn,ms){assert.equal(ms,12000);fireTimeout=fn;return 17},
+    clearTimeout(id){cleared.push(id)}
+  },requestOpenWorkCount:()=>new Promise(()=>{}),Promise,Error};
+  vm.createContext(ctx);
+  vm.runInContext(fn('boundedOpenWorkCount'),ctx);
+  const pending=ctx.boundedOpenWorkCount('/api/quality-capa');
+  assert.equal(typeof fireTimeout,'function','timeout must be armed');
+  fireTimeout();
+  await assert.rejects(pending,/COUNT_TIMEOUT/,'hanging count must settle as unavailable');
+  assert.equal(aborts,1,'pending network request is aborted where supported');
+  assert.deepEqual(cleared,[17],'completed timeout is cleared');
 });
