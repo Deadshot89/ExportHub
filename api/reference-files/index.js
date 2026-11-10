@@ -54,6 +54,23 @@ async function graphFetch(url,options,environment='production'){const token=awai
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','api.reference.invalidReference',400);return ref}
 function folderPath(ref){return REFERENCE_FOLDER+'/'+ref}
+function mergeReferenceFileSources(graphFiles,azure,docs){
+ // A name is not a storage identity: distinct Graph/AV/REF originals may share a filename.
+ const files=Array.from(graphFiles||[]),seen=new Set();
+ files.forEach(file=>{if(file&&text(file.id))seen.add('graph:'+text(file.id))});
+ for(const {storage,items} of [{storage:'azure-av',items:azure},{storage:'azure-refdoc',items:docs}]){
+  for(const file of Array.isArray(items)?items:[]){
+   const id=text(file&&file.id),name=text(file&&file.name);
+   if(!id||!name)continue;
+   const key=storage+':'+id;
+   if(seen.has(key))continue;
+   seen.add(key);
+   files.push({id,name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+    lastModifiedDateTime:file.lastModifiedDateTime,storage});
+  }
+ }
+ return files;
+}
 async function listFiles(ref,req){
  const environment=publicAccess.environment(req,{});
  const target=referenceFolder.exactTarget(environment);
@@ -115,23 +132,6 @@ async function listFiles(ref,req){
  }
  files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||a.name.localeCompare(b.name,'de'));
  return{files,folderPath:path,folderMissing:false,folderWebUrl};
-}
-function mergeReferenceFileSources(graphFiles,azure,docs){
- // A name is not a storage identity: distinct Graph/AV/REF originals may share a filename.
- const files=Array.from(graphFiles||[]),seen=new Set();
- files.forEach(file=>{if(file&&text(file.id))seen.add('graph:'+text(file.id))});
- for(const [storage,items] of [['azure-av',azure],['azure-refdoc',docs]]){
-  for(const file of Array.isArray(items)?items:[]){
-   const id=text(file&&file.id),name=text(file&&file.name);
-   if(!id||!name)continue;
-   const key=storage+':'+id;
-   if(seen.has(key))continue;
-   seen.add(key);
-   files.push({id,name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-    lastModifiedDateTime:file.lastModifiedDateTime,storage});
-  }
- }
- return files;
 }
 function disposition(name,mode,req){const safe=text(name).replace(/[\r\n"]/g,'_').slice(0,180)||apiI18n.t(req,'api.reference.document');return(mode==='download'?'attachment':'inline')+"; filename*=UTF-8''"+encodeURIComponent(safe)}
 function requestBody(req){if(req&&req.body&&typeof req.body==='object'&&!Buffer.isBuffer(req.body))return req.body;try{return JSON.parse(String(req&&req.body||'{}'))}catch(_){return{}}}
