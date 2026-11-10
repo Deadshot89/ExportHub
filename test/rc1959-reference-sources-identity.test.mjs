@@ -5,7 +5,9 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('api/reference-files/index.js','utf8');
 const start=source.indexOf('function mergeReferenceFileSources(');
-const end=source.indexOf('\nfunction disposition(',start);
+// Extract only the pure merge helper; the next function is the real Graph listFiles implementation.
+// Including it would shadow this suite's synthetic listFiles stub and hit real Graph paths.
+const end=source.indexOf('\nasync function listFiles(',start);
 const handlerStart=source.indexOf('module.exports=async function(context,req){');
 const handlerEnd=source.indexOf('\nmodule.exports.avUploadFile=',handlerStart);
 assert.ok(start>=0&&end>start&&handlerStart>=0&&handlerEnd>handlerStart);
