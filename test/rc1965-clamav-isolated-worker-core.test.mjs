@@ -38,6 +38,7 @@ function fixture(overrides={}){
    return{bytes:Buffer.from(payload),etag:context.blobEtag};
   },
   getDefinitionsUpdatedAt:async()=>NOW-60*1000,
+  engineCheck:async()=>({verified:true,authorizedForRelease:false}),
   runner:async(...args)=>{scans++;return safe(...args);}
  };
  return{
