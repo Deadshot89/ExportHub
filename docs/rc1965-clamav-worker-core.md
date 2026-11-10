@@ -25,6 +25,8 @@ tools/rc1965-clamav/isolated-scan-core.cjs combines the still-inert HMAC queue c
 
 **No trust escalation:** Every result carries authorizedForRelease:false, dispatchAuthorized:false and deployAuthorized:false. The receipt itself also has authorizedForRelease:false. The current production API still requires the original genuine Defender clean tag; it is NOT wired to this helper.
 
+**RC1967 bounded Azure read:** The inert RC1966 `createBoundedReadSnapshot` adapter now has a fixed 35-second maximum per snapshot, with one AbortSignal shared across the conditional properties request, byte-range download, and response stream. A stalled response stream is explicitly destroyed; timeout errors remain sanitized and fail closed. The future trusted Azure worker still needs an independent hard execution deadline and Azure SDK authentication/authorization controls. This does not attest scan success or allow analysis.
+
 ## Remaining gates before a working TESTSERVICE scanner
 
 - [ ] Prove zero additional total Azure cost, including existing subscription consumption and all side resources; otherwise STOP until the owner explicitly authorizes a budget.
