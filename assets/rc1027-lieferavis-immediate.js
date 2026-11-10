@@ -165,7 +165,7 @@ function rc1349CarrierCacheKey(sh){return environmentName()+'|'+explicitReferenc
 function carrierAvisCached(sh){return q(rc1349CarrierCache[rc1349CarrierCacheKey(sh)])}
 async function carrierAvisUrl(sh){
  var ref=explicitReference(sh),key=rc1349CarrierCacheKey(sh);
- if(!/^[A-Z0-9]{6}$/.test(ref)||manualDisabled(sh)||closed(sh))throw new Error('AVIS ist nicht verfügbar.');
+ if(!/^[A-Z0-9]{6}$/.test(ref)||manualDisabled(sh)||closed(sh))throw new Error(tr('avisFlow.unavailable',null,'AVIS unavailable'));
  if(carrierAvisCached(sh))return carrierAvisCached(sh);
  if(rc1349CarrierPending[key])return rc1349CarrierPending[key];
  rc1349CarrierPending[key]=(async function(){
@@ -175,9 +175,9 @@ async function carrierAvisUrl(sh){
    headers:fastAvisHeaders(),body:JSON.stringify(payload)});
   var data=await res.json().catch(function(){return{}});
   if(!res.ok||data.ok!==true||data.avisAudience!=='carrier'||!data.url)
-   throw new Error(q(data.message)||('Speditionslink nicht verfügbar ('+res.status+')'));
+   throw new Error(q(data.message)||tr('avisFlow.unavailable',null,'Carrier AVIS unavailable')+' ('+res.status+')');
   var url=rc1333SafeAvisUrl(sh,data.url);
-  if(!rc1333IsSafeAvisUrl(url))throw new Error('Speditionslink ungültig.');
+  if(!rc1333IsSafeAvisUrl(url))throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS link'));
   rc1349CarrierCache[key]=url;return url
  })();
  try{return await rc1349CarrierPending[key]}
