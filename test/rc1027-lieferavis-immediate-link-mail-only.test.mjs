@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const FLOW=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 const FIX=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 
-function load(shipment,{reference='',link='https://example.test/customer-avis.html?token=abc',customers=[]}={}){
+function load(shipment,{reference='',link='https://example.test/customer-avis.html?token=abc',customers=[],carrierIssueResponse=null}={}){
   const windowListeners=new Map();
   const documentListeners=new Map();
   const toggles=[];
@@ -65,7 +65,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     setTimeout(fn){fn();return 1},
     Event:function Event(type){this.type=type},
     CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail},
-    fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>payload.action==='issue-carrier'?({ok:true,token:'c'.repeat(48),avisAudience:'carrier',shipmentId:payload.shipmentId||payload.reference,url:'https://www.exporthub360.de/avis/'+'c'.repeat(48),expiresAt:null}):({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
+    fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>payload.action==='issue-carrier'?(carrierIssueResponse||{ok:true,token:'c'.repeat(48),avisAudience:'carrier',shipmentId:payload.shipmentId||payload.reference,url:'https://www.exporthub360.de/avis/'+'c'.repeat(48),expiresAt:null}):({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
   });
   vm.runInContext(FLOW,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   vm.runInContext(FIX,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
@@ -113,11 +113,27 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api,rc}=load(shipment,{reference:'7RZ5W9'});
   await rc.carrierAvisUrl(shipment);
-  const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
+  const out=api.injectMailBody(sh,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
   assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/c{48}/i);
   assert.doesNotMatch(out,/avis\/server-token/i,'Der Kundenlink darf nicht in der Speditionsmail stehen');
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
+});
+
+test('RC1349: Speditionslink lehnt unpassenden Token und fremde Empfängerart ab',async()=>{
+ const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'a'.repeat(48),status:'Entwurf'};
+ for(const carrierIssueResponse of [
+  {ok:true,token:'a'.repeat(48),avisAudience:'carrier',url:'https://www.exporthub360.de/avis/'+'a'.repeat(48)},
+  {ok:true,token:'c'.repeat(48),avisAudience:'customer',url:'https://www.exporthub360.de/avis/'+'c'.repeat(48)},
+  {ok:true,token:'c'.repeat(48),avisAudience:'carrier',url:'https://www.exporthub360.de/avis/'+'d'.repeat(48)},
+  {ok:true,token:'short',avisAudience:'carrier',url:'https://www.exporthub360.de/avis/short'}
+ ]){
+  const sh={...shipment};
+  const {api,rc}=load(sh,{reference:'7RZ5W9',carrierIssueResponse});
+  await assert.rejects(()=>rc.carrierAvisUrl(sh));
+  const body=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
+  assert.doesNotMatch(body,/\/avis\/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/i,'Customer token must never become a carrier link');
+ }
 });
 
 test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakten Lieferavis-Link',()=>{
