@@ -27,7 +27,13 @@ function ensureStyle(){
     '.eh-docup-drop.is-over{border-color:currentColor;background:rgba(127,127,127,.08)}'+
     '.eh-docup-hint{font-size:12px;opacity:.75;margin:0}.eh-docup-list{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}'+
     '.eh-docup-list li[data-state=error]{color:#b42318}.eh-docup-list li[data-state=ok]{color:#067647}'+
-    'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}';
+    'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}'+
+    '.eh-docup-preview{position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.8);display:grid;place-items:center;padding:16px}'+
+    '.eh-docup-preview-panel{background:var(--pc-card-bg,#fff);color:var(--pc-text,#0f172a);width:min(1100px,96vw);height:min(840px,94vh);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}'+
+    '.eh-docup-preview-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px;border-bottom:1px solid #ccd4dc}'+
+    '.eh-docup-preview-head strong{flex:1;min-width:170px;overflow-wrap:anywhere}'+
+    '.eh-docup-preview-media{flex:1;min-height:0;width:100%;border:0;object-fit:contain}'+
+    '.eh-docup-no-preview{padding:24px}.rc786-doc-actions[data-docup-managed]{display:flex!important;gap:8px!important;flex-wrap:wrap!important}';
   document.head.appendChild(s);
 }
 function card(){return document.getElementById('rc786ReferenceFilesCard')}
@@ -72,9 +78,11 @@ function togglePanel(){
 function ensureButton(){
   scheduled=false;
   var actions=document.querySelector('#rc786ReferenceFilesCard .rc786-doc-head-actions');
-  if(!actions||actions.querySelector('[data-doc-upload]'))return;
+  if(!actions)return;
+  if(actions.querySelector('[data-doc-upload]')){syncFileActions();return;}
   var b=el('button',{type:'button',class:'ghost','data-doc-upload':'1'},t('button'));
   actions.insertBefore(b,actions.firstChild);
+  syncFileActions();
 }
 function scheduleEnsure(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||setTimeout)(ensureButton)}
 function readBase64(file){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');resolve(i>=0?s.slice(i+1):s)};r.onerror=function(){reject(r.error||new Error('read'))};r.readAsDataURL(file)})}
@@ -95,7 +103,14 @@ async function uploadAll(){
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
   for(var i=0;i<files.length;i++){
     log[i]={state:'busy',text:t('busy',{name:files[i].name})};renderList();
-    try{var info=await uploadOne(ref,files[i],docKind);ok++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
+    try{
+      var info=await uploadOne(ref,files[i],docKind);
+      ok++;
+      var original=q(files[i].name).replace(/[\\/:*?"<>|\\r\\n]+/g,'_').replace(/\\s+/g,' ').trim();
+      var unexpected=info.name&&info.name.slice(-original.length-1)!=='_'+original;
+      log[i]={state:unexpected?'error':'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})+
+        (info.name?' → '+info.name:'')+(unexpected?' · WARNUNG: Server-Dateiname weicht von der Auswahl ab.':'')};
+    }
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
   }
@@ -105,6 +120,92 @@ async function uploadAll(){
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   return ok===files.length;
 }
+
+function docRows(){var c=card();return c?Array.prototype.slice.call(c.querySelectorAll('#rc786ReferenceFilesPanel .rc786-doc-row')):[]}
+function documentRows(){return Array.isArray(window.__EXPORTHUB_RC776_VIEW_DOCS__)?window.__EXPORTHUB_RC776_VIEW_DOCS__:[]}
+function syncFileActions(){
+  var rows=docRows(),docs=documentRows();
+  rows.forEach(function(row,i){
+    var d=docs[i],actions=row.querySelector('.rc786-doc-actions');
+    if(!d||!actions||d.source!=='referenceFolder'||!q(d.itemId))return;
+    if(actions.getAttribute('data-docup-managed')===q(d.itemId))return;
+    actions.textContent='';actions.setAttribute('data-docup-managed',q(d.itemId));
+    [['open','Öffnen'],['download','Herunterladen']].concat(/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId))?[['delete','Löschen']]:[]).forEach(function(action){
+      var b=el('button',{type:'button',class:'ghost eh-docup-file-action','data-docup-file-action':action[0],'data-docup-index':String(i),'data-docup-id':q(d.itemId)},action[1]);
+      actions.appendChild(b);
+    });
+    var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
+    if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
+    if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
+  });
+}
+function fileContext(btn){
+  var index=Number(btn.getAttribute('data-docup-index')),docs=documentRows(),d=docs[index],sh=currentShipment(),ref=refOf(sh);
+  if(!d||!ref||d.source!=='referenceFolder'||q(d.reference)!==ref||q(d.itemId)!==q(btn.getAttribute('data-docup-id')))
+    throw new Error('Die Dateiliste hat sich geändert. Bitte die Sendung erneut öffnen.');
+  return {document:d,reference:ref};
+}
+async function fetchStoredFile(ref,d){
+  var url='/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline';
+  var res=await fetch(url,{method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'});
+  if(!res.ok){var result={};try{result=await res.json()}catch(_){}throw new Error(q(result.message)||('HTTP '+res.status))}
+  var blob=await res.blob();
+  if(!blob.size)throw new Error('Die gespeicherte Datei ist leer.');
+  return blob;
+}
+function downloadBlob(blob,name){
+  var url=URL.createObjectURL(blob),a=el('a',{href:url,download:name||'Dokument'});
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url)},30000);
+}
+function previewBlob(blob,name){
+  var existing=document.getElementById('eh-docup-preview');if(existing&&existing.closePreview)existing.closePreview();
+  var url=URL.createObjectURL(blob),mime=q(blob.type).toLowerCase(),ext=extOf(name);
+  var overlay=el('div',{id:'eh-docup-preview',class:'eh-docup-preview',role:'dialog','aria-modal':'true','aria-label':'Dateivorschau'});
+  var panel=el('div',{class:'eh-docup-preview-panel'}),head=el('div',{class:'eh-docup-preview-head'});
+  var title=el('strong',{},name),download=el('button',{type:'button',class:'ghost'},'Herunterladen'),close=el('button',{type:'button',class:'ghost'},'Schließen');
+  overlay.closePreview=function(){overlay.remove();URL.revokeObjectURL(url)};
+  download.addEventListener('click',function(){downloadBlob(blob,name)});
+  close.addEventListener('click',overlay.closePreview);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.closePreview()});
+  head.appendChild(title);head.appendChild(download);head.appendChild(close);panel.appendChild(head);
+  var content;
+  if(mime==='application/pdf'||ext==='.pdf')content=el('iframe',{src:url,title:name,class:'eh-docup-preview-media'});
+  else if(mime.indexOf('image/')===0||['.jpg','.jpeg','.png'].indexOf(ext)>=0)content=el('img',{src:url,alt:name,class:'eh-docup-preview-media'});
+  else content=el('p',{class:'eh-docup-no-preview'},'Für diesen Dateityp ist keine direkte Vorschau verfügbar. Du kannst die Originaldatei herunterladen.');
+  panel.appendChild(content);overlay.appendChild(panel);document.body.appendChild(overlay);close.focus();
+}
+async function actOnFile(btn){
+  if(btn.disabled)return;
+  var action=btn.getAttribute('data-docup-file-action'),ctx=fileContext(btn),d=ctx.document;
+  if(action==='delete'){
+    if(!/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId)))throw new Error('Geschützte Originale dürfen hier nicht gelöscht werden.');
+    if(!window.confirm('Dokument "'+d.name+'" aus dieser Sendung entfernen?\n\nEs verschwindet aus der Sendungsansicht und dem Kundenavis. Original- und Archivkopien bleiben für die Nachvollziehbarkeit geschützt.'))return;
+    btn.disabled=true;
+    try{
+      var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'delete-document',reference:ctx.reference,itemId:d.itemId})}),result={};
+      try{result=await res.json()}catch(_){}
+      if(!res.ok||result.ok===false)throw new Error(q(result.message)||('HTTP '+res.status));
+      var view=window.ExportHUBShipmentView;
+      if(view&&typeof view.refreshReferenceFiles==='function')await view.refreshReferenceFiles();
+      window.alert('Das Dokument wurde aus der Sendung entfernt. Archivkopien bleiben geschützt.');
+    }finally{btn.disabled=false}
+    return;
+  }
+  btn.disabled=true;
+  try{
+    var blob=await fetchStoredFile(ctx.reference,d);
+    if(action==='download')downloadBlob(blob,d.name);
+    else if(action==='open')previewBlob(blob,d.name);
+  }finally{btn.disabled=false}
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest&&e.target.closest('[data-docup-file-action]');
+  if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  actOnFile(b).catch(function(error){window.alert('Datei-Aktion fehlgeschlagen:\n'+q(error&&error.message||error))});
+},true);
+
 document.addEventListener('click',function(e){
   var target=e.target&&e.target.closest?e.target:null;if(!target)return;
   if(target.closest('[data-doc-upload]')){e.preventDefault();e.stopImmediatePropagation();togglePanel();return}
