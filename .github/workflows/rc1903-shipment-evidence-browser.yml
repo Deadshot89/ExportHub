@@ -13,6 +13,7 @@ on:
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
       - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
+      - 'e2e/specs/rc1931-shipment-view-gallery.spec.mjs'
       - 'e2e/specs/rc1903-testservice-visual-proof.spec.mjs'
       - 'playwright.rc1903-testservice-visual.config.mjs'
       - '.github/rc1112/build-three-env.mjs'
@@ -65,6 +66,12 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: production
         run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
+
+      - name: RC1931 authenticated shipment view REF and linked DOK preview, synthetic only
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: npx playwright test e2e/specs/rc1931-shipment-view-gallery.spec.mjs --project=laptop --project=mobile-small
 
       - name: Verify real TESTSERVICE frontend with mocked customer and photo APIs
         run: |
