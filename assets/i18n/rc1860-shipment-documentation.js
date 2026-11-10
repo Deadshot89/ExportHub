@@ -8,4 +8,13 @@ const uploadReceiptTranslations={
  it:{filesVerified:' file confermati in archivio.',azureOnly:' confermati solo in Azure; copia SharePoint in attesa.',uploadNotConfirmed:'Caricamento non confermato. Riprova.',uploadNotListed:'File non presente nell’elenco dopo il caricamento.'}
 };
 for(const [locale,strings] of Object.entries(uploadReceiptTranslations))Object.assign(root.ExportHUBShipmentDocumentationI18n.packs[locale],strings);
+const partialFileTranslations={
+ de:'REF-Dateiliste unvollständig: Mindestens eine Speicherquelle ist nicht erreichbar. Vorhandene Dateien bleiben erhalten. Bitte später „Neu laden“ wählen.',
+ en:'Incomplete REF file list: at least one storage source is unavailable. Existing files remain saved. Reload later.',
+ pl:'Lista plików REF jest niepełna: co najmniej jedno źródło jest niedostępne. Istniejące pliki pozostają zapisane. Spróbuj ponownie później.',
+ es:'Lista REF incompleta: al menos una fuente de almacenamiento no está disponible. Los archivos existentes siguen guardados. Vuelve a cargar más tarde.',
+ fr:'Liste REF incomplète : au moins une source de stockage est indisponible. Les fichiers existants restent enregistrés. Rechargez plus tard.',
+ it:'Elenco REF incompleto: almeno una fonte di archiviazione non è disponibile. I file già salvati restano conservati. Ricarica più tardi.'
+};
+for(const [locale,description] of Object.entries(partialFileTranslations))root.ExportHUBShipmentDocumentationI18n.packs[locale].refPartial=description;
 })(window);
