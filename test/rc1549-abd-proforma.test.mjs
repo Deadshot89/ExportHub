@@ -101,7 +101,7 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
   integrateAbdProforma(root,out);
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
    const html=fs.readFileSync(path.join(out,file),'utf8');
-   const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1549"></script>';
+   const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1962"></script>';
    assert.equal((html.match(/exporthub-rc1549-abd-proforma/g)||[]).length,1);
    assert.ok(html.indexOf(tag)<html.indexOf('</head>'),'RC1549-Tag muss vor dem echten ersten </head> stehen');
    assert.equal((html.match(/id="exporthub-rc1790-delivery-note"/g)||[]).length,1);
