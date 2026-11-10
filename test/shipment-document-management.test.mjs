@@ -33,7 +33,7 @@ test('Entfernen: Upload-spezifisch, referenzgebunden, reversibel, nach Rücklese
 test('API: authentifizierte Löschung nur für exakt nachgewiesene Upload-ID', () => {
  assert.match(api, /const sessionInfo=await validateSession\(req\)/);
  assert.match(api, /action==='delete-document'/);
- assert.match(api, /if\(!\/\^refdoc:\[0-9a-f\]\{32\}\$\/\.test\(id\)\)/);
+ assert.match(api, /refDocBlob\.softDelete\(ref,environment,id/);
  assert.match(api, /refDocBlob\.softDelete\(ref,environment,id,usernameOf\(sessionInfo\.user\)\)/);
  assert.match(api, /refDocBlob\.hiddenNames\(ref,env\)/);
  assert.match(api, /azureDocNames\.has\(text\(f\.name\)\.toLowerCase\(\)\)/);
@@ -48,7 +48,7 @@ test('Sendungsansicht: sichtbare Aktionen für Originaldatei, sichere Vorschau u
  assert.match(ui, /\['open',t\('open'\)\]/);
  assert.match(ui, /\['download',t\('download'\)\]/);
  assert.match(ui, /\['delete',t\('remove'\)\]/);
- assert.match(ui, /q\(d\.itemId\)\)\?\[\['delete',t\('remove'\)\]\]/);
+ assert.match(ui, /canRemoveDocument\(d\)\?\[\['delete',t\('remove'\)\]\]/);
  assert.match(ui, /action:'delete-document'/);
  assert.match(ui, /window\.confirm\(t\('removeConfirm'/);
  assert.match(ui, /t\('removed'\)/);
@@ -68,4 +68,13 @@ test('Dokument-Aktionen besitzen Übersetzungen in allen sechs Sprachen', () => 
 
 test('Neue Dateiauswahl ersetzt alte, damit keine fremde Rechnung im Upload bleibt', () => {
  assert.match(ui, /function addFiles\(files\)\{if\(busy\)return;log=\[\];picked=\[\];/);
+});
+
+test('SharePoint-only Upload: serverseitig gegen echte REF-Liste und Dateiart geprüft', () => {
+ assert.match(api, /listFiles\(ref,req\),matches=listed\.files\.filter\(f=>f\.id===id\)/);
+ assert.match(api, /refDocBlob\.hideSharePoint\(ref,environment,matches\[0\],usernameOf\(sessionInfo\.user\)\)/);
+ assert.match(storage, /async function hideSharePoint\(ref, env, item, actor\)/);
+ assert.match(ui, /function canRemoveDocument\(d\)/);
+ assert.match(ui, /if\(!canRemoveDocument\(d\)\)/);
+ assert.match(ui, /data-rc786-print-file/);
 });
