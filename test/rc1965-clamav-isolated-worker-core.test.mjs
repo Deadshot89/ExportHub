@@ -46,6 +46,56 @@ function fixture(overrides={}){
   counters:()=>({claims,reads,scans})
  };
 }
+test('RC1973: missing EICAR engine readiness blocks before the first customer blob read',async()=>{
+ for(const outcome of [
+  {verified:false,authorizedForRelease:false},
+  {verified:true,authorizedForRelease:true},
+  {verified:true},
+  null
+ ]){
+  let checks=0;
+  const f=fixture({engineCheck:async()=>{checks++;return outcome;}});
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'engine-self-test-failed');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(checks,1);
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+ }
+});
+
+test('RC1973: broken readiness adapter or scanner self-test crash fails closed',async()=>{
+ const missing=fixture({engineCheck:null});
+ const r=await scanOfflineCandidate(missing.settings);
+ assert.equal(r.reason,'worker-adapter-unavailable');
+ assert.deepEqual(missing.counters(),{claims:0,reads:0,scans:0});
+ const broken=fixture({engineCheck:async()=>{throw Error('secret=DO_NOT_LOG');}});
+ const crashed=await scanOfflineCandidate(broken.settings);
+ assert.equal(crashed.reason,'worker-error');
+ assert.equal(crashed.authorizedForRelease,false);
+ assert.deepEqual(broken.counters(),{claims:1,reads:0,scans:0});
+ assert.doesNotMatch(JSON.stringify(crashed),/DO_NOT_LOG/);
+});
+
+test('RC1973: queue verification and atomic claim happen BEFORE costly EICAR probe',async()=>{
+ let probes=0;
+ const invalid=fixture({
+  envelope:{...receipt,payload:{...receipt.payload,uploadSha256:'e'.repeat(64)}},
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ assert.equal((await scanOfflineCandidate(invalid.settings)).reason,'invalid-queue-proof');
+ assert.equal(probes,0);
+ const duplicate=fixture({
+  claimJob:async()=>false,
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ assert.equal((await scanOfflineCandidate(duplicate.settings)).reason,'job-already-claimed');
+ assert.equal(probes,0);
+ assert.deepEqual(invalid.counters(),{claims:0,reads:0,scans:0});
+ assert.deepEqual(duplicate.counters(),{claims:0,reads:0,scans:0});
+});
+
 test('RC1965: valid queue + immutable bytes yield ONLY signed candidate, never parser release',async()=>{
  const f=fixture();
  const r=await scanOfflineCandidate(f.settings);
