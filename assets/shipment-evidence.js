@@ -71,7 +71,7 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{const row=make('div','eh1903-row'),data=make('div');
     data.appendChild(make('b',null,r.fields&&r.fields.customer||'–'));
-    data.appendChild(make('p',null,[r.fields&&r.fields.shipmentNumber,r.id,dateText(r.fields&&r.fields.dispatchDate)].filter(Boolean).join(' · ')));
+    data.appendChild(make('p',null,[t('docId')+': '+r.id,r.fields&&r.fields.shipmentNumber,dateText(r.fields&&r.fields.dispatchDate)].filter(Boolean).join(' · ')));
     data.appendChild(make('p',null,(r.files||[]).length+' '+t('fileCount')+' · '+(r.complaints||[]).length+' '+t('complaintCount')));
     row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)});
  }
@@ -117,7 +117,7 @@ async function write(action,extra,expectedId){
   if(originalId&&action!=='save'&&action!=='create'){
    const currentRoot=root();
    if(currentRoot&&currentRoot.querySelector('[data-evidence-field]')){
-    const draft=readFields(currentRoot);
+    const draft=Object.assign({},state.record&&state.record.fields||{},readFields(currentRoot));
     const stored=state.record&&state.record.fields||{};
     const changed=FIELDS.some(([key])=>String(draft[key]||'').trim()!==String(stored[key]||'').trim());
     if(changed){
@@ -142,7 +142,16 @@ async function write(action,extra,expectedId){
 function showForm(record){state.searchRun++;state.view='form';if(record!==undefined){state.record=record;if(!record){state.canDelete=false;state.canRegisterCustomer=false;}}const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
- if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
+ if(r){
+  const reference=make('section','eh1903-panel');
+  reference.appendChild(make('p','eh1903-muted',t('docId')));
+  reference.appendChild(make('strong',null,r.id));
+  reference.appendChild(button(t('copyReference'),async()=>{
+   try{await w.navigator.clipboard.writeText(r.id);status(t('referenceCopied'),false)}
+   catch(_){status(r.id,false)}
+  }));
+  app.appendChild(reference);
+ }else app.appendChild(make('p','eh1903-muted',t('referencePending')));
  if(r&&r.fields&&r.fields.customerMode==='pending'){
   const pending=make('p','eh1903-muted',t('customerPendingMessage'));
   app.appendChild(pending);
