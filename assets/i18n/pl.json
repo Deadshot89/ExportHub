@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Włącz informację w e-mailu",
   "closureMail.mailHide": "Wyłącz informację w e-mailu",
   "closureMail.portalShow": "Pokaż informację w portalu",
-  "closureMail.portalHide": "Ukryj informację w portalu"
+  "closureMail.portalHide": "Ukryj informację w portalu",
+  "closureMail.activate": "Włącz zamknięcie",
+  "closureMail.deactivate": "Wyłącz zamknięcie",
+  "closureMail.disableConfirm": "Czy na pewno wyłączyć zamknięcie? Terminy odbioru w tym okresie będzie można ponownie rezerwować."
 }
