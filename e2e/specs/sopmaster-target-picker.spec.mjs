@@ -45,6 +45,19 @@ for(const viewport of ['desktop','mobile-standard']){
     const targetBlock=refreshedRow.locator('[data-sop-editor-target-key="sop-open-SOP-EH-060"]');
     await expect(targetBlock).toBeVisible();
     await expect(targetBlock.locator('code')).toHaveText('sop-open-SOP-EH-060');
+    // The editor persists through a queued, confirmed async save. A rendered
+    // target is NOT yet evidence that the canonical state has been flushed.
+    // Wait before testing/cancelling the next selection so that the previous
+    // save cannot race with those subsequent UI interactions.
+    const expectedTarget={stableKey:'sop-open-SOP-EH-060',selector:'[data-tour-key="sop-open-SOP-EH-060"]'};
+    const readTarget=()=>page.evaluate(()=>{
+      const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():{};
+      const doc=(state.isoSops||[]).find(item=>item.number==='SOP-EH-060');
+      const draft=(doc&&doc.versions||[]).find(item=>item.version===doc.draftVersion);
+      return draft?.content?.steps?.[0]?.target||null;
+    });
+    await expect(page.locator('[data-sop-persist-status]').first()).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
+    await expect.poll(readTarget,{timeout:15000,message:'Tourziel muss nach bestätigtem Speichern auch im Hauptzustand stehen'}).toEqual(expectedTarget);
     expect(await page.locator('.rc1007-sop-document[data-sop-number="SOP-EH-060"]').count()).toBe(beforeOpenCount);
 
     await targetBlock.locator('[data-sop-editor-action="test-target"]').click();
@@ -55,14 +68,13 @@ for(const viewport of ['desktop','mobile-standard']){
     await targetBlock.locator('[data-sop-editor-action="cancel-target-pick"]').click();
     await expect(page.locator('html')).not.toHaveClass(/rc1502-sop-target-picking/);
 
-    const persisted=await page.evaluate(()=>{
-      const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():{};
-      const doc=(state.isoSops||[]).find(item=>item.number==='SOP-EH-060');
-      const draft=(doc&&doc.versions||[]).find(item=>item.version===doc.draftVersion);
-      const step=draft&&draft.content&&draft.content.steps&&draft.content.steps[0];
-      return step&&step.target||null;
-    });
-    expect(persisted).toEqual({stableKey:'sop-open-SOP-EH-060',selector:'[data-tour-key="sop-open-SOP-EH-060"]'});
+    // Cancelling a NEW pick must not erase the already-confirmed target.
+    expect(await readTarget()).toEqual(expectedTarget);
+    await page.reload({waitUntil:'domcontentloaded'});
+    await waitReady(page);
+    const reloaded=await openAbdEditor(page);
+    await expect(reloaded.locator('[data-sop-editor-target-key="sop-open-SOP-EH-060"]').first()).toBeVisible();
+    expect(await readTarget()).toEqual(expectedTarget);
     await assertNoHorizontalOverflow(page);
   });
 }
