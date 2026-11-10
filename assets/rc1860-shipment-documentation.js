@@ -56,7 +56,7 @@ function addField(grid,key,label,type,wide){
  var labelEl=el('label',wide?'wide':'',label),input=el(type==='textarea'?'textarea':'input');
  if(type!=='textarea')input.type=type||'text';
  input.setAttribute('data-proof-field',key);
- var limits={shipmentNumber:100,customer:200,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,contents:3000,loadSecuring:1500,remarks:2000,complaintText:2000};
+ var limits={shipmentNumber:100,customer:200,carrier:160,trackingNumber:160,remarks:2000,complaintText:2000};
  if(limits[key])input.maxLength=limits[key];
  if(key==='reference')input.readOnly=true;
  if(key==='colli'){input.min='0';input.max='100000';input.step='1'}
@@ -73,10 +73,7 @@ function build(ref){
  [
   ['reference',tr('reference'),'text'],['shipmentNumber',tr('shipmentNumber'),'text'],['customer',tr('customer'),'text'],
   ['dispatchDate',tr('dispatchDate'),'date'],['colli',tr('colliCount'),'number'],['weightKg',tr('weightKg'),'number'],
-  ['packaging',tr('packaging'),'text'],['shippingMethod',tr('shippingMethod'),'text'],['carrier',tr('carrier'),'text'],
-  ['trackingNumber',tr('tracking'),'text'],
-  ['contents',tr('contents'),'textarea',true],
-  ['loadSecuring',tr('securing'),'textarea',true],
+  ['carrier',tr('carrier'),'text'],['trackingNumber',tr('tracking'),'text'],
   ['remarks',tr('remarks'),'textarea',true]
  ].forEach(function(f){addField(grid,f[0],f[1],f[2],!!f[3])});
  box.appendChild(grid);
@@ -120,11 +117,9 @@ function snapshot(shipment,ref){
  return{reference:ref,shipmentNumber:q(shipment&&(shipment.shipmentNumber||shipment.carrierShipmentNumber||shipment.consignmentNumber)),
  customer:safeCustomer(shipment),
  dispatchDate:'',colli:count?String(count):'',weightKg:weight?String(weight):'',
- packaging:rows.map(function(r){return q(r.type||r.packaging)}).filter(Boolean).filter(function(s,i,a){return a.indexOf(s)===i}).join(', '),
- shippingMethod:q(shipment&&(shipment.shippingMethod||shipment.transportMode||shipment.serviceName)),
  carrier:q(shipment&&(shipment.carrier||shipment.carrierName||shipment.forwarder)),
  trackingNumber:q(shipment&&(shipment.trackingNumber||shipment.waybillNumber)),
- contents:'',loadSecuring:'',remarks:''};
+ remarks:''};
 }
 function fill(box,fields){
  var f=Object.assign({},snapshot(sh(),activeRef),fields||{});
@@ -155,7 +150,7 @@ async function load(box,ref){
 }
 async function saveRecord(box,ref){
  if(busy||!isCurrent(box,ref))return;
- var fields=values(box),expectedRevision=activeRecord?activeRecord.revision:0;
+ var fields=Object.assign({},activeRecord&&activeRecord.fields||{},values(box)),expectedRevision=activeRecord?activeRecord.revision:0;
  setBusy(box,true);status(box,tr('saving'));
  try{
   var d=await api('POST',ref,{action:'save',expectedRevision:expectedRevision,fields:fields});
