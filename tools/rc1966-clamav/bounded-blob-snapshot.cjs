@@ -1,0 +1,67 @@
+'use strict';
+// RC1966: inert bounded Azure SDK adapter. No Azure client creation or network
+// connection without an explicitly supplied, trusted ContainerClient.
+const crypto=require('node:crypto');
+const MAX_BYTES=12*1024*1024;
+const HEX64=/^[0-9a-f]{64}$/;
+const HEX32=/^[0-9a-f]{32}$/;
+const ETAG=/^"[A-Za-z0-9!#$%&'*+.^_|~-]{1,128}"$/;
+const KINDS=new Set(['pdf','xlsx','csv','txt','tsv','jpg','png']);
+const fail=()=>{throw Error('RC1966_BLOB_UNVERIFIED')};
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
+function deriveBlobName(expected,kind){
+ if(!expected||expected.environment!=='testservice'||!KINDS.has(kind)||
+    !HEX64.test(expected.scopeHash||'')||!HEX64.test(expected.uploadSha256||'')||
+    !HEX64.test(expected.blobKeyHash||'')||!HEX32.test(expected.uploadNonce||'')||
+    typeof expected.blobEtag!=='string'||!ETAG.test(expected.blobEtag)||
+    !Number.isSafeInteger(expected.bytes)||expected.bytes<1||expected.bytes>MAX_BYTES) return fail();
+ const name='rc1294/testservice/'+expected.scopeHash+'/'+expected.uploadSha256+'-'+expected.uploadNonce+'.'+kind;
+ if(hash(name)!==expected.blobKeyHash)return fail();
+ return name;
+}
+function createBoundedReadSnapshot({container,expected,kind}={}){
+ // A trusted worker must create 'container' using workload identity and the
+ // dedicated testservice quarantine container. Never inject a client-supplied
+ // URL, SAS, connection string or arbitrary blob path here.
+ const name=deriveBlobName(expected,kind);
+ if(!container||typeof container.getBlobClient!=='function')return fail();
+ const scope=Object.freeze({...expected});
+ return async function readSnapshot(locator){
+  if(!locator||locator.environment!=='testservice'||
+     locator.scopeHash!==scope.scopeHash||locator.blobKeyHash!==scope.blobKeyHash||
+     !HEX32.test(locator.jobId||''))return fail();
+  try{
+   const blob=container.getBlobClient(name);
+   if(!blob||typeof blob.getProperties!=='function'||typeof blob.download!=='function')return fail();
+   const conditions={ifMatch:scope.blobEtag};
+   const props=await blob.getProperties({conditions});
+   if(!props||props.etag!==scope.blobEtag||props.blobType!=='BlockBlob'||
+      props.contentLength!==scope.bytes)return fail();
+   // Server-side range + If-Match prevent an unbounded or substituted download.
+   // maxRetryRequests:0 avoids automatic hidden stream retry consumption.
+   const response=await blob.download(0,scope.bytes,{conditions,maxRetryRequests:0});
+   const stream=response&&response.readableStreamBody;
+   if(!response||response.etag!==scope.blobEtag||
+      response.contentLength!==scope.bytes||
+      !stream||typeof stream[Symbol.asyncIterator]!=='function'){
+    if(stream&&typeof stream.destroy==='function')stream.destroy();
+    return fail();
+   }
+   const parts=[];let total=0;
+   try{
+    for await(const part of stream){
+     if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))return fail();
+     const chunk=Buffer.from(part);
+     total+=chunk.length;
+     if(total>scope.bytes||total>MAX_BYTES)return fail();
+     parts.push(chunk);
+    }
+   }finally{if(typeof stream.destroy==='function')stream.destroy();}
+   if(total!==scope.bytes)return fail();
+   const bytes=Buffer.concat(parts,total);
+   if(hash(bytes)!==scope.uploadSha256){bytes.fill(0);return fail();}
+   return{bytes,etag:scope.blobEtag};
+  }catch(_){return fail();}
+ };
+}
+module.exports={deriveBlobName,createBoundedReadSnapshot};
