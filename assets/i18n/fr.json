@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Activer l'avis par e-mail",
   "closureMail.mailHide": "Désactiver l'avis par e-mail",
   "closureMail.portalShow": "Afficher l'avis sur le portail",
-  "closureMail.portalHide": "Masquer l'avis sur le portail"
+  "closureMail.portalHide": "Masquer l'avis sur le portail",
+  "closureMail.activate": "Activer la fermeture",
+  "closureMail.deactivate": "Désactiver la fermeture",
+  "closureMail.disableConfirm": "Désactiver cette fermeture ? Les créneaux d'enlèvement de cette période pourront de nouveau être réservés."
 }
