@@ -16,7 +16,7 @@ function setup({hostname='www.exporthub360.de',launchFails=false}={}){
   }};
  },body:{appendChild(){},getAttribute(){return''}},head:{appendChild(){}},documentElement:{appendChild(){}}};
  const de=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
- const sandbox={document,URL,console,Date,Intl,Map,Set,Promise,clearTimeout(){},setInterval(){},setTimeout(){return 1},location:{hostname,href:'https://'+hostname+'/'},addEventListener(){},dispatchEvent(){},CustomEvent:class{},__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:{t:(k)=>de[k]||k},fetch(...args){calls.push(args);throw new Error('Server mail must not be used')},ExportHUBClean:{queueSave(reason){saved.push(reason)}}};
+ const sandbox={document,URL,console,Date,Intl,Map,Set,Promise,clearTimeout(){},setInterval(){},setTimeout(){return 1},location:{hostname,href:'https://'+hostname+'/'},addEventListener(){},dispatchEvent(){},CustomEvent:class{},__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:{t:(k)=>de[k]||k},fetch(...args){if(String(args[0]).startsWith('/api/avis-notice?mail=1'))return Promise.resolve({ok:true,json:async()=>({ok:true,mailText:''})});calls.push(args);throw new Error('Server mail must not be used')},ExportHUBClean:{queueSave(reason){saved.push(reason)}}};
  sandbox.window=sandbox;
  for(const file of ['assets/rc1065-registration-cc.js','assets/rc1071-shipment-history.js','assets/rc1166-avis-reminder-overview.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox);
  return{api:sandbox.ExportHUBRC1166AvisReminder,sh,state,launches,calls,saved,events,document};
