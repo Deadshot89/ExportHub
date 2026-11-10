@@ -319,7 +319,7 @@ function rc1337MailNoticeRequest(lang){
  rc1337MailNoticeCache[lang]={pending:true,text:''};
  var env=/-testservice\./i.test(String(window.location&&window.location.hostname||''))?'testservice':'production';
  window.fetch('/api/avis-notice?mail=1&lang='+encodeURIComponent(lang),{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-ExportHUB-Environment':env}})
- .then(function(r){return r.json().then(function(x){if(!r.ok||!x.ok)throw new Error(x.message||'Avis-Hinweis nicht verfügbar');return q(x.mailText)})})
+ .then(function(r){return r.json().then(function(x){if(!r.ok||!x.ok)throw new Error(x.message||'Notice unavailable');return q(x.mailText)})})
  .then(function(value){rc1337MailNoticeCache[lang]={pending:false,text:value,expires:Date.now()+60000};rc1024ScheduleVisibleMail()})
  .catch(function(){rc1337MailNoticeCache[lang]={pending:false,text:'',expires:Date.now()+10000}});
 }
