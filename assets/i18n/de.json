@@ -2683,5 +2683,6 @@
   "closureMail.portalHide": "Avis-Seitenhinweis ausschalten",
   "closureMail.activate": "Schließzeit aktivieren",
   "closureMail.deactivate": "Schließzeit deaktivieren",
-  "closureMail.disableConfirm": "Schließzeit wirklich deaktivieren? Abholtermine in diesem Zeitraum können dann wieder gebucht werden."
+  "closureMail.disableConfirm": "Schließzeit wirklich deaktivieren? Abholtermine in diesem Zeitraum können dann wieder gebucht werden.",
+  "closureMail.removeConfirm": "Schließzeit wirklich löschen? Dadurch können Abholtermine in diesem Zeitraum wieder buchbar werden. Dieser Schritt kann nicht rückgängig gemacht werden."
 }
