@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {deflateRawSync} from 'node:zlib';
 
 const worker=fs.readFileSync('assets/rc1962-d365-xlsx-worker.js','utf8');
 const ui=fs.readFileSync('assets/rc1962-d365-local-import.js','utf8');
@@ -11,14 +12,14 @@ const secure=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
 const builder=fs.readFileSync('.github/rc1549/integrate-abd-proforma.mjs','utf8');
 
 function crc32(data){let c=0xffffffff;for(const b of data){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0)}return (c^0xffffffff)>>>0}
-function makeZip(entries){
+function makeZip(entries,method=0){
  const locals=[],centrals=[];let offset=0;
  for(const [name,source] of Object.entries(entries)){
-  const n=Buffer.from(name),data=Buffer.from(source),crc=crc32(data);
-  const local=Buffer.alloc(30);local.writeUInt32LE(0x04034b50,0);local.writeUInt16LE(20,4);local.writeUInt32LE(crc,14);local.writeUInt32LE(data.length,18);local.writeUInt32LE(data.length,22);local.writeUInt16LE(n.length,26);
-  locals.push(local,n,data);
-  const central=Buffer.alloc(46);central.writeUInt32LE(0x02014b50,0);central.writeUInt16LE(20,4);central.writeUInt16LE(20,6);central.writeUInt32LE(crc,16);central.writeUInt32LE(data.length,20);central.writeUInt32LE(data.length,24);central.writeUInt16LE(n.length,28);central.writeUInt32LE(offset,42);
-  centrals.push(central,n);offset+=local.length+n.length+data.length
+  const n=Buffer.from(name),data=Buffer.from(source),packed=method===8?deflateRawSync(data):data,crc=crc32(data);
+  const local=Buffer.alloc(30);local.writeUInt32LE(0x04034b50,0);local.writeUInt16LE(20,4);local.writeUInt16LE(method,8);local.writeUInt32LE(crc,14);local.writeUInt32LE(packed.length,18);local.writeUInt32LE(data.length,22);local.writeUInt16LE(n.length,26);
+  locals.push(local,n,packed);
+  const central=Buffer.alloc(46);central.writeUInt32LE(0x02014b50,0);central.writeUInt16LE(20,4);central.writeUInt16LE(20,6);central.writeUInt16LE(method,10);central.writeUInt32LE(crc,16);central.writeUInt32LE(packed.length,20);central.writeUInt32LE(data.length,24);central.writeUInt16LE(n.length,28);central.writeUInt32LE(offset,42);
+  centrals.push(central,n);offset+=local.length+n.length+packed.length
  }
  const cd=Buffer.concat(centrals),footer=Buffer.alloc(22);footer.writeUInt32LE(0x06054b50,0);footer.writeUInt16LE(Object.keys(entries).length,8);footer.writeUInt16LE(Object.keys(entries).length,10);footer.writeUInt32LE(cd.length,12);footer.writeUInt32LE(offset,16);
  return Buffer.concat([...locals,cd,footer])
@@ -26,11 +27,11 @@ function makeZip(entries){
 function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function column(i){let result='';while(i>=0){result=String.fromCharCode(65+i%26)+result;i=Math.floor(i/26)-1}return result}
 const headers=['PACKINGSLIPID','ITEMNUMBER','QTY','COMMODITYCODE','SHIPPEDAMOUNT','LINEAMOUNT','SALESORDERLINESTATUS','DELIVERYADDRESSNAME','DELIVERYADDRESSCOUNTRYREGIONID','ORIGCOUNTRYREGIONID','PRODUCTDESCRIPTION','SHIPPEDQTYNETWEIGHT','SHIPPEDQTYGROSSWEIGHT'];
-function xlsx(records,{formula=false,path='xl/worksheets/sheet1.xml',extra={}}={}){
+function xlsx(records,{formula=false,path='xl/worksheets/sheet1.xml',extra={},method=0}={}){
  const recordsWithHeader=[headers,...records];
  const rows=recordsWithHeader.map((values,i)=>'<row r="'+(i+1)+'">'+values.map((x,k)=>'<c r="'+column(k)+(i+1)+'" t="inlineStr"><is><t>'+esc(x)+'</t></is></c>').join('')+'</row>');
  if(formula)rows[1]=rows[1].replace('<is><t>', '<f>1+1</f><is><t>');
- return makeZip({'[Content_Types].xml':'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>','xl/workbook.xml':'<workbook><sheets><sheet name="D365" sheetId="1" r:id="rId1"/></sheets></workbook>',[path]:'<worksheet><sheetData>'+rows.join('')+'</sheetData></worksheet>',...extra})
+ return makeZip({'[Content_Types].xml':'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>','xl/workbook.xml':'<workbook><sheets><sheet name="D365" sheetId="1" r:id="rId1"/></sheets></workbook>',[path]:'<worksheet><sheetData>'+rows.join('')+'</sheetData></worksheet>',...extra},method)
 }
 function record(ref,item,qty,value,options={}){
  const data={PACKINGSLIPID:ref,ITEMNUMBER:item,QTY:String(qty),COMMODITYCODE:'39269097',SHIPPEDAMOUNT:value==null?'':String(value),LINEAMOUNT:'999',SALESORDERLINESTATUS:options.backorder?'backorder':'invoiced',DELIVERYADDRESSNAME:options.recipient||'Example Customer',DELIVERYADDRESSCOUNTRYREGIONID:'DEU',ORIGCOUNTRYREGIONID:'DEU',PRODUCTDESCRIPTION:'Kunststoffteil',SHIPPEDQTYNETWEIGHT:'1.5',SHIPPEDQTYGROSSWEIGHT:'2.0'};
@@ -60,6 +61,23 @@ test('RC1962 reads D365 XLSX locally, preserves separate packing slips and shipp
  assert.equal(output.docs[1].positions[0].value,12);
  assert.equal(output.docs[1].positions[0].recipient,undefined);
  assert.equal(output.docs[0].positions[0].invoiceNumber,undefined)
+});
+test('RC1962 reads genuinely compressed DEFLATE XLSX and shared-string cells',async()=>{
+ const data=await run(xlsx([record('ZIP-7','ART-DEFLATE',7,35)],{method:8}));
+ assert.equal(data.ok,true);
+ assert.equal(data.docs[0].positions[0].unitPrice,5);
+ const stringHeaders=headers.map(h=>'<si><t>'+h+'</t></si>').join('');
+ const row1=headers.map((h,i)=>'<c r="'+column(i)+'1" t="s"><v>'+i+'</v></c>').join('');
+ const values=record('SHARED','ART-S',2,20);
+ const row2=values.map((v,i)=>'<c r="'+column(i)+'2" t="inlineStr"><is><t>'+esc(v)+'</t></is></c>').join('');
+ const shared=makeZip({
+  '[Content_Types].xml':'<Types/>','xl/workbook.xml':'<workbook/>',
+  'xl/sharedStrings.xml':'<sst>'+stringHeaders+'</sst>',
+  'xl/worksheets/sheet1.xml':'<worksheet><sheetData><row r="1">'+row1+'</row><row r="2">'+row2+'</row></sheetData></worksheet>'
+ },8);
+ const parsed=await run(shared);
+ assert.equal(parsed.ok,true);
+ assert.equal(parsed.docs[0].positions[0].itemNumber,'ART-S')
 });
 test('RC1962 never substitutes ordered backorder value when shipped amount is missing',async()=>{
  const output=await run(xlsx([record('SLIP-A','BACKORDER',3,null,{backorder:true})]));
