@@ -2683,5 +2683,6 @@
   "closureMail.portalHide": "Hide portal notice",
   "closureMail.activate": "Activate closure",
   "closureMail.deactivate": "Deactivate closure",
-  "closureMail.disableConfirm": "Deactivate this closure? Pickup appointments during this period can then be booked again."
+  "closureMail.disableConfirm": "Deactivate this closure? Pickup appointments during this period can then be booked again.",
+  "closureMail.removeConfirm": "Delete this closure permanently? Pickup appointments in this period may become bookable again. This action cannot be undone."
 }
