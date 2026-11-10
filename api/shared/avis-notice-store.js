@@ -10,7 +10,9 @@ function err(code,message){const e=new Error(message);e.code=code;e.status=400;r
 function time(value,name){
  const v=text(value);
  if(!v)return '';
- if(!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(v)||new Date(v+':00Z').toISOString().slice(0,16)!==v)throw err('AVIS_NOTICE_DATE_INVALID','Ungültiges Datum für '+name+'.');
+ if(!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(v))throw err('AVIS_NOTICE_DATE_INVALID','Ungültiges Datum für '+name+'.');
+ const parsed=new Date(v+':00Z');
+ if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,16)!==v)throw err('AVIS_NOTICE_DATE_INVALID','Ungültiges Datum für '+name+'.');
  return v;
 }
 function normalize(input){
