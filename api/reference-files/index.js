@@ -235,14 +235,24 @@ module.exports=async function(context,req){
     'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
-  // Fail separately: an unavailable Azure source must not suppress a readable Graph folder.
-  let azure=[],azureError=null;
-  try{azure=await avBlob.list(ref,env)}catch(e){azureError=e}
-  let docs=[],docsError=null;
-  try{docs=await refDocBlob.list(ref,env)}catch(e){docsError=e}
-  let listed,graphError=null;
-  try{listed=await listFiles(ref,req)}
-  catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
+  // All three listings are independent, read-only and already authorized.
+  // Run them together: a slow Azure source must not delay the start of Graph.
+  // allSettled preserves each source error so a partial list is never reported as complete.
+  const [avResult,docResult,graphResult]=await Promise.allSettled([
+   Promise.resolve().then(()=>avBlob.list(ref,env)),
+   Promise.resolve().then(()=>refDocBlob.list(ref,env)),
+   Promise.resolve().then(()=>listFiles(ref,req))
+  ]);
+  const azure=avResult.status==='fulfilled'&&Array.isArray(avResult.value)?avResult.value:[];
+  const docs=docResult.status==='fulfilled'&&Array.isArray(docResult.value)?docResult.value:[];
+  const azureError=avResult.status==='rejected'?avResult.reason:null;
+  const docsError=docResult.status==='rejected'?docResult.reason:null;
+  const graphError=graphResult.status==='rejected'?graphResult.reason:null;
+  let listed=graphResult.status==='fulfilled'?graphResult.value:null;
+  if(graphError){
+   if(!azure.length&&!docs.length)throw graphError;
+   listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''};
+  }
   const files=mergeReferenceFileSources(listed.files,azure,docs);
   // Never claim "0 documents" when an independent source was unreadable.
   if(!files.length&&(azureError||docsError))throw error('REFERENCE_FILE_SOURCES_INCOMPLETE',
