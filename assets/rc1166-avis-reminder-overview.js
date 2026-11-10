@@ -230,7 +230,7 @@ function rc1337LoadMailNotice(lang,force){
  if(!force&&rc1337NoticeCache[lang])return rc1337NoticeCache[lang];
  var promise=w.fetch('/api/avis-notice?mail=1&lang='+encodeURIComponent(lang),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-ExportHUB-Environment':environmentName()}
- }).then(function(r){return r.json().then(function(data){if(!r.ok||!data.ok)throw new Error(data.message||'Avis-Hinweis konnte nicht geladen werden.');return q(data.mailText)})});
+ }).then(function(r){return r.json().then(function(data){if(!r.ok||!data.ok)throw new Error(data.message||tr('avisNotice.loadingError',null,lang));return q(data.mailText)})});
  if(!force)rc1337NoticeCache[lang]=promise.catch(function(err){delete rc1337NoticeCache[lang];throw err});
  return promise;
 }
