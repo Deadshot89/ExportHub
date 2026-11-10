@@ -44,7 +44,7 @@ test('Open-work API reads authenticated aggregate count only; rejects unauthoriz
       return {ok:true,redirected:false,type:'basic',headers:{get:()=> 'application/json; charset=utf-8'},json:async()=>({ok:true,open:5})};
     }
   },q:v=>String(v).trim(),JSON,Number,Error};
-  vm.createContext(ctx);vm.runInContext(fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
+  vm.createContext(ctx);vm.runInContext('var openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0},OPEN_WORK_AUTH_BACKOFF_MS=300000;\n'+fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
   assert.equal(await ctx.requestOpenWorkCount('/api/urgent-orders'),5);
   assert.equal(calls[0].path,'/api/urgent-orders');
   assert.equal(calls[0].options.method,'POST');
@@ -86,7 +86,7 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
   };
   vm.createContext(ctx);
   vm.runInContext(
-    'var openWorkCounts={urgent:null,quality:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;\n'+
+    'var openWorkCounts={urgent:null,quality:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0};\n'+
     fn('resetOpenWorkCounts')+'\n'+fn('loadOpenWorkCounts'),ctx
   );
   ctx.loadOpenWorkCounts();
@@ -111,4 +111,48 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
   assert.equal(ctx.openWorkCounts.urgent,null,'logout clears the dashboard');
   assert.equal(ctx.openWorkCounts.quality,null,'logout clears QM count');
   assert.equal(queued.length,4,'logout never calls a protected API');
+});
+
+test('401/403 counts: getrennte Fünf-Minuten-Sperren, keine Dauerabfragen und Login-Recovery',async()=>{
+  for(const denial of [401,403]){
+    let now=1000000,qualityStatus=denial;
+    const calls=[];
+    const ctx={
+      w:{ExportHUBClean:{runtime:{authToken:'token'}},sessionStorage:{getItem:()=>null},
+        fetch:async(path)=>{
+          calls.push(path);
+          if(path==='/api/quality-capa'&&qualityStatus!==200)return {ok:false,status:qualityStatus};
+          return {ok:true,redirected:false,type:'basic',
+            headers:{get:()=> 'application/json'},
+            json:async()=>({ok:true,open:path==='/api/urgent-orders'?7:2})};
+        }},
+      q:v=>String(v).trim(),JSON,Number,Error,Date:{now:()=>now},
+      openWorkEpoch:0,openWorkLoggedOut:false,
+      openWorkAuthBackoff:{urgent:0,quality:0},OPEN_WORK_AUTH_BACKOFF_MS:300000
+    };
+    vm.createContext(ctx);
+    vm.runInContext(fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
+    await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_UNAVAILABLE/);
+    assert.equal(calls.length,1,'first denied QM count is requested');
+    await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_AUTH_BACKOFF/);
+    assert.equal(calls.length,1,'repeat QM request during backoff never hits API');
+    assert.equal(await ctx.requestOpenWorkCount('/api/urgent-orders'),7,'Urgent counter remains independent');
+    now+=299999;
+    await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_AUTH_BACKOFF/);
+    assert.equal(calls.length,2,'permission denial cannot cause a request flood');
+    now+=2;
+    qualityStatus=200;
+    assert.equal(await ctx.requestOpenWorkCount('/api/quality-capa'),2,'QM count recovers after backoff');
+    assert.equal(ctx.openWorkAuthBackoff.quality,0,'success clears auth backoff');
+
+    // A late 403 belonging to the old session cannot block the new account.
+    let resolveOld;
+    ctx.w.fetch=()=>new Promise(resolve=>{resolveOld=resolve});
+    const pending=ctx.requestOpenWorkCount('/api/quality-capa');
+    ctx.openWorkEpoch++;
+    ctx.openWorkAuthBackoff={urgent:0,quality:0};
+    resolveOld({ok:false,status:denial});
+    await assert.rejects(pending,/COUNT_UNAVAILABLE/);
+    assert.equal(ctx.openWorkAuthBackoff.quality,0,'stale rejection cannot throttle a different login');
+  }
 });
