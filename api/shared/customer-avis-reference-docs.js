@@ -30,7 +30,10 @@ function toRecords(files,reference,source='graph'){
 // Azure-Dokumente stehen vor gleichnamigen SharePoint-Dateien (gleicher Upload, verifizierte Kopie), Doppelte entfallen.
 async function load(referenceFolder,reference,environment,log,refDocStore){
  const warn=code=>{if(typeof log==='function')log('customer-avis REF-Dokumente nicht lesbar',code)};
- let azure=[],graph=[];
+ let azure=[],graph=[],hidden=new Set();
+ if(refDocStore&&typeof refDocStore.hiddenNames==='function'){
+  try{hidden=await refDocStore.hiddenNames(reference,environment)}catch(e){warn('removal-ledger:'+text(e&&e.code));return []}
+ }
  if(refDocStore&&typeof refDocStore.list==='function'){
   try{azure=toRecords(await refDocStore.list(reference,environment),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
  }
@@ -38,7 +41,7 @@ async function load(referenceFolder,reference,environment,log,refDocStore){
  const seen=new Set(),out=[];
  for(const d of azure.concat(graph)){
   const key=d.sourceName.toLowerCase();
-  if(seen.has(key))continue;
+  if(seen.has(key)||hidden.has(key))continue;
   seen.add(key);out.push(d);
   if(out.length>=MAX_DOCS)break;
  }
