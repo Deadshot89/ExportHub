@@ -92,7 +92,7 @@ async function deletedRecords(ref, env) {
   const c = client(env), p = removedPrefix(ref, env), records = [];
   try {
     for await (const entry of c.listBlobsFlat({ prefix: p })) {
-      if (!/^([0-9a-f]{32})\\.json$/.test(entry.name.slice(p.length))) continue;
+      if (!/^([0-9a-f]{32})\.json$/.test(entry.name.slice(p.length))) continue;
       if (records.length >= MAX_FILES) throw err('REFDOC_REMOVED_LIMIT', 'Zu viele Löschvermerke.', 503);
       const value = JSON.parse((await c.getBlockBlobClient(entry.name).downloadToBuffer()).toString('utf8'));
       if (value && /^refdoc:[0-9a-f]{32}$/.test(text(value.id)) && text(value.name)) records.push(value);
