@@ -129,3 +129,22 @@ test('RC1328: global admin can suspend and resume a closure without removing its
   }
  }
 });
+
+
+test('RC1328: removing a saved closure requires confirmation and stale-row protection',()=>{
+ assert.match(admin,/remove\.addEventListener\('click',async function\(\)\{/);
+ assert.match(admin,/w\.confirm\(tr\('closureMail\.removeConfirm'\)\)/);
+ assert.match(admin,/current\.lastPickupTime!==item\.lastPickupTime/);
+ assert.match(admin,/current\.reopenDate!==item\.reopenDate\|\|current\.enabled!==item\.enabled/);
+ assert.match(admin,/entries\.splice\(index,1\)/);
+ assert.match(admin,/await persistClosureEntries\(entries\);display\(\)/);
+ const state=record=>({settings:{closureNotices:[record]}});
+ const active={...base,enabled:true};
+ const removed={...base,enabled:false};
+ assert.ok(closure.closureForPickupDate(state(active),'2026-12-24'));
+ assert.equal(closure.closureForPickupDate(state(removed),'2026-12-24'),null);
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dictionary=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+  assert.ok(dictionary['closureMail.removeConfirm']?.length>45,lang+': deletion warning');
+ }
+});
