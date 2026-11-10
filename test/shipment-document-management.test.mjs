@@ -44,18 +44,27 @@ test('AVIS: entfernte Dokumente werden nicht über Graph erneut veröffentlicht'
  assert.match(avis, /hidden\.has\(key\)/);
 });
 
-test('Sendungsansicht: sichtbare Aktionen für Originaldatei, sichere Vorschau und Rückfrage', () => {
- assert.match(ui, /\['open',t\('open'\)\]/);
- assert.match(ui, /\['download',t\('download'\)\]/);
- assert.match(ui, /\['delete',t\('remove'\)\]/);
- assert.match(ui, /canRemoveDocument\(d\)\?\[\['delete',t\('remove'\)\]\]/);
+test('Sendungsansicht: vorhandenen Viewer, Download und Druck nicht überschreiben', () => {
+ assert.match(ui, /querySelector\('\[data-rc786-open-file\]'\)/);
+ assert.match(ui, /querySelector\('\[data-rc786-download-file\]'\)/);
+ assert.match(ui, /data-rc786-print-file|native shipment viewer, download and print/i);
+ assert.doesNotMatch(ui, /actions\.textContent=''/);
+ assert.match(ui, /if\(open&&open\.textContent!==t\('open'\)\)/);
+ assert.match(ui, /if\(download&&download\.textContent!==t\('download'\)\)/);
+ assert.match(ui, /function canRemoveDocument\(d\)/);
+ assert.match(ui, /'data-docup-file-action':'delete'/);
+ assert.match(ui, /if\(!canRemoveDocument\(d\)\)/);
  assert.match(ui, /action:'delete-document'/);
  assert.match(ui, /window\.confirm\(t\('removeConfirm'/);
  assert.match(ui, /t\('removed'\)/);
  assert.match(ui, /t\('actionError'/);
- assert.match(ui, /fetchStoredFile\(ctx\.reference,d\)/);
- assert.match(ui, /URL\.createObjectURL\(blob\)/);
- assert.match(ui, /info\.name\?' → '\+info\.name/);
+});
+test('MutationObserver: Native-Dateiknöpfe dürfen nicht bei jedem Lauf neu geschrieben werden', () => {
+ assert.match(ui,/open\.textContent!==t\('open'\)/);
+ assert.match(ui,/download\.textContent!==t\('download'\)/);
+ assert.match(ui,/oldRemove\.textContent!==t\('remove'\)/);
+ assert.match(ui,/actions\.getAttribute\('data-docup-managed'\)!==q\(d\.itemId\)/);
+ assert.match(ui,/if\(!row\.hasAttribute\('data-docup-layout'\)\)/);
 });
 
 test('Dokument-Aktionen besitzen Übersetzungen in allen sechs Sprachen', () => {
