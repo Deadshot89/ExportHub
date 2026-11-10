@@ -6,9 +6,10 @@ import vm from 'node:vm';
 const runtime=fs.readFileSync('assets/rc1558-dashboard-overview.js','utf8');
 const qualityApi=fs.readFileSync('api/quality-capa/index.js','utf8');
 function fn(name){
-  const re=new RegExp('\\n(?:async )?function '+name+'\\('),found=re.exec(runtime);
-  assert.ok(found,name+' missing');
-  const begin=found.index+1,end=runtime.indexOf('\\n}\\n',begin);
+  const candidates=['\nfunction '+name+'(', '\nasync function '+name+'('];
+  const found=candidates.map(needle=>runtime.indexOf(needle)).find(index=>index>=0);
+  assert.ok(found>=0,name+' missing');
+  const begin=found+1,end=runtime.indexOf('\n}\n',begin);
   assert.ok(end>begin,name+' end missing');
   return runtime.slice(begin,end+2);
 }
@@ -21,7 +22,7 @@ test('Open-work dashboard renders independently actionable counts; unavailable n
     'dashboard.overview.tile.openModule':'Öffnen',
     'dashboard.overview.tile.unavailable':'Nicht verfügbar'
   }[key]||key),esc:v=>String(v)};
-  vm.createContext(ctx);vm.runInContext(fn('openWorkMetric')+'\\n'+fn('tileHtml'),ctx);
+  vm.createContext(ctx);vm.runInContext(fn('openWorkMetric')+'\n'+fn('tileHtml'),ctx);
   const html=ctx.tileHtml('openwork',[]);
   assert.match(html,/data-rc1558-open-module="urgentorders"/);
   assert.match(html,/data-rc1558-open-module="quality"/);
@@ -43,7 +44,7 @@ test('Open-work API reads authenticated aggregate count only; rejects unauthoriz
       return {ok:true,redirected:false,type:'basic',headers:{get:()=> 'application/json; charset=utf-8'},json:async()=>({ok:true,open:5})};
     }
   },q:v=>String(v).trim(),JSON,Number,Error};
-  vm.createContext(ctx);vm.runInContext(fn('openWorkToken')+'\\n'+fn('requestOpenWorkCount'),ctx);
+  vm.createContext(ctx);vm.runInContext(fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
   assert.equal(await ctx.requestOpenWorkCount('/api/urgent-orders'),5);
   assert.equal(calls[0].path,'/api/urgent-orders');
   assert.equal(calls[0].options.method,'POST');
