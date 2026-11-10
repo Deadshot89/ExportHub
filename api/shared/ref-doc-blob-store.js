@@ -84,4 +84,15 @@ async function read(ref, env, id) {
   return { file, buffer: bytes };
 }
 
-module.exports = { save, list, read, prefix };
+// Erst eine nachweislich saubere Defender-for-Storage-Prüfung erlaubt die PDF-Analyse.
+// Fehlende Tags sind KEINE Freigabe.
+async function scanResult(ref, env, id) {
+  if (!/^refdoc:[0-9a-f]{32}$/.test(text(id))) throw err('REFDOC_ID_INVALID', 'Ungültige Dateikennung.', 400);
+  const file = (await list(ref, env)).find(f => f.id === id);
+  if (!file) throw err('REFDOC_NOT_FOUND', 'Dokument in dieser Sendung nicht gefunden.', 404);
+  const blob = client(env).getBlockBlobClient(file.blobName);
+  const response = await blob.getTags();
+  return require('./customer-avis-pdf-security').scanResultFromTags(response && response.tags || {});
+}
+
+module.exports = { save, list, read, scanResult, prefix };
