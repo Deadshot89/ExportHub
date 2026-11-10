@@ -222,6 +222,25 @@ function recordDraft(sh,result,mode,target,language){
  }
  try{w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}));schedule()}catch(_){}
 }
+
+/* RC1337: Keep the Outlook draft text consistent with the server-sent AVIS notice. */
+var rc1337NoticeCache=Object.create(null);
+function rc1337LoadMailNotice(lang,force){
+ lang=normalizeLanguage(lang);
+ if(!force&&rc1337NoticeCache[lang])return rc1337NoticeCache[lang];
+ var promise=w.fetch('/api/avis-notice?mail=1&lang='+encodeURIComponent(lang),{
+  method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-ExportHUB-Environment':environmentName()}
+ }).then(function(r){return r.json().then(function(data){if(!r.ok||!data.ok)throw new Error(data.message||'Avis-Hinweis konnte nicht geladen werden.');return q(data.mailText)})});
+ if(!force)rc1337NoticeCache[lang]=promise.catch(function(err){delete rc1337NoticeCache[lang];throw err});
+ return promise;
+}
+function rc1337AppendDraft(body,extra,lang){
+ var source=String(body==null?'':body);if(!q(extra))return source;
+ var signatures={de:/\n(?:Mit freundlichen Grüßen|Viele Grüße)\s*$/i,en:/\n(?:Kind regards|Best regards)\s*$/i,pl:/\nZ poważaniem\s*$/i,es:/\nAtentamente\s*$/i,fr:/\nCordialement\s*$/i,it:/\nCordiali saluti\s*$/i};
+ var m=source.match(signatures[normalizeLanguage(lang)]);
+ return m?source.slice(0,m.index).trimEnd()+'\n\n'+extra+'\n\n'+source.slice(m.index).trimStart():source+'\n\n'+extra;
+}
+
 async function sendReminder(sh,email,target,lang,url,mode){
  if(avisRecipientExcluded(email)){var blocked=new Error('Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.');blocked.code='AVIS_RECIPIENT_EXCLUDED';throw blocked}
  if(!/^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$/i.test(q(email)))throw new Error(tr('avisReminder.missingCustomer'));
@@ -231,6 +250,7 @@ async function sendReminder(sh,email,target,lang,url,mode){
  if(closed(sh)||exception(sh)||!avisLink(sh))throw new Error(tr('avisReminder.notReady'));
  url=safeAvisLink(sh,url||avisLink(sh));
  var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),cc=draftCc(sh,email);
+ content=rc1337AppendDraft(content,await rc1337LoadMailNotice(lang,true),lang);
  var href='mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&cc='+encodeURIComponent(cc.join(';'))+'&body='+encodeURIComponent(content);
  var link=d.createElement('a');link.href=href;link.style.display='none';link.setAttribute('aria-hidden','true');link.setAttribute('data-rc1166-mail-draft','1');d.body.appendChild(link);
  try{link.click()}finally{link.remove()}
@@ -293,7 +313,9 @@ function openDialog(sh,mode){
  function refresh(){
   var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
-  text.value=mode==='initial'?initialBody(sh,t,l,url):body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>'
+  var rawDraft=mode==='initial'?initialBody(sh,t,l,url):body(sh,t,l,url);text.value=rawDraft;
+  rc1337LoadMailNotice(l,false).then(function(extra){if(dialog&&dialog.contains(text)&&normalizeLanguage(lang.value)===l&&target.value===t)text.value=rc1337AppendDraft(rawDraft,extra,l)}).catch(function(){/* Sending will report a loading error rather than silently omitting closure details. */});
+  var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>'
  }
  try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang.value=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
