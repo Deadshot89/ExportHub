@@ -11,6 +11,9 @@
   var visibleRelease=String(root.__EXPORTHUB_VISIBLE_RELEASE__||(script&&script.dataset&&script.dataset.visibleRelease)||'').trim();
   var installed=false;
   var inFlight=null;
+  var unavailableUntil=0;
+  // RC1964: repeated focus/visibility events must not flood a failing deployment host.
+  var FAILURE_BACKOFF_MS=60000;
   var intervalId=null;
   var pendingBuild='';
 
@@ -162,9 +165,15 @@
     return reloadTo(next);
   }
 
-  function check(){
+  function check(force){
     if(inFlight)return inFlight;
-    inFlight=Promise.resolve().then(performCheck).catch(function(error){
+    if(!force&&Date.now()<unavailableUntil)return Promise.resolve({status:'cooldown'});
+    inFlight=Promise.resolve().then(performCheck).then(function(result){
+      if(result&&(['unavailable','invalid-manifest'].indexOf(result.status)>=0))unavailableUntil=Date.now()+FAILURE_BACKOFF_MS;
+      else unavailableUntil=0;
+      return result
+    }).catch(function(error){
+      unavailableUntil=Date.now()+FAILURE_BACKOFF_MS;
       try{root.console&&root.console.warn&&root.console.warn('RC1488 Auto-Update Check fehlgeschlagen',error&&error.message||error);}catch(_){}
       return {status:'unavailable'};
     }).finally(function(){inFlight=null;});
@@ -177,7 +186,7 @@
     if(typeof root.setInterval==='function')intervalId=root.setInterval(function(){check();},CHECK_INTERVAL_MS);
     if(typeof root.addEventListener==='function'){
       root.addEventListener('focus',function(){check();});
-      root.addEventListener('online',function(){check();});
+      root.addEventListener('online',function(){check(true);});
     }
     if(root.document&&typeof root.document.addEventListener==='function'){
       root.document.addEventListener('visibilitychange',function(){if(root.document.visibilityState==='visible')check();});
