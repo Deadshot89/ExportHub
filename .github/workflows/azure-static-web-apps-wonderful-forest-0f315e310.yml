@@ -684,8 +684,16 @@ jobs:
                 // RC1961: only a validated tri-state may leave the OIDC fixture.
                 // Never expose Azure service endpoints or account identifiers.
                 const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob;
+                const knownAccount=v.knownExportHubStorageAccount;
+                const kinds=[null,"main-portal","test-central-us","test-germany-west-central","other-standard-azure"];
                 if(!(observedAccountMatch===true||observedAccountMatch===false||observedAccountMatch===null)||
-                   (v.status!=="verified"&&observedAccountMatch!==null)){process.exitCode=5;return}
+                   !kinds.includes(knownAccount)||
+                   (v.status!=="verified"&&(observedAccountMatch!==null||knownAccount!==null))||
+                   (observedAccountMatch===true&&knownAccount!=="main-portal")||
+                   (knownAccount==="main-portal"&&observedAccountMatch!==true)||
+                   (knownAccount!==null&&knownAccount!=="main-portal"&&observedAccountMatch!==false)){
+                  process.exitCode=5;return
+                }
                 const states=["clean","pending","malicious","not-scanned","error"];
                 const reasons=["unknown","configuration","client-unavailable","incomplete",
                   "access-denied","not-found","transport-error","other"];
@@ -706,6 +714,7 @@ jobs:
                   report={status:"unverified",reason:v.reason};
                 }else{process.exitCode=3;return}
                 report.observedPortalAccountMatchesActiveBlob=observedAccountMatch;
+                report.knownExportHubStorageAccount=knownAccount;
                 console.log("RC1945 Defender-Scan-Diagnose "+JSON.stringify(report));
                 if(process.env.GITHUB_STEP_SUMMARY){
                   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
@@ -715,6 +724,12 @@ jobs:
                     "\n- Tatsächliches ABD-Speicherkonto entspricht Portalbefund: "+
                     (report.observedPortalAccountMatchesActiveBlob===true?"ja":
                      report.observedPortalAccountMatchesActiveBlob===false?"nein":"nicht verifizierbar")+
+                    "\n- Bekannter Blob-Endpunkt (nur Hostname-Klassifizierung): "+
+                    (report.knownExportHubStorageAccount==="main-portal"?"ExportHUB Hauptkonto":
+                     report.knownExportHubStorageAccount==="test-central-us"?"ExportHUB Testkonto (Central US)":
+                     report.knownExportHubStorageAccount==="test-germany-west-central"?"ExportHUB Testkonto (Deutschland)":
+                     report.knownExportHubStorageAccount==="other-standard-azure"?"anderes Azure-Speicherkonto":
+                     "nicht verifizierbar")+
                     (report.status==="verified"?
                       "\n- Dateien: "+report.records+
                       "\n- Sauber: "+report.states.clean+
