@@ -326,6 +326,13 @@ function carrierAvisForMail(sh){
  if(!link)Promise.resolve(carrierAvisUrl(sh)).then(function(){syncVisibleMail()}).catch(function(){});
  return link||''; // A pending token is never printable or mail-ready.
 }
+function carrierAvisReady(sh){
+ var link=carrierAvisForMail(sh);
+ if(link)return link;
+ var pending=new Error(tr('avisFlow.unavailable',null,'Speditionsavis-Link wird vorbereitet. Bitte erneut versuchen.'));
+ pending.code='AVIS_CARRIER_LINK_PENDING';
+ throw pending;
+}
 function standaloneAvis(sh,target,lang,url){
  lang=rc1267NormalizeLanguage(lang);target=q(target).toLowerCase()==='carrier'?'carrier':'customer';
  var greetings={de:'Sehr geehrte Damen und Herren,',en:'Dear Sir or Madam,',pl:'Szanowni Państwo,',es:'Estimados señores:',fr:'Madame, Monsieur,',it:'Gentili Signore e Signori,'};
@@ -342,14 +349,7 @@ function injectMailBody(sh,target,body,langOverride){
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(type==='own')return ownAvisMail(source,url,lang);
- if(type==='carrier'){
-  var carrierLink=carrierAvisForMail(sh);
-  if(!carrierLink){
-   var pending=new Error(tr('avisFlow.unavailable',null,'Speditionsavis-Link wird vorbereitet. Bitte erneut versuchen.'));
-   pending.code='AVIS_CARRIER_LINK_PENDING';throw pending
-  }
-  return standaloneAvis(sh,type,lang,carrierLink)
- }
+ if(type==='carrier')return standaloneAvis(sh,type,lang,carrierAvisReady(sh));
  return standaloneAvis(sh,type,lang,url)
 }
 function syncVisibleMail(){
@@ -399,6 +399,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();if((name==='exporthub:viewchange'||name==='exporthub:rendered')&&!shipmentViewActive())return false;return scheduleDraftRefresh(name,100)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};var sh=opt.shipment||shipment()||{reference:q(opt.reference)},type=q(opt.target).toLowerCase()||'customer';return standaloneAvis(sh,type,q(opt.lang).toLowerCase()==='en'?'en':'de',type==='carrier'?carrierAvisForMail(sh):q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail,carrierAvisUrl:carrierAvisUrl,carrierAvisCached:carrierAvisCached});
+var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};var sh=opt.shipment||shipment()||{reference:q(opt.reference)},type=q(opt.target).toLowerCase()||'customer';return standaloneAvis(sh,type,q(opt.lang).toLowerCase()==='en'?'en':'de',type==='carrier'?carrierAvisReady(sh):q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail,carrierAvisUrl:carrierAvisUrl,carrierAvisCached:carrierAvisCached});
 window.ExportHUBRC1027Lieferavis=api;
 })();
