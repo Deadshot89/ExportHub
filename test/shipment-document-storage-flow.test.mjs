@@ -12,10 +12,11 @@ const REF='AB12CD';
 const INVOICE='Rechnung_AB12CD_20261110-071411_SIDE250075003.pdf';
 
 function fixture(){
- const blobs=new Map();
+ const blobs=new Map(),scans={removed:0};
  const container={
   async createIfNotExists(){},
   async *listBlobsFlat({prefix}){
+   if(prefix.startsWith('refdoc-removed-v1/'))scans.removed++;
    for(const [name,b] of blobs){
     if(name.startsWith(prefix))yield {name,properties:{
       contentLength:b.bytes.length,contentType:b.contentType,createdOn:b.createdOn,lastModified:b.createdOn
@@ -47,7 +48,7 @@ function fixture(){
  };
  const module={exports:{}};
  vm.runInNewContext(SOURCE,{module,exports:module.exports,require:fakeRequire,Buffer,process:{env:{}},Date},{filename:'ref-doc-blob-store.js'});
- return {store:module.exports,blobs};
+ return {store:module.exports,blobs,scans};
 }
 
 test('Roundtrip: Rechnung SIDE wird bytegleich gespeichert, gelesen, gelistet und archiviert',async()=>{
@@ -139,4 +140,22 @@ test('Zwei gleichnamige SharePoint-Rechnungen: Entfernen blendet nur ausgewählt
  assert.equal(visible.length,1);
  assert.equal(visible[0].refItemId,graph[1].id);
  assert.ok([...blobs.keys()].some(n=>n.startsWith('refdoc-removed-v1/production/'+REF+'/')));
+});
+
+test('Dokumentenliste und Kunden-AVIS lesen den Löschvermerk pro Anfrage genau einmal',async()=>{
+ const {store,scans}=fixture();
+ const first=await store.save(REF,'production',INVOICE,Buffer.from('FIRST'),'application/pdf');
+ await store.softDelete(REF,'production',first.id,'operator');
+ const current=await store.save(REF,'production',INVOICE,Buffer.from('SECOND'),'application/pdf');
+ scans.removed=0;
+ const removal=await store.removalFilters(REF,'production');
+ const listed=await store.list(REF,'production',removal);
+ assert.equal(listed.length,1);
+ assert.equal(listed[0].id,current.id);
+ assert.equal(scans.removed,1,'Document listing must not refetch tombstones');
+ scans.removed=0;
+ const visible=await avis.load({listFiles:async()=>[]},REF,'production',null,store);
+ assert.equal(visible.length,1);
+ assert.equal(visible[0].refItemId,current.id);
+ assert.equal(scans.removed,1,'Customer AVIS must reuse the same removal filters');
 });
