@@ -393,9 +393,14 @@ module.exports=async function(context,req){
    // Validate the minimal draft before any team-blob read or write.
    const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);
    const draftSnapshot=payload.shipmentSnapshot?sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference):null;
-   const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),canReuseAuthTeam=env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=canReuseAuthTeam?internal.teamDoc:await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
-   const timing={authMs,teamBlobMs,teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
-   let target=findShipment(state,subjectId,reference),draftOnly=false;
+   const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),
+    // RC1053: customer draft issuance keeps its no-team-read fast path.
+    // Carrier issuance and disable always use the authoritative team state.
+    fastSnapshotIssue=action==='issue'&&!!draftSnapshot&&!avisManuallyDisabled(draftSnapshot),
+    canReuseAuthTeam=!fastSnapshotIssue&&env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,
+    readStarted=Date.now(),d=fastSnapshotIssue?{value:{state:{}},etag:null}:(canReuseAuthTeam?internal.teamDoc:await readTeam(blob)),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
+   const timing={authMs,teamBlobMs,teamReadMs:fastSnapshotIssue?0:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
+   let target=fastSnapshotIssue?draftSnapshot:findShipment(state,subjectId,reference),draftOnly=fastSnapshotIssue;
    if(!target&&draftSnapshot){target=draftSnapshot;draftOnly=true}
    if(!target)throw error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
    const actualSubject=sid(target)||subjectId,actualRef=sref(target),snapshot=sanitizeDraftSnapshot(target,actualSubject,actualRef);
