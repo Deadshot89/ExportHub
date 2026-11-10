@@ -48,5 +48,8 @@ test('RC1288: emulator smoke polls asynchronous preferences and verifies cold-st
   assert.match(smoke,/adb shell monkey -p "\$package"/);
   assert.match(smoke,/--es exporthub_environment invalid/);
   assert.match(smoke,/android_start_diagnostics/);
-  assert.doesNotMatch(smoke,/^\s*sleep 2\s*$/m);
+  const afterInstall=smoke.split('activity="de.exporthub.test.EnvironmentActivity"')[1];
+  assert.ok(afterInstall,'EnvironmentActivity launch section is missing');
+  // A boot-loop delay is legitimate; only persistence checks after APK install must be event-driven.
+  assert.doesNotMatch(afterInstall,/^\s*sleep 2\s*$/m);
 });
