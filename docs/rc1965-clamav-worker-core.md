@@ -132,13 +132,13 @@ stale, future, absent or malformed signature timestamp could therefore
 consume ClamAV CPU and memory even though no candidate would be
 accepted. On a consumption-billed cloud job that is unnecessary work.
 
-The worker now checks the definition metadata immediately after the
-first signed Blob snapshot and **before** launching `clamscan`.
-It requires a positive, safe integer timestamp that is not in the future
-and no more than 24 hours old. If this fails, the scanner is never
-started and the result remains blocked with no proof or release.
-The existing post-scan verification is unchanged and still rejects
-a signature update occurring during scanning.
+The worker checks definition metadata after the signed queue and
+atomic claim but **before EICAR self-test, first Blob read, or clamscan**
+(RC1974). It requires a positive, safe integer timestamp that is not
+in the future and no more than 24 hours old. A second read immediately
+before scanning detects updates during the EICAR self-test; the final
+post-scan verification rejects updates during customer-file scanning.
+Stale or inconsistent signatures remain blocked with no proof or release.
 
 The additional RC1971 test uses synthetic timestamps and a mock runner
 whose invocation count must remain **zero** on every invalid value.
@@ -219,3 +219,26 @@ und eine belastbare Kostenschätzung.
 noch RC1973 ändern `api/abd-analysis`; es werden keine Azure-Ressourcen,
 Echt-Scans oder Cloud-Bereitstellungen durch diesen PR ausgeführt.
 `ABD_SCAN_PENDING` bleibt gesperrt.
+
+## RC1974 – frühzeitige Signaturprüfung vor EICAR und Blob-Download
+
+RC1973 erforderte zwar einen EICAR-Selbsttest vor dem ersten
+Kundendaten-Download, hatte den Status der Virensignaturen aber
+erst **danach** abgefragt. Bei bereits erkennbar veralteten
+Definitionen entstanden dadurch EICAR-Scanner-Rechenzeit und
+Quarantäne-Downloadkosten ohne Aussicht auf einen gültigen Nachweis.
+
+Der Offline-Kern prüft nun die vertraulichen Signaturmetadaten
+unmittelbar nach dem gültigen Queue-Claim, bevor er den EICAR-Selbsttest
+oder eine Blob-Leseoperation ausführt. Unbrauchbare Metadaten
+blockieren ohne Scannerstart oder Datenlesevorgang.
+
+Eine zweite Signaturmetadatenprüfung vor dem Kundendatei-Scan
+erkennt ein Update während des Selbsttests; die bisherige
+Post-Scan-Prüfung wird beibehalten. Die beiden neuen RC1974-
+Regressionstests prüfen die Reihenfolge und die Sperren mit
+synthetischen Metadaten sowie einem simulierten Engine-Check.
+
+**Keine echte Erkennung oder Scan-Freigabe:** Auch jetzt bleiben
+`authorizedForRelease:false`, fehlende Azure-Containerlaufzeit,
+Cloudkostenprüfung und EICAR-/XLSX-Livetests zwingende Stop-Bedingungen.
