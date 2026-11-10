@@ -182,9 +182,40 @@ Container-Laufzeit bereit.
 - Quelle: https://www.eicar.org/download-anti-malware-testfile/
   und https://github.com/Cisco-Talos/clamav/blob/main/docs/man/clamscan.1.in
 
-**Grenze:** Der neue Selbsttest ist noch nicht an die RC1965-Eingangsprüfung
-oder Azure angebunden und nicht produktiv aktiviert. Vor einem
+**Grenze:** RC1973 bindet den Selbsttest inzwischen an den isolierten
+RC1965-Kern, aber noch nicht an Azure oder die produktive ABD-API. Vor einem
 vertrauenswürdigen Worker-Start wäre zusätzlich eine verifizierte,
 identitätsgebundene Engine-/Signatur-Attestation und echte EICAR-Abnahme
 notwendig. Es gibt weiterhin keinen garantierten Nullkosten-Cloudbetrieb,
 keinen Merge, kein Deployment und keine Parserfreigabe.
+
+## RC1973 – EICAR-Bereitschaft vor jedem Blob-Read erzwingen
+
+RC1972 konnte bislang nur separat aufgerufen werden. Ein späterer
+Aufrufer von `scanOfflineCandidate` konnte deshalb trotz fehlerhafter
+ClamAV-Bereitschaft anfangen, Kundendaten aus der Quarantäne zu lesen.
+
+Der isolierte RC1965-Worker verlangt jetzt im Standardpfad nach
+erfolgreicher signierter Queue-Prüfung **und** atomarem One-Time-Claim
+den tatsächlichen `verifyClamAvEngine()`-Selbsttest **vor dem ersten
+Blob-Lesevorgang**. Nur `verified:true` **bei zugleich**
+`authorizedForRelease:false` lässt den weiteren (ohnehin nur
+kandidatenfähigen) Prüfpfad zu. Fehlende/falsche/abbrechende
+Bereitschaft, Exception und ungültiger Adapter liefern fail-closed;
+ungültige Queue- oder Replay-Aufträge starten erst gar keinen
+teuren Selbsttest.
+
+Im synthetischen CI-Test wird die Bereitschaft über einen expliziten
+Mock-Adapter simuliert; der Standardpfad verwendet
+`verifyClamAvEngine` mit dem tatsächlichen `clamscan`-Prozess. Diese
+Testinjektion darf später **nicht** aus untrusted API-/Queue-Daten
+übernommen werden; ein autorisierter Azure-Worker muss die
+Runner-/Identity-/Signature-Bindung unabhängig prüfen. Der
+Selbsttest wird bei einem späteren Job mit zwei Scannerläufen Aufwand
+verursachen und benötigt deshalb eine harte Job-Ausführungsgrenze
+und eine belastbare Kostenschätzung.
+
+**Keine Produktionsfreigabe:** Weder das funktionierende Scanmodul
+noch RC1973 ändern `api/abd-analysis`; es werden keine Azure-Ressourcen,
+Echt-Scans oder Cloud-Bereitstellungen durch diesen PR ausgeführt.
+`ABD_SCAN_PENDING` bleibt gesperrt.
