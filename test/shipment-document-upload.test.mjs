@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -54,8 +55,8 @@ test('Dokument-Upload: Fehlermeldungen in allen sechs API-Sprachen',()=>{
 
 test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8'),asset=fs.readFileSync('assets/shipment-document-upload.js','utf8');
-  assert.match(build,/assets\/i18n\/shipment-document-upload\.js\?v=1/);
-  assert.match(build,/assets\/shipment-document-upload\.js\?v=1/);
+  assert.match(build,/assets\/i18n\/shipment-document-upload\.js\?v=2/);
+  assert.match(build,/assets\/shipment-document-upload\.js\?v=2/);
   assert.match(build,/'assets\/shipment-document-upload\.js',/);
   assert.match(fs.readFileSync('staticwebapp.config.json','utf8'),/"route": "\/assets\/shipment-document-upload\.js"/);
   assert.match(asset,/#rc786ReferenceFilesCard \.rc786-doc-head-actions/);
@@ -67,4 +68,60 @@ test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=
   assert.match(api,/action==='upload-document'[\s\S]{0,700}refDocBlob\.save\(ref,environment,file\.name,file\.buffer,file\.mimeType\)/);
   const i18n=fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8');
   for(const l of ['de','en','pl','es','fr','it'])assert.match(i18n,new RegExp('\\n '+l+':\\{button:'));
+});
+
+
+test('Dokument-Upload: nur bestätigte Datei-ID und REF-Readback zählen als erfolgreich',async()=>{
+ const source=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ const bytes=Buffer.from('%PDF-1.7\n%test\n','utf8');
+ const receipt={id:'refdoc:123456',name:'Lieferschein_ABC123_20261110-123000_LS.pdf',size:bytes.length};
+ async function run(post,listing){
+  const file={name:'LS.pdf',size:bytes.length,type:'application/pdf'};
+  const calls=[],window={},document={body:null,addEventListener(){},getElementById(){return null}};
+  class Reader {readAsDataURL(){this.result='data:application/pdf;base64,'+bytes.toString('base64');this.onload()}}
+  const fetch=async(url,options)=>{
+   calls.push({url,method:options.method});
+   const result=options.method==='POST'?post:listing;
+   return{ok:true,status:200,async json(){return result}};
+  };
+  vm.runInNewContext(source,{window,document,FileReader:Reader,fetch,CustomEvent:function(){},console});
+  return{result:window.ExportHUBShipmentDocUpload.upload('ABC123',file,'lieferschein'),calls};
+ }
+ const noReceipt=await run({ok:true},{ok:true,files:[]});
+ await assert.rejects(noReceipt.result,/uploadUnverified/);
+ assert.deepEqual(noReceipt.calls.map(x=>x.method),['POST'],'Never list or claim a missing receipt');
+ const noStorage=await run({ok:true,file:receipt,azureSaved:false,sharepointSaved:false},{ok:true,files:[]});
+ await assert.rejects(noStorage.result,/uploadUnverified/);
+ const sameNameOldFile=await run({ok:true,file:receipt,azureSaved:true,sharepointSaved:false},
+  {ok:true,reference:'ABC123',files:[{...receipt,id:'refdoc:other'}]});
+ await assert.rejects(sameNameOldFile.result,/uploadNotListed/,'A same-name file is not the new upload');
+ assert.deepEqual(sameNameOldFile.calls.map(x=>x.method),['POST','GET']);
+ const exact=await run({ok:true,file:receipt,azureSaved:true,sharepointSaved:false},
+  {ok:true,reference:'ABC123',files:[{...receipt}]});
+ const confirmed=await exact.result;
+ assert.equal(confirmed.id,receipt.id);
+ assert.equal(confirmed.size,bytes.length);
+ assert.equal(confirmed.azureSaved,true);
+ assert.equal(confirmed.sharepointSaved,false);
+ assert.deepEqual(exact.calls.map(x=>x.method),['POST','GET']);
+ const changedRef=await run({ok:true,file:receipt,azureSaved:true,sharepointSaved:true},
+  {ok:true,reference:'ZZZ999',files:[{...receipt}]});
+ await assert.rejects(changedRef.result,/uploadNotListed/,'Never confirm a receipt from another shipment');
+});
+
+test('Dokument-Upload: Erfolg nur nach REF-Identität, korrekte Kopien und Sprachmeldungen',()=>{
+ const src=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(src,/q\(saved\.id\)===q\(info\.id\)/);
+ assert.match(src,/q\(saved\.name\)===q\(info\.name\)/);
+ assert.match(src,/Number\(saved\.size\)===file\.size/);
+ assert.match(src,/referenceFolder:sharepointCopies===ok/);
+ assert.match(src,/picked=files\.filter/,'Files without a confirmed receipt must remain selectable');
+ assert.match(build,/shipment-document-upload\.js\?v=2/);
+ assert.match(build,/i18n\/shipment-document-upload\.js\?v=2/);
+ const local={};
+ new Function('window',fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8'))(local);
+ for(const language of ['de','en','pl','es','fr','it'])
+  for(const key of ['uploadUnverified','uploadNotListed'])
+   assert.ok(local.ExportHUBShipmentDocUploadI18n.packs[language][key],language+' '+key);
 });
