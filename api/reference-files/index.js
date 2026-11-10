@@ -247,7 +247,9 @@ module.exports=async function(context,req){
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
-  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
+  // Azure document IDs are unique. Two intentionally uploaded invoices with
+  // the same filename must remain individually visible and removable.
+  for(const file of docs){
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
   // Latest shipment uploads appear first, regardless of Graph/Azure source.
