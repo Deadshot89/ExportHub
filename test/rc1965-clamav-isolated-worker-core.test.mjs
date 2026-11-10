@@ -164,6 +164,30 @@ test('RC1965: signature metadata disappears after scanning, no candidate receipt
  assert.equal(r.authorizedForRelease,false);
 });
 
+test('RC1971: invalid AV definition metadata blocks BEFORE an expensive scan',async()=>{
+ for(const updatedAt of [
+  NOW-48*60*60*1000,
+  NOW+1,
+  0,
+  null,
+  'latest',
+  Number.NaN
+ ]){
+  let scans=0;
+  const f=fixture({
+   getDefinitionsUpdatedAt:async()=>updatedAt,
+   runner:async()=>{scans++;return safe();}
+  });
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'worker-error');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(scans,0,'invalid signatures must not consume scanner execution');
+  assert.deepEqual(f.counters(),{claims:1,reads:1,scans:0});
+ }
+});
+
 test('RC1965: stale or future AV definitions are never signed',async()=>{
  for(const updatedAt of [NOW-48*3600*1000,NOW+60*1000]){
   const f=fixture({getDefinitionsUpdatedAt:async()=>updatedAt});
