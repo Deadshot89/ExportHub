@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "Preview HTML email",
   "closureMail.previewFailed": "Could not load the email preview.",
   "closureMail.pickupWarning": "Warning: Pickup on {{date}} is after our final collection cutoff on {{last}} at {{time}}. Closure: {{from}} – {{to}}. We reopen on {{reopen}}. Please change the pickup date or time.",
-  "closureMail.bookingClosed": "This pickup date falls within our closure. Please choose a date after we reopen."
+  "closureMail.bookingClosed": "This pickup date falls within our closure. Please choose a date after we reopen.",
+  "closureMail.snowAnimation": "Subtle Christmas animation on the collection portal",
+  "closureMail.snowEnable": "Enable animation",
+  "closureMail.snowDisable": "Disable animation",
+  "closureMail.snowOn": "Christmas animation on",
+  "closureMail.snowOff": "Christmas animation off"
 }
