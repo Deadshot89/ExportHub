@@ -3,9 +3,9 @@
 if(!w||!d||w.ExportHUBStandaloneEvidence)return;
 const FIELDS=[
  ['shipmentNumber','text'],['customer','text'],['dispatchDate','date'],
- ['colli','number'],['weightKg','number'],['packaging','text'],['shippingMethod','text'],
+ ['colli','number'],['weightKg','number'],
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
- ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
+ ['remarks','textarea']
 ];
 const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false,canRegisterCustomer:false};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
@@ -101,7 +101,7 @@ async function scanAll(){
   if(run===state.searchRun&&state.view==='list'&&active()&&!state.continuation)status(t('searchFinished'),false);
  }
 }
-function labelField(grid,key,kind,value){const label=make('label',key==='contents'||key==='loadSecuring'||key==='remarks'?'eh1903-wide':'',t(key));
+function labelField(grid,key,kind,value){const label=make('label',key==='remarks'?'eh1903-wide':'',t(key));
  const el=make(kind==='textarea'?'textarea':'input');el.setAttribute('data-evidence-field',key);
  if(kind!=='textarea')el.type=kind;if(key==='colli'||key==='weightKg'){el.min='0';el.step=key==='colli'?'1':'0.001';}
  el.value=value==null?'':value;label.appendChild(el);grid.appendChild(label);return el}
@@ -177,7 +177,7 @@ function showForm(record){state.searchRun++;state.view='form';if(record!==undefi
  FIELDS.forEach(([key,kind])=>labelField(grid,key,kind,r&&r.fields&&r.fields[key]||defaults[key]||''));
  card.appendChild(grid);
  const act=make('div','eh1903-actions');act.appendChild(button(t('save'),async()=>{
-  const current=readFields(app);if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
+  const current=Object.assign({},r&&r.fields||{},readFields(app));if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
   await write(r?'save':'create',{fields:current});
  },true));card.appendChild(act);
  app.appendChild(card);app.appendChild(uploadsPanel(r));app.appendChild(complaintsPanel(r));app.appendChild(historyPanel(r));
