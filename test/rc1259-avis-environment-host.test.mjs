@@ -29,6 +29,7 @@ function loadEndpoint(){
   Module._load=function(request,parent,isMain){
     if(request==='../shared/auth-store')return auth;
     if(request==='../shared/graph-mail')return graphMail;
+    if(request==='../shared/public-access-store')return{async resolve(){throw Error('Unknown synthetic token')},async issue(req,kind,meta){assert.equal(kind,'avis');assert.equal(meta.avisAudience,'customer');return{token:'a'.repeat(48)}}};
     return original.call(this,request,parent,isMain);
   };
   delete require.cache[require.resolve(target)];
