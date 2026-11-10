@@ -51,8 +51,10 @@ function safeAvisUrl(req,value,sh,c){
 }
 function replaceAvisToken(url,token){
  const out=new URL(url);
+ // Never leave a customer token in query params when replacing the carrier path token.
+ out.searchParams.delete('token');out.searchParams.delete('avis');
  if(/^\/avis\/[^/]+\/?$/i.test(out.pathname))out.pathname='/avis/'+encodeURIComponent(token);
- else if(/\/customer-avis\.html$/i.test(out.pathname)){out.searchParams.set('token',token);out.searchParams.delete('avis')}
+ else if(/\/customer-avis\.html$/i.test(out.pathname)){out.searchParams.set('token',token)}
  else throw auth.error('AVIS_URL_INVALID','Ungültiger Avis-Link.',400);
  return out.toString();
 }
