@@ -97,6 +97,16 @@ async function uploadOne(ref,file,docKind){
    !Array.isArray(listing.files)||!listing.files.some(function(saved){
     return q(saved.id)===q(info.id)&&q(saved.name)===q(info.name)&&Number(saved.size)===file.size;
    }))throw new Error(t('uploadNotListed'));
+  // Azure already verifies SHA-256 bytes server-side. If only SharePoint saved,
+  // require a readable byte-exact archive copy before reporting success.
+  if(!body.azureSaved&&body.sharepointSaved){
+   var download=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(info.id),
+    {method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'});
+   if(!download.ok||typeof download.arrayBuffer!=='function')throw new Error(t('uploadNotReadable'));
+   var stored=new Uint8Array(await download.arrayBuffer()),original=new Uint8Array(await file.arrayBuffer());
+   if(stored.length!==original.length||stored.some(function(byte,i){return byte!==original[i]}))
+    throw new Error(t('uploadNotReadable'));
+  }
   return{id:info.id,name:info.name,size:info.size,
    sharepointSaved:body.sharepointSaved===true,azureSaved:body.azureSaved===true};
 }
