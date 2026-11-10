@@ -202,12 +202,21 @@ test('Issue #1328: external closure notices require global admin even with setti
  for(const change of [
   settings=>{settings.closureNotices[0].lastPickupTime='13:00'},
   settings=>{settings.closureNotices[0].enabled=false},
-  settings=>{delete settings.closureNotices}
+  // Deletion is explicit in the merge contract: an empty list replaces the notices.
+  // Omitting a property is only a partial object update and preserves it.
+  settings=>{settings.closureNotices=[]}
  ]){
   const incoming=structuredClone(seeded);
   change(incoming.settings);
   expectForbidden(user,seeded,incoming);
  }
+
+ const omitted=structuredClone(seeded);
+ delete omitted.settings.closureNotices;
+ omitted.settings.theme='dark';
+ const omittedMerged=runAs(user,()=>secureMerge.mergeState(seeded,omitted));
+ assert.equal(omittedMerged.settings.theme,'dark','partial settings updates remain available');
+ assert.deepEqual(omittedMerged.settings.closureNotices,seeded.settings.closureNotices,'omitted notice field must not remove notices');
 
  const allowed=structuredClone(seeded);
  allowed.settings.theme='dark';
