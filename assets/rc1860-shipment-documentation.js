@@ -198,7 +198,7 @@ async function uploadFiles(box,ref,input,type){
  var files=Array.from(input.files||[]);input.value='';if(!files.length)return;
  var runtime=w.ExportHUBShipmentDocUpload;
  if(!runtime||typeof runtime.upload!=='function'){status(box,tr('uploadUnavailable'),'error',true);return}
- setBusy(box,true);var ok=0,errors=[];
+ setBusy(box,true);var ok=0,azureOnly=0,errors=[];
  for(var i=0;i<files.length;i++){
   if(!isCurrent(box,ref))break;
   var f=files[i],ext=q(f.name).toLowerCase();
@@ -206,15 +206,27 @@ async function uploadFiles(box,ref,input,type){
   if(f.size>15*1024*1024){errors.push(f.name+tr('max15'));continue}
   try{
    var prepared=new File([f],filenameForProof(f,type,i),{type:f.type});
-   await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');ok++;
+   var fBytes=f.size,receipt=await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');
+   if(!receipt||!receipt.id||!receipt.name||!receipt.azureSaved&&!receipt.sharepointSaved)
+    throw new Error(tr('uploadNotConfirmed'));
+   // A 200 POST is not enough: the file must be discoverable in the REF listing
+   // before we tell the employee that the photo or delivery note arrived.
+   var check=await fetch('/api/reference-files?reference='+encodeURIComponent(ref),
+    {headers:headers(),credentials:'same-origin',cache:'no-store'});
+   var listed={};try{listed=await check.json()}catch(_){}
+   if(!check.ok||listed.ok!==true||
+      !(listed.files||[]).some(function(f){return q(f.name)===receipt.name&&Number(f.size)===fBytes}))
+    throw new Error(tr('uploadNotListed'));
+   ok++;
+   if(receipt.sharepointSaved!==true)azureOnly++;
    if(!isCurrent(box,ref))break;
   }catch(e){errors.push(f.name+': '+q(e.message))}
   status(box,tr('uploadedProgress')+ok+' / '+files.length+(errors.length?' · '+errors.join('; '):''),errors.length?'error':'ok',true);
  }
  setBusy(box,false);
  if(!isCurrent(box,ref))return;
- if(ok){status(box,ok+tr('filesSaved')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
-  try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:true}}))}catch(_){}
+ if(ok){status(box,ok+tr('filesVerified')+(azureOnly?' · '+azureOnly+tr('azureOnly'):'')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
+  try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:azureOnly===0,azureSaved:ok>0}}))}catch(_){}
   if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.refreshReferenceFiles==='function')w.ExportHUBShipmentView.refreshReferenceFiles();
   loadFiles(box,ref);
  }else status(box,tr('uploadNone')+errors.join('; '),'error',true);
