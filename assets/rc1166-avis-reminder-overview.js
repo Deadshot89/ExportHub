@@ -227,6 +227,11 @@ function recordDraft(sh,result,mode,target,language){
 var rc1337NoticeCache=Object.create(null);
 function rc1337LoadMailNotice(lang,force){
  lang=normalizeLanguage(lang);
+ // Standalone about:blank/embedded browser fixtures have no same-origin API.
+ // Preserve the pre-existing Outlook draft there without issuing invalid fetches.
+ // Normal http(s) ExportHUB pages still load the live notice; API failures there are surfaced.
+ var sourceUrl=q(w.location&&w.location.href);
+ if(!/^https?:\/\//i.test(sourceUrl))return Promise.resolve('');
  if(!force&&rc1337NoticeCache[lang])return rc1337NoticeCache[lang];
  var promise=w.fetch('/api/avis-notice?mail=1&lang='+encodeURIComponent(lang),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-ExportHUB-Environment':environmentName()}
