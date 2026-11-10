@@ -331,6 +331,10 @@ async function loadFiles(box,ref){
   var notes=(data.files||[]).filter(function(f){return /^Lieferschein_[A-Z0-9]{6}_\d{8}-\d{6}_/i.test(q(f.name))}).map(function(f){return Object.assign({source:'reference'},f)});
   appendGallery(host,tr('photosSection')+' ('+photos.length+')',box,ref,photos,generation);
   appendGallery(host,tr('notesSection')+' ('+notes.length+')',box,ref,notes,generation);
+  if(data.partial===true){
+   var warning=el('p','eh1860-status',tr('refPartial'));warning.setAttribute('data-kind','error');
+   warning.setAttribute('role','status');host.appendChild(warning);
+  }
  }catch(e){if(isCurrent(box,ref))host.appendChild(el('p','eh1860-status',tr('refListError')+q(e.message)))}
  if(!isCurrent(box,ref)||generation!==galleryGeneration)return;
  // The standalone DOK store is separate. Show only explicitly linked evidence.
