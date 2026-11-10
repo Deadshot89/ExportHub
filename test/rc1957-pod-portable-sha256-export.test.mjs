@@ -142,3 +142,25 @@ test('RC1957: rejected crypto digest midway cannot produce a partial checksum ma
   assert.deepEqual(entries[0].data, first);
   assert.deepEqual(entries[1].data, second);
 });
+
+
+test('RC1957: HTTP success carrying HTML bytes is never certified as a PDF', async () => {
+  const signed = bytes('%PDF-1.7\nSIGNED ORIGINAL');
+  const htmlError = bytes('<!doctype html><html><body>Authorization required</body></html>');
+  const { entries, fail } = await run([
+    { name: 'POD_SIGNED.pdf', data: signed },
+    { name: 'POD_BAD_DOWNLOAD.pdf', data: htmlError }
+  ]);
+  assert.ok(fail.includes('RC1957_INVALID_PDF'));
+  assert.equal(entries.some(entry => entry.name === 'SHA256SUMS.txt'), false);
+  assert.deepEqual(entries[0].data, signed, 'valid original PDF bytes remain unchanged');
+  assert.deepEqual(entries[1].data, htmlError, 'no silent mutation of downloaded bytes');
+});
+
+test('RC1957: a PDF signature after a small allowed prefix can still be verified', async () => {
+  const original = bytes('metadata prefix\n%PDF-1.7\nSIGNED ORIGINAL');
+  const { entries, fail } = await run([{ name: 'POD_SIGNED.pdf', data: original }]);
+  assert.deepEqual(fail, []);
+  assert.equal(entries.some(entry => entry.name === 'SHA256SUMS.txt'), true);
+  assert.deepEqual(entries[0].data, original);
+});
