@@ -86,8 +86,8 @@ async function scanStatus(r,e,id){
 async function processPending(r,e){
  const current=await discover(r,e);
  // Pro Aufruf maximal zwei PDFs auswerten; kein parser-Lauf bei fehlender AV-Freigabe.
- for(const d of current.filter(x=>x.current===true&&['scan_pending','manual_review_required'].includes(x.status)).slice(0,2)){
-  const scan=await scanStatus(r,e,d.id);
+ for(const d of current.filter(x=>x.current===true&&x.status==='scan_pending').slice(0,2)){
+  let scan;try{scan=await scanStatus(r,e,d.id)}catch(_){scan={status:'pending'}}
   if(scan.status!=='clean'){
    if(scan.status==='pending')continue;
    await mutate(r,e,state=>{const existing=state.documents.find(x=>x.id===d.id&&x.sha256===d.sha256&&x.current);
