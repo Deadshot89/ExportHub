@@ -219,7 +219,7 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  assert.match(ui,/referenceFolder:azureOnly===0/);
  assert.match(api,/else files\[index\]=azureDoc/,'Azure readback wins over duplicate SharePoint metadata');
  const ctx={};
- new Function('root',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
+ new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
  for(const locale of ['de','en','pl','es','fr','it']){
   for(const key of ['filesVerified','azureOnly','uploadNotListed','uploadNotConfirmed'])
    assert.ok(ctx.ExportHUBShipmentDocumentationI18n.packs[locale][key],locale+' '+key);
