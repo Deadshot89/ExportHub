@@ -28,6 +28,11 @@ function ensureStyle(){
     '.eh-docup-hint{font-size:12px;opacity:.75;margin:0}.eh-docup-list{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}'+
     '.eh-docup-list li[data-state=error]{color:#b42318}.eh-docup-list li[data-state=ok]{color:#067647}'+
     'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}';
+  s.textContent+='.eh-avis-review{margin:10px 0;padding:12px;border:1px solid rgba(127,127,127,.35);border-radius:12px;display:grid;gap:10px}'+
+   '.eh-avis-review table{border-collapse:collapse;width:100%;min-width:620px}.eh-avis-review th,.eh-avis-review td{padding:6px;text-align:left;border-bottom:1px solid rgba(127,127,127,.2)}'+
+   '.eh-avis-review input{min-width:0;width:100%;padding:7px;border:1px solid #a5afba;border-radius:6px;color:inherit;background:transparent}'+
+   '.eh-avis-review .eh-review-table{overflow-x:auto}.eh-avis-review .eh-review-box{padding:10px;border:1px solid rgba(127,127,127,.2);border-radius:8px;display:grid;gap:9px}'+
+   '.eh-avis-review .eh-review-note{font-size:12px;opacity:.8}.eh-avis-review .eh-review-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}';
   document.head.appendChild(s);
 }
 function card(){return document.getElementById('rc786ReferenceFilesCard')}
@@ -69,12 +74,91 @@ function togglePanel(){
   if(head&&head.parentElement===c)head.insertAdjacentElement('afterend',p);else c.appendChild(p);
   renderList();
 }
+// RC1349 – Prüfpanel für Lieferscheine in derselben Sendungsansicht.
+// Kein externer Parser, keine automatische öffentliche Freigabe.
+function reviewPanel(){var c=card();return c&&c.querySelector('[data-avis-review-panel]')}
+function reviewStatus(message){var p=reviewPanel(),node=p&&p.querySelector('[data-review-status]');if(node)node.textContent=q(message)}
+function apiReview(ref,action,body){
+ var url='/api/reference-files',opt={credentials:'same-origin',cache:'no-store',headers:requestHeaders()};
+ if(action==='GET')url+='?reference='+encodeURIComponent(ref)+'&action=delivery-items-review';
+ else{opt.method='POST';opt.body=JSON.stringify(Object.assign({action:'approve-delivery-items',reference:ref},body||{}))}
+ return fetch(url,opt).then(async function(response){var data={};try{data=await response.json()}catch(_){}if(!response.ok||data.ok===false)throw new Error(q(data.message)||('HTTP '+response.status));return data});
+}
+function reviewInput(field,value){
+ var input=el('input',{type:'text','data-review-field':field,autocomplete:'off',maxlength:field==='customerItemNumber'?'60':field==='customerOrderNumber'?'40':'20',value:q(value)});
+ input.setAttribute('aria-label',({customerOrderNumber:'Bestellnummer des Kunden',customerItemNumber:'Kundenartikelnummer',deliveredQuantity:'Gelieferte Menge',quantityUnit:'Einheit'}[field]||field));return input;
+}
+function appendReviewRow(tbody,value){
+ var row=el('tr',{'data-review-row':'1'}),fields=['customerOrderNumber','customerItemNumber','deliveredQuantity','quantityUnit'];
+ fields.forEach(function(key){var cell=el('td',{});cell.appendChild(reviewInput(key,value&&value[key]));row.appendChild(cell)});
+ var c=el('td',{}),remove=el('button',{type:'button',class:'ghost'},'Entfernen');
+ remove.addEventListener('click',function(){row.remove()});c.appendChild(remove);row.appendChild(c);tbody.appendChild(row);
+}
+function showReviewDocuments(ref,items){
+ var panelNode=reviewPanel();if(!panelNode||ref!==refOf(currentShipment()))return;
+ var host=panelNode.querySelector('[data-review-documents]');host.textContent='';
+ if(!items.length){host.appendChild(el('p',{},'Keine PDF-Lieferscheine in der Azure-Dokumentenablage gefunden.'));reviewStatus('Noch keine Lieferscheine gefunden.');return}
+ items.filter(function(x){return x.current!==false}).forEach(function(doc){
+  var box=el('div',{class:'eh-review-box'});box.appendChild(el('strong',{},doc.name||'Lieferschein'));
+  var states={scan_pending:'Sicherheitsprüfung ausstehend',blocked:'Sicherheitsprüfung blockiert',review_required:'Erkannte Positionen prüfen',manual_review_required:'Keine eindeutigen Positionen erkannt – manuelle Eingabe nach Belegprüfung',approved:'Freigegeben',hash_mismatch:'Datei stimmt nicht überein'};
+  box.appendChild(el('div',{class:'eh-review-note'},states[doc.status]||doc.status||'Prüfung erforderlich'));
+  var editable=doc.scanStatus==='clean'&&['review_required','manual_review_required','approved'].includes(doc.status);
+  if(editable){
+   var wrap=el('div',{class:'eh-review-table'}),table=el('table',{}),head=el('thead',{}),tr=el('tr',{});
+   ['Kunden-Bestellnummer','Kundenartikelnummer','Gelieferte Menge','Einheit',''].forEach(function(label){tr.appendChild(el('th',{},label))});
+   head.appendChild(tr);table.appendChild(head);var tbody=el('tbody',{});
+   (doc.rows&&doc.rows.length?doc.rows:[{}]).forEach(function(r){appendReviewRow(tbody,r)});
+   table.appendChild(tbody);wrap.appendChild(table);box.appendChild(wrap);
+   var actions=el('div',{class:'eh-review-actions'}),plus=el('button',{type:'button',class:'ghost'},'+ Position'),approve=el('button',{type:'button',class:'btn primary'},'Prüfen & freigeben');
+   plus.addEventListener('click',function(){if(tbody.children.length<100)appendReviewRow(tbody,{})});
+   approve.addEventListener('click',async function(){
+    if(ref!==refOf(currentShipment()))return;
+    var rows=Array.from(tbody.querySelectorAll('[data-review-row]')).map(function(row){
+     var data={};row.querySelectorAll('[data-review-field]').forEach(function(input){data[input.getAttribute('data-review-field')]=q(input.value)});return data
+    });
+    approve.disabled=true;reviewStatus('Artikelpositionen werden geprüft und gespeichert …');
+    try{
+     await apiReview(ref,'POST',{documentId:doc.id,sha256:doc.sha256,rows:rows});
+     reviewStatus('Artikelpositionen wurden freigegeben.');
+     await loadReview(ref);
+    }catch(e){reviewStatus(q(e&&e.message)||'Freigabe fehlgeschlagen.');approve.disabled=false}
+   });
+   actions.appendChild(plus);actions.appendChild(approve);box.appendChild(actions);
+  }
+  if(Array.isArray(doc.issues)&&doc.issues.length)box.appendChild(el('small',{class:'eh-review-note'},doc.issues.join(' · ')));
+  host.appendChild(box);
+ });
+}
+async function loadReview(ref){
+ if(!reviewPanel()||ref!==refOf(currentShipment()))return;
+ reviewStatus('Lieferscheine und Sicherheitsfreigaben werden geprüft …');
+ try{
+  var result=await apiReview(ref,'GET');
+  if(ref!==refOf(currentShipment())||!reviewPanel())return;
+  showReviewDocuments(ref,result.documents||[]);
+  reviewStatus('Prüfung aktualisiert. Ungeprüfte Positionen sind für Kunden nicht sichtbar.');
+ }catch(e){reviewStatus(q(e&&e.message)||'Prüfung derzeit nicht verfügbar.')}
+}
+function toggleReview(){
+ var c=card(),ref=refOf(currentShipment());if(!c||!ref)return;
+ var current=reviewPanel();if(current){current.remove();return}
+ ensureStyle();var panelNode=el('section',{class:'eh-avis-review','data-avis-review-panel':'1','aria-label':'Lieferschein-Artikelprüfung'});
+ panelNode.appendChild(el('h4',{},'Lieferscheine: Bestellnummer, Kundenartikel & Menge'));
+ var controls=el('div',{class:'eh-review-actions'}),refresh=el('button',{type:'button',class:'ghost'},'Erkennung aktualisieren'),close=el('button',{type:'button',class:'ghost'},'Schließen');
+ refresh.addEventListener('click',function(){loadReview(ref)});close.addEventListener('click',function(){panelNode.remove()});
+ controls.appendChild(refresh);controls.appendChild(close);panelNode.appendChild(controls);
+ panelNode.appendChild(el('p',{'data-review-status':'1',role:'status',class:'eh-review-note'},'Prüfung wird gestartet …'));
+ panelNode.appendChild(el('div',{'data-review-documents':'1'}));
+ var uploadPanel=panel();if(uploadPanel)uploadPanel.insertAdjacentElement('afterend',panelNode);
+ else c.appendChild(panelNode);
+ loadReview(ref);
+}
 function ensureButton(){
   scheduled=false;
   var actions=document.querySelector('#rc786ReferenceFilesCard .rc786-doc-head-actions');
-  if(!actions||actions.querySelector('[data-doc-upload]'))return;
-  var b=el('button',{type:'button',class:'ghost','data-doc-upload':'1'},t('button'));
-  actions.insertBefore(b,actions.firstChild);
+  if(!actions)return;
+  if(!actions.querySelector('[data-doc-upload]')){var b=el('button',{type:'button',class:'ghost','data-doc-upload':'1'},t('button'));actions.insertBefore(b,actions.firstChild)}
+  if(!actions.querySelector('[data-avis-review]')){var review=el('button',{type:'button',class:'ghost','data-avis-review':'1'},'Lieferschein-Artikel prüfen');actions.appendChild(review)}
 }
 function scheduleEnsure(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||setTimeout)(ensureButton)}
 function readBase64(file){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');resolve(i>=0?s.slice(i+1):s)};r.onerror=function(){reject(r.error||new Error('read'))};r.readAsDataURL(file)})}
@@ -101,12 +185,14 @@ async function uploadAll(){
   }
   log.push({state:ok===files.length?'ok':'error',text:t('summary',{ok:ok,total:files.length})});
   picked=[];busy=false;renderList();
+  if(ok&&reviewPanel())loadReview(ref);
   if(ok){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:docKind,count:ok,referenceFolder:true}}))}catch(_){}
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   return ok===files.length;
 }
 document.addEventListener('click',function(e){
   var target=e.target&&e.target.closest?e.target:null;if(!target)return;
+  if(target.closest('[data-avis-review]')){e.preventDefault();e.stopImmediatePropagation();toggleReview();return}
   if(target.closest('[data-doc-upload]')){e.preventDefault();e.stopImmediatePropagation();togglePanel();return}
   if(target.closest('[data-docup-start]')){e.preventDefault();uploadAll();return}
   if(target.closest('[data-docup-close]')){e.preventDefault();if(!busy){var p=panel();if(p)p.remove();picked=[];log=[]}}
