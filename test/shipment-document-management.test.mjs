@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -91,4 +92,22 @@ test('SharePoint-only Upload: serverseitig gegen echte REF-Liste und Dateiart ge
  assert.match(ui, /data-rc786-open-file/);
  assert.match(ui, /data-rc786-download-file/);
  assert.doesNotMatch(ui, /actions\.textContent=''/, 'Native Öffnen/Download/Drucken-Aktionen dürfen nicht gelöscht werden');
+});
+
+test('P0: Alte SIDE-Dateiauswahl darf nicht einer anderen Sendung zugeordnet werden', async () => {
+ const alerts=[];let fetchCalls=0;
+ const window={
+  __EXPORTHUB_RC776_VIEW_SHIPMENT__:{ref:'9US6TS'},
+  alert:message=>alerts.push(message),
+  ExportHUBShipmentDocUploadI18n:{packs:{de:{listChanged:'Bitte Dateien für diese Sendung neu auswählen.',noFiles:'Keine Dateien ausgewählt.'}}}
+ };
+ const document={body:null,addEventListener(){},getElementById(){return null}};
+ vm.runInNewContext(ui,{window,document,fetch:async()=>{fetchCalls++;throw Error('Unexpected foreign upload')}});
+ window.ExportHUBShipmentDocUpload.addFiles([{name:'SIDE250075003.pdf',size:100}]);
+ window.__EXPORTHUB_RC776_VIEW_SHIPMENT__={ref:'ZXCV12'};
+ assert.equal(await window.ExportHUBShipmentDocUpload.uploadAll(),false);
+ assert.equal(fetchCalls,0,'Old invoice must not be uploaded into new reference');
+ assert.deepEqual(alerts,['Bitte Dateien für diese Sendung neu auswählen.']);
+ assert.equal(await window.ExportHUBShipmentDocUpload.uploadAll(),false,'Stale file queue must have been discarded');
+ assert.equal(fetchCalls,0);
 });

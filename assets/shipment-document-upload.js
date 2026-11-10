@@ -4,7 +4,7 @@
 // sonstige Dateien landen über /api/reference-files direkt im REF-Ordner der Sendung und
 // erscheinen danach unter "Dateien & Dokumente".
 if(window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__)return;window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__=true;
-var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,picked=[],kind='lieferschein',log=[];
+var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,picked=[],kind='lieferschein',log=[],selectionRef='';
 var KINDS=['lieferschein','rechnung','packliste','excel','sonstiges'];
 var EXT=['.pdf','.jpg','.jpeg','.png','.xlsx','.xlsm','.xls','.csv','.docx','.doc','.txt','.msg','.eml'];
 function q(v){return String(v==null?'':v).trim()}
@@ -39,7 +39,7 @@ function renderList(){
   rows.forEach(function(r){list.appendChild(el('li',{'data-state':r.state||''},r.text))});
   var up=p.querySelector('[data-docup-start]');if(up)up.disabled=busy||!picked.length;
 }
-function addFiles(files){if(busy)return;log=[];picked=[];Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
+function addFiles(files){if(busy)return;log=[];picked=[];selectionRef=refOf(currentShipment());Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
 function buildPanel(){
   var p=el('div',{class:'eh-docup','data-docup-panel':'1',role:'group','aria-label':t('title')});
   p.appendChild(el('h4',{},t('title')));
@@ -64,7 +64,7 @@ function buildPanel(){
 }
 function togglePanel(){
   var c=card();if(!c)return;var p=panel();
-  if(p){if(!busy){p.remove();picked=[];log=[]}return}
+  if(p){if(!busy){p.remove();picked=[];log=[];selectionRef=''}return}
   ensureStyle();p=buildPanel();
   var actions=c.querySelector('.rc786-doc-head-actions'),head=actions&&actions.parentElement;
   if(head&&head.parentElement===c)head.insertAdjacentElement('afterend',p);else c.appendChild(p);
@@ -93,6 +93,7 @@ async function uploadOne(ref,file,docKind){
 async function uploadAll(){
   var ref=refOf(currentShipment());
   if(!ref||busy)return false;
+  if(picked.length&&selectionRef!==ref){picked=[];log=[];selectionRef='';renderList();window.alert(t('listChanged'));return false}
   if(!picked.length){window.alert(t('noFiles'));return false}
   busy=true;var files=picked.slice(),docKind=KINDS.indexOf(kind)>=0?kind:'sonstiges',ok=0;
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
@@ -110,7 +111,7 @@ async function uploadAll(){
     renderList();
   }
   log.push({state:ok===files.length?'ok':'error',text:t('summary',{ok:ok,total:files.length})});
-  picked=[];busy=false;renderList();
+  picked=[];selectionRef='';busy=false;renderList();
   if(ok){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:docKind,count:ok,referenceFolder:true}}))}catch(_){}
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   return ok===files.length;
@@ -187,7 +188,7 @@ document.addEventListener('click',function(e){
   var target=e.target&&e.target.closest?e.target:null;if(!target)return;
   if(target.closest('[data-doc-upload]')){e.preventDefault();e.stopImmediatePropagation();togglePanel();return}
   if(target.closest('[data-docup-start]')){e.preventDefault();uploadAll();return}
-  if(target.closest('[data-docup-close]')){e.preventDefault();if(!busy){var p=panel();if(p)p.remove();picked=[];log=[]}}
+  if(target.closest('[data-docup-close]')){e.preventDefault();if(!busy){var p=panel();if(p)p.remove();picked=[];log=[];selectionRef=''}}
 },true);
 function start(){ensureButton();if(window.MutationObserver)new MutationObserver(scheduleEnsure).observe(document.body,{childList:true,subtree:true})}
 if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
