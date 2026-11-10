@@ -82,6 +82,13 @@ test('RC1349: pdf-parse Tabspalten beim DNC sind gültig, mehrere Kunden-POs dag
  assert.equal(ambiguity.rows.length,0);
 });
 
+test('RC1349: vertauschte Qty- und Artikelspalten im DNC werden nicht geraten',()=>{
+ const text=['Delivery Note','Customer Order Number\t5530000099',
+ 'Essentra Part     Customer Part     Unit of Measure     Qty Shipped     Qty Ordered',
+ '10013106\t9000000059\tBeschreibung\tEA\t50.000,00\t30.000,00'].join('\n');
+ assert.equal(items.parseDeliveryText(text).rows.length,0);
+});
+ 
 test('RC1349: DNC darf Spaltenverlust im PDF-Text nicht erraten',()=>{
  const unsorted=[
  'Delivery Note',
