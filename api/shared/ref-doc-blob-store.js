@@ -55,7 +55,8 @@ async function list(ref, env) {
     if (Number(e && e.statusCode) === 404 && /^(ContainerNotFound|ResourceNotFound)$/i.test(text(e && e.code))) return [];
     throw e;
   }
-  return files;
+  const deleted = new Set((await deletedRecords(ref, env)).map(r => r.id));
+  return files.filter(f => !deleted.has(f.id));
 }
 async function save(ref, env, name, bytes, mimeType) {
   const r = avBlob.refValue(ref), n = filename(name), buffer = Buffer.from(bytes || []);
@@ -84,4 +85,45 @@ async function read(ref, env, id) {
   return { file, buffer: bytes };
 }
 
-module.exports = { save, list, read, prefix };
+
+const REMOVED_ROOT = 'refdoc-removed-v1/';
+function removedPrefix(ref, env) { return REMOVED_ROOT + environment(env) + '/' + avBlob.refValue(ref) + '/'; }
+async function deletedRecords(ref, env) {
+  const c = client(env), p = removedPrefix(ref, env), records = [];
+  try {
+    for await (const entry of c.listBlobsFlat({ prefix: p })) {
+      if (!/^([0-9a-f]{32})\\.json$/.test(entry.name.slice(p.length))) continue;
+      if (records.length >= MAX_FILES) throw err('REFDOC_REMOVED_LIMIT', 'Zu viele Löschvermerke.', 503);
+      const value = JSON.parse((await c.getBlockBlobClient(entry.name).downloadToBuffer()).toString('utf8'));
+      if (value && /^refdoc:[0-9a-f]{32}$/.test(text(value.id)) && text(value.name)) records.push(value);
+    }
+  } catch (e) {
+    if (Number(e && e.statusCode) === 404 && /^(ContainerNotFound|ResourceNotFound)$/i.test(text(e && e.code))) return [];
+    throw e;
+  }
+  return records;
+}
+async function hiddenNames(ref, env) {
+  return new Set((await deletedRecords(ref, env)).map(r => text(r.name).toLowerCase()));
+}
+async function softDelete(ref, env, id, actor) {
+  const itemId = text(id);
+  if (!/^refdoc:[0-9a-f]{32}$/.test(itemId))
+    throw err('REFDOC_DELETE_FORBIDDEN', 'Nur hochgeladene Sendungsdokumente dürfen entfernt werden.', 403);
+  const file = (await list(ref, env)).find(f => f.id === itemId);
+  if (!file) throw err('REFDOC_NOT_FOUND', 'Dokument in dieser Sendung nicht gefunden.', 404);
+  const uploadName = new RegExp('^(?:Lieferschein|Rechnung|Packliste|Excel|Dokument)_' + avBlob.refValue(ref) + '_[0-9]{8}-[0-9]{6}_', 'i');
+  if (!uploadName.test(file.name))
+    throw err('REFDOC_DELETE_FORBIDDEN', 'Originale und andere Belege sind vor dem Entfernen geschützt.', 403);
+  const siblings = (await list(ref, env)).filter(f => f.name.toLowerCase() === file.name.toLowerCase());
+  if (siblings.length !== 1) throw err('REFDOC_DELETE_AMBIGUOUS', 'Mehrere gleichnamige Uploads: bitte einzeln klären.', 409);
+  const record = { id: itemId, name: file.name, reference: avBlob.refValue(ref), environment: environment(env), deletedAt: new Date().toISOString(), actor: text(actor) || 'authenticated-user', archived: true };
+  const data = Buffer.from(JSON.stringify(record), 'utf8'), blob = client(env).getBlockBlobClient(removedPrefix(ref, env) + itemId.slice(7) + '.json');
+  await blob.uploadData(data, { conditions: { ifNoneMatch: '*' }, blobHTTPHeaders: { blobContentType: 'application/json', blobCacheControl: 'private, no-store' } });
+  const verified = Buffer.from(await blob.downloadToBuffer());
+  if (!verified.equals(data)) throw err('REFDOC_REMOVE_NOT_VERIFIED', 'Der Löschvermerk konnte nicht bestätigt werden.', 502);
+  // Reversible removal: original Azure and SharePoint bytes remain archived; signed POD/AV are never changed.
+  return { id: file.id, name: file.name, deleted: true, archiveRetained: true };
+}
+
+module.exports = { save, list, read, prefix, softDelete, hiddenNames };
