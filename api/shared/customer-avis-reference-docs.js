@@ -31,17 +31,17 @@ function toRecords(files,reference,source='graph'){
 // Azure-Dokumente stehen vor gleichnamigen SharePoint-Dateien (gleicher Upload, verifizierte Kopie), Doppelte entfallen.
 async function load(referenceFolder,reference,environment,log,refDocStore){
  const warn=code=>{if(typeof log==='function')log('customer-avis REF-Dokumente nicht lesbar',code)};
- let azure=[],graph=[],hidden=new Set(),hiddenGraphHashes=new Set();
+ let azure=[],graph=[],hidden=new Set(),hiddenGraphHashes=new Set(),removal=null;
  if(refDocStore&&typeof refDocStore.removalFilters==='function'){
   try{
-   const filters=await refDocStore.removalFilters(reference,environment);
-   hidden=filters.names;hiddenGraphHashes=filters.graphHashes;
+   removal=await refDocStore.removalFilters(reference,environment);
+   hidden=removal.names;hiddenGraphHashes=removal.graphHashes;
   }catch(e){warn('removal-ledger:'+text(e&&e.code));return []}
  }else if(refDocStore&&typeof refDocStore.hiddenNames==='function'){
   try{hidden=await refDocStore.hiddenNames(reference,environment)}catch(e){warn('removal-ledger:'+text(e&&e.code));return []}
  }
  if(refDocStore&&typeof refDocStore.list==='function'){
-  try{azure=toRecords(await refDocStore.list(reference,environment),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
+  try{azure=toRecords(await refDocStore.list(reference,environment,removal),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
  }
  try{graph=toRecords(await referenceFolder.listFiles(reference,environment),reference,'graph')}catch(e){warn(text(e&&e.code))}
  const seen=new Set(),out=[];
