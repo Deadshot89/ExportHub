@@ -54,11 +54,15 @@ test('RC1349 all carrier email paths must use dedicated token',()=>{
  assert.match(template,/type==='carrier'\?rc1349CarrierUrl\(sh\)/);
  assert.match(template,/if\(!u\)return stripAvisBlocks\(source\)/);
  assert.match(immediate,/action:'issue-carrier'/);
+ assert.match(immediate,/type==='carrier'\?carrierAvisForMail\(sh\):url/);
+ assert.match(immediate,/type==='carrier'\?carrierAvisForMail\(sh\):q\(opt\.url\)/);
+ assert.match(immediate,/return link\|\|'…'/);
  assert.match(immediate,/data\.avisAudience!=='carrier'/);
  assert.match(sender,/target!=='carrier'\)return original/);
  assert.match(sender,/await publicAccess\.issue\(req,'avis'/);
  assert.match(sender,/avisAudience:'carrier'/);
  assert.match(sender,/await audienceBoundMailUrl\(/);
+ assert.match(sender,/return replaceAvisToken\(original,issued\.token\)/);
 });
 
 test('RC1349 syntax: recipient-aware modules parse as JavaScript',()=>{
