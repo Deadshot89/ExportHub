@@ -593,7 +593,7 @@ test('RC1903: live TESTSERVICE smoke rejects outdated public upload scripts',()=
  const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
  const guest=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.ok(live.includes(String.raw\`shipment-evidence-guest\.js\?v=1907\`),'Live gate must require the new runtime');
+ assert.ok(live.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
  assert.match(live,/Public evidence page still serves a stale upload runtime/);
  assert.match(guest,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
