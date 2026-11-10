@@ -120,6 +120,14 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
 
+test('RC1349: ausstehender Speditionslink kann nicht als E-Mail mit Platzhalter geöffnet werden',()=>{
+ const sh={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'a'.repeat(48),status:'Entwurf'};
+ const {api,rc}=load(sh,{reference:'7RZ5W9'});
+ assert.equal(rc.carrierAvisCached(sh),'');
+ assert.throws(()=>api.injectMailBody(sh,'carrier',expandedDetails,'de'),e=>e&&e.code==='AVIS_CARRIER_LINK_PENDING');
+ assert.equal(rc.carrierAvisCached(sh),'','Ein gestarteter Request darf nicht bereits als erfolgreich gelten');
+});
+
 test('RC1349: Speditionslink lehnt unpassenden Token und fremde Empfängerart ab',async()=>{
  const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'a'.repeat(48),status:'Entwurf'};
  for(const carrierIssueResponse of [
