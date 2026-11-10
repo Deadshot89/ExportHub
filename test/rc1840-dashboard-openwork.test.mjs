@@ -184,3 +184,17 @@ test('Stalled count request times out and releases the refresh path without leak
   assert.equal(aborts,1,'pending network request is aborted where supported');
   assert.deepEqual(cleared,[17],'completed timeout is cleared');
 });
+
+test('Open-work belongs to top KPI grid with or without Packtisch and never adds a lower tile row',()=>{
+  const css=fs.readFileSync('assets/rc1558-dashboard-overview.css','utf8');
+  const desktop=css.slice(css.lastIndexOf('/* RC1964: the work tile spans two cells;'));
+  assert.match(runtime,/kpis\+openWorkTopKpi\(\)/,'rendered in existing top KPI group');
+  assert.doesNotMatch(fn('tileHtml'),/id==='openwork'/,'lower card is not rendered');
+  assert.match(runtime,/var TILE_IDS=\['quick','lager','abd','pallet','week'\]/,'lower tile editor has no open-work option');
+  assert.match(desktop,/\.rc1558-kpis:has\(>\.rc1558-kpi-openwork\):has\(>\.rc1558-kpi:nth-child\(8\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)\}/);
+  assert.match(desktop,/\[data-rc1569-fit="1"\].*\.rc1558-kpis:has\(>\.rc1558-kpi-openwork\):has\(>\.rc1558-kpi:nth-child\(8\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}/);
+  for(const tileCount of [8,9]){
+    const units=tileCount+1; // one combined card occupies two CSS grid cells
+    assert.equal(Math.ceil(units/5),2,`desktop ${tileCount} KPI cards must use two rows`);
+  }
+});
