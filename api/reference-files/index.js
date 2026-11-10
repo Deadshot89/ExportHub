@@ -228,6 +228,10 @@ module.exports=async function(context,req){
    if(!rights.canReadAny(internal.user,['shipment','shipmentoverview','documents'])||
       !rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
     throw error('WRITE_FORBIDDEN','Für die Lieferscheinprüfung fehlen Bearbeitungsrechte.',403);
+   // No PDF extraction for carrier/unknown audience, even on an internal review URL.
+   if(lower(req.query&&req.query.recipientType)!=='customer'){
+    context.res=json(200,{ok:true,reference:ref,analysisSkipped:true,documents:[]});return;
+   }
    const items=await deliveryItems.processPending(ref,env);
    context.res=json(200,{ok:true,reference:ref,documents:items});return;
   }
