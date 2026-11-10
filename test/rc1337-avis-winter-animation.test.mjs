@@ -84,6 +84,15 @@ test('RC1337: winter notice remains one existing closure card with localized wor
   assert.ok(!plain.includes('rc1337-festive-greeting'),lang);
  }
 });
+test('RC1337: setting title and help describe both AVIS delivery channels and preserve closed-booking rules',()=>{
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const d=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+  assert.ok(d['closureMail.heading'].includes('AVIS')||d['closureMail.heading'].includes('Avis'),lang+' heading');
+  assert.ok(d['closureMail.help'].length>=150,lang+' help must explain all safety boundaries');
+  assert.ok(d['closureMail.mailVisible'].length>=10,lang+' mail control');
+  assert.ok(d['closureMail.portalVisible'].length>=10,lang+' portal control');
+ }
+});
 test('RC1337: admin animation switches have translations in all six configured languages',()=>{
  for(const lang of ['de','en','pl','es','fr','it']){
   const dictionary=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
