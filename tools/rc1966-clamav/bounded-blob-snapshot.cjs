@@ -73,9 +73,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
     for await(const part of stream){
      if(controller.signal.aborted)return fail();
      if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))return fail();
+     // RC1969: reject a large transport chunk BEFORE copying it into a new
+     // Buffer. The old order allocated attacker-sized memory, then rejected.
+     const size=part.byteLength;
+     if(!Number.isSafeInteger(size)||size<1||size>scope.bytes-total||
+        size>MAX_BYTES-total)return fail();
      const chunk=Buffer.from(part);
-     total+=chunk.length;
-     if(total>scope.bytes||total>MAX_BYTES)return fail();
+     if(chunk.length!==size)return fail();
+     total+=size;
      parts.push(chunk);
     }
    }finally{if(typeof stream.destroy==='function')stream.destroy();}
