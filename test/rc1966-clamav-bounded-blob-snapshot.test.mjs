@@ -22,14 +22,17 @@ function fixture(opts={}){
  const blob={
   getProperties:async o=>{
    props++;
-   assert.deepEqual(o,{conditions:{ifMatch:base.blobEtag}});
+   assert.deepEqual(o.conditions,{ifMatch:base.blobEtag});
+   assert.equal(o.abortSignal instanceof AbortSignal,true);
    return{etag:base.blobEtag,blobType:'BlockBlob',contentLength:bytes.length,...opts.props};
   },
   download:async (offset,count,o)=>{
    downs++;
    assert.equal(offset,0);
    assert.equal(count,bytes.length);
-   assert.deepEqual(o,{conditions:{ifMatch:base.blobEtag},maxRetryRequests:0});
+   assert.deepEqual(o.conditions,{ifMatch:base.blobEtag});
+   assert.equal(o.maxRetryRequests,0);
+   assert.equal(o.abortSignal instanceof AbortSignal,true);
    return{
     etag:base.blobEtag,contentLength:bytes.length,
     readableStreamBody:Readable.from([Buffer.from(bytes)]),...opts.response
@@ -99,6 +102,40 @@ test('RC1966: SDK failures are sanitized without leaking account keys or paths',
  const container={getBlobClient(){throw Error('FAKE_SECRET AccountKey=test blobName=secret')}};
  const read=createBoundedReadSnapshot({container,expected,kind:'xlsx'});
  await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+});
+
+test('RC1967: unresponsive Blob properties RPC is aborted without leaking SDK error',async()=>{
+ let aborted=false,downloads=0;
+ const container={getBlobClient(){return {
+  getProperties:({abortSignal})=>new Promise((_,reject)=>{
+   abortSignal.addEventListener('abort',()=>{
+    aborted=true;
+    reject(Error('AccountKey=FAKE_SECRET private blob path'));
+   },{once:true});
+  }),
+  download:async()=>{downloads++;throw Error('must never download');}
+ }}};
+ const read=createBoundedReadSnapshot({container,expected,kind:'xlsx',timeoutMs:60});
+ await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+ assert.equal(aborted,true);
+ assert.equal(downloads,0);
+});
+
+test('RC1967: stalled SDK response stream is destroyed on deadline, never returned',async()=>{
+ const stalled=new Readable({read(){}});
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:60});
+ await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+ assert.equal(stalled.destroyed,true);
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1967: only a bounded positive network timeout is accepted',()=>{
+ const f=fixture();
+ for(const timeoutMs of [-1,0,9,35001,Infinity,1.5,'60000']){
+  assert.throws(()=>createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs}),
+   /RC1966_BLOB_UNVERIFIED/);
+ }
 });
 
 test('RC1966: helper never constructs Azure clients, writes tags or opens a parser',async()=>{
