@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false,canRegisterCustomer:false};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -133,7 +133,7 @@ async function write(action,extra,expectedId){
   if(serial===state.serial&&state.view==='form'&&active()&&
     (state.record&&state.record.id||null)===originalId){
    state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;if(typeof result.canRegisterCustomer==='boolean')state.canRegisterCustomer=result.canRegisterCustomer;showForm(state.record);
-   status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);
+   status(action==='create'?t('created'):action==='upload'?t('verifyingUpload'):t('saved'),false);
   }
   return result;
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
@@ -195,23 +195,46 @@ function showForm(record){state.searchRun++;state.view='form';if(record!==undefi
 function uploadsPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('files')));panel.appendChild(make('p','eh1903-muted',t('info')));
  const grid=make('div','eh1903-uploads');
  for(const [kind,key,accept] of [['foto','uploadPhotos','image/jpeg,image/png'],['lieferschein','uploadNotes','application/pdf,image/jpeg,image/png']]){
-  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.disabled=!record;input.addEventListener('change',async()=>{
-   const selected=[...input.files],docId=record&&record.id;
-   input.value='';
-   if(!docId||!state.record||state.record.id!==docId){status(t('uploadFirst'),true);return}
-   for(const file of selected){
-    if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
-    if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
-    try{
-     status(t('uploading'),false);
-     const base64=await asBase64(file);
-     const uploaded=await write('upload',{kind,fileName:file.name,base64},docId);
-     if(!uploaded)break;
-    }catch(e){status(e.message,true);break}
-   }
+  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.addEventListener('change',async()=>{
+   const selected=[...input.files];input.value='';
+   if(!selected.length)return;
+   if(state.uploading||state.busy){status(t('uploadBusy'),true);return}
+   state.uploading=true;
+   try{
+    // A new record has no DOK ID yet. Create it from the visible fields before
+    // uploading so files can never be attached to the previous document.
+    let docId=state.record&&state.record.id||null;
+    if(!docId){
+     const current=readFields(root());
+     if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
+     const created=await write('create',{fields:current});
+     if(!created||!created.record||!created.record.id)return;
+     docId=created.record.id;
+    }
+    for(const file of selected){
+     if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
+     if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
+     try{
+      status(t('uploading'),false);
+      const ids=new Set((state.record.files||[]).map(f=>f.id));
+      const base64=await asBase64(file);
+      const uploaded=await write('upload',{kind,fileName:file.name,base64},docId);
+      if(!uploaded)break;
+      const entry=(uploaded.record&&uploaded.record.files||[]).find(f=>!ids.has(f.id)&&f.kind===kind&&Number(f.size)===file.size);
+      if(!entry){status(t('uploadUnverified'),true);break}
+      const check=await request('GET',{action:'get',id:docId});
+      const verified=check.record&&check.record.id===docId&&(check.record.files||[]).some(f=>f.id===entry.id&&Number(f.size)===file.size&&f.kind===kind);
+      if(!verified){status(t('uploadUnverified'),true);break}
+      if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
+      state.record=check.record;
+      showForm(check.record);
+      status(file.name+' · '+t('uploadVerified'),false);
+     }catch(e){status(t('uploadUnverified')+' '+e.message,true);break}
+    }
+   }finally{state.uploading=false}
   });label.appendChild(input);cell.appendChild(label);grid.appendChild(cell)}
  panel.appendChild(grid);
- if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
+ if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadAutoCreate')));return panel}
  syncGallery(record.id);
  const gallery=make('div','eh1903-photo-grid');
  (record.files||[]).forEach(file=>{
