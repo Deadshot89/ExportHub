@@ -94,4 +94,5 @@ jobs:
         shell: bash
         run: |
           rm -f "${{ runner.temp }}/rc1343-private-test-token"
-          rm -rf .rc1343_preview_app .rc1343_preview_api
+          # The Azure deploy action writes root-owned node_modules in these two generated runner-only paths.
+          sudo rm -rf -- .rc1343_preview_app .rc1343_preview_api
