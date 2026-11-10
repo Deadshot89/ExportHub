@@ -34,3 +34,19 @@ test('RC1288: normaler Activity-Recreate-Pfad behält zusätzlich den WebView-Zu
   assert.match(activity,/webView\.saveState\(outState\)/);
   assert.match(manifest,/android:configChanges="keyboard\|keyboardHidden\|orientation\|screenLayout\|screenSize\|smallestScreenSize\|uiMode"/);
 });
+
+test('RC1288: emulator smoke polls asynchronous preferences and verifies cold-start without fixed sleeps',()=>{
+  const workflow=fs.readFileSync('.github/workflows/exporthub-android-test-app.yml','utf8');
+  const smoke=workflow.split('- name: RC1288 Force-Stop Cold-Start Smoke')[1]?.split('      - name: Prepare APK')[0];
+  assert.ok(smoke,'RC1288 emulator job not found');
+  assert.match(smoke,/wait_for_environment\(\)/);
+  assert.match(smoke,/for attempt in \$\(seq 1 30\)/);
+  assert.match(smoke,/run-as "\$package" cat shared_prefs\/exporthub_environment\.xml/);
+  assert.match(smoke,/grep -Fq '<string name="selected_environment">testservice<\/string>'/);
+  assert.match(smoke,/adb shell pidof "\$package"/);
+  assert.match(smoke,/adb shell am force-stop "\$package"/);
+  assert.match(smoke,/adb shell monkey -p "\$package"/);
+  assert.match(smoke,/--es exporthub_environment invalid/);
+  assert.match(smoke,/android_start_diagnostics/);
+  assert.doesNotMatch(smoke,/^\s*sleep 2\s*$/m);
+});
