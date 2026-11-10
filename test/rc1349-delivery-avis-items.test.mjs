@@ -48,6 +48,67 @@ test('RC1349: nur vollständig validierte, bestätigte und als sauber geprüfte 
  assert.throws(()=>items.safeReviewRows([{customerOrderNumber:'PO-001',customerItemNumber:'C-18',deliveredQuantity:'<script>',quantityUnit:'Stk.'}]));
 });
 
+test('RC1349: reales DNC-Spaltenlayout (anonymisierte Werte): Qty Shipped statt Qty Ordered',()=>{
+ const dnc=[
+ 'Delivery Note',
+ 'Delivery Note number                                                                     DNC3019228592',
+ 'Essentra Order Number                                                                    SO301900050195',
+ 'Customer Order Number                                                                    5530000099          Beispielfirma',
+ 'Customer Code                                                                            3019100000',
+ 'Customer Part                        Essentra Part',
+ '                                                   Item Description          Unit of Measure       Qty Ordered          Qty Shipped',
+ 'Number                               Number',
+ '9000000059                           10013106                        LCKNG SUPP NAT STNDFF H 9.5MM       EA       50.000,00           30.000,00',
+ '                                      LCBS-8-6-19',
+ 'ContainerID: 3002-000266972',
+ 'Essentra Components Terms and Conditions of Sale'
+ ].join('\n');
+ const result=items.parseDeliveryText(dnc);
+ assert.equal(result.status,'review_required');
+ assert.deepEqual(result.rows.map(r=>[r.customerOrderNumber,r.customerItemNumber,r.deliveredQuantity,r.quantityUnit]),
+  [['5530000099','9000000059','30.000,00','EA']]);
+ assert.notEqual(result.rows[0].customerItemNumber,'10013106');
+ assert.notEqual(result.rows[0].deliveredQuantity,'50.000,00');
+});
+
+test('RC1349: DNC darf Spaltenverlust im PDF-Text nicht erraten',()=>{
+ const unsorted=[
+ 'Delivery Note',
+ 'Delivery Note number',
+ 'Essentra Order Number',
+ 'Customer Order Number',
+ 'Customer Code',
+ 'DNC3019228592',
+ 'SO301900050195',
+ '5530000099',
+ '3019100000',
+ 'Qty Shipped',
+ 'Unit of Measure',
+ 'Qty Ordered',
+ 'Essentra Part',
+ 'Number',
+ 'Customer Part',
+ 'Number',
+ 'Item Description',
+ '10013106',
+ '9000000059',
+ 'EA',
+ '50.000,00',
+ '30.000,00',
+ 'LCBS-8-6-19'
+ ].join('\n');
+ const result=items.parseDeliveryText(unsorted);
+ assert.equal(result.rows.length,0);
+ assert.equal(result.status,'manual_review_required');
+});
+
+test('RC1349: falsch zugeordnete Menge und fehlende Kunden-PO in DNC bleiben ohne Freigabe',()=>{
+ const noPo=['Delivery Note','Customer Order Number','Customer Part   Essentra Part',
+ 'Unit of Measure     Qty Ordered       Qty Shipped',
+ '9000000059     10013106    Beispielteil     EA     80    30'].join('\n');
+ assert.equal(items.parseDeliveryText(noPo).rows.length,0);
+});
+
 test('RC1349: Review ist personalisiert und Portal zeigt keine ungeprüften Rohtexte',()=>{
  const api=fs.readFileSync('api/reference-files/index.js','utf8'),
   store=fs.readFileSync('api/shared/delivery-avis-items-store.js','utf8'),
