@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import fs from 'node:fs/promises';
 
 const require=createRequire(import.meta.url);
-const {scanOfflineCandidate}=require('../tools/rc1965-clamav/isolated-scan-core.cjs');
+const {scanOfflineCandidate,TIME_BUDGET}=require('../tools/rc1965-clamav/isolated-scan-core.cjs');
 const {createQueueCandidate}=require('../tools/rc1964-clamav/cloud-job-preflight.cjs');
 const {verifyCandidateAttestation}=require('../tools/rc1963-clamav/scan-candidate-attestation.cjs');
 const NOW=Date.UTC(2026,10,10,14,0,0);
@@ -46,6 +46,42 @@ function fixture(overrides={}){
   counters:()=>({claims,reads,scans})
  };
 }
+test('RC1975: planned scan and Blob timeouts fit the proposed 240-second Consumption Job',()=>{
+ assert.equal(TIME_BUDGET.jobMs,240000);
+ assert.equal(TIME_BUDGET.eicarProbes,2);
+ assert.equal(TIME_BUDGET.eicarProbeMs,25000);
+ assert.equal(TIME_BUDGET.customerScanMs,90000);
+ assert.equal(TIME_BUDGET.blobReadMs,35000);
+ assert.equal(TIME_BUDGET.blobReads,2);
+ const total=TIME_BUDGET.eicarProbeMs*TIME_BUDGET.eicarProbes+
+  TIME_BUDGET.customerScanMs+TIME_BUDGET.blobReadMs*TIME_BUDGET.blobReads+
+  TIME_BUDGET.reserveMs;
+ assert.equal(total,240000,'reserve must fit the same proposed job ceiling');
+});
+
+test('RC1975: worker passes 25-second EICAR and 90-second customer scan limits',async()=>{
+ let probes=0,customerScans=0;
+ const f=fixture({
+  engineCheck:async options=>{
+   assert.deepEqual(options,{timeoutMs:TIME_BUDGET.eicarProbeMs});
+   probes++;
+   return{verified:true,authorizedForRelease:false};
+  },
+  runner:async(file,timeoutMs)=>{
+   customerScans++;
+   assert.equal(timeoutMs,TIME_BUDGET.customerScanMs);
+   return safe();
+  }
+ });
+ const result=await scanOfflineCandidate(f.settings);
+ assert.equal(result.status,'candidate-only');
+ assert.equal(result.authorizedForRelease,false);
+ assert.equal(result.receipt.authorizedForRelease,false);
+ assert.equal(probes,1);
+ assert.equal(customerScans,1);
+ assert.deepEqual(f.counters(),{claims:1,reads:2,scans:0});
+});
+
 test('RC1973: missing EICAR engine readiness blocks before the first customer blob read',async()=>{
  for(const outcome of [
   {verified:false,authorizedForRelease:false},
