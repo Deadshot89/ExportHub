@@ -31,7 +31,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
    result={ok:true,record,publicToken:token};status=201;
   }else if(action==='public-upload'&&!record.submittedAt){
    const kind=payload.kind,name=(kind==='foto'?'Versandfoto_':'Lieferschein_')+id+'_'+record.files.length+'.'+(kind==='foto'?'jpg':'pdf');
-   record={...record,revision:record.revision+1,files:[...record.files,{id:String(record.files.length+1),name,kind,mime:kind==='foto'?'image/jpeg':'application/pdf',size:16,uploadedAt:new Date().toISOString()}]};
+   record={...record,revision:record.revision+1,files:[...record.files,{id:String(record.files.length+1),name,kind,mime:kind==='foto'?'image/jpeg':'application/pdf',size:Buffer.from(payload.base64,'base64').length,uploadedAt:new Date().toISOString()}]};
    result={ok:true,record};
   }else if(action==='public-submit'){
    record={...record,submittedAt:new Date().toISOString(),revision:record.revision+1};
@@ -95,7 +95,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  expect(requests.filter(r=>r.action==='public-file'&&r.hasToken).length).toBeGreaterThanOrEqual(2);
  expect(requests.some(r=>r.action==='public-file'&&!r.hasToken)).toBe(false);
  expect(requests.filter(r=>r.action==='public-submit'&&r.hasToken)).toHaveLength(1);
- expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(1);
+ expect(requests.filter(r=>r.action==='public-get'&&r.hasToken)).toHaveLength(3);
  expect(requests.some(r=>r.action==='public-save')).toBe(false);
  expect(context.pages()).toHaveLength(1);
 });
