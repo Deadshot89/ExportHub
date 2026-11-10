@@ -546,3 +546,18 @@ test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',(
  assert.ok(workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate')<workflow.indexOf('RC1810 Urgent Order TESTSERVICE'));
  assert.match(workflow,/git diff --name-only HEAD\^ HEAD/);
 });
+
+
+test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, ohne historische Daten zu löschen',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const match=staff.match(/const FIELDS=\[([\s\S]*?)\];/);
+ assert.ok(match,'Internal field schema must exist');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(match[1],new RegExp("\\['"+field+"'"),'Internal form must not render '+field);
+  assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
+ }
+ assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
+ assert.match(build,/shipment-evidence\.js\?v=1907/,'Staff runtime must have cache-busted version');
+});
