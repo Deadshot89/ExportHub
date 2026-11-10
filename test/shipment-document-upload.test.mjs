@@ -125,3 +125,41 @@ test('Dokument-Upload: Erfolg nur nach REF-Identität, korrekte Kopien und Sprac
   for(const key of ['uploadUnverified','uploadNotListed','uploadNotReadable'])
    assert.ok(local.ExportHUBShipmentDocUploadI18n.packs[language][key],language+' '+key);
 });
+
+
+test('Dokument-Upload: SharePoint-only muss exakte Datei-Bytes zurückliefern',async()=>{
+ const source=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ const bytes=Buffer.from('%PDF-1.7\nSharePoint fallback proof\n','utf8');
+ const receipt={id:'GraphFile-123',name:'Lieferschein_ABC123_20261110-130000_Fallback.pdf',size:bytes.length};
+ async function scenario({readBytes=bytes,downloadOk=true,azureSaved=false,sharepointSaved=true}={}){
+  const calls=[],window={},document={body:null,addEventListener(){},getElementById(){return null}};
+  const file={name:'Fallback.pdf',size:bytes.length,type:'application/pdf',async arrayBuffer(){
+   return Uint8Array.from(bytes).buffer;
+  }};
+  class Reader {readAsDataURL(){this.result='data:application/pdf;base64,'+bytes.toString('base64');this.onload()}}
+  const fetch=async(url,options)=>{
+   calls.push({url,method:options.method});
+   if(options.method==='POST')return{ok:true,status:200,async json(){return{
+    ok:true,file:receipt,azureSaved,sharepointSaved
+   }}};
+   if(url.includes('itemId='))return{
+    ok:downloadOk,status:downloadOk?200:503,
+    async arrayBuffer(){return Uint8Array.from(readBytes).buffer;}
+   };
+   return{ok:true,status:200,async json(){return{ok:true,reference:'ABC123',files:[receipt]}}};
+  };
+  vm.runInNewContext(source,{window,document,FileReader:Reader,fetch,CustomEvent:function(){},console});
+  return{calls,result:window.ExportHUBShipmentDocUpload.upload('ABC123',file,'lieferschein')};
+ }
+ const valid=await scenario();
+ assert.equal((await valid.result).id,receipt.id);
+ assert.equal(valid.calls.length,3,'SharePoint-only needs independent exact-file GET');
+ assert.match(valid.calls[2].url,/itemId=GraphFile-123/);
+ const corrupt=await scenario({readBytes:Buffer.from(bytes.map((v,i)=>i===12?v^1:v))});
+ await assert.rejects(corrupt.result,/uploadNotReadable/,'Same size but changed bytes must fail');
+ const missing=await scenario({downloadOk:false});
+ await assert.rejects(missing.result,/uploadNotReadable/,'Unreachable SharePoint original must fail');
+ const azure=await scenario({azureSaved:true,sharepointSaved:false});
+ assert.equal((await azure.result).id,receipt.id);
+ assert.equal(azure.calls.length,2,'Azure primary has its own server-side SHA-256 verification');
+});
