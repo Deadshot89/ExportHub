@@ -126,15 +126,51 @@ jobs:
           adb install -r app/build/outputs/apk/debug/app-debug.apk
           package="de.exporthub.test.debug"
           activity="de.exporthub.test.EnvironmentActivity"
+          # .apply() persists asynchronously. Avoid relying on an arbitrary two-second sleep.
+          # Only emit limited emulator diagnostics on failure; never dump prefs or URL/token data.
+          android_start_diagnostics() {
+            echo "Android start result (no user data):" >&2
+            cat /tmp/exporthub-first-start.txt /tmp/exporthub-restart.txt 2>/dev/null || true
+            adb logcat -d -s AndroidRuntime:E -v brief 2>/dev/null |
+              grep -E 'FATAL EXCEPTION|Process: de\.exporthub\.test|[A-Za-z.]+(Exception|Error):' |
+              sed -E 's/([?&](token|access|secret|key)=)[^[:space:]&]+/\1[REDACTED]/Ig' |
+              tail -n 25 >&2 || true
+          }
+          persisted_testservice() {
+            adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml 2>/dev/null |
+              tr -d '\r' | grep -Fq '<string name="selected_environment">testservice</string>'
+          }
+          wait_for_environment() {
+            local attempt
+            for attempt in $(seq 1 30); do
+              if persisted_testservice && adb shell pidof "$package" 2>/dev/null | grep -Eq '[0-9]'; then
+                return 0
+              fi
+              sleep 1
+            done
+            echo "RC1288: testservice preference or running Activity not ready within 30 seconds" >&2
+            android_start_diagnostics
+            return 1
+          }
           adb shell am start -W -n "$package/$activity" --es exporthub_environment testservice >/tmp/exporthub-first-start.txt
-          sleep 2
-          adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml | grep -q '<string name="selected_environment">testservice</string>'
+          if ! grep -Fq 'Status: ok' /tmp/exporthub-first-start.txt; then
+            echo 'RC1288: explicit EnvironmentActivity start did not return Status: ok' >&2
+            android_start_diagnostics
+            exit 1
+          fi
+          wait_for_environment
           adb shell am force-stop "$package"
           adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1 >/tmp/exporthub-restart.txt
-          sleep 2
-          prefs="$(adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml)"
-          printf '%s\n' "$prefs"
-          printf '%s\n' "$prefs" | grep -q '<string name="selected_environment">testservice</string>'
+          wait_for_environment
+          # Invalid environment extras must not switch an explicitly saved testservice choice.
+          adb shell am force-stop "$package"
+          adb shell am start -W -n "$package/$activity" --es exporthub_environment invalid >/tmp/exporthub-first-start.txt
+          if ! grep -Fq 'Status: ok' /tmp/exporthub-first-start.txt; then
+            echo 'RC1288: invalid-extra restart failed' >&2
+            android_start_diagnostics
+            exit 1
+          fi
+          wait_for_environment
 
       - name: Prepare APK
         working-directory: android-app
