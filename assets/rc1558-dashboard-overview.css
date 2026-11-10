@@ -404,10 +404,10 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #taskplannerV2DashboardProjection,
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc46SopEditorHolder{display:none!important}
 
-/* RC1964: nine top KPIs, including one double-width work tile, stay in two rows on desktop. */
+/* RC1964: the work tile spans two cells; both 8 (without Packtisch) and 9 (with Packtisch) KPI tiles remain in two desktop rows. */
 @media(min-width:1000px){
-  .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))}
-  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  .rc1558-kpis:has(>.rc1558-kpi-openwork):has(>.rc1558-kpi:nth-child(8)){grid-template-columns:repeat(5,minmax(0,1fr))}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi-openwork):has(>.rc1558-kpi:nth-child(8)){grid-template-columns:repeat(5,minmax(0,1fr))!important}
 }
 @media(min-width:641px) and (max-width:999px){
   .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(3,minmax(0,1fr))}
