@@ -181,5 +181,9 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
 }
 
+// RC1337: Load Avis settings only through the existing admin Settings runtime.
+if(w.document&&!w.document.getElementById('rc1337AvisAdminLoader')){
+ var avisLoader=w.document.createElement('script');avisLoader.id='rc1337AvisAdminLoader';avisLoader.src='/assets/rc1337-avis-settings.js?v=1337';avisLoader.defer=true;(w.document.head||w.document.documentElement).appendChild(avisLoader);
+}
 w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
 })(window);
