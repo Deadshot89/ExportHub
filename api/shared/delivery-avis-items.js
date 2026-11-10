@@ -2,9 +2,9 @@
 // RC1349: Lieferscheinpositionen werden NUR als Entwurf erfasst.
 // Kunden erhalten ausschließlich durch einen Mitarbeiter freigegebene Daten.
 const crypto=require('node:crypto');
-const PO=/(?:kundenbestellnummer|kunden-bestellnummer|customer\s*(?:purchase\s*)?order\s*(?:no\.?|number|#)?|customer\s*po\s*(?:no\.?)?|your\s*order\s*(?:no\.?|number)?|purchase\s*order\s*(?:no\.?|number)?)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9._/-]{2,39})/i;
-const ITEM=/(?:kundenartikelnummer|kunden-artikelnummer|customer\s*(?:item|part|material)\s*(?:no\.?|number|#)?|your\s*(?:item|part)\s*(?:no\.?|number))\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9._/-]{1,59})/i;
-const QUANTITY=/(?:gelieferte(?:r)?\s*(?:menge|anzahl)|geliefert(?:e)?\s*(?:menge|stückzahl)|delivered\s*(?:qty\.?|quantity)|shipped\s*(?:qty\.?|quantity))\s*[:#]?\s*([0-9][0-9., ]{0,19})\s*(Stk\.?|PCS|pc|pieces|EA|kg|g|m|mm|l|L)?\b/i;
+const PO=/(?:kundenbestellnummer|kunden-bestellnummer|customer\s*(?:purchase\s*)?order\s*(?:no\.?|number|#)?|customer\s*po\s*(?:no\.?)?|your\s*order\s*(?:no\.?|number)?|purchase\s*order\s*(?:no\.?|number)?)\s*[:#]\s*([A-Za-z0-9][A-Za-z0-9._/-]{2,39})/i;
+const ITEM=/(?:kundenartikelnummer|kunden-artikelnummer|customer\s*(?:item|part|material)\s*(?:no\.?|number|#)?|your\s*(?:item|part)\s*(?:no\.?|number))\s*[:#]\s*([A-Za-z0-9][A-Za-z0-9._/-]{1,59})/i;
+const QUANTITY=/(?:gelieferte(?:r)?\s*(?:menge|anzahl)|geliefert(?:e)?\s*(?:menge|stückzahl)|delivered\s*(?:qty\.?|quantity)|shipped\s*(?:qty\.?|quantity))\s*[:#]\s*([0-9][0-9., ]{0,19})\s*(Stk\.?|PCS|pc|pieces|EA|kg|g|m|mm|l|L)?\b/i;
 const UNIT=/^(?:Stk\.?|PCS|pc|pieces|EA|kg|g|m|mm|l|L)$/i;
 function txt(x){return String(x==null?'':x).trim()}
 function cleanToken(x,max){const s=txt(x);return s.length<=max&&/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(s)?s:''}
