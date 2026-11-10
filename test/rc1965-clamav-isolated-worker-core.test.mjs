@@ -127,6 +127,43 @@ test('RC1965: positive malware or scanner error can never create a signed clean 
   assert.equal(r.reason,scan.exitCode===1?'malware-detected':'scan-unverified');
  }
 });
+test('RC1965: signatures changed during scan cannot be falsely attested as updated',async()=>{
+ let reads=0,scannerRan=false;
+ const f=fixture({
+  getDefinitionsUpdatedAt:async()=>{
+   reads++;
+   if(reads===1)assert.equal(scannerRan,false,'record signature state before scanning');
+   if(reads===2)assert.equal(scannerRan,true,'recheck signatures only after scanning');
+   return reads===1?NOW-60000:NOW-1000;
+  },
+  runner:async()=>{scannerRan=true;return safe();}
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(reads,2);
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'definitions-changed-during-scan');
+ assert.equal(r.receipt,undefined);
+ assert.equal(r.authorizedForRelease,false);
+ assert.equal(r.dispatchAuthorized,false);
+ assert.equal(r.deployAuthorized,false);
+ assert.deepEqual(f.counters(),{claims:1,reads:2,scans:0});
+});
+
+test('RC1965: signature metadata disappears after scanning, no candidate receipt',async()=>{
+ let reads=0;
+ const f=fixture({getDefinitionsUpdatedAt:async()=>{
+  reads++;
+  if(reads===2)throw Error('Untrusted metadata failure');
+  return NOW-60000;
+ }});
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(reads,2);
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'worker-error');
+ assert.equal(r.receipt,undefined);
+ assert.equal(r.authorizedForRelease,false);
+});
+
 test('RC1965: stale or future AV definitions are never signed',async()=>{
  for(const updatedAt of [NOW-48*3600*1000,NOW+60*1000]){
   const f=fixture({getDefinitionsUpdatedAt:async()=>updatedAt});
