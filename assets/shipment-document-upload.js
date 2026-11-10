@@ -106,7 +106,7 @@ async function uploadAll(){
     try{
       var info=await uploadOne(ref,files[i],docKind);
       ok++;
-      var original=q(files[i].name).replace(/[\\/:*?"<>|\\r\\n]+/g,'_').replace(/\\s+/g,' ').trim();
+      var original=q(files[i].name).replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').trim();
       var unexpected=info.name&&info.name.slice(-original.length-1)!=='_'+original;
       log[i]={state:unexpected?'error':'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})+
         (info.name?' → '+info.name:'')+(unexpected?' · WARNUNG: Server-Dateiname weicht von der Auswahl ab.':'')};
@@ -124,6 +124,7 @@ async function uploadAll(){
 function docRows(){var c=card();return c?Array.prototype.slice.call(c.querySelectorAll('#rc786ReferenceFilesPanel .rc786-doc-row')):[]}
 function documentRows(){return Array.isArray(window.__EXPORTHUB_RC776_VIEW_DOCS__)?window.__EXPORTHUB_RC776_VIEW_DOCS__:[]}
 function syncFileActions(){
+  ensureStyle();
   var rows=docRows(),docs=documentRows();
   rows.forEach(function(row,i){
     var d=docs[i],actions=row.querySelector('.rc786-doc-actions');
