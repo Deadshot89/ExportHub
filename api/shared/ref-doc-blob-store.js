@@ -126,4 +126,19 @@ async function softDelete(ref, env, id, actor) {
   return { id: file.id, name: file.name, deleted: true, archiveRetained: true };
 }
 
-module.exports = { save, list, read, prefix, softDelete, hiddenNames };
+// Reversible removal for verified SharePoint-only uploads (not signed POD / AV).
+async function hideSharePoint(ref, env, item, actor) {
+ const name=filename(item && item.name), itemId=text(item && item.id), r=avBlob.refValue(ref);
+ const uploadName=new RegExp('^(?:Lieferschein|Rechnung|Packliste|Excel|Dokument)_' + r + '_[0-9]{8}-[0-9]{6}_.+\\.(?:pdf|jpe?g|png|xlsx|xlsm|xls|csv|docx|doc|txt|msg|eml)$', 'i');
+ if (!itemId || itemId.length>512 || !uploadName.test(name))
+   throw err('REFDOC_DELETE_FORBIDDEN','Nur zu dieser Sendung gehörende hochgeladene Dokumente dürfen entfernt werden.',403);
+ const id=crypto.createHash('sha256').update('graph|'+environment(env)+'|'+r+'|'+itemId+'|'+name).digest('hex').slice(0,32);
+ const record={id:fileId(id),name,reference:r,environment:environment(env),source:'sharepoint',itemHash:crypto.createHash('sha256').update(itemId).digest('hex'),deletedAt:new Date().toISOString(),actor:text(actor)||'authenticated-user',archived:true};
+ const bytes=Buffer.from(JSON.stringify(record),'utf8'),blob=client(env).getBlockBlobClient(removedPrefix(r,env)+id+'.json');
+ await blob.uploadData(bytes,{conditions:{ifNoneMatch:'*'},blobHTTPHeaders:{blobContentType:'application/json',blobCacheControl:'private, no-store'}});
+ const verified=Buffer.from(await blob.downloadToBuffer());
+ if(!verified.equals(bytes))throw err('REFDOC_REMOVE_NOT_VERIFIED','Der Löschvermerk konnte nicht bestätigt werden.',502);
+ return{id:itemId,name,deleted:true,archiveRetained:true};
+}
+
+module.exports = { save, list, read, prefix, softDelete, hideSharePoint, hiddenNames };
