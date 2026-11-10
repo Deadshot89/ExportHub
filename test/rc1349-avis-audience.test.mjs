@@ -67,6 +67,21 @@ test('RC1349 all carrier email paths must use dedicated token',()=>{
  assert.match(sender,/return replaceAvisToken\(original,issued\.token\)/);
 });
 
+test('RC1349 review UI: carrier selection prevents PDF item parsing on request',()=>{
+ const ui=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const verify=fs.readFileSync('api/scripts/verify-runtime-sources.cjs','utf8');
+ assert.match(ui,/function selectedAvisAudience\(\)/);
+ assert.match(ui,/return active\?q\(active\.getAttribute\('data-rc543-target'\)\)/);
+ assert.match(ui,/ref!==refOf\(currentShipment\(\)\)\|\|selectedAvisAudience\(\)!=='customer'/);
+ assert.match(ui,/if\(selectedAvisAudience\(\)!=='customer'\)\{/);
+ assert.match(ui,/if\(target\.closest\('\[data-rc543-target\]'\)\)setTimeout\(scheduleEnsure,0\)/);
+ for(const file of ['shared/customer-avis-audience.js','shared/delivery-avis-items.js','shared/delivery-avis-items-store.js','shared/ref-doc-blob-store.js']){
+  assert.ok(build.includes("'"+file+"'"),'API build required: '+file);
+  assert.ok(verify.includes("'"+file+"'"),'API source checker required: '+file);
+ }
+});
+ 
 test('RC1349 HTML carrier link replaces path and removes hidden customer token parameters',()=>{
  const source=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
  const begin=source.indexOf('function replaceAvisToken('),end=source.indexOf('async function audienceBoundMailUrl(',begin);
@@ -122,7 +137,7 @@ test('RC1349 HTML mail recipient isolation: wrong-audience and foreign shipment 
  
 test('RC1349 syntax: recipient-aware modules parse as JavaScript',()=>{
  for(const file of ['api/customer-avis/index.js','api/shared/public-access-store.js','api/shared/customer-avis-audience.js',
-  'assets/rc1015-lieferavis-mail-flow.js','assets/rc1027-lieferavis-immediate.js','assets/rc1166-avis-reminder-overview.js','api/avis-reminder-mail/index.js']){
+  'assets/rc1015-lieferavis-mail-flow.js','assets/rc1027-lieferavis-immediate.js','assets/rc1166-avis-reminder-overview.js','api/avis-reminder-mail/index.js','assets/shipment-document-upload.js']){
   const content=fs.readFileSync(file,'utf8');
   assert.doesNotThrow(()=>new Function(content),file);
  }
