@@ -77,6 +77,12 @@ function togglePanel(){
 // RC1349 – Prüfpanel für Lieferscheine in derselben Sendungsansicht.
 // Kein externer Parser, keine automatische öffentliche Freigabe.
 function reviewPanel(){var c=card();return c&&c.querySelector('[data-avis-review-panel]')}
+function selectedAvisAudience(){
+ // The mail editor explicitly differentiates customer and carrier.
+ // The default is customer when the editor is absent (manual document review).
+ var area=document.getElementById('rc543MailArea'),active=area&&area.querySelector('[data-rc543-target].active');
+ return active?q(active.getAttribute('data-rc543-target')).toLowerCase():'customer';
+}
 function reviewStatus(message){var p=reviewPanel(),node=p&&p.querySelector('[data-review-status]');if(node)node.textContent=q(message)}
 function apiReview(ref,action,body){
  var url='/api/reference-files',opt={credentials:'same-origin',cache:'no-store',headers:requestHeaders()};
@@ -95,7 +101,7 @@ function appendReviewRow(tbody,value){
  remove.addEventListener('click',function(){row.remove()});c.appendChild(remove);row.appendChild(c);tbody.appendChild(row);
 }
 function showReviewDocuments(ref,items){
- var panelNode=reviewPanel();if(!panelNode||ref!==refOf(currentShipment()))return;
+ var panelNode=reviewPanel();if(!panelNode||ref!==refOf(currentShipment())||selectedAvisAudience()!=='customer')return;
  var host=panelNode.querySelector('[data-review-documents]');host.textContent='';
  if(!items.length){host.appendChild(el('p',{},t('reviewNoDocuments')));reviewStatus(t('reviewEmpty'));return}
  items.filter(function(x){return x.current!==false}).forEach(function(doc){
@@ -129,17 +135,17 @@ function showReviewDocuments(ref,items){
  });
 }
 async function loadReview(ref,successMessage){
- if(!reviewPanel()||ref!==refOf(currentShipment()))return;
+ if(!reviewPanel()||ref!==refOf(currentShipment())||selectedAvisAudience()!=='customer')return;
  reviewStatus(t('reviewLoading'));
  try{
   var result=await apiReview(ref,'GET');
-  if(ref!==refOf(currentShipment())||!reviewPanel())return;
+  if(ref!==refOf(currentShipment())||!reviewPanel()||selectedAvisAudience()!=='customer')return;
   showReviewDocuments(ref,result.documents||[]);
   reviewStatus(successMessage||t('reviewUpdated'));
  }catch(e){reviewStatus(q(e&&e.message)||t('reviewUnavailable'))}
 }
 function toggleReview(){
- var c=card(),ref=refOf(currentShipment());if(!c||!ref)return;
+ var c=card(),ref=refOf(currentShipment());if(!c||!ref||selectedAvisAudience()!=='customer')return;
  var current=reviewPanel();if(current){current.remove();return}
  ensureStyle();var panelNode=el('section',{class:'eh-avis-review','data-avis-review-panel':'1','aria-label':t('reviewAriaTitle')});
  panelNode.appendChild(el('h4',{},t('reviewTitle')));
@@ -157,6 +163,11 @@ function ensureButton(){
   var actions=document.querySelector('#rc786ReferenceFilesCard .rc786-doc-head-actions');
   if(!actions)return;
   if(!actions.querySelector('[data-doc-upload]')){var b=el('button',{type:'button',class:'ghost','data-doc-upload':'1'},t('button'));actions.insertBefore(b,actions.firstChild)}
+  if(selectedAvisAudience()!=='customer'){
+   var old=actions.querySelector('[data-avis-review]');if(old)old.remove();
+   var opened=reviewPanel();if(opened)opened.remove();
+   return
+  }
   if(!actions.querySelector('[data-avis-review]')){var review=el('button',{type:'button',class:'ghost','data-avis-review':'1'},t('reviewButton'));actions.appendChild(review)}
 }
 function scheduleEnsure(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||setTimeout)(ensureButton)}
@@ -191,6 +202,7 @@ async function uploadAll(){
 }
 document.addEventListener('click',function(e){
   var target=e.target&&e.target.closest?e.target:null;if(!target)return;
+  if(target.closest('[data-rc543-target]'))setTimeout(scheduleEnsure,0);
   if(target.closest('[data-avis-review]')){e.preventDefault();e.stopImmediatePropagation();toggleReview();return}
   if(target.closest('[data-doc-upload]')){e.preventDefault();e.stopImmediatePropagation();togglePanel();return}
   if(target.closest('[data-docup-start]')){e.preventDefault();uploadAll();return}
