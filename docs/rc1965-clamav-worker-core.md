@@ -147,3 +147,44 @@ signature database or a real ClamAV malware-detection result.
 
 No Azure job, resource, queue, scan or release was activated. The
 existing ABD API continues to block unverifiable uploads.
+
+## RC1972 – tatsächliche Scannerbereitschaft vor Kundendaten prüfen (offline)
+
+Die bisherige Integrations-Testkette RC1970 simulierte nur einen
+`clamscan`-Exitcode und war kein Beweis dafür, dass ein ClamAV-Prozess
+überhaupt funktioniert. Das neue, weiterhin **nicht angeschlossene**
+`tools/rc1972-clamav/engine-selftest.cjs` stellt deshalb eine
+fail-closed-Bereitschaftsprüfung für die spätere isolierte
+Container-Laufzeit bereit.
+
+- Im privaten temporären Verzeichnis werden nur zwei **harmlose**
+  Laufzeit-Prüfdateien mit eingeschränkten Dateirechten angelegt:
+  unkritischer Klartext und das offizielle, nicht schädliche
+  68-Byte-EICAR-Antivirus-Testmuster.
+- Der vorhandene `RC1956.runClamscan` muss bei der harmlosen Datei
+  Exitcode **0** (keine Bedrohung) und beim EICAR-Muster Exitcode **1**
+  (Testsignatur erkannt) zurückliefern. Fehler, Timeout, sonstiger
+  Exitcode, falsch-positive Klartexterkennung oder verpasste
+  EICAR-Erkennung liefern `verified:false`.
+- Ein selbsttest-positiver Befund ist **niemals ein Kunden-Dateiurteil**:
+  `authorizedForRelease:false` bleibt für alle Ergebnisse zwingend.
+  Die tatsächliche Scan-Engine muss in einer unabhängig authentisierten,
+  isolierten TESTSERVICE-Laufzeit gestartet und mit wirklich geladenen,
+  aktuellen Virensignaturen geprüft werden.
+- Alle Prüfdateien werden nach dem Test entfernt. Misslingt das
+  Aufräumen, gilt die Prüfung ebenfalls als fehlgeschlagen.
+  Öffentliche Rückgaben enthalten keine Dateinamen, Scanner-Stderr
+  oder Zugangsdaten.
+- Sieben synthetische Node-Regressionen prüfen die Kontrolllogik
+  mit einem **Mock-Runner**. Dies belegt noch keinen realen EICAR-Scan.
+  Ein echter Lauf ist erst mit einer autorisierten,
+  tatsächlich bereitgestellten ClamAV-Engine möglich.
+- Quelle: https://www.eicar.org/download-anti-malware-testfile/
+  und https://github.com/Cisco-Talos/clamav/blob/main/docs/man/clamscan.1.in
+
+**Grenze:** Der neue Selbsttest ist noch nicht an die RC1965-Eingangsprüfung
+oder Azure angebunden und nicht produktiv aktiviert. Vor einem
+vertrauenswürdigen Worker-Start wäre zusätzlich eine verifizierte,
+identitätsgebundene Engine-/Signatur-Attestation und echte EICAR-Abnahme
+notwendig. Es gibt weiterhin keinen garantierten Nullkosten-Cloudbetrieb,
+keinen Merge, kein Deployment und keine Parserfreigabe.
