@@ -2683,5 +2683,6 @@
   "closureMail.portalHide": "Masquer l'avis sur le portail",
   "closureMail.activate": "Activer la fermeture",
   "closureMail.deactivate": "Désactiver la fermeture",
-  "closureMail.disableConfirm": "Désactiver cette fermeture ? Les créneaux d'enlèvement de cette période pourront de nouveau être réservés."
+  "closureMail.disableConfirm": "Désactiver cette fermeture ? Les créneaux d'enlèvement de cette période pourront de nouveau être réservés.",
+  "closureMail.removeConfirm": "Supprimer définitivement cette fermeture ? Les enlèvements pendant cette période pourraient être de nouveau réservables. Cette action est irréversible."
 }
