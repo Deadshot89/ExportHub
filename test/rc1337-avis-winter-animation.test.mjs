@@ -101,3 +101,31 @@ test('RC1337: changed runtime, server and embedded scripts parse',()=>{
   if(snippet[1].trim())new Function(snippet[1]);
  }
 });
+
+
+test('RC1328: global admin can suspend and resume a closure without removing its dates',()=>{
+ const now=new Date('2026-12-14T12:00:00Z');
+ const active={...base,enabled:true};
+ const paused={...active,enabled:false};
+ const state=record=>({settings:{closureNotices:[record]}});
+ assert.equal(closure.activeClosureNotices(state(active),now,'mail').length,1);
+ assert.equal(closure.activeClosureNotices(state(paused),now,'mail').length,0);
+ assert.equal(closure.activeClosureNotices(state(paused),now,'portal').length,0);
+ assert.equal(closure.closureForPickupDate(state(paused),'2026-12-24'),null);
+ assert.ok(closure.closureForPickupDate(state(active),'2026-12-24'));
+ assert.equal(closure.activeClosureNotices(state({...paused,enabled:true}),now,'mail').length,1);
+
+ // The UI must confirm deactivation, save through the existing protected
+ // state gate and refuse stale row references. No second persistence route.
+ assert.match(admin,/rc1328-active-toggle/);
+ assert.match(admin,/w\.confirm\(tr\('closureMail\.disableConfirm'\)\)/);
+ assert.match(admin,/current\.enabled=current\.enabled!==true/);
+ assert.match(admin,/current\.enabled!==item\.enabled/);
+ assert.match(admin,/await persistClosureEntries\(rows\);display\(\)/);
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dictionary=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+  for(const key of ['activate','deactivate','disableConfirm']){
+   assert.ok(dictionary['closureMail.'+key]?.length>8,lang+':'+key);
+  }
+ }
+});
