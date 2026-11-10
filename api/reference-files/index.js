@@ -169,6 +169,8 @@ async function handleUpload(req){
  const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
  const environment=publicAccess.environment(req,payload);
  if(action==='approve-delivery-items'){
+  if(environment!==authStore.environmentFromRequest(req))
+   throw error('ENVIRONMENT_MISMATCH','Die Lieferscheinfreigabe gehört zu einer anderen Umgebung.',409);
   if(!authStore.hasAnyEditRight(internal.user)||!rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
    throw error('WRITE_FORBIDDEN','Für die Freigabe von Artikelpositionen fehlen Bearbeitungsrechte.',403);
   await deliveryItems.approve(ref,environment,text(payload.documentId),text(payload.sha256),payload.rows,
