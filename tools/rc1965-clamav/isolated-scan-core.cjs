@@ -73,6 +73,11 @@ async function scanOfflineCandidate({
     // observed BEFORE scanning. Never substitute a post-scan update as proof
     // of what the engine actually used.
     const definitionsBefore=await getDefinitionsUpdatedAt();
+    // RC1971: never start an expensive scan with invalid, future, or stale
+    // definitions. The later candidate-proof check alone was too late.
+    if(!Number.isSafeInteger(definitionsBefore)||definitionsBefore<=0||
+       definitionsBefore>now||now-definitionsBefore>24*60*60*1000)
+     throw Error('RC1971_DEFINITIONS_NOT_CURRENT');
     // The RC1956 scanner copies again into its own private, immutable directory
     // and returns no release permission even when clamscan exits 0.
     const scanned=await scanLocalQuarantine({
