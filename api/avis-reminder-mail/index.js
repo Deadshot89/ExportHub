@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
+const publicAccess=require('../shared/public-access-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml}=require('../shared/avis-mail-html');
 
@@ -47,6 +48,24 @@ function safeAvisUrl(req,value,sh,c){
   return out.toString()
  }
  return u.toString()
+}
+function replaceAvisToken(url,token){
+ const out=new URL(url);
+ if(/^\/avis\/[^/]+\/?$/i.test(out.pathname))out.pathname='/avis/'+encodeURIComponent(token);
+ else if(/\/customer-avis\.html$/i.test(out.pathname)){out.searchParams.set('token',token);out.searchParams.delete('avis')}
+ else throw auth.error('AVIS_URL_INVALID','Ungültiger Avis-Link.',400);
+ return out.toString();
+}
+async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl){
+ const original=safeAvisUrl(req,rawUrl,shipment,customer);
+ if(target!=='carrier')return original;
+ const environment=auth.environmentFromRequest(req);
+ const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
+ const subjectId=text(shipment.id||shipment.shipmentId||ref);
+ const issued=await publicAccess.issue(req,'avis',
+  {subjectId,shipmentId:subjectId,reference:ref,actor:'AVIS Reminder',avisAudience:'carrier'},
+  null,{environment});
+ return replaceAvisToken(original,issued.token);
 }
 function subject(ref,target,lang){
  lang=normalizeLanguage(lang);
@@ -248,7 +267,7 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const url=await audienceBoundMailUrl(req,shipment,customerFor(current.team,shipment),target,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   const htmlContent=renderAvisMailHtml(content,url,lang);
   const sent=await graphMail.sendHtmlMail({to,subject:sub,body:htmlContent,sender,cc});
