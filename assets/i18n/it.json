@@ -2691,5 +2691,8 @@
   "urgentOrderV2.individualLinesNotChecked": "Righe singole non verificate",
   "urgentOrderV2.wholeOrderOption": "Ordine completo – tutte le righe",
   "urgentOrderV2.individualLinesOption": "Inserisci singoli articoli / righe",
-  "urgentOrderV2.requestScope": "Ambito della richiesta"
+  "urgentOrderV2.requestScope": "Ambito della richiesta",
+  "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Approvazione dei costi del trasporto speciale confermata dal richiedente",
+  "urgentOrderV2.p1ApprovalDetailBy": "Confermato da",
+  "urgentOrderV2.p1ApprovalDetailMissing": "Nessuna conferma dei costi di trasporto è registrata per questa richiesta P1."
 }

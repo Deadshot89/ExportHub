@@ -302,6 +302,14 @@ function mailHistoryMarkup(order){
  }).join('');
  return '<section class="mail-history"><h3>'+escapeHtml(localeV2('mailHistoryTitle',"Email history"))+' · '+records.length+'</h3>'+rows+'</section>';
 }
+function approvalDetailMarkup(order){
+ if(order.priority!=='P1')return'';
+ const evidence=order.transportCostsApproval,by=evidence&&evidence.confirmedBy;
+ const person=by?txt(by.name||by.id).trim():'';
+ const date=evidence&&evidence.confirmedAt?mailDate(evidence.confirmedAt):'';
+ if(!person||!date)return '<p class="help" data-p1-approval="missing">'+escapeHtml(localeV2('p1ApprovalDetailMissing','No transport-cost acknowledgement is recorded for this P1 order.'))+'</p>';
+ return '<p class="help" data-p1-approval="recorded"><strong>'+escapeHtml(localeV2('p1ApprovalDetailLabel','P1 · Approval of special transport costs acknowledged by the requester'))+'</strong> · '+escapeHtml(localeV2('p1ApprovalDetailBy','Confirmed by'))+' '+escapeHtml(person)+' · '+escapeHtml(date)+'</p>';
+}
 function render(){
  showView(activeView);
  renderStats();const n=orders.filter(isClosedOrder).length;$('internalOpenCount').textContent=orders.length-n;$('internalClosedCount').textContent=n;$('internalOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+(orders.length-n));$('internalClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+n);$('internalOpen').dataset.hasOpen=orders.length>n?'true':'false';$('internalOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');$('internalClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');const selected=filtered();$('listHint').textContent=selected.length+' / '+orders.length+' · '+localeV2('listHint','Aufträge – Positionen öffnen für Details');
@@ -328,7 +336,7 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+freightHtml+mailHistoryMarkup(order)+'</div>';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();

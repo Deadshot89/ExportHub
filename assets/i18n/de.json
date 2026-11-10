@@ -2691,5 +2691,8 @@
   "urgentOrderV2.individualLinesNotChecked": "Einzelpositionen nicht geprüft",
   "urgentOrderV2.wholeOrderOption": "Kompletter Auftrag – alle Lines",
   "urgentOrderV2.individualLinesOption": "Einzelne Artikel / Lines erfassen",
-  "urgentOrderV2.requestScope": "Umfang der Anfrage"
+  "urgentOrderV2.requestScope": "Umfang der Anfrage",
+  "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Genehmigung der Sondertransportkosten vom Ersteller bestätigt",
+  "urgentOrderV2.p1ApprovalDetailBy": "Bestätigt von",
+  "urgentOrderV2.p1ApprovalDetailMissing": "Für diesen P1-Auftrag ist keine Kostenbestätigung dokumentiert."
 }
