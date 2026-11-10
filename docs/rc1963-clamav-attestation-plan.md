@@ -152,3 +152,25 @@ ein Architekturvorschlag, **keine** Bestellung oder Kostenfreigabe.
 **Kein Deployment, kein Azure-Account-Schreibzugriff, keine laufenden Kosten
 durch diesen PR.** `ABD_SCAN_PENDING` bleibt gesperrt, bis der reale
 vertrauenswürdige Scanner bereitsteht.
+
+### Kosten-/Technikvergleich vor einer späteren Ressourcenfreigabe
+
+| Variante | Leerlauf | Geeignetheit für ClamAV | Entscheidung |
+| --- | --- | --- | --- |
+| Azure Container Apps **Event Job** (Consumption) | Keine laufende Job-Instanz nach Ausführung; Compute-Sekunden zählen während des Jobs | Eigener isolierter Linux-Container mit ClamAV und kontrollierten Scanner-Definitionen | **Bevorzugter Kandidat**, aber nur nach nachgewiesenen Gesamtkosten |
+| Azure Functions **Flex Consumption** (On Demand, 4096 MB) | Keine Always-Ready-Instanz notwendig; eigener Free Grant (100.000 GB-s und 250.000 Ausführungen) | Bietet **keine Custom-Container-Unterstützung**. Natives ClamAV-Binary, Definitionen und Updates im Code-Paket wären gesondert zu beweisen; kein nachgewiesener sicherer Scan-Host | Derzeit **nicht** der bevorzugte Container-Scanner |
+| Azure Functions klassischer Consumption-Plan | Kein Always-Ready nötig | Maximal ca. 1,5 GB je Instanz, unter den von ClamAV empfohlenen 3–4 GiB | Für den vollständigen ClamAV-Betrieb ungeeignet |
+| Azure VM / Always-on-App / Defender | Dauerhafte Grundlast bzw. Gebühren möglich | Technisch möglich | **Nicht** zur No-Fixkosten-Vorgabe passend |
+| GitHub Actions oder Browser-JavaScript | Keine verlässlich isolierte Produktions-Scan-Infrastruktur | Sicherheits- und Mandanten-/Kundendatenrisiken | **Nicht** als Kunden-Uploadscanner einsetzen |
+
+Quellen: https://learn.microsoft.com/en-us/azure/azure-functions/pricing ;
+https://learn.microsoft.com/en-us/azure/azure-functions/functions-scale ;
+https://learn.microsoft.com/en-us/azure/azure-functions/flex-consumption-plan
+
+**Rechenbeispiel ist kein Kostenangebot.** Ein 2-vCPU-/4-GiB-Job über
+240 Sekunden entspricht 480 vCPU-Sekunden / 960 GiB-Sekunden.
+Bei 100 Jobs sind das 48.000 / 96.000 Einheiten. Ein tatsächlicher
+Monat braucht belastbare Daten über schon verbrauchte Freikontingente,
+Startkosten, Image-/Signaturversorgung, Queue, Blob, Registry, Logs und
+gegebenenfalls Netzwerk. **Wenn ein garantiertes Null-Euro-Ergebnis
+nicht belegt ist, bleibt jede Ressourcenanlage gesperrt.**
