@@ -21,6 +21,9 @@ function inject(html,file){
   if(index<0)throw new Error(`RC1549 ${file}: </head>-Anker fehlt`);
   html=html.slice(0,index)+TAG+'\n'+html.slice(index)
  }
+ // Legacy entrypoints can already contain the old invoice tag. Normalize it
+ // before using TAG as the insertion anchor for delivery/documents runtimes.
+ html=html.replace(/(id="exporthub-rc1549-abd-proforma"[^>]*src="\/assets\/rc1549-abd-proforma\.js\?v=)\d+/g,(_m,p)=>p+'1962');
  if(!html.includes('id="exporthub-rc1790-delivery-note"'))html=html.replace(TAG,TAG+'\n'+DELIVERY_I18N_TAG+'\n'+DELIVERY_TAG);
  if(!html.includes('id="exporthub-rc1940-documents"'))html=html.replace(DELIVERY_TAG,DELIVERY_TAG+'\n'+DOCUMENT_TAG);
  // Normalize legacy cache keys BEFORE positioning the new local importer after the document runtime.
