@@ -103,10 +103,17 @@ function createOrder(raw,actor,now=new Date().toISOString()){
  if(!ownerId)throw problem('URGENT_ACTOR_REQUIRED','A validated user or reporter session is required.',401);
  const directOutbound=orderType==='DIRECT_OUTBOUND'?validateDirectOutbound(p.directOutbound):null;
  const dispatch=dispatchCutoff(p.requestedDispatchDate,now);
+ // P1 confirmation records the creator's assertion of existing transport-cost approval.
+ if(priority==='P1'&&p.transportCostsApproved!==true)throw problem('URGENT_P1_APPROVAL_REQUIRED','Bitte die Genehmigung der Transportkostenübernahme bestätigen.');
+ const allLines=p.allLines===true;
+ // Entire order is a distinct scope: never invent an article, line number or stock checks.
+ if(allLines&&Array.isArray(p.items)&&p.items.length)throw problem('URGENT_SCOPE_CONFLICT','Bei komplettem Auftrag keine einzelnen Artikel übermitteln.');
+ const items=allLines?[{id:crypto.randomUUID(),scope:'ALL_LINES',line:'',article:'',quantity:null,minibag:false,newArticle:false,checks:null,exceptionReason:'',checkResult:'not_checked',status:'Open',checkedAt:null}]:validateItems(p.items,now,orderType);
  return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,orderType,directOutbound,
   email:email(p.email),language:language(p.language),...dispatch,
+  allLines,transportCostsApproval:priority==='P1'?{confirmedBy:{id:ownerId,name:text(actor.name,150)},confirmedAt:now}:null,
   createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,
-  items:validateItems(p.items,now,orderType),history:[{at:now,actorId:ownerId,event:'created'}]};
+  items,history:[{at:now,actorId:ownerId,event:'created'}]};
 }
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
@@ -140,7 +147,7 @@ function draftMail(order,kind,lang,note,actor){
  // Use the employee preparing this email, never the account that created the order.
  // The actor comes exclusively from the authenticated server session.
  const sender=text(actor&&(actor.user||actor.login||actor.username||actor.name||actor.id),150).replace(/\s+/g,' ')||t('teamFallback');
- const itemNames=[...new Set((order.items||[]).map(x=>text(x.article,120)||(x.line?t('lineLabel')+' '+text(x.line,70):'')).filter(Boolean))];
+ const itemNames=order.allLines===true?[(l==='en'?'Entire order (all lines)':'Kompletter Auftrag (alle Positionen)')]:[...new Set((order.items||[]).map(x=>text(x.article,120)||(x.line?t('lineLabel')+' '+text(x.line,70):'')).filter(Boolean))];
  return{
   to:order.email,
   language:l,

@@ -64,6 +64,8 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="board">
 <section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-wizard-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-wizard-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-wizard-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-wizard-step="1">
 <div class="pair"><label class="field"><span data-i18n="urgentOrderV2.orderNumber">Auftragsnummer *</span><input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
+<p class="help" role="note" id="urgentPriorityLegend" data-i18n="urgentOrderV2.priorityLegend">P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today\u0027s order</p>
+<div id="p1CostApprovalField" class="section" hidden><label class="linecheck"><input id="p1CostApproved" type="checkbox"> <span id="p1CostApprovalText" data-i18n="urgentOrderV2.p1ApprovalConfirm">I confirm that coverage of the special transport costs has been approved.</span></label></div>
 <div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
 <datalist id="urgentEmailHistory"></datalist>
@@ -81,7 +83,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div></div>
 </div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
 <section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
 <h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
@@ -92,7 +94,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
 
-<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allPriorities">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allPriorities">Alle Prioritäten</option><option value="P1">P1 – Sondertransport</option><option value="P2">P2 – Express-Lieferung</option><option value="P3">P3 – Backlog</option><option value="P4">P4 – Auftrag von heute</option></select></div>
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
 </main>
@@ -199,6 +201,14 @@ function syncType(){
  });
  document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});
 }
+function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
+function syncScope(){const all=isAllLines();$('lines').hidden=all;$('addLine').hidden=all;$('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);}
+function syncP1Approval(){
+ const form=$('reportForm'),p1=form.elements.priority.value==='P1',check=$('p1CostApproved');
+ $('p1CostApprovalField').hidden=!p1;check.required=p1;if(!p1)check.checked=false;
+ $('urgentPriorityLegend').textContent=localeV2('priorityLegend','P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today');
+ $('p1CostApprovalText').textContent=localeV2('p1ApprovalConfirm','I confirm that coverage of the special transport costs has been approved.');
+}
 function items(){
  return[...document.querySelectorAll('.uo-line')].map(box=>{
   const v=name=>box.querySelector('[data-field="'+name+'"]');
@@ -269,7 +279,7 @@ function buildPayload(){
  const form=$('reportForm'),x=form.elements;
  return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
   email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,requestedDispatchDate:x.requestedDispatchDate.value,
-  directOutbound:directOutbound(form),items:items()};
+  directOutbound:directOutbound(form),allLines:isAllLines(),transportCostsApproved:x.priority.value==='P1'&&$('p1CostApproved').checked,items:isAllLines()?[]:items()};
 }
 
 let wizardStep=1;
@@ -279,12 +289,12 @@ function showWizardStep(step){
  for(const block of document.querySelectorAll('[data-wizard-step]'))block.hidden=Number(block.dataset.wizardStep)!==wizardStep;
  for(const marker of document.querySelectorAll('[data-wizard-mark]')){if(Number(marker.dataset.wizardMark)===wizardStep)marker.setAttribute('aria-current','step');else marker.removeAttribute('aria-current');}
  $('wizardBack').hidden=wizardStep===1;$('wizardNext').hidden=wizardStep===3;
- if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+p.items.length+' '+localeV2('positions','Positionen')+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
+ if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+(p.allLines?(localeV2('wholeOrder','Entire order (all lines)')):p.items.length+' '+localeV2('positions','Positionen'))+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
 }
 function nextWizardStep(){
  const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
  for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
- if(wizardStep===2){
+ if(wizardStep===2&&!isAllLines()){
   const p=buildPayload();
   if(p.items.some(x=>!x.line&&!x.article)){showMessage(localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
   if(p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8)){showMessage(localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
@@ -315,10 +325,11 @@ function render(){
   const node=document.createElement('details');node.className='order';
   const status=humanStatus(o);
   const lineHtml=(o.items||[]).map(x=>{
+   if(x.scope==='ALL_LINES')return '<div class="item-row"><strong>'+esc(localeV2('wholeOrder','Entire order (all lines)'))+'</strong><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>';
    const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
    return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc((o.items||[]).length)+' '+esc(localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
@@ -360,7 +371,7 @@ async function submit(ev){
   $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
   location.hash='access='+encodeURIComponent(secret);
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
-  $('reportForm').reset();$('lines').innerHTML='';lineCard();
+  $('reportForm').reset();$('lines').innerHTML='';lineCard();syncScope();syncP1Approval();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
   syncType();syncCutoff();showWizardStep(1);activateLink();await refresh();
   showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
@@ -377,7 +388,9 @@ $('orderType').addEventListener('change',syncType);
 $('requestedDispatchDate').addEventListener('change',syncCutoff);
 $('lateSubmitToday').addEventListener('click',()=>applyLateCutoffChoice(false));
 $('lateMoveTomorrow').addEventListener('click',()=>applyLateCutoffChoice(true));
-$('reportForm').elements.language.addEventListener('change',syncCutoff);
+$('reportForm').elements.language.addEventListener('change',()=>{syncCutoff();syncP1Approval();});
+$('reportForm').elements.priority.addEventListener('change',syncP1Approval);
+document.querySelectorAll('input[name="lineScope"]').forEach(el=>el.addEventListener('change',syncScope));
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
@@ -388,7 +401,7 @@ window.addEventListener('exporthub:language-changed',render);
 window.addEventListener('exporthub:language-changed',syncCutoff);
 $('clearEmailHistory').addEventListener('click',clearEmailChoices);
 refreshEmailChoices();
-secret=accessFromHash();lineCard();syncType();syncCutoff();showWizardStep(1);refresh();
+secret=accessFromHash();lineCard();syncType();syncScope();syncP1Approval();syncCutoff();showWizardStep(1);refresh();
 })();
 </script>
 </body>

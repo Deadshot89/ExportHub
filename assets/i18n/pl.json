@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Włącz zamknięcie",
   "closureMail.deactivate": "Wyłącz zamknięcie",
   "closureMail.disableConfirm": "Czy na pewno wyłączyć zamknięcie? Terminy odbioru w tym okresie będzie można ponownie rezerwować.",
-  "closureMail.removeConfirm": "Czy na pewno trwale usunąć ten okres zamknięcia? Terminy odbioru w tym okresie mogą być ponownie dostępne. Tej operacji nie można cofnąć."
+  "closureMail.removeConfirm": "Czy na pewno trwale usunąć ten okres zamknięcia? Terminy odbioru w tym okresie mogą być ponownie dostępne. Tej operacji nie można cofnąć.",
+  "urgentOrderV2.priorityLegend": "P1 – Transport specjalny · P2 – Dostawa ekspresowa · P3 – Zaległe zamówienia · P4 – Dzisiejsze zamówienie",
+  "urgentOrderV2.p1ApprovalConfirm": "Potwierdzam, że pokrycie kosztów transportu specjalnego zostało zatwierdzone.",
+  "urgentOrderV2.wholeOrder": "Całe zamówienie (wszystkie pozycje)",
+  "urgentOrderV2.individualLinesNotChecked": "Poszczególne pozycje niezweryfikowane",
+  "urgentOrderV2.wholeOrderOption": "Całe zamówienie – wszystkie pozycje",
+  "urgentOrderV2.individualLinesOption": "Wybierz pojedyncze artykuły / pozycje",
+  "urgentOrderV2.requestScope": "Zakres zgłoszenia"
 }

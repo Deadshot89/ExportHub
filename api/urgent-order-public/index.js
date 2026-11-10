@@ -22,12 +22,12 @@ function groupByToken(doc,v){
 }
 function publicOrder(order){
  return{
-  id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,
+  id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,allLines:order.allLines===true,
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
   items:(order.items||[]).map(x=>({
-   id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,
+   id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,scope:x.scope||null,
    checkResult:x.checkResult,minibag:!!x.minibag,newArticle:!!x.newArticle,
    problemNote:x.status==='Problem'?txt(x.problemNote,1000):''
   }))

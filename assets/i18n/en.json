@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Activate closure",
   "closureMail.deactivate": "Deactivate closure",
   "closureMail.disableConfirm": "Deactivate this closure? Pickup appointments during this period can then be booked again.",
-  "closureMail.removeConfirm": "Delete this closure permanently? Pickup appointments in this period may become bookable again. This action cannot be undone."
+  "closureMail.removeConfirm": "Delete this closure permanently? Pickup appointments in this period may become bookable again. This action cannot be undone.",
+  "urgentOrderV2.priorityLegend": "P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today's order",
+  "urgentOrderV2.p1ApprovalConfirm": "I confirm that coverage of the special transport costs has been approved.",
+  "urgentOrderV2.wholeOrder": "Entire order (all lines)",
+  "urgentOrderV2.individualLinesNotChecked": "Individual lines not checked",
+  "urgentOrderV2.wholeOrderOption": "Entire order – all lines",
+  "urgentOrderV2.individualLinesOption": "Enter individual items / lines",
+  "urgentOrderV2.requestScope": "Request scope"
 }

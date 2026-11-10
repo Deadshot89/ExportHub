@@ -6,7 +6,7 @@ const publicApi=require('../api/urgent-order-public/index.js');
 const internal=require('../api/urgent-orders/index.js');
 const model=require('../api/shared/urgent-orders.js');
 const required={
- orderNumber:'SO3002',delivery:'DRP',priority:'P1',email:'cs@example.org',
+ orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.org',
  orderType:'DIRECT_OUTBOUND',
  directOutbound:{arrivalAt:'2026-11-10T08:30',arrivalMode:'TRUCK',arrivalProvider:'Sample Freight',dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true},
  items:[{line:'10',article:'A-11',quantity:2,holdsClear:true,newArticle:true,articleDataCorrect:true,processCompliant:true}]

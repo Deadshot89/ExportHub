@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Attiva chiusura",
   "closureMail.deactivate": "Disattiva chiusura",
   "closureMail.disableConfirm": "Disattivare questa chiusura? Le fasce di ritiro durante il periodo torneranno prenotabili.",
-  "closureMail.removeConfirm": "Eliminare definitivamente questa chiusura? Le fasce di ritiro nel periodo potrebbero tornare prenotabili. L'operazione non può essere annullata."
+  "closureMail.removeConfirm": "Eliminare definitivamente questa chiusura? Le fasce di ritiro nel periodo potrebbero tornare prenotabili. L'operazione non può essere annullata.",
+  "urgentOrderV2.priorityLegend": "P1 – Trasporto speciale · P2 – Consegna espressa · P3 – Ordini arretrati · P4 – Ordine di oggi",
+  "urgentOrderV2.p1ApprovalConfirm": "Confermo che la copertura dei costi del trasporto speciale è stata approvata.",
+  "urgentOrderV2.wholeOrder": "Ordine completo (tutte le righe)",
+  "urgentOrderV2.individualLinesNotChecked": "Righe singole non verificate",
+  "urgentOrderV2.wholeOrderOption": "Ordine completo – tutte le righe",
+  "urgentOrderV2.individualLinesOption": "Inserisci singoli articoli / righe",
+  "urgentOrderV2.requestScope": "Ambito della richiesta"
 }
