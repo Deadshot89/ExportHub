@@ -207,8 +207,9 @@ async function handleUpload(req){
   let deliveryItemsStatus='not_applicable';
   if(file.kind==='lieferschein'&&file.mimeType==='application/pdf'){
    deliveryItemsStatus=azureSaved?'scan_pending':'azure_copy_missing';
-   if(azureSaved)try{
-    await deliveryItems.register(ref,environment,azureSaved,itemParser.fingerprint(file.buffer));
+   try{
+    if(azureSaved)await deliveryItems.register(ref,environment,azureSaved,itemParser.fingerprint(file.buffer));
+    else await deliveryItems.invalidateByName(ref,environment,file.name);
    }catch(e){deliveryItemsStatus='registration_failed';}
   }
   return json(200,{ok:true,reference:ref,deliveryItemsStatus,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
@@ -224,8 +225,9 @@ module.exports=async function(context,req){
   const internal=await validateSession(req);
   const ref=refValue(req.query&&req.query.reference),env=publicAccess.environment(req,{});
   if(lower(req.query&&req.query.action)==='delivery-items-review'){
-   if(!rights.canReadAny(internal.user,['shipment','shipmentoverview','documents']))
-    throw error('READ_FORBIDDEN','Für die Lieferscheinprüfung fehlen Leserechte.',403);
+   if(!rights.canReadAny(internal.user,['shipment','shipmentoverview','documents'])||
+      !rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
+    throw error('WRITE_FORBIDDEN','Für die Lieferscheinprüfung fehlen Bearbeitungsrechte.',403);
    const items=await deliveryItems.processPending(ref,env);
    context.res=json(200,{ok:true,reference:ref,documents:items});return;
   }
