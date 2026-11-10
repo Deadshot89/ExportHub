@@ -28,12 +28,7 @@ function ensureStyle(){
     '.eh-docup-hint{font-size:12px;opacity:.75;margin:0}.eh-docup-list{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}'+
     '.eh-docup-list li[data-state=error]{color:#b42318}.eh-docup-list li[data-state=ok]{color:#067647}'+
     'html[data-eh-design="neon"] .eh-docup-list li[data-state=error]{color:#ff8a80}html[data-eh-design="neon"] .eh-docup-list li[data-state=ok]{color:#7ee2a8}'+
-    '.eh-docup-preview{position:fixed;inset:0;z-index:2147483000;background:rgba(15,23,42,.8);display:grid;place-items:center;padding:16px}'+
-    '.eh-docup-preview-panel{background:var(--pc-card-bg,#fff);color:var(--pc-text,#0f172a);width:min(1100px,96vw);height:min(840px,94vh);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}'+
-    '.eh-docup-preview-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px;border-bottom:1px solid #ccd4dc}'+
-    '.eh-docup-preview-head strong{flex:1;min-width:170px;overflow-wrap:anywhere}'+
-    '.eh-docup-preview-media{flex:1;min-height:0;width:100%;border:0;object-fit:contain}'+
-    '.eh-docup-no-preview{padding:24px}.rc786-doc-actions[data-docup-managed]{display:flex!important;gap:8px!important;flex-wrap:wrap!important}';
+    '.rc786-doc-actions[data-docup-managed]{display:flex!important;gap:8px!important;flex-wrap:wrap!important}';
   document.head.appendChild(s);
 }
 function card(){return document.getElementById('rc786ReferenceFilesCard')}
@@ -134,15 +129,24 @@ function syncFileActions(){
   rows.forEach(function(row,i){
     var d=docs[i],actions=row.querySelector('.rc786-doc-actions');
     if(!d||!actions||d.source!=='referenceFolder'||!q(d.itemId))return;
-    if(actions.getAttribute('data-docup-managed')===q(d.itemId))return;
-    // Preserve the native print action, which still routes through the existing document viewer.
-    var printButton=actions.querySelector('[data-rc786-print-file]');
-    actions.textContent='';actions.setAttribute('data-docup-managed',q(d.itemId));
-    [['open',t('open')],['download',t('download')]].concat(canRemoveDocument(d)?[['delete',t('remove')]]:[]).forEach(function(action){
-      var b=el('button',{type:'button',class:'ghost eh-docup-file-action','data-docup-file-action':action[0],'data-docup-index':String(i),'data-docup-id':q(d.itemId)},action[1]);
-      actions.appendChild(b);
-    });
-    if(printButton)actions.appendChild(printButton);
+    // Keep the original internal viewer, download and print handlers. Only add removal.
+    var open=actions.querySelector('[data-rc786-open-file]');
+    var download=actions.querySelector('[data-rc786-download-file]');
+    if(open)open.textContent=t('open');
+    if(download)download.textContent=t('download');
+    var oldRemove=actions.querySelector('[data-docup-file-action="delete"]');
+    if(oldRemove && oldRemove.getAttribute('data-docup-id')!==q(d.itemId)){
+      oldRemove.remove();oldRemove=null;
+    }
+    if(!oldRemove&&canRemoveDocument(d)){
+      var remove=el('button',{type:'button',class:'ghost eh-docup-file-action',
+        'data-docup-file-action':'delete','data-docup-index':String(i),'data-docup-id':q(d.itemId)},t('remove'));
+      actions.appendChild(remove);
+    }else if(oldRemove){
+      oldRemove.setAttribute('data-docup-index',String(i));
+      oldRemove.textContent=t('remove');
+    }
+    actions.setAttribute('data-docup-managed',q(d.itemId));
     var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
     if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
     if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
@@ -154,58 +158,19 @@ function fileContext(btn){
     throw new Error(t('listChanged'));
   return {document:d,reference:ref};
 }
-async function fetchStoredFile(ref,d){
-  var url='/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline';
-  var res=await fetch(url,{method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'});
-  if(!res.ok){var result={};try{result=await res.json()}catch(_){}throw new Error(q(result.message)||('HTTP '+res.status))}
-  var blob=await res.blob();
-  if(!blob.size)throw new Error(t('fileEmpty'));
-  return blob;
-}
-function downloadBlob(blob,name){
-  var url=URL.createObjectURL(blob),a=el('a',{href:url,download:name||'Dokument'});
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(function(){URL.revokeObjectURL(url)},30000);
-}
-function previewBlob(blob,name){
-  var existing=document.getElementById('eh-docup-preview');if(existing&&existing.closePreview)existing.closePreview();
-  var url=URL.createObjectURL(blob),mime=q(blob.type).toLowerCase(),ext=extOf(name);
-  var overlay=el('div',{id:'eh-docup-preview',class:'eh-docup-preview',role:'dialog','aria-modal':'true','aria-label':t('previewTitle')});
-  var panel=el('div',{class:'eh-docup-preview-panel'}),head=el('div',{class:'eh-docup-preview-head'});
-  var title=el('strong',{},name),download=el('button',{type:'button',class:'ghost'},t('download')),close=el('button',{type:'button',class:'ghost'},t('close'));
-  overlay.closePreview=function(){overlay.remove();URL.revokeObjectURL(url)};
-  download.addEventListener('click',function(){downloadBlob(blob,name)});
-  close.addEventListener('click',overlay.closePreview);
-  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.closePreview()});
-  head.appendChild(title);head.appendChild(download);head.appendChild(close);panel.appendChild(head);
-  var content;
-  if(mime==='application/pdf'||ext==='.pdf')content=el('iframe',{src:url,title:name,class:'eh-docup-preview-media'});
-  else if(mime.indexOf('image/')===0||['.jpg','.jpeg','.png'].indexOf(ext)>=0)content=el('img',{src:url,alt:name,class:'eh-docup-preview-media'});
-  else content=el('p',{class:'eh-docup-no-preview'},t('noPreview'));
-  panel.appendChild(content);overlay.appendChild(panel);document.body.appendChild(overlay);close.focus();
-}
 async function actOnFile(btn){
   if(btn.disabled)return;
-  var action=btn.getAttribute('data-docup-file-action'),ctx=fileContext(btn),d=ctx.document;
-  if(action==='delete'){
-    if(!canRemoveDocument(d))throw new Error(t('protectedOriginal'));
-    if(!window.confirm(t('removeConfirm',{name:d.name})))return;
-    btn.disabled=true;
-    try{
-      var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'delete-document',reference:ctx.reference,itemId:d.itemId})}),result={};
-      try{result=await res.json()}catch(_){}
-      if(!res.ok||result.ok===false)throw new Error(q(result.message)||('HTTP '+res.status));
-      var view=window.ExportHUBShipmentView;
-      if(view&&typeof view.refreshReferenceFiles==='function')await view.refreshReferenceFiles();
-      window.alert(t('removed'));
-    }finally{btn.disabled=false}
-    return;
-  }
+  var ctx=fileContext(btn),d=ctx.document;
+  if(!canRemoveDocument(d))throw new Error(t('protectedOriginal'));
+  if(!window.confirm(t('removeConfirm',{name:d.name})))return;
   btn.disabled=true;
   try{
-    var blob=await fetchStoredFile(ctx.reference,d);
-    if(action==='download')downloadBlob(blob,d.name);
-    else if(action==='open')previewBlob(blob,d.name);
+    var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'delete-document',reference:ctx.reference,itemId:d.itemId})}),result={};
+    try{result=await res.json()}catch(_){}
+    if(!res.ok||result.ok===false)throw new Error(q(result.message)||('HTTP '+res.status));
+    var view=window.ExportHUBShipmentView;
+    if(view&&typeof view.refreshReferenceFiles==='function')await view.refreshReferenceFiles();
+    window.alert(t('removed'));
   }finally{btn.disabled=false}
 }
 document.addEventListener('click',function(e){
