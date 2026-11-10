@@ -110,7 +110,7 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
       // A successful HTTP response may still be an HTML error page. The hash
       // must not attest that such bytes represent a saved original PDF.
       // PDF headers are permitted within the first 1024 bytes (PDF readers).
-      "function rc1957IsPdf(data){if(!data||!data.byteLength)return false;var limit=Math.min(data.byteLength,1024);for(var i=0;i+4<limit;i++){if(data[i]===37&&data[i+1]===80&&data[i+2]===68&&data[i+3]===70&&data[i+4]===45)return true}return false}",
+      "function rc1957IsPdf(data){if(!data||!data.byteLength)return false;var lead=0;if(data[0]===239&&data[1]===187&&data[2]===191)lead=3;while(lead<data.byteLength&&(data[lead]===9||data[lead]===10||data[lead]===13||data[lead]===32))lead++;if(data[lead]===60||data[lead]===123||data[lead]===91)return false;var limit=Math.min(data.byteLength,1024);for(var i=0;i+7<limit;i++){if(data[i]===37&&data[i+1]===80&&data[i+2]===68&&data[i+3]===70&&data[i+4]===45&&data[i+5]>=48&&data[i+5]<=57&&data[i+6]===46&&data[i+7]>=48&&data[i+7]<=57)return true}return false}",
       "if(rc1957Pdfs.some(function(e){return !rc1957IsPdf(e.data)}))fail.push('RC1957_INVALID_PDF');",
       "var rc1957Subtle=globalThis.crypto&&globalThis.crypto.subtle,rc1957Sums=[];",
       "if(!rc1957Subtle){fail.push('RC1957_SHA256_UNAVAILABLE')}else{",
