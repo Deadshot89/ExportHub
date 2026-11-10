@@ -57,7 +57,7 @@ test('RC1931 REF + explicitly linked DOK previews stay in-page and switch shipme
  const dialog=page.getByRole('dialog');
  await expect(dialog).toBeVisible();
  await expect(dialog.locator('img')).toHaveAttribute('src',/^blob:/);
- await dialog.getByRole('button',{name:/close|schlie/i}).click().catch(async()=>{await dialog.locator('button').last().click()});
+ await dialog.locator('button').last().click();
  await expect(dialog).toHaveCount(0);
  await gallery.locator('.eh1860-preview-card').nth(1).locator('.eh1860-preview-open').click();
  await expect(page.getByRole('dialog').locator('iframe')).toHaveAttribute('src',/^blob:/);
