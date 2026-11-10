@@ -91,5 +91,42 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
     "btn.disabled=false;return fail.length===0\n}",
     'do not return complete when one PDF fails'
   );
+  // RC1957: Portable customer-document archives need a checkable hash list.
+  // Normalize collision-prone ZIP names before hashing their immutable bytes.
+  // This export remains manual, local and separate from Graph/SharePoint status.
+  script = replaceOnce(
+    script,
+    "var manualCount=manualSaved,signedCount=signedSaved,manifest=",
+    [
+      "/* RC1957_SHA256_START */",
+      "uniqueArchiveEntries(entries);",
+      "var rc1957Expected=entries.filter(function(e){return e&&/\\.pdf$/i.test(String(e.name||''))});",
+      "var rc1957Pdfs=rc1957Expected.filter(function(e){return e.data&&e.data.byteLength>0});",
+      "if(rc1957Expected.length!==entries.length)fail.push('RC1957_UNEXPECTED_ENTRY');",
+      // Keep checksum-list filenames unambiguous and safe for extraction.
+      // No line breaks, ASCII control chars, path separators or huge names.
+      "if(rc1957Expected.some(function(e){var n=String(e.name||'');return n.length>180||n.indexOf('/')!==-1||n.indexOf(String.fromCharCode(92))!==-1||Array.from(n).some(function(c){var k=c.charCodeAt(0);return k<32||k===127})}))fail.push('RC1957_UNSAFE_FILENAME');",
+      "if(rc1957Expected.length!==rc1957Pdfs.length)fail.push('RC1957_EMPTY_PDF');",
+      // A successful HTTP response may still be an HTML error page. The hash
+      // must not attest that such bytes represent a saved original PDF.
+      // PDF headers are permitted within the first 1024 bytes (PDF readers).
+      "function rc1957IsPdf(data){if(!data||!data.byteLength)return false;var lead=0;if(data[0]===239&&data[1]===187&&data[2]===191)lead=3;while(lead<data.byteLength&&(data[lead]===9||data[lead]===10||data[lead]===13||data[lead]===32))lead++;if(data[lead]===60||data[lead]===123||data[lead]===91)return false;var limit=Math.min(data.byteLength,1024);for(var i=0;i+7<limit;i++){if(data[i]===37&&data[i+1]===80&&data[i+2]===68&&data[i+3]===70&&data[i+4]===45&&data[i+5]>=48&&data[i+5]<=57&&data[i+6]===46&&data[i+7]>=48&&data[i+7]<=57){var pre=String.fromCharCode.apply(null,data.subarray(0,i)).toLowerCase();if([\u0027http/\u0027,\u0027error\u0027,\u0027failed\u0027,\u0027unauthorized\u0027,\u0027forbidden\u0027,\u0027access denied\u0027,\u0027not found\u0027,\u0027<!doctype\u0027,\u0027<html\u0027,\u0027<error\u0027,\u0027{\u0027,\u0027[\u0027].some(function(s){return pre.indexOf(s)!==-1}))return false;return true}}return false}",
+      "if(rc1957Pdfs.some(function(e){return !rc1957IsPdf(e.data)}))fail.push('RC1957_INVALID_PDF');",
+      "var rc1957Subtle=globalThis.crypto&&globalThis.crypto.subtle,rc1957Sums=[];",
+      "if(!rc1957Subtle){fail.push('RC1957_SHA256_UNAVAILABLE')}else{",
+      "for(var rc1957Pdf of rc1957Pdfs){try{",
+      "var rc1957Hash=new Uint8Array(await rc1957Subtle.digest('SHA-256',rc1957Pdf.data));",
+      "rc1957Sums.push(Array.from(rc1957Hash).map(function(b){return b.toString(16).padStart(2,'0')}).join('')+'  '+rc1957Pdf.name);",
+      "}catch(_){fail.push('RC1957_SHA256_FAILED');break}}",
+      "}",
+      "if(fail.length===0&&rc1957Pdfs.length>0&&rc1957Pdfs.length===rc1957Expected.length&&rc1957Sums.length===rc1957Pdfs.length){",
+      "entries.push({name:'SHA256SUMS.txt',data:new TextEncoder().encode(rc1957Sums.join('\\n')+'\\n')})",
+      "}else if(rc1957Expected.length===0){fail.push('RC1957_NO_PDF')}",
+      "/* RC1957_SHA256_END */",
+      "var manualCount=manualSaved,signedCount=signedSaved,manifest="
+    ].join('\n'),
+    'verifiable local POD ZIP SHA-256 export, no Graph dependency'
+  );
+
   return html.slice(0, start) + script + html.slice(end);
 }
