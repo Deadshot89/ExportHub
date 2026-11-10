@@ -58,6 +58,10 @@ function parseDncDeliveryText(lines){
  if(!/\bDelivery Note\b/i.test(head)||!/\bCustomer Part\b/i.test(head)||
     !/\bEssentra Part\b/i.test(head)||!/\bQty Shipped\b/i.test(head)||
     !/\bQty Ordered\b/i.test(head)||!/\bUnit of Measure\b/i.test(head))return null;
+ const customerPartPos=head.search(/\bCustomer Part\b/i),essentraPartPos=head.search(/\bEssentra Part\b/i),
+  orderedPos=head.search(/\bQty Ordered\b/i),shippedPos=head.search(/\bQty Shipped\b/i);
+ if(customerPartPos>=essentraPartPos||orderedPos>=shippedPos)
+  return{rows:[],issues:['DNC-Spaltenreihenfolge im PDF-Text nicht zuverlässig: manuelle Prüfung erforderlich.']};
  const order=dncCustomerOrder(lines);
  if(!order)return{rows:[],issues:['Customer Order Number im DNC nicht eindeutig lesbar.']};
  const rows=[],issues=[];
