@@ -197,9 +197,17 @@ async function handleUpload(req){
  }
  if(action==='delete-document'){
   const id=text(payload.itemId);
-  if(!/^refdoc:[0-9a-f]{32}$/.test(id))
-   throw error('DOCUMENT_DELETE_FORBIDDEN','Nur über die Sendungsansicht hochgeladene Dokumente können entfernt werden.',403);
-  const removed=await refDocBlob.softDelete(ref,environment,id,usernameOf(sessionInfo.user));
+  if(!id||id.length>512)throw error('DOCUMENT_DELETE_FORBIDDEN','Ungültige Dateikennung.',403);
+  let removed;
+  if(/^refdoc:[0-9a-f]{32}$/.test(id)){
+   removed=await refDocBlob.softDelete(ref,environment,id,usernameOf(sessionInfo.user));
+  }else{
+   // Only a Graph item found within the authenticated reference folder may be hidden.
+   // This leaves the physical SharePoint original untouched.
+   const listed=await listFiles(ref,req),matches=listed.files.filter(f=>f.id===id);
+   if(matches.length!==1)throw error('DOCUMENT_NOT_FOUND','Datei im Referenzordner nicht eindeutig gefunden.',404);
+   removed=await refDocBlob.hideSharePoint(ref,environment,matches[0],usernameOf(sessionInfo.user));
+  }
   return json(200,{ok:true,reference:ref,removed,archiveRetained:true});
  }
  throw error('ACTION_INVALID','Unbekannte Aktion.',400);
