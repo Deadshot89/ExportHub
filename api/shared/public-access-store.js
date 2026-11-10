@@ -91,13 +91,25 @@ async function issue(req,kind,meta={},ttlMs,payload){
   const c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),old=await readJson(idx,null),oldHashes=subjectTokenHashes(old.value);
   const requestedToken=text(payload&&payload.token||meta&&meta.token||'').toLowerCase();
   let token=/^[a-f0-9]{48}$/.test(requestedToken)?requestedToken:crypto.randomBytes(24).toString('hex'),tokenHash=hashToken(token,env,kind);
-  const existingHash=oldHashes.includes(tokenHash);
-  if(existingHash){
+  const requestedInSubject=oldHashes.includes(tokenHash);
+  // AVIS only: a browser-supplied token is reusable ONLY when it belongs to this
+  // exact subject and matches the audience stored in the server-side access record.
+  // Pickup's existing client-token contract remains unchanged.
+  if(kind==='avis'&&requestedToken&&!requestedInSubject){
+    token=crypto.randomBytes(24).toString('hex');tokenHash=hashToken(token,env,kind);
+  }
+  if(requestedInSubject){
     const existing=await readRecord(env,kind,tokenHash);
-    if(existing.record&&!existing.record.revokedAt){
+    const sameAudience=kind!=='avis'||(existing.record&&
+      require('./customer-avis-audience').audience(existing.record.avisAudience)===
+      require('./customer-avis-audience').audience(meta.avisAudience));
+    const sameSubject=existing.record&&existing.record.subjectId===subjectId&&
+      existing.record.reference===text(meta.reference).toUpperCase();
+    if(existing.record&&!existing.record.revokedAt&&sameAudience&&(kind!=='avis'||sameSubject)){
       const resourceKey=tokenHashValid(existing.record.resourceKey)?existing.record.resourceKey:tokenHash;
       return {token,tokenHash,resourceKey,environment:env,kind,subjectId,expiresAt:existing.record.expiresAt||null,record:existing.record,reused:true};
     }
+    if(kind==='avis'){token=crypto.randomBytes(24).toString('hex');tokenHash=hashToken(token,env,kind)}
   }
   const createdAt=now(),indefinite=ttlMs===null,ttl=indefinite?null:Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=indefinite?null:new Date(Date.now()+ttl).toISOString();
   const resourceKey=tokenHashValid(old.value&&old.value.resourceKey)?text(old.value.resourceKey).toLowerCase():(tokenHashValid(old.value&&old.value.tokenHash)?text(old.value.tokenHash).toLowerCase():tokenHash);
