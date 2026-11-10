@@ -712,7 +712,7 @@ jobs:
                     "\n## RC1945 · Defender-XLSX-Scan (nur lesend)\n\n"+
                     "TESTSERVICE Quarantäne, nur aggregierte Statuszahlen; keine Dateiinhalte oder Namen.\n\n"+
                     "Status: "+report.status+
-                    "\\n- Tatsächliches ABD-Speicherkonto entspricht Portalbefund: "+
+                    "\n- Tatsächliches ABD-Speicherkonto entspricht Portalbefund: "+
                     (report.observedPortalAccountMatchesActiveBlob===true?"ja":
                      report.observedPortalAccountMatchesActiveBlob===false?"nein":"nicht verifizierbar")+
                     (report.status==="verified"?
