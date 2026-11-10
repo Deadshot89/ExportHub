@@ -41,7 +41,9 @@ async function load(referenceFolder,reference,environment,log,refDocStore){
  const seen=new Set(),out=[];
  for(const d of azure.concat(graph)){
   const key=d.sourceName.toLowerCase();
-  if(seen.has(key)||hidden.has(key))continue;
+  // Azure list already excludes removed IDs; suppress tombstoned names only from Graph.
+  // A freshly re-uploaded Azure file with the same name must remain visible.
+  if(seen.has(key)||(d.refSource==='graph'&&hidden.has(key)))continue;
   seen.add(key);out.push(d);
   if(out.length>=MAX_DOCS)break;
  }
