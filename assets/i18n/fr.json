@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "Aperçu de l’e-mail HTML",
   "closureMail.previewFailed": "Impossible de charger l’aperçu de l’e-mail.",
   "closureMail.pickupWarning": "Attention : l’enlèvement du {{date}} dépasse notre dernière heure d’enlèvement du {{last}} à {{time}}. Fermeture : du {{from}} au {{to}}. Réouverture le {{reopen}}. Veuillez modifier le rendez-vous.",
-  "closureMail.bookingClosed": "Cette date d’enlèvement tombe pendant notre fermeture. Veuillez choisir une date après la réouverture."
+  "closureMail.bookingClosed": "Cette date d’enlèvement tombe pendant notre fermeture. Veuillez choisir une date après la réouverture.",
+  "closureMail.snowAnimation": "Animation de Noël discrète sur le portail d'enlèvement",
+  "closureMail.snowEnable": "Activer l'animation",
+  "closureMail.snowDisable": "Désactiver l'animation",
+  "closureMail.snowOn": "Animation de Noël activée",
+  "closureMail.snowOff": "Animation de Noël désactivée"
 }
