@@ -11,6 +11,7 @@ const itemParser=require('../shared/delivery-avis-items');
 const avCheckApi=require('../av-check/index');
 const publicAccess=require('../shared/public-access-store');
 const authStore=require('../shared/auth-store');
+const rights=require('../shared/state-write-guard');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -168,7 +169,7 @@ async function handleUpload(req){
  const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
  const environment=publicAccess.environment(req,payload);
  if(action==='approve-delivery-items'){
-  if(!authStore.hasAnyEditRight(internal.user))
+  if(!authStore.hasAnyEditRight(internal.user)||!rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
    throw error('WRITE_FORBIDDEN','Für die Freigabe von Artikelpositionen fehlen Bearbeitungsrechte.',403);
   await deliveryItems.approve(ref,environment,text(payload.documentId),text(payload.sha256),payload.rows,
    text(internal.user&&(internal.user.name||internal.user.user||internal.user.username))||'ExportHUB');
@@ -218,9 +219,11 @@ module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res=json(204,{}, {Allow:'GET, POST, OPTIONS'});return}
   if(req.method==='POST'){context.res=await handleUpload(req);return}
   if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')},{Allow:'GET, POST, OPTIONS'});return}
-  await validateSession(req);
+  const internal=await validateSession(req);
   const ref=refValue(req.query&&req.query.reference),env=publicAccess.environment(req,{});
   if(lower(req.query&&req.query.action)==='delivery-items-review'){
+   if(!rights.canReadAny(internal.user,['shipment','shipmentoverview','documents']))
+    throw error('READ_FORBIDDEN','Für die Lieferscheinprüfung fehlen Leserechte.',403);
    const items=await deliveryItems.processPending(ref,env);
    context.res=json(200,{ok:true,reference:ref,documents:items});return;
   }
