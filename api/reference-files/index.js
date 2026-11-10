@@ -241,9 +241,15 @@ module.exports=async function(context,req){
   catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
   // Read the reversible-removal ledger before listing any source: archived documents
   // must not reappear from SharePoint after being removed from the shipment.
-  const removedNames=await refDocBlob.hiddenNames(ref,env);
+  const removal=await refDocBlob.removalFilters(ref,env);
+  const removedNames=removal.names,removedGraphHashes=removal.graphHashes;
   const azureDocNames=new Set(docs.map(f=>text(f.name).toLowerCase()));
-  const files=Array.from(listed.files||[]).filter(f=>!removedNames.has(text(f.name).toLowerCase())&&!azureDocNames.has(text(f.name).toLowerCase()));
+  // A Graph-only removal hides exactly the selected item, never a same-name sibling.
+  // A removed Azure upload also hides its old SharePoint mirror by filename.
+  const files=Array.from(listed.files||[]).filter(f=>
+   !removedNames.has(text(f.name).toLowerCase())&&
+   !removedGraphHashes.has(crypto.createHash('sha256').update(text(f.id)).digest('hex'))&&
+   !azureDocNames.has(text(f.name).toLowerCase()));
   for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
    files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
      lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
