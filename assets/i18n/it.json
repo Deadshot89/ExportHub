@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Attiva avviso e-mail",
   "closureMail.mailHide": "Disattiva avviso e-mail",
   "closureMail.portalShow": "Mostra avviso sul portale",
-  "closureMail.portalHide": "Nascondi avviso sul portale"
+  "closureMail.portalHide": "Nascondi avviso sul portale",
+  "closureMail.activate": "Attiva chiusura",
+  "closureMail.deactivate": "Disattiva chiusura",
+  "closureMail.disableConfirm": "Disattivare questa chiusura? Le fasce di ritiro durante il periodo torneranno prenotabili."
 }
