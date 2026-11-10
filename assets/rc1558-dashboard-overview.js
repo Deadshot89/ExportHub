@@ -472,8 +472,11 @@ function barsHtml(items,max,kind){
 // This card only requests authorized aggregate counts, never order lines or QM case details.
 var openWorkCounts={urgent:null,quality:null};
 var openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;
+var openWorkAuthBackoff={urgent:0,quality:0};
+var OPEN_WORK_AUTH_BACKOFF_MS=5*60*1000;
 function resetOpenWorkCounts(loggedOut){
   openWorkEpoch++;openWorkLoggedOut=!!loggedOut;openWorkCounts={urgent:null,quality:null};openWorkLastFetch=0;
+  openWorkAuthBackoff={urgent:0,quality:0};
   // A previous user's stalled request must not block a fresh authorized session.
   openWorkInFlight=false;
   // An earlier user's response is invalidated by epoch even when it finishes later.
@@ -484,14 +487,23 @@ function openWorkToken(){
   try{var session=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return q(session.token)}catch(_){return''}
 }
 async function requestOpenWorkCount(path){
+  var kind=path==='/api/urgent-orders'?'urgent':'quality',epoch=openWorkEpoch;
+  // 401/403 are permission failures. Retry no more than once every five minutes per module,
+  // while a new authenticated session may retry immediately.
+  if(Date.now()<openWorkAuthBackoff[kind])throw Error('COUNT_AUTH_BACKOFF');
   var headers={'Content-Type':'application/json','Accept':'application/json'},token=openWorkToken();
   if(token)headers['X-ExportHUB-Token']=token;
   var response=await w.fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})});
-  if(!response||!response.ok||response.redirected||response.type==='opaqueredirect')throw Error('COUNT_UNAVAILABLE');
+  if(!response||!response.ok||response.redirected||response.type==='opaqueredirect'){
+    if(response&&(response.status===401||response.status===403)&&epoch===openWorkEpoch&&!openWorkLoggedOut)
+      openWorkAuthBackoff[kind]=Date.now()+OPEN_WORK_AUTH_BACKOFF_MS;
+    throw Error('COUNT_UNAVAILABLE')
+  }
   var mime=response.headers&&response.headers.get&&response.headers.get('content-type')||'';
   if(!mime.includes('application/json'))throw Error('COUNT_INVALID_RESPONSE');
   var data=await response.json();
   if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw Error('COUNT_INVALID');
+  if(epoch===openWorkEpoch&&!openWorkLoggedOut)openWorkAuthBackoff[kind]=0;
   return data.open
 }
 function loadOpenWorkCounts(){
