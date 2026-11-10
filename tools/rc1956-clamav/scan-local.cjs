@@ -35,7 +35,7 @@ async function snapshot(filePath,rootDir){
 
 function runClamscan(filePath,timeoutMs=DEFAULT_TIMEOUT_MS){
  return new Promise(resolve=>{
-  let child,completed=false,timedOut=false;
+  let child,completed=false,timedOut=false,childError=false;
   const settle=(result)=>{
    if(completed)return;
    completed=true;
@@ -59,8 +59,10 @@ function runClamscan(filePath,timeoutMs=DEFAULT_TIMEOUT_MS){
     '--max-recursion=8','--max-files=1000','--max-scantime=0',
     '--',filePath
    ],{stdio:['ignore','ignore','ignore'],shell:false,env:{PATH:process.env.PATH||'/usr/bin:/bin'}});
-   child.once('error',()=>settle({exitCode:null,timedOut:false}));
-   child.once('close',(code,signal)=>settle({exitCode:code,timedOut:timedOut||!!signal}));
+   // Even a failed kill can emit 'error' while the child still runs.
+   // Node guarantees a later 'close' event; do not release staged bytes early.
+   child.once('error',()=>{childError=true;});
+   child.once('close',(code,signal)=>settle({exitCode:childError?null:code,timedOut:timedOut||!!signal||childError}));
   }catch(_){settle({exitCode:null,timedOut:false})}
  })
 }

@@ -197,3 +197,25 @@ test('RC1956: timeout waits for confirmed scanner close before releasing private
  assert.equal(result.timedOut,true);
  assert.equal(result.exitCode,null);
 });
+
+test('RC1956: child process error cannot release staged bytes before close',async t=>{
+ const {EventEmitter}=await import('node:events');
+ const cp=await import('node:child_process');
+ const {runClamscan}=require('../tools/rc1956-clamav/scan-local.cjs');
+ const originalSpawn=cp.default.spawn;
+ const fake=new EventEmitter();
+ fake.kill=()=>true;
+ cp.default.spawn=()=>fake;
+ t.after(()=>{cp.default.spawn=originalSpawn});
+ const pending=runClamscan('/private/pinned-copy.bin',1000);
+ let settled=false;
+ pending.then(()=>{settled=true});
+ fake.emit('error',new Error('SYNTHETIC_KILL_FAILED'));
+ await Promise.resolve();
+ await Promise.resolve();
+ assert.equal(settled,false,'child error must not finish scan before process close');
+ fake.emit('close',0,null);
+ const result=await pending;
+ assert.equal(result.exitCode,null,'a child error must never be treated as a clean exit');
+ assert.equal(result.timedOut,true);
+});
