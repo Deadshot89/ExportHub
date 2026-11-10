@@ -315,7 +315,26 @@ function installClosureSettings(host){
     });
     return button
    }
+   var activeToggle=w.document.createElement('button');
+   activeToggle.type='button';activeToggle.className='btn flat small rc1328-active-toggle';
+   activeToggle.textContent=tr(item.enabled===true?'closureMail.deactivate':'closureMail.activate');
+   activeToggle.setAttribute('aria-pressed',item.enabled===true?'true':'false');
+   activeToggle.setAttribute('aria-label',activeToggle.textContent+' · '+item.startDate);
+   activeToggle.addEventListener('click',async function(){
+    // Disabling reopens customer pickup booking; require explicit confirmation.
+    if(item.enabled===true&&(!w.confirm||!w.confirm(tr('closureMail.disableConfirm'))))return;
+    activeToggle.disabled=true;show(tr('closureMail.saving'));
+    try{
+     var rows=closureEntries(),current=rows[index];
+     if(!current||current.startDate!==item.startDate||current.endDate!==item.endDate||
+        current.lastPickupDate!==item.lastPickupDate||current.reopenDate!==item.reopenDate)
+      throw new Error(tr('closureMail.invalid'));
+     current.enabled=current.enabled!==true;
+     await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
+    }catch(e){show(tr('closureMail.saveFailed')+': '+q(e&&e.message),'error');activeToggle.disabled=false}
+   });
    li.appendChild(text);
+   li.appendChild(activeToggle);
    li.appendChild(channelToggle('mailEnabled','closureMail.mailShow','closureMail.mailHide'));
    li.appendChild(channelToggle('portalEnabled','closureMail.portalShow','closureMail.portalHide'));
    li.appendChild(snowToggle);li.appendChild(remove);list.appendChild(li)
