@@ -24,14 +24,24 @@ test('Open-work dashboard renders independently actionable counts; unavailable n
   }[key]||key),esc:v=>String(v),icon:()=>''};
   vm.createContext(ctx);vm.runInContext(fn('openWorkTopKpi'),ctx);
   const html=ctx.openWorkTopKpi();
+  assert.equal((html.match(/<button type="button" class="rc1558-kpi"/g)||[]).length,2,'both counts must be regular top KPI cards');
+  assert.doesNotMatch(html,/rc1558-kpi-openwork|rc1558-openwork-action|role="group"/,'no nested subcards or wider special wrapper');
   assert.match(html,/data-rc1558-open-module="urgentorders"/);
   assert.match(html,/data-rc1558-open-module="quality"/);
   assert.match(html,/aria-label="Urgent Orders: 8"/);
   assert.match(html,/aria-label="Fehler & Verbesserungen: 3"/);
+  assert.equal((html.match(/class="rc1558-kpi-top"/g)||[]).length,2,'same header structure as existing KPI cards');
+  assert.equal((html.match(/class="rc1558-kpi-value"/g)||[]).length,2,'same large KPI number as existing cards');
+  assert.equal((html.match(/class="rc1558-kpi-sub"/g)||[]).length,2,'same small descriptive line as existing cards');
   ctx.openWorkCounts.quality=null;
   const unavailable=ctx.openWorkTopKpi();
   assert.match(unavailable,/Fehler & Verbesserungen: Nicht verfügbar/);
+  assert.match(unavailable,/data-unavailable="1"/,'missing values are not silently treated as zero');
   assert.doesNotMatch(unavailable,/Fehler & Verbesserungen: 0/);
+  ctx.openWorkCounts.quality=0;
+  const zero=ctx.openWorkTopKpi();
+  assert.match(zero,/data-zero="1"/,'known zero uses the same subdued style as other KPI cards');
+  assert.doesNotMatch(zero,/data-unavailable="1"/,'known zero is not missing');
 });
 
 test('Open-work API reads authenticated aggregate count only; rejects unauthorized and invalid responses',async()=>{
@@ -185,16 +195,16 @@ test('Stalled count request times out and releases the refresh path without leak
   assert.deepEqual(cleared,[17],'completed timeout is cleared');
 });
 
-test('Open-work belongs to top KPI grid with or without Packtisch and never adds a lower tile row',()=>{
+test('Open-work counters are two equal top KPI cards with no separate lower widget',()=>{
   const css=fs.readFileSync('assets/rc1558-dashboard-overview.css','utf8');
-  const desktop=css.slice(css.lastIndexOf('/* RC1964: the work tile spans two cells;'));
-  assert.match(runtime,/kpis\+openWorkTopKpi\(\)/,'rendered in existing top KPI group');
-  assert.doesNotMatch(fn('tileHtml'),/id==='openwork'/,'lower card is not rendered');
-  assert.match(runtime,/var TILE_IDS=\['quick','lager','abd','pallet','week'\]/,'lower tile editor has no open-work option');
-  assert.match(desktop,/\.rc1558-kpis:has\(>\.rc1558-kpi-openwork\):has\(>\.rc1558-kpi:nth-child\(8\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)\}/);
-  assert.match(desktop,/\[data-rc1569-fit="1"\].*\.rc1558-kpis:has\(>\.rc1558-kpi-openwork\):has\(>\.rc1558-kpi:nth-child\(8\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}/);
-  for(const tileCount of [8,9]){
-    const units=tileCount+1; // one combined card occupies two CSS grid cells
-    assert.equal(Math.ceil(units/5),2,`desktop ${tileCount} KPI cards must use two rows`);
-  }
+  const desktop=css.slice(css.lastIndexOf('/* RC1965: all top KPI cards are equal-width siblings:'));
+  assert.match(runtime,/kpis\+openWorkTopKpi\(\)/,'the two cards are inside the original status grid');
+  assert.doesNotMatch(fn('tileHtml'),/id==='openwork'/,'no lower duplicate card');
+  assert.match(runtime,/var TILE_IDS=\['quick','lager','abd','pallet','week'\]/,'the lower tile editor has no open-work option');
+  assert.doesNotMatch(css,/\.rc1558-kpi-openwork|\.rc1558-openwork-action/,'old special tile styling is removed');
+  assert.match(desktop,/nth-child\(9\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)\}/,'desktop uses five equal columns');
+  assert.match(desktop,/data-rc1569-fit="1".*nth-child\(9\)\)\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}/,'fitted dashboard uses identical grid');
+  assert.match(desktop,/nth-child\(10\)\)\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/,'tablet avoids narrow last tile at ten cards');
+  assert.match(desktop,/@media\(max-width:640px\)/,'phone retains two equal columns');
+  for(const total of [9,10])assert.equal(Math.ceil(total/5),2,`desktop ${total} normal-sized top KPI cards require two rows`);
 });
