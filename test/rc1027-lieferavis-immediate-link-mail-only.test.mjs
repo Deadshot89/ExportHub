@@ -65,7 +65,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     setTimeout(fn){fn();return 1},
     Event:function Event(type){this.type=type},
     CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail},
-    fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
+    fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>payload.action==='issue-carrier'?({ok:true,token:'carrier-only-token',avisAudience:'carrier',shipmentId:payload.shipmentId||payload.reference,url:'https://www.exporthub360.de/avis/carrier-only-token',expiresAt:null}):({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
   });
   vm.runInContext(FLOW,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   vm.runInContext(FIX,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
@@ -109,12 +109,14 @@ test('RC1027: aktive Kundenmail besteht nur aus Lieferavis und enthält keine Se
   assert.doesNotMatch(out,/innerhalb der nächsten 24 Stunden/i);
 });
 
-test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält keine Sendungsdetails',()=>{
+test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält keine Sendungsdetails',async()=>{
   const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
-  const {api}=load(shipment,{reference:'7RZ5W9'});
+  const {api,rc}=load(shipment,{reference:'7RZ5W9'});
+  await rc.carrierAvisUrl(shipment);
   const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
-  assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/server-token/i);
+  assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/carrier-only-token/i);
+  assert.doesNotMatch(out,/avis\/server-token/i,'Der Kundenlink darf nicht in der Speditionsmail stehen');
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
 
@@ -172,12 +174,14 @@ test('RC1291: Würth Industrie behält das Avis technisch aktiv, erhält aber in
   }
 });
 
-test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions- und eigener Mail',()=>{
+test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions- und eigener Mail',async()=>{
   const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
-  const {api}=load(shipment,{reference:'7RZ5W9'});
+  const {api,rc}=load(shipment,{reference:'7RZ5W9'});
+  await rc.carrierAvisUrl(shipment);
   for(const target of ['customer','carrier','own']){
     const out=api.injectMailBody(shipment,target,expandedDetails,'de');
-    assert.match(out,/www\.exporthub360\.de\/avis\//i,target+': normaler Kunde muss den Avis-Link behalten');
+    assert.match(out,/www\.exporthub360\.de\/avis\//i,target+': normaler Kunde muss einen Avis-Link behalten');
+    assert.match(out,target==='carrier'?/avis\/carrier-only-token/:/avis\/server-token/,target+': Links müssen pro Empfängerart getrennt sein');
   }
 });
 
