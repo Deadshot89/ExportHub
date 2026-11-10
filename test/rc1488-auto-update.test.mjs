@@ -32,10 +32,10 @@ function runtime(extra={}){
     location:{reload(){reloads++}},
     sessionStorage:storage(extra.sessionStorage||{}),
     ExportHUBClean:{runtime:Object.assign({changeGeneration:1,lastSavedGeneration:1,saving:false},extra.cleanRuntime||{})},
-    fetch:async(url,options)=>{fetchCalls.push([String(url),options||{}]);return extra.fetchResponse||{ok:true,text:async()=>`window.__EXPORTHUB_UPDATE_BUILD__='${extra.remoteBuildId||'bbbbbbb'}';\nwindow.__EXPORTHUB_UPDATE_RELEASE__='RC1488';\n`}},
+    fetch:async(url,options)=>{fetchCalls.push([String(url),options||{}]);if(extra.fetchError)throw extra.fetchError;return extra.fetchResponse||{ok:true,text:async()=>`window.__EXPORTHUB_UPDATE_BUILD__='${extra.remoteBuildId||'bbbbbbb'}';\nwindow.__EXPORTHUB_UPDATE_RELEASE__='RC1488';\n`}},
     addEventListener(type,fn){listeners[type]=fn},
     setInterval(fn,ms){intervals.push([fn,ms]);return intervals.length},clearInterval(){},setTimeout(fn){if(extra.runTimeouts)fn();return 1},clearTimeout(){},
-    Date,Promise,console:{warn(){},error(){},info(){}},
+    Date:extra.clock||Date,Promise,console:{warn(){},error(){},info(){}},
   };
   root.window=root;root.globalThis=root;
   const context=vm.createContext(root);
@@ -104,4 +104,54 @@ test('RC1488: install prüft alle fünf Minuten sowie bei Fokus/Online/Rückkehr
   assert.equal(typeof rt.listeners.focus,'function');
   assert.equal(typeof rt.listeners.online,'function');
   assert.equal(typeof rt.listeners['document:visibilitychange'],'function');
+});
+
+
+test('RC1964: failing manifest probe is rate-limited across repeated focus, visibility and timer events',async()=>{
+  let now=1000000;
+  const cfg={clock:{now:()=>now},remoteBuildId:'aaaaaaa',fetchResponse:{ok:false,status:503}};
+  const rt=runtime(cfg);
+  rt.api.install();
+  assert.equal((await rt.api.check()).status,'unavailable');
+  assert.equal(rt.fetchCalls.length,1);
+  for(let i=0;i<5;i++){
+    rt.listeners.focus();
+    rt.listeners['document:visibilitychange']();
+    rt.intervals[0][0]();
+  }
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(rt.fetchCalls.length,1,'focus/tab/timer must not poll an unreachable host repeatedly');
+  assert.equal((await rt.api.check()).status,'cooldown');
+  now+=59999;
+  assert.equal((await rt.api.check()).status,'cooldown');
+  now+=1;
+  cfg.fetchResponse={ok:true,text:async()=> "window.__EXPORTHUB_UPDATE_BUILD__='aaaaaaa';"};
+  assert.equal((await rt.api.check()).status,'current','normal update checks resume after 60s');
+  assert.equal(rt.fetchCalls.length,2);
+  assert.equal(rt.reloads,0);
+});
+
+test('RC1964: browser online recovery bypasses a previous manifest failure cooldown',async()=>{
+  let now=1000000;
+  const cfg={clock:{now:()=>now},remoteBuildId:'aaaaaaa',fetchError:new TypeError('Network failed')};
+  const rt=runtime(cfg);
+  rt.api.install();
+  assert.equal((await rt.api.check()).status,'unavailable');
+  assert.equal((await rt.api.check()).status,'cooldown');
+  cfg.fetchError=null;
+  rt.listeners.online();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(rt.fetchCalls.length,2,'online recovery retries immediately with no credential changes');
+  assert.equal((await rt.api.check()).status,'current','successful retry clears backoff');
+  assert.equal(rt.reloads,0);
+});
+
+test('RC1964: invalid manifest also throttles repeat fetches but cannot trigger reload',async()=>{
+  let now=1000000;
+  const cfg={clock:{now:()=>now},fetchResponse:{ok:true,text:async()=>'not a signed production build marker'}};
+  const rt=runtime(cfg);
+  assert.equal((await rt.api.check()).status,'invalid-manifest');
+  assert.equal((await rt.api.check()).status,'cooldown');
+  assert.equal(rt.fetchCalls.length,1);
+  assert.equal(rt.reloads,0);
 });
