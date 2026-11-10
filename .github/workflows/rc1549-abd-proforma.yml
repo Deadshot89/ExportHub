@@ -27,6 +27,7 @@ on:
       - 'test/rc1601-abd-invoice-editor.test.mjs'
       - 'test/rc1784-d365-invoice-import.test.mjs'
       - 'e2e/specs/rc1601-abd-invoice-editor.spec.mjs'
+      - 'e2e/specs/rc1962-d365-local-import.spec.mjs'
       - '.github/workflows/rc1549-abd-proforma.yml'
 
 jobs:
@@ -70,7 +71,7 @@ jobs:
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1601-abd-invoice-editor.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1601-abd-invoice-editor.spec.mjs e2e/specs/rc1962-d365-local-import.spec.mjs --project=laptop
 
       - name: Preserve ABD browser diagnostics
         if: failure()
