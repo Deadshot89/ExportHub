@@ -103,18 +103,16 @@ async function deletedRecords(ref, env) {
   }
   return records;
 }
-async function hiddenNames(ref, env) {
-  // Azure-removal records hide the corresponding Graph mirror by filename.
-  // A Graph-only removal must hide just its exact item ID, not other same-name files.
-  return new Set((await deletedRecords(ref, env))
-    .filter(r => r.source !== 'sharepoint')
-    .map(r => text(r.name).toLowerCase()));
+async function removalFilters(ref, env) {
+  // Read the ledger once for both Graph-ID and Azure-mirror hiding.
+  const records = await deletedRecords(ref, env);
+  return {
+    names: new Set(records.filter(r => r.source !== 'sharepoint').map(r => text(r.name).toLowerCase())),
+    graphHashes: new Set(records.filter(r => r.source === 'sharepoint' && /^[0-9a-f]{64}$/.test(text(r.itemHash))).map(r => r.itemHash))
+  };
 }
-async function hiddenGraphHashes(ref, env) {
-  return new Set((await deletedRecords(ref, env))
-    .filter(r => r.source === 'sharepoint' && /^[0-9a-f]{64}$/.test(text(r.itemHash)))
-    .map(r => r.itemHash));
-}
+async function hiddenNames(ref, env) { return (await removalFilters(ref, env)).names; }
+async function hiddenGraphHashes(ref, env) { return (await removalFilters(ref, env)).graphHashes; }
 async function softDelete(ref, env, id, actor) {
   const itemId = text(id);
   if (!/^refdoc:[0-9a-f]{32}$/.test(itemId))
@@ -150,4 +148,4 @@ async function hideSharePoint(ref, env, item, actor) {
  return{id:itemId,name,deleted:true,archiveRetained:true};
 }
 
-module.exports = { save, list, read, prefix, softDelete, hideSharePoint, hiddenNames, hiddenGraphHashes };
+module.exports = { save, list, read, prefix, softDelete, hideSharePoint, hiddenNames, hiddenGraphHashes, removalFilters };
