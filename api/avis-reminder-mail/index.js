@@ -3,6 +3,7 @@ const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml}=require('../shared/avis-mail-html');
+const avisNotice=require('../shared/avis-notice-store');
 
 const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.com';
 
@@ -248,7 +249,9 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),baseContent=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const noticeSettings=(await avisNotice.load(auth.environmentFromRequest(req))).value;
+  const content=avisNotice.appendEmail(baseContent,noticeSettings,lang);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   const htmlContent=renderAvisMailHtml(content,url,lang);
   const sent=await graphMail.sendHtmlMail({to,subject:sub,body:htmlContent,sender,cc});
