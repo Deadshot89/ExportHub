@@ -123,6 +123,11 @@ async function uploadAll(){
 
 function docRows(){var c=card();return c?Array.prototype.slice.call(c.querySelectorAll('#rc786ReferenceFilesPanel .rc786-doc-row')):[]}
 function documentRows(){return Array.isArray(window.__EXPORTHUB_RC776_VIEW_DOCS__)?window.__EXPORTHUB_RC776_VIEW_DOCS__:[]}
+function canRemoveDocument(d){
+  var ref=q(d&&d.reference).toUpperCase();
+  if(!/^[A-Z0-9]{6}$/.test(ref)||!q(d.itemId))return false;
+  return new RegExp('^(?:Lieferschein|Rechnung|Packliste|Excel|Dokument)_'+ref+'_[0-9]{8}-[0-9]{6}_.+\\.(?:pdf|jpe?g|png|xlsx|xlsm|xls|csv|docx|doc|txt|msg|eml)$','i').test(q(d.name));
+}
 function syncFileActions(){
   ensureStyle();
   var rows=docRows(),docs=documentRows();
@@ -133,7 +138,7 @@ function syncFileActions(){
     // Preserve the native print action, which still routes through the existing document viewer.
     var printButton=actions.querySelector('[data-rc786-print-file]');
     actions.textContent='';actions.setAttribute('data-docup-managed',q(d.itemId));
-    [['open',t('open')],['download',t('download')]].concat(/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId))?[['delete',t('remove')]]:[]).forEach(function(action){
+    [['open',t('open')],['download',t('download')]].concat(canRemoveDocument(d)?[['delete',t('remove')]]:[]).forEach(function(action){
       var b=el('button',{type:'button',class:'ghost eh-docup-file-action','data-docup-file-action':action[0],'data-docup-index':String(i),'data-docup-id':q(d.itemId)},action[1]);
       actions.appendChild(b);
     });
@@ -183,7 +188,7 @@ async function actOnFile(btn){
   if(btn.disabled)return;
   var action=btn.getAttribute('data-docup-file-action'),ctx=fileContext(btn),d=ctx.document;
   if(action==='delete'){
-    if(!/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId)))throw new Error(t('protectedOriginal'));
+    if(!canRemoveDocument(d))throw new Error(t('protectedOriginal'));
     if(!window.confirm(t('removeConfirm',{name:d.name})))return;
     btn.disabled=true;
     try{
