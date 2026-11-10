@@ -2,7 +2,7 @@
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
-const {renderAvisMailHtml}=require('../shared/avis-mail-html');
+const {renderAvisMailHtml,activeClosureNotices,closureNoticeHtml}=require('../shared/avis-mail-html');
 
 const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.com';
 
@@ -238,7 +238,8 @@ module.exports=async function(context,req){
  try{
   const current=await auth.validateSession(req);
   if(!allowed(current.user))throw auth.error('MAIL_SEND_FORBIDDEN','Für den Versand von Avis-Erinnerungen ist Bearbeitungsrecht in der Sendungsübersicht erforderlich.',403);
-  const p=payload(req),id=text(p.shipmentId).toUpperCase(),ref=text(p.reference).toUpperCase(),to=text(p.recipient),target=lower(p.target)==='carrier'?'carrier':'customer',lang=normalizeLanguage(p.language),mode=lower(p.mode)==='initial'?'initial':'reminder';
+  const p=payload(req),action=lower(p.action),previewOnly=action==='preview',id=text(p.shipmentId).toUpperCase(),ref=text(p.reference).toUpperCase(),to=text(p.recipient),target=lower(p.target)==='carrier'?'carrier':'customer',lang=normalizeLanguage(p.language),mode=lower(p.mode)==='initial'?'initial':'reminder';
+  if(action&&action!=='preview')throw auth.error('MAIL_ACTION_INVALID','Unbekannte E-Mail-Aktion.',400);
   if(!ref||ref.length>40)throw auth.error('REFERENCE_INVALID','Die Sendungsreferenz ist ungültig.',400);
   if(!validEmail(to))throw auth.error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
   if(avisRecipientExcluded(to))throw auth.error('AVIS_RECIPIENT_EXCLUDED','Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.',409);
@@ -250,7 +251,16 @@ module.exports=async function(context,req){
   }
   const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
-  const htmlContent=renderAvisMailHtml(content,url,lang);
+  // Only explicitly enabled, validated shipment-closure notices are mailed.
+  // Task-planner holidays are never treated as external business closures.
+  const notices=activeClosureNotices(current.team&&current.team.state,new Date(),'mail');
+  const htmlContent=renderAvisMailHtml(content,url,lang,closureNoticeHtml(notices,lang));
+  if(previewOnly){
+   // Authenticated, read-only preview: identical HTML to actual Graph send,
+   // with no Graph call, no mutation and no shipment-history entry.
+   context.res=response(200,{ok:true,version:'RC1358',preview:true,mode,reference:ref,recipient:to,sender,cc,subject:sub,html:htmlContent});
+   return
+  }
   const sent=await graphMail.sendHtmlMail({to,subject:sub,body:htmlContent,sender,cc});
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);
   await record(req,current,id,ref,event,mode,sender);

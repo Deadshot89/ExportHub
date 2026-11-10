@@ -282,3 +282,134 @@ test('RC1093: bestätigte Pflicht-CC-Fallbacks machen die Anmeldung unabhängig 
   assert.match(decoded,/sevastianmarcu@essentra\.com/);
   assert.match(decoded,/danielollmann@essentra\.com/);
 });
+
+test('Issue #1328: Sendungsanmeldung erhält einen sprachrichtigen, idempotenten Schließhinweis im Outlook-Klartext',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  class FixedDate extends Date {
+    constructor(...args){super(...(args.length?args:['2026-12-14T12:00:00.000Z']))}
+    static now(){return Date.parse('2026-12-14T12:00:00.000Z')}
+  }
+  const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+    lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
+  for(const [lang,title] of [['de','Wichtige Information'],['en','Important notice'],['pl','Ważna informacja'],['es','Información importante'],['fr','Information importante'],['it','Informazione importante']]){
+    // Every language must start with an enabled notice; the test deliberately
+    // disables the local entry at the end of each iteration.
+    const state={settings:{closureNotices:[{...closure}]}};
+    const window={__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:createTestI18n(lang)};
+    const sandbox={window,Date:FixedDate,Intl,URLSearchParams,console};
+    vm.runInNewContext(source,sandbox);
+    const api=window.ExportHUBRC1065RegistrationCC;
+    const mail='mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&body=Hello%2C%20please%20collect';
+    const result=api.prepare(mail);
+    assert.equal(result.ok,true,lang);
+    const query=new URL(result.url).searchParams;
+    assert.match(query.get('body'),/Hello, please collect/);
+    assert.match(query.get('body'),/=== ExportHUB360 ===/);
+    assert.ok(query.get('body').includes(title),lang);
+    assert.match(query.get('body'),/15:00/);
+    assert.doesNotMatch(query.get('body'),/<table|<strong/i);
+    assert.match(query.get('cc'),/danielollmann@essentra.com/i);
+    assert.equal(api.prepare(result.url).url,result.url,'zweiter Aufruf darf nicht doppelt anhängen');
+    assert.equal(api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123').url,'mailto:carrier@example.com?subject=Lieferavis%20ABC123');
+    state.settings.closureNotices[0].enabled=false;
+    assert.doesNotMatch(new URL(api.prepare(mail).url).searchParams.get('body'),/=== ExportHUB360 ===/);
+  }
+});
+
+
+test('Issue #1328: prepared mailto updates an existing notice when mail language or active closure changes',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ class FixedDate extends Date {
+  constructor(...a){super(...(a.length?a:['2026-12-14T12:00:00.000Z']))}
+  static now(){return Date.parse('2026-12-14T12:00:00.000Z')}
+ }
+ const languageSelect={value:'en'};
+ const state={settings:{closureNotices:[{
+  enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+  lastPickupDate:'2026-12-18',lastPickupTime:'15:00',
+  reopenDate:'2027-01-04',leadDays:14
+ }]}};
+ const w={
+  __EXPORTHUB_GET_STATE__:()=>state,
+  ExportHUBI18n:createTestI18n('de'),
+  document:{getElementById:id=>id==='rc543MailLang'?languageSelect:null}
+ };
+ vm.runInNewContext(source,{window:w,Date:FixedDate,Intl,URLSearchParams,console});
+ const api=w.ExportHUBRC1065RegistrationCC;
+ const mail='mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&body='+encodeURIComponent('Hello,\n\nPlease arrange the pickup.\n\nBest regards');
+ const first=api.prepare(mail).url;
+ assert.match(new URL(first).searchParams.get('body'),/Important notice/,'mail selection has priority over site language');
+ languageSelect.value='fr';
+ const second=api.prepare(first).url,secondText=new URL(second).searchParams.get('body');
+ assert.match(secondText,/Information importante/);
+ assert.doesNotMatch(secondText,/Important notice/);
+ assert.equal((secondText.match(/=== ExportHUB360 ===/g)||[]).length,1);
+ assert.match(secondText,/Best regards/);
+ const third=api.prepare(second).url;
+ assert.equal(third,second,'unchanged language and closure must be stable');
+ state.settings.closureNotices[0].enabled=false;
+ const disabled=api.prepare(third).url;
+ const disabledText=new URL(disabled).searchParams.get('body');
+ assert.doesNotMatch(disabledText,/=== ExportHUB360 ===/);
+ assert.equal(disabledText,'Hello,\n\nPlease arrange the pickup.\n\nBest regards');
+ assert.match(new URL(disabled).searchParams.get('cc'),/danielollmann@essentra.com/i);
+});
+
+
+test('Issue #1328: pickup warning only for valid, enabled closures and inclusive closure dates',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',lastPickupDate:'2026-12-18',lastPickupTime:'15:00',reopenDate:'2027-01-04',leadDays:14};
+ const state={settings:{closureNotices:[closure]}};
+ const window={__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:createTestI18n('de')};
+ vm.runInNewContext(source,{window,URLSearchParams,console,Date,Intl});
+ const check=window.ExportHUBRC1065RegistrationCC.pickupClosureWarning;
+ assert.equal(typeof check,'function');
+ for(const day of ['2026-12-19','2026-12-20','2026-12-21','2026-12-25','2027-01-01','2027-01-02','2027-01-03']){
+  const found=check(day);
+  assert.ok(found,day);
+  assert.equal(found.pickupDate,day);
+  assert.equal(found.reopenDate,'2027-01-04');
+ }
+ for(const day of ['2026-12-18','2027-01-04','','2026-02-30','something']){
+  assert.equal(check(day),null,day);
+ }
+ closure.enabled=false;
+ assert.equal(check('2026-12-25'),null);
+ closure.enabled=true;closure.lastPickupTime='99:99';
+ assert.equal(check('2026-12-25'),null,'invalid hour must not warn falsely');
+ closure.lastPickupTime='15:00';closure.reopenDate='2027-01-01';
+ assert.equal(check('2026-12-25'),null,'invalid reopening must not warn falsely');
+ closure.reopenDate='2027-01-04';
+ assert.equal(check('2026-12-18'),null,'last pickup date alone does not prove a conflict');
+ assert.equal(check('2026-12-18','15:00'),null,'slot ending at exact cutoff is permitted');
+ const late=check('2026-12-18','15:30');
+ assert.equal(late.lastPickupDate,'2026-12-18');
+ assert.equal(late.lastPickupTime,'15:00');
+ assert.equal(check('2026-12-18','garbage'),null,'invalid time cannot create an unsupported warning');
+});
+
+
+test('Issue #1328: Outlook closure notes remain translated without a loaded i18n resource',()=>{
+ const source=read('assets/rc1065-registration-cc.js');
+ class FrozenDate extends Date{
+  constructor(...args){super(...(args.length?args:['2026-12-14T12:00:00Z']))}
+  static now(){return Date.parse('2026-12-14T12:00:00Z')}
+ }
+ const closure={enabled:true,startDate:'2026-12-21',endDate:'2027-01-01',
+  lastPickupDate:'2026-12-18',lastPickupTime:'14:30',reopenDate:'2027-01-04',leadDays:14};
+ const state={settings:{closureNotices:[closure]}};
+ const window={__EXPORTHUB_GET_STATE__:()=>state};
+ vm.runInNewContext(source,{window,Date:FrozenDate,Intl,console,URLSearchParams});
+ const api=window.ExportHUBRC1065RegistrationCC;
+ const headings={
+  de:'Wichtige Information',en:'Important notice',pl:'Ważna informacja',
+  es:'Información importante',fr:'Information importante',it:'Informazione importante'
+ };
+ for(const [lang,heading] of Object.entries(headings)){
+  const text=api.closureNoticeText(lang);
+  assert.match(text,new RegExp(heading),lang);
+  assert.match(text,/14:30/,lang);
+  assert.doesNotMatch(text,/closureMail\.mail(?:Title|Last|Closed|Resume)/,lang);
+  assert.match(text,/=== ExportHUB360 ===/,lang);
+ }
+});

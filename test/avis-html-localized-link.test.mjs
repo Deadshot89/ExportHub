@@ -37,7 +37,7 @@ test('AVIS: HTML mail rejects non-HTTPS URLs and mismatched links',()=>{
 });
 
 test('AVIS: production backend generates HTML only from safe server content',()=>{
- assert.match(endpoint,/const htmlContent=renderAvisMailHtml\(content,url,lang\)/);
+ assert.match(endpoint,/const htmlContent=renderAvisMailHtml\(content,url,lang,closureNoticeHtml\(notices,lang\)\)/);
  assert.match(endpoint,/graphMail\.sendHtmlMail\(\{to,subject:sub,body:htmlContent,sender,cc\}\)/);
  assert.match(graph,/contentType:html\?'HTML':'Text'/);
  assert.match(graph,/function mailSendGranted\(claims\)/);

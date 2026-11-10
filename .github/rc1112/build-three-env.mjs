@@ -1890,6 +1890,10 @@ const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
 if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+// RC1337: The canonical authorized AVIS portal contains the tested closure notice,
+// slot rules and optional winter animation; ship that same source in every environment.
+fs.copyFileSync(path.join(ROOT,'customer-avis.html'),path.join(OUT,'customer-avis.html'));
+
 const qualityPage=path.join(ROOT,'qualitaet.html');
 if(!fs.existsSync(qualityPage))throw new Error('CAPA Qualitätsseite qualitaet.html fehlt');
 fs.copyFileSync(qualityPage,path.join(OUT,'qualitaet.html'));
