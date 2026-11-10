@@ -46,7 +46,9 @@ test('Dokument-Azure-Kopie: Liste und Download führen Azure-Dokumente mit Share
   assert.match(refs, /require\('\.\.\/shared\/ref-doc-blob-store'\)/);
   assert.match(refs, /\/\^refdoc:\/\.test\(itemId\)/);
   assert.match(refs, /refDocBlob\.read\(ref,env,itemId\)/);
-  assert.match(refs, /refDocBlob\.list\(ref,env\)/);
+  assert.match(refs, /refDocBlob\.removalFilters\(ref,env\)/);
+  assert.match(refs, /refDocBlob\.list\(ref,env,removal\)/);
+  assert.match(store, /async function list\(ref, env, removal\)/);
   assert.match(refs, /storage:'azure-refdoc'/);
   assert.match(refs, /if\(!azure\.length&&!docs\.length\)throw e/, 'Graph-Ausfall ist nur ohne Azure-Dokumente ein Fehler');
 });
