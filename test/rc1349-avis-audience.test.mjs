@@ -108,6 +108,19 @@ test('RC1349 API review: no PDF processing for carrier or unspecified recipient 
  assert.match(ui,/&recipientType=customer/);
 });
 
+test('RC1349 carrier URL cache must not mix shipments with the same reference',()=>{
+ const src=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
+ const a=src.indexOf('function rc1349CarrierCacheKey('),b=src.indexOf('function carrierAvisCached(',a);
+ assert.ok(a>=0&&b>a);
+ const fn=new Function('environmentName','explicitReference','shipmentId',
+  src.slice(a,b)+';return rc1349CarrierCacheKey;')(
+   ()=>'production',sh=>sh.reference,sh=>sh.id);
+ const first=fn({reference:'ABC123',id:'shipment-A'});
+ const second=fn({reference:'ABC123',id:'shipment-B'});
+ assert.ok(first!==second,'Different subjects must never share a carrier token cache entry');
+ assert.equal(first,fn({reference:'ABC123',id:'shipment-A'}));
+});
+
 test('RC1349 HTML carrier link replaces path and removes hidden customer token parameters',()=>{
  const source=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
  const begin=source.indexOf('function replaceAvisToken('),end=source.indexOf('async function audienceBoundMailUrl(',begin);
