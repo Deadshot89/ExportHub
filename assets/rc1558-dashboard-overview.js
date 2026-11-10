@@ -594,6 +594,8 @@ function fit(){
   var d=w.document;if(!d||!d.body)return;
   var c=d.getElementById('content');
   var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=FIT_MIN_WIDTH;
+  // The fixed-height one-page grid has only five bottom-row slots; avoid overlap for personalized layouts with more cards.
+  if(on){var cfg=readTiles();if(cfg.order.filter(function(id){return cfg.on[id]}).length>5)on=false}
   var h=0;
   if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<FIT_MIN_HEIGHT)on=false}
   if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}
