@@ -2,7 +2,7 @@
 (function(w,d){
 'use strict';
 if(!w||!d||w.ExportHUBRC1962D365LocalImport)return;
-var worker=null,busy=false,docs=[],currentMode='invoice',timeoutId=null;
+var worker=null,busy=false,docs=[],currentMode='invoice',timeoutId=null,previewVersion=0,paintedVersion=-1,paintedLanguage='';
 var L={
  de:{title:'D365-Excel lokal einlesen',help:'Die Excel-Datei bleibt auf diesem Gerät. Nur Artikelpositionen werden übernommen; alle anderen Rechnungsangaben füllst du selbst aus. Bei der späteren PDF-Erstellung werden die strukturierten Rechnungsdaten an ExportHUB übertragen.',choose:'D365-Datei auswählen (.xlsx)',start:'Artikel lokal auslesen',import:'Nur Artikelpositionen übernehmen',working:'Excel-Datei wird ausschließlich auf diesem Gerät geprüft …',ready:'Artikel erkannt. Lieferschein auswählen und Positionen übernehmen.',done:'Artikelpositionen übernommen. Weitere Rechnungsdaten bitte manuell ausfüllen.',empty:'Bitte eine D365-XLSX-Datei auswählen.',invalid:'Die Datei ist kein unterstützter D365-Export oder enthält nicht zulässige Inhalte. Sie wurde nicht hochgeladen.',unsupported:'Der Browser unterstützt die lokale Excel-Analyse nicht. Bitte einen aktuellen Chrome- oder Edge-Browser verwenden.',timeout:'Die lokale Analyse hat zu lange gedauert. Datei wurde nicht hochgeladen.',positions:'Artikel',value:'Positionswert',review:'Artikelmengen, Zolltarifnummern, Ursprung und Preise bitte prüfen.',select:'Lieferschein',replace:'Bereits erfasste Artikelzeilen ersetzen?',error:'Lokaler Import fehlgeschlagen; keine Daten wurden übernommen.'},
  en:{title:'Read D365 Excel locally',help:'The Excel file stays on this device. Only item rows are imported; fill all other invoice details manually. Structured invoice data is sent to ExportHUB when generating the PDF.',choose:'Choose D365 file (.xlsx)',start:'Read items locally',import:'Import item rows only',working:'Reading the Excel file on this device only …',ready:'Items recognized. Select a delivery note to import.',done:'Items imported. Fill in other invoice details manually.',empty:'Choose a D365 XLSX file.',invalid:'Unsupported D365 export or unsafe content. The file was not uploaded.',unsupported:'Local Excel reading is not available. Use an up-to-date Chrome or Edge browser.',timeout:'Local analysis took too long. No file was uploaded.',positions:'Items',value:'Line value',review:'Check quantities, customs codes, origins and prices.',select:'Packing slip',replace:'Replace existing item rows?',error:'Local import failed; no items were transferred.'},
@@ -16,10 +16,11 @@ function t(key){return L[lang()][key]}
 function host(){return d.getElementById('rc1962D365LocalImport')}
 function state(message,kind){var h=host(),o=h&&h.querySelector('[data-rc1962-status]');if(o){o.textContent=message||'';o.hidden=!message;o.setAttribute('data-kind',kind||'info')}}
 function clearWorker(){if(timeoutId){w.clearTimeout(timeoutId);timeoutId=null}if(worker){try{worker.terminate()}catch(_){}}worker=null}
-function reset(){docs=[];clearWorker();busy=false;var h=host(),r=h&&h.querySelector('[data-rc1962-results]');if(r)r.replaceChildren()}
+function reset(){docs=[];previewVersion++;clearWorker();busy=false;var h=host(),r=h&&h.querySelector('[data-rc1962-results]');if(r)r.replaceChildren()}
 function preview(){
  var h=host(),out=h&&h.querySelector('[data-rc1962-results]');if(!out)return;
  out.replaceChildren();
+ paintedVersion=previewVersion;paintedLanguage=lang();
  docs.forEach(function(doc,i){
   var box=d.createElement('article');box.className='rc1962-preview';
   var title=d.createElement('strong');title.textContent=t('select')+': '+(doc.reference||'–');box.appendChild(title);
@@ -40,7 +41,7 @@ function render(){
  var b=h.querySelector('[data-rc1962-start]'),f=h.querySelector('[data-rc1962-file]');
  if(f)f.disabled=busy;
  if(b)b.disabled=busy||!f||!f.files||!f.files.length;
- preview()
+ if(previewVersion!==paintedVersion||paintedLanguage!==lang())preview()
 }
 function importOnly(index){
  if(currentMode!=='invoice'||busy||!docs[index])return false;
@@ -71,7 +72,7 @@ async function read(){
    worker.postMessage({file:file})
   });
   if(!Array.isArray(data)||!data.length||data.some(function(doc){return !doc||!Array.isArray(doc.positions)||!doc.positions.length}))throw Error('D365_READ_FAILED');
-  docs=data;state(t('ready'),'ok');return true
+  docs=data;previewVersion++;state(t('ready'),'ok');return true
  }catch(e){docs=[];state(e&&e.message==='D365_TIMEOUT'?t('timeout'):e&&e.message==='D365_BROWSER_DECOMPRESSION_UNAVAILABLE'?t('unsupported'):t('invalid'),'bad');return false}
  finally{clearWorker();busy=false;render()}
 }
