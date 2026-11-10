@@ -156,3 +156,15 @@ test('RC1960: account proof remains behind existing TESTSERVICE OIDC gate',()=>{
  assert.ok(fixtureSource.indexOf('if(!await githubOidcAuthorized(req))')<start);
  assert.ok(fixtureSource.indexOf('requireTestservice(req,payload)')<start);
 });
+
+test('RC1961: signed TESTSERVICE workflow reports only validated storage-account tri-state',()=>{
+ assert.match(workflowSource,/const observedAccountMatch=v\.observedPortalAccountMatchesActiveBlob/);
+ assert.match(workflowSource,/observedAccountMatch===true\|\|observedAccountMatch===false\|\|observedAccountMatch===null/);
+ assert.match(workflowSource,/v\.status!=="verified"&&observedAccountMatch!==null/);
+ assert.match(workflowSource,/report\.observedPortalAccountMatchesActiveBlob=observedAccountMatch/);
+ assert.match(workflowSource,/Tatsächliches ABD-Speicherkonto entspricht Portalbefund/);
+ const begin=workflowSource.indexOf('const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob');
+ const end=workflowSource.indexOf('console.log("RC1945 Defender-Scan-Diagnose ',begin);
+ assert.ok(begin>=0&&end>begin);
+ assert.doesNotMatch(workflowSource.slice(begin,end),/account\.url|connectionString|AccountKey|sasToken/);
+});
