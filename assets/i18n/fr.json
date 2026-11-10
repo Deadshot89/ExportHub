@@ -2691,5 +2691,8 @@
   "urgentOrderV2.individualLinesNotChecked": "Lignes individuelles non vérifiées",
   "urgentOrderV2.wholeOrderOption": "Commande entière – toutes les lignes",
   "urgentOrderV2.individualLinesOption": "Saisir des articles / lignes individuels",
-  "urgentOrderV2.requestScope": "Portée de la demande"
+  "urgentOrderV2.requestScope": "Portée de la demande",
+  "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Approbation des frais de transport spécial confirmée par le demandeur",
+  "urgentOrderV2.p1ApprovalDetailBy": "Confirmé par",
+  "urgentOrderV2.p1ApprovalDetailMissing": "Aucune confirmation des frais de transport n'est enregistrée pour cette demande P1."
 }
