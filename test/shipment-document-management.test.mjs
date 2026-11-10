@@ -35,12 +35,14 @@ test('API: authentifizierte Löschung nur für exakt nachgewiesene Upload-ID', (
  assert.match(api, /action==='delete-document'/);
  assert.match(api, /refDocBlob\.softDelete\(ref,environment,id/);
  assert.match(api, /refDocBlob\.softDelete\(ref,environment,id,usernameOf\(sessionInfo\.user\)\)/);
- assert.match(api, /refDocBlob\.hiddenNames\(ref,env\)/);
+ assert.match(api, /refDocBlob\.removalFilters\(ref,env\)/);
+ assert.match(api, /removedGraphHashes\.has\(crypto\.createHash\('sha256'\)/);
  assert.match(api, /azureDocNames\.has\(text\(f\.name\)\.toLowerCase\(\)\)/);
 });
 
 test('AVIS: entfernte Dokumente werden nicht über Graph erneut veröffentlicht', () => {
- assert.match(avis, /hidden=await refDocStore\.hiddenNames\(reference,environment\)/);
+ assert.match(avis, /filters=await refDocStore\.removalFilters\(reference,environment\)/);
+ assert.match(avis, /hiddenGraphHashes\.has\(crypto\.createHash\('sha256'\)/);
  assert.match(avis, /hidden\.has\(key\)/);
 });
 
