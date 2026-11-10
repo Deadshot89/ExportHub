@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Enable email notice",
   "closureMail.mailHide": "Disable email notice",
   "closureMail.portalShow": "Show portal notice",
-  "closureMail.portalHide": "Hide portal notice"
+  "closureMail.portalHide": "Hide portal notice",
+  "closureMail.activate": "Activate closure",
+  "closureMail.deactivate": "Deactivate closure",
+  "closureMail.disableConfirm": "Deactivate this closure? Pickup appointments during this period can then be booked again."
 }
