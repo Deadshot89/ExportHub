@@ -413,12 +413,13 @@ var lastHtml='';
    Legacy tiles (quick access, ABD, pallet account) are reused as they are; warehouse and week charts are rendered here.
    Up to five tiles share one row, so the one-page layout stays intact when tiles are added. */
 var TILE_STORE='exporthub.rc1573.tiles.';
-var TILE_IDS=['quick','lager','abd','pallet','week'];
-var TILE_DEFAULT={quick:true,lager:true,abd:true,pallet:true,week:false};
+var TILE_IDS=['quick','lager','abd','pallet','openwork','week'];
+var TILE_DEFAULT={quick:true,lager:true,abd:true,pallet:true,openwork:true,week:false};
 var TILE_TEXT={
   quick:['dashboard.overview.tile.quick','dashboard.overview.tile.quickDesc'],lager:['dashboard.overview.tile.lager','dashboard.overview.tile.lagerDesc'],
   abd:['dashboard.overview.tile.abd','dashboard.overview.tile.abdDesc'],pallet:['dashboard.overview.tile.pallet','dashboard.overview.tile.palletDesc'],
-  week:['dashboard.overview.tile.week','dashboard.overview.tile.weekDesc']
+  week:['dashboard.overview.tile.week','dashboard.overview.tile.weekDesc'],
+  openwork:['dashboard.overview.tile.openWork','dashboard.overview.tile.openWorkDesc']
 };
 var tileOverride=null;
 function tileUserKey(){var s=getState(),u=s.currentUser||s.activeUser||{};try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()||u}catch(_){}return TILE_STORE+low(u.id||u.user||u.username||u.login||'standard')}
@@ -468,7 +469,86 @@ function barsHtml(items,max,kind){
       '<span class="rc1573-bar-label">'+esc(it.short)+'</span></button>'
   }).join('')+'</div>'
 }
+// This card only requests authorized aggregate counts, never order lines or QM case details.
+var openWorkCounts={urgent:null,quality:null};
+var openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;
+var openWorkAuthBackoff={urgent:0,quality:0};
+var OPEN_WORK_AUTH_BACKOFF_MS=5*60*1000;
+function resetOpenWorkCounts(loggedOut){
+  openWorkEpoch++;openWorkLoggedOut=!!loggedOut;openWorkCounts={urgent:null,quality:null};openWorkLastFetch=0;
+  openWorkAuthBackoff={urgent:0,quality:0};
+  // A previous user's stalled request must not block a fresh authorized session.
+  openWorkInFlight=false;
+  // An earlier user's response is invalidated by epoch even when it finishes later.
+  refreshNow()
+}
+function openWorkToken(){
+  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return q(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
+  try{var session=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return q(session.token)}catch(_){return''}
+}
+async function requestOpenWorkCount(path,signal){
+  var kind=path==='/api/urgent-orders'?'urgent':'quality',epoch=openWorkEpoch;
+  // 401/403 are permission failures. Retry no more than once every five minutes per module,
+  // while a new authenticated session may retry immediately.
+  if(Date.now()<openWorkAuthBackoff[kind])throw Error('COUNT_AUTH_BACKOFF');
+  var headers={'Content-Type':'application/json','Accept':'application/json'},token=openWorkToken();
+  if(token)headers['X-ExportHUB-Token']=token;
+  var options={method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})};
+  if(signal)options.signal=signal;
+  var response=await w.fetch(path,options);
+  if(!response||!response.ok||response.redirected||response.type==='opaqueredirect'){
+    if(response&&(response.status===401||response.status===403)&&epoch===openWorkEpoch&&!openWorkLoggedOut)
+      openWorkAuthBackoff[kind]=Date.now()+OPEN_WORK_AUTH_BACKOFF_MS;
+    throw Error('COUNT_UNAVAILABLE')
+  }
+  var mime=response.headers&&response.headers.get&&response.headers.get('content-type')||'';
+  if(!mime.includes('application/json'))throw Error('COUNT_INVALID_RESPONSE');
+  var data=await response.json();
+  if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw Error('COUNT_INVALID');
+  if(epoch===openWorkEpoch&&!openWorkLoggedOut)openWorkAuthBackoff[kind]=0;
+  return data.open
+}
+// A stalled API cannot indefinitely block the other live counter or subsequent refreshes.
+async function boundedOpenWorkCount(path){
+  var controller=typeof w.AbortController==='function'?new w.AbortController():null;
+  var request=requestOpenWorkCount(path,controller?controller.signal:null);
+  if(typeof w.setTimeout!=='function')return request;
+  var handle=null;
+  var timeout=new Promise(function(_,reject){
+    handle=w.setTimeout(function(){if(controller)controller.abort();reject(Error('COUNT_TIMEOUT'))},12000)
+  });
+  try{return await Promise.race([request,timeout])}
+  finally{if(handle!==null&&typeof w.clearTimeout==='function')w.clearTimeout(handle)}
+}
+function loadOpenWorkCounts(){
+  if(openWorkLoggedOut||openWorkInFlight||!w.fetch||!w.document||w.document.hidden||!isDashboard())return;
+  var tiles=readTiles();if(!tiles.on.openwork)return;
+  var now=Date.now();if(now-openWorkLastFetch<45000)return;
+  openWorkLastFetch=now;openWorkInFlight=true;var epoch=openWorkEpoch;
+  Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa')]).then(function(results){
+    if(epoch!==openWorkEpoch||openWorkLoggedOut)return;
+    openWorkCounts={
+      urgent:results[0].status==='fulfilled'?results[0].value:null,
+      quality:results[1].status==='fulfilled'?results[1].value:null
+    };
+    refreshNow();
+  }).finally(function(){
+    // Only the request belonging to the current session may release its in-flight lock.
+    if(epoch===openWorkEpoch)openWorkInFlight=false;
+    else if(!openWorkLoggedOut)loadOpenWorkCounts()
+  })
+}
+function openWorkMetric(kind){
+  var count=openWorkCounts[kind],available=Number.isSafeInteger(count),route=kind==='urgent'?'urgentorders':'quality';
+  var key=kind==='urgent'?'dashboard.overview.tile.openUrgent':'dashboard.overview.tile.openQuality';
+  return'<button type="button" class="rc1573-openwork-metric" data-rc1558-open-module="'+route+'" aria-label="'+esc(t(key)+': '+(available?count:t('dashboard.overview.tile.unavailable')))+'">'+
+    '<strong class="rc1573-openwork-count" aria-hidden="true">'+(available?count:'–')+'</strong>'+
+    '<span class="rc1573-openwork-name">'+esc(t(key))+'</span>'+
+    '<span class="rc1573-openwork-action">'+esc(t('dashboard.overview.tile.openModule'))+'</span></button>'
+}
 function tileHtml(id,shipments){
+  if(id==='openwork')return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.openWork'))+'</h3></div>'+
+    '<div class="rc1573-openwork-grid">'+openWorkMetric('urgent')+openWorkMetric('quality')+'</div>';
   if(id==='lager'){
     var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
     var items=m.rows.map(function(r){var label=locationLabel(r.code);return{value:r.count,route:'warehouse',short:LOCATION_SHORT[r.code],title:t('dashboard.overview.lager.bar',{label:label,count:r.count,colli:r.colli})}});
@@ -492,7 +572,7 @@ function applyTiles(root,shipments){
   visible.forEach(function(id,i){var row=Math.floor(i/PER_ROW),inRow=row<rows-1?PER_ROW:visible.length-PER_ROW*(rows-1);span[id]=60/inRow});
   cfg.order.forEach(function(id,index){
     var el=legacyTile(root,id);
-    if(!el&&(id==='lager'||id==='week')){
+    if(!el&&(id==='lager'||id==='week'||id==='openwork')){
       el=root.querySelector(':scope > [data-rc1573-own="'+id+'"]');
       if(cfg.on[id]){
         if(!el){el=d.createElement('section');el.className='card rc1573-tile';el.setAttribute('data-rc1573-own',id);root.appendChild(el)}
@@ -509,7 +589,11 @@ function applyTiles(root,shipments){
 // own tiles live outside the overview section: route their links and bars from #content
 function bindTiles(root){
   if(!root||root.__rc1573Bound)return;root.__rc1573Bound=true;
-  root.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))})
+  root.addEventListener('click',function(e){
+    var module=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-open-module]'):null;
+    if(module){e.preventDefault();var name=module.getAttribute('data-rc1558-open-module');if((name==='urgentorders'||name==='quality')&&w.ExportHUBEmbeddedModules&&typeof w.ExportHUBEmbeddedModules.open==='function')w.ExportHUBEmbeddedModules.open(name);return}
+    var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))
+  })
 }
 function openTilePanel(){
   var d=w.document;if(!d)return;var old=d.getElementById('rc1573Panel');if(old){old.remove();return}
@@ -542,6 +626,8 @@ function fit(){
   var d=w.document;if(!d||!d.body)return;
   var c=d.getElementById('content');
   var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=FIT_MIN_WIDTH;
+  // The fixed-height one-page grid has only five bottom-row slots; avoid overlap for personalized layouts with more cards.
+  if(on){var cfg=readTiles();if(cfg.order.filter(function(id){return cfg.on[id]}).length>5)on=false}
   var h=0;
   if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<FIT_MIN_HEIGHT)on=false}
   if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}
@@ -609,6 +695,7 @@ function refresh(){
   applyTiles(root,arr(state.shipments));
   bindTiles(root);
   removeDashboardLieferavis(root);
+  loadOpenWorkCounts();
   d.body.setAttribute(BODY_FLAG,'1');
   fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
@@ -627,6 +714,8 @@ function install(){
   if(typeof w.addEventListener!=='function')return;
   ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:language-changed','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
   w.addEventListener('load',schedule);
+  ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(false)})});
+  ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(true)})});
   var fitFrame=0;w.addEventListener('resize',function(){if(fitFrame)return;var raf=w.requestAnimationFrame||function(fn){return setTimeout(fn,16)};fitFrame=raf(function(){fitFrame=0;fitNow()})});
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.

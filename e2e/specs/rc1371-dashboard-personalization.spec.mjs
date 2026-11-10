@@ -39,7 +39,7 @@ test('RC1371: dashboard mounts once, preserves live cards and exposes editor con
   await tileEditor.click();
   const dialog=page.locator('#rc1573Panel [role="dialog"]');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('[data-rc1573-toggle]')).toHaveCount(5);
+  await expect(dialog.locator('[data-rc1573-toggle]')).toHaveCount(6);
   await dialog.locator('[data-rc1573-close="1"]').click();
   await expect(page.locator('#rc1573Panel')).toHaveCount(0);
 
