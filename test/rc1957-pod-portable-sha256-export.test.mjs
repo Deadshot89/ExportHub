@@ -226,3 +226,20 @@ test('RC1957: PDF 2.0 with a harmless prefix retains its original bytes', async 
   assert.equal(sums, digest(data) + '  POD_VALID.pdf\n');
   assert.deepEqual(entries[0].data, data);
 });
+
+
+test('RC1957: plain-text HTTP and upstream errors quoting PDF headers are not originals', async () => {
+  const cases = [
+    ['http-404', 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nExpected %PDF-1.7 original'],
+    ['plain-error', 'Error: source download failed. Expected %PDF-1.7 but got no file.'],
+    ['upstream', 'Upstream failed to serve %PDF-2.0; retry later.'],
+    ['preface-html', 'Proxy warning:\r\n<html><body>Expected %PDF-1.7.</body></html>']
+  ];
+  for (const [name, body] of cases) {
+    const originalResponse = bytes(body);
+    const { entries, fail } = await run([{ name: 'POD_' + name + '.pdf', data: originalResponse }]);
+    assert.ok(fail.includes('RC1957_INVALID_PDF'), name);
+    assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false, name);
+    assert.deepEqual(entries[0].data, originalResponse, name + ': never rewrite download bytes');
+  }
+});
