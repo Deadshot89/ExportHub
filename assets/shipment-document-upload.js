@@ -130,11 +130,14 @@ function syncFileActions(){
     var d=docs[i],actions=row.querySelector('.rc786-doc-actions');
     if(!d||!actions||d.source!=='referenceFolder'||!q(d.itemId))return;
     if(actions.getAttribute('data-docup-managed')===q(d.itemId))return;
+    // Preserve the native print action, which still routes through the existing document viewer.
+    var printButton=actions.querySelector('[data-rc786-print-file]');
     actions.textContent='';actions.setAttribute('data-docup-managed',q(d.itemId));
     [['open',t('open')],['download',t('download')]].concat(/^refdoc:[0-9a-f]{32}$/.test(q(d.itemId))?[['delete',t('remove')]]:[]).forEach(function(action){
       var b=el('button',{type:'button',class:'ghost eh-docup-file-action','data-docup-file-action':action[0],'data-docup-index':String(i),'data-docup-id':q(d.itemId)},action[1]);
       actions.appendChild(b);
     });
+    if(printButton)actions.appendChild(printButton);
     var name=row.querySelector('.rc786-doc-main b'),meta=row.querySelector('.rc786-doc-main small');
     if(name)name.style.cssText='display:block;overflow-wrap:anywhere;word-break:break-word';
     if(meta)meta.style.cssText='display:block;margin-top:5px;overflow-wrap:anywhere';
