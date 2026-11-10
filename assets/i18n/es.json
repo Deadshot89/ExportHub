@@ -2669,5 +2669,10 @@
   "closureMail.htmlPreview": "Vista previa del correo HTML",
   "closureMail.previewFailed": "No se pudo cargar la vista previa del correo.",
   "closureMail.pickupWarning": "Atención: la recogida del {{date}} supera el último plazo de recogida del {{last}} a las {{time}}. Cierre: {{from}} – {{to}}. Reapertura: {{reopen}}. Cambie la fecha o la hora.",
-  "closureMail.bookingClosed": "Esta fecha de recogida coincide con el cierre. Selecciona una fecha después de la reapertura."
+  "closureMail.bookingClosed": "Esta fecha de recogida coincide con el cierre. Selecciona una fecha después de la reapertura.",
+  "closureMail.snowAnimation": "Animación navideña discreta en el portal de recogida",
+  "closureMail.snowEnable": "Activar animación",
+  "closureMail.snowDisable": "Desactivar animación",
+  "closureMail.snowOn": "Animación navideña activada",
+  "closureMail.snowOff": "Animación navideña desactivada"
 }
