@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Activar cierre",
   "closureMail.deactivate": "Desactivar cierre",
   "closureMail.disableConfirm": "¿Desactivar este cierre? Se podrán reservar de nuevo recogidas durante este período.",
-  "closureMail.removeConfirm": "¿Eliminar definitivamente este cierre? Se podrán volver a reservar recogidas durante este período. Esta acción no se puede deshacer."
+  "closureMail.removeConfirm": "¿Eliminar definitivamente este cierre? Se podrán volver a reservar recogidas durante este período. Esta acción no se puede deshacer.",
+  "urgentOrderV2.priorityLegend": "P1 – Transporte especial · P2 – Entrega urgente · P3 – Pedidos pendientes · P4 – Pedido de hoy",
+  "urgentOrderV2.p1ApprovalConfirm": "Confirmo que se ha aprobado la cobertura de los costes del transporte especial.",
+  "urgentOrderV2.wholeOrder": "Pedido completo (todas las líneas)",
+  "urgentOrderV2.individualLinesNotChecked": "Líneas individuales sin verificar",
+  "urgentOrderV2.wholeOrderOption": "Pedido completo – todas las líneas",
+  "urgentOrderV2.individualLinesOption": "Introducir artículos / líneas individuales",
+  "urgentOrderV2.requestScope": "Alcance de la solicitud"
 }
