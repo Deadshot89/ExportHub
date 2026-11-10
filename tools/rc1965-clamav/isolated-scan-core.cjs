@@ -10,12 +10,28 @@ const os=require('node:os');
 const path=require('node:path');
 const {MAX_BYTES,scanLocalQuarantine,runClamscan}=
  require('../rc1956-clamav/scan-local.cjs');
-const {verifyQueueCandidate}=require('../rc1964-clamav/cloud-job-preflight.cjs');
+const {verifyQueueCandidate,JOB_SHAPE}=require('../rc1964-clamav/cloud-job-preflight.cjs');
 const {createCandidateAttestation}=
  require('../rc1963-clamav/scan-candidate-attestation.cjs');
 const {verifyClamAvEngine}=
  require('../rc1972-clamav/engine-selftest.cjs');
 
+// RC1975: 240 s was the candidate Container Apps Job ceiling, but the
+// prior defaults allowed 2 x 120 s probes + 120 s customer scan + 2 x 35 s
+// Blob reads (430 s before overhead). All values below are conservative
+// design timeouts, NOT an Azure deployment or a guarantee of runtime safety.
+// A future container job must enforce a separate 240 s hard execution cap.
+const TIME_BUDGET=Object.freeze({
+ jobMs:JOB_SHAPE.maxSeconds*1000,
+ eicarProbeMs:25000,eicarProbes:2,
+ customerScanMs:90000,blobReadMs:35000,blobReads:2,
+ reserveMs:30000
+});
+const plannedMaximum=TIME_BUDGET.eicarProbeMs*TIME_BUDGET.eicarProbes+
+ TIME_BUDGET.customerScanMs+TIME_BUDGET.blobReadMs*TIME_BUDGET.blobReads+
+ TIME_BUDGET.reserveMs;
+if(plannedMaximum>TIME_BUDGET.jobMs)
+ throw Error('RC1975_INVALID_JOB_BUDGET');
 const DENIED=Object.freeze({authorizedForRelease:false,dispatchAuthorized:false,deployAuthorized:false});
 const blocked=reason=>({...DENIED,status:'blocked',reason});
 const HEX64=/^[a-f0-9]{64}$/;
@@ -73,7 +89,7 @@ async function scanOfflineCandidate({
    // RC1973: prevent any customer-blob read unless the actual engine has
    // completed a clean-control + EICAR-detection self-test. The default
    // invokes real clamscan; only synthetic tests inject a fake check.
-   const engine=await engineCheck();
+   const engine=await engineCheck({timeoutMs:TIME_BUDGET.eicarProbeMs});
    if(!engine||engine.verified!==true||engine.authorizedForRelease!==false)
     return blocked('engine-self-test-failed');
    const locator=Object.freeze({jobId,environment:'testservice',
@@ -95,7 +111,8 @@ async function scanOfflineCandidate({
     // The RC1956 scanner copies again into its own private, immutable directory
     // and returns no release permission even when clamscan exits 0.
     const scanned=await scanLocalQuarantine({
-     rootDir:stageDir,filePath:stage,runner
+     rootDir:stageDir,filePath:stage,runner,
+     timeoutMs:TIME_BUDGET.customerScanMs
     });
     if(!scanned||scanned.verdict!=='candidate-clean'){
      result=blocked(scanned&&scanned.verdict==='infected'?'malware-detected':'scan-unverified');
@@ -139,4 +156,4 @@ async function scanOfflineCandidate({
  }
  return result;
 }
-module.exports={scanOfflineCandidate};
+module.exports={scanOfflineCandidate,TIME_BUDGET};
