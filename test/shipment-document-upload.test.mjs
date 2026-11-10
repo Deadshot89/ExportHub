@@ -55,8 +55,8 @@ test('Dokument-Upload: Fehlermeldungen in allen sechs API-Sprachen',()=>{
 
 test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8'),asset=fs.readFileSync('assets/shipment-document-upload.js','utf8');
-  assert.match(build,/assets\/i18n\/shipment-document-upload\.js\?v=2/);
-  assert.match(build,/assets\/shipment-document-upload\.js\?v=2/);
+  assert.match(build,/assets\/i18n\/shipment-document-upload\.js\?v=3/);
+  assert.match(build,/assets\/shipment-document-upload\.js\?v=3/);
   assert.match(build,/'assets\/shipment-document-upload\.js',/);
   assert.match(fs.readFileSync('staticwebapp.config.json','utf8'),/"route": "\/assets\/shipment-document-upload\.js"/);
   assert.match(asset,/#rc786ReferenceFilesCard \.rc786-doc-head-actions/);
@@ -117,11 +117,11 @@ test('Dokument-Upload: Erfolg nur nach REF-Identität, korrekte Kopien und Sprac
  assert.match(src,/Number\(saved\.size\)===file\.size/);
  assert.match(src,/referenceFolder:sharepointCopies===ok/);
  assert.match(src,/picked=files\.filter/,'Files without a confirmed receipt must remain selectable');
- assert.match(build,/shipment-document-upload\.js\?v=2/);
- assert.match(build,/i18n\/shipment-document-upload\.js\?v=2/);
+ assert.match(build,/shipment-document-upload\.js\?v=3/);
+ assert.match(build,/i18n\/shipment-document-upload\.js\?v=3/);
  const local={};
  new Function('window',fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8'))(local);
  for(const language of ['de','en','pl','es','fr','it'])
-  for(const key of ['uploadUnverified','uploadNotListed'])
+  for(const key of ['uploadUnverified','uploadNotListed','uploadNotReadable'])
    assert.ok(local.ExportHUBShipmentDocUploadI18n.packs[language][key],language+' '+key);
 });
