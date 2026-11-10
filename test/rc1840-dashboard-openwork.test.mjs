@@ -73,3 +73,42 @@ test('Open-work does not navigate to new windows or to external apps',()=>{
   assert.match(runtime,/ExportHUBEmbeddedModules\.open\(name\)/);
   assert.doesNotMatch(fn('bindTiles'),/window\.open\(|w\.open\(/);
 });
+
+test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Zahlen noch Sperre überschreiben',async()=>{
+  const queued=[];
+  const ctx={
+    w:{fetch:()=>{},document:{hidden:false}},
+    isDashboard:()=>true,
+    readTiles:()=>({on:{openwork:true}}),
+    requestOpenWorkCount:()=>new Promise(resolve=>queued.push(resolve)),
+    Promise,Date,
+    refreshNow:()=>ctx.loadOpenWorkCounts()
+  };
+  vm.createContext(ctx);
+  vm.runInContext(
+    'var openWorkCounts={urgent:null,quality:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;\n'+
+    fn('resetOpenWorkCounts')+'\n'+fn('loadOpenWorkCounts'),ctx
+  );
+  ctx.loadOpenWorkCounts();
+  assert.equal(queued.length,2,'first session starts two count calls');
+  ctx.resetOpenWorkCounts(false);
+  assert.equal(queued.length,4,'new login immediately starts its own two calls despite the old pending pair');
+
+  queued[0](91);queued[1](92);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(ctx.openWorkCounts.urgent,null,'old user count never appears');
+  assert.equal(ctx.openWorkCounts.quality,null,'old QM count never appears');
+  assert.equal(ctx.openWorkInFlight,true,'old finally must not release the new session lock');
+  ctx.loadOpenWorkCounts();
+  assert.equal(queued.length,4,'no duplicate calls while the new request is pending');
+
+  queued[2](5);queued[3](6);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(ctx.openWorkCounts.urgent,5);
+  assert.equal(ctx.openWorkCounts.quality,6);
+  assert.equal(ctx.openWorkInFlight,false);
+  ctx.resetOpenWorkCounts(true);
+  assert.equal(ctx.openWorkCounts.urgent,null,'logout clears the dashboard');
+  assert.equal(ctx.openWorkCounts.quality,null,'logout clears QM count');
+  assert.equal(queued.length,4,'logout never calls a protected API');
+});
