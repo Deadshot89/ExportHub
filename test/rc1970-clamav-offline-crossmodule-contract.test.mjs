@@ -67,6 +67,7 @@ function simulatedWork({
   }),
   readSnapshot:createBoundedReadSnapshot({container,expected,kind:'xlsx',timeoutMs:200}),
   getDefinitionsUpdatedAt:definitions|| (async()=>NOW-60*1000),
+  engineCheck:async()=>({verified:true,authorizedForRelease:false}),
   runner:async(...args)=>{
    scans++;
    return (runner|| (async()=>({exitCode:0,timedOut:false})))(...args);
