@@ -539,23 +539,25 @@ function loadOpenWorkCounts(){
   })
 }
 function openWorkTopKpi(){
-  // One regular KPI tile in the top status grid, not an additional lower dashboard area.
-  // Each count is separately actionable; missing permission/data is always '–', never 0.
-  var items=[
-    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent'},
-    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality'}
-  ];
-  var actions=items.map(function(item){
+  // Open work uses exactly the same standalone KPI button structure as all other top tiles.
+  // Never substitute 0 for unavailable/auth-blocked counts; each button opens its own internal module.
+  return [
+    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent',icon:'tasks'},
+    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality',icon:'documents'}
+  ].map(function(item){
     var count=openWorkCounts[item.kind],available=Number.isSafeInteger(count)&&count>=0;
     var label=t(item.key),display=available?String(count):t('dashboard.overview.tile.unavailable');
-    return'<button type="button" class="rc1558-openwork-action" data-rc1558-open-module="'+item.route+'" data-open="'+(available&&count>0?'1':'0')+'" aria-label="'+esc(label+': '+display)+'">'+
-      '<span class="rc1558-openwork-name">'+esc(label)+'</span>'+
-      '<strong class="rc1558-openwork-value" aria-hidden="true">'+(available?count:'–')+'</strong></button>'
-  }).join('');
-  return'<div class="rc1558-kpi rc1558-kpi-openwork" role="group" aria-label="'+esc(t('dashboard.overview.tile.openWork'))+'">'+
-    '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(t('dashboard.overview.tile.openWork'))+'</span>'+icon('tasks')+'</span>'+
-    '<div class="rc1558-openwork-actions">'+actions+'</div></div>'
+    var tone=available&&count>0?'warn':'neutral';
+    return'<button type="button" class="rc1558-kpi" data-tone="'+tone+'"'+
+      (available&&count===0?' data-zero="1"':'')+(available?'':' data-unavailable="1"')+
+      ' data-rc1558-open-module="'+item.route+'" aria-label="'+esc(label+': '+display)+'">'+
+      '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(label)+'</span>'+icon(item.icon)+'</span>'+
+      '<strong class="rc1558-kpi-value">'+(available?count:'–')+'</strong>'+
+      '<span class="rc1558-kpi-sub">'+esc(t(available?'dashboard.overview.tile.openModule':'dashboard.overview.tile.unavailable'))+'</span>'+
+    '</button>'
+  }).join('')
 }
+
 function tileHtml(id,shipments){
   if(id==='lager'){
     var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
