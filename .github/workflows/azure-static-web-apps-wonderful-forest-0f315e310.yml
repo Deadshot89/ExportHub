@@ -440,9 +440,11 @@ jobs:
             local fixture_response fixture_status fixture_error
             local -a inventory_timeout=()
             case "$action" in
-              inventory-team|inventory-scopes|inventory-blob-policy)
-                # Fail bounded on stalled Azure LIST calls; diagnostic failures
-                # must not suppress functional E2E checks or block release.
+              inventory-team|inventory-scopes|inventory-blob-policy|diagnose-abd-defender)
+                # RC1963: bound OIDC-only storage read diagnostics, including
+                # Defender tag inventory. Azure SDK calls can stall past the
+                # in-process budget; an HTTP timeout must fail unverified,
+                # never skip scan verification or block the release indefinitely.
                 inventory_timeout=(--connect-timeout 8 --max-time 35)
                 ;;
             esac
