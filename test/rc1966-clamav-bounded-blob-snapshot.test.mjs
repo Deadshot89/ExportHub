@@ -147,3 +147,42 @@ test('RC1966: helper never constructs Azure clients, writes tags or opens a pars
  assert.match(api,/scan\.status!=='clean'/);
  assert.doesNotMatch(src,/BlobServiceClient|DefaultAzureCredential|setTags\s*\(|uploadData\s*\(|connectionString\(/);
 });
+
+test('RC1968: Blob properties RPC ignoring AbortSignal still reaches hard deadline',async()=>{
+ let downloads=0;
+ const container={getBlobClient(){return {
+  getProperties:()=>new Promise(()=>{}), // malicious/noncompliant SDK adapter
+  download:async()=>{downloads++;throw Error('should not download');}
+ }}};
+ const read=createBoundedReadSnapshot({container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.equal(downloads,0);
+});
+
+test('RC1968: late SDK download response after timeout destroys its stream',async()=>{
+ let finish;
+ const container={getBlobClient(){return {
+  getProperties:async()=>({etag:base.blobEtag,blobType:'BlockBlob',contentLength:bytes.length}),
+  download:()=>new Promise(resolve=>{finish=resolve;}) // ignores abort
+ }}};
+ const read=createBoundedReadSnapshot({container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.equal(typeof finish,'function');
+ const late=Readable.from([Buffer.from(bytes)]);
+ finish({etag:base.blobEtag,contentLength:bytes.length,readableStreamBody:late});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(late.destroyed,true,'late stream must be cleaned even after read rejected');
+});
+
+test('RC1968: non-cooperative stream iterator cannot hang the caller',async()=>{
+ let destroyed=0;
+ const stalled={
+  [Symbol.asyncIterator](){return{next:()=>new Promise(()=>{})}},
+  destroy(){destroyed++}
+ };
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyed>=1);
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
