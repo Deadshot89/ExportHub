@@ -85,5 +85,7 @@ test('SharePoint-only Upload: serverseitig gegen echte REF-Liste und Dateiart ge
  assert.match(storage, /async function hideSharePoint\(ref, env, item, actor\)/);
  assert.match(ui, /function canRemoveDocument\(d\)/);
  assert.match(ui, /if\(!canRemoveDocument\(d\)\)/);
- assert.match(ui, /data-rc786-print-file/);
+ assert.match(ui, /data-rc786-open-file/);
+ assert.match(ui, /data-rc786-download-file/);
+ assert.doesNotMatch(ui, /actions\.textContent=''/, 'Native Öffnen/Download/Drucken-Aktionen dürfen nicht gelöscht werden');
 });
