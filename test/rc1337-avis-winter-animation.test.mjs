@@ -54,6 +54,14 @@ test('RC1337: winter notice remains one existing closure card with localized wor
   assert.ok(!plain.includes('rc1337-festive-greeting'),lang);
  }
 });
+test('RC1337: admin animation switches have translations in all six configured languages',()=>{
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dictionary=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+  for(const key of ['snowAnimation','snowEnable','snowDisable','snowOn','snowOff']){
+   assert.ok(dictionary['closureMail.'+key]?.length>8,lang+':'+key);
+  }
+ }
+});
 test('RC1337: animation is restricted to card, reduced motion disables it and original appointment flow remains intact',()=>{
  assert.match(portal,/prefers-reduced-motion:reduce/);
  assert.match(portal,/pointer-events:none/);
