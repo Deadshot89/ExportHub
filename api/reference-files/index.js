@@ -116,6 +116,23 @@ async function listFiles(ref,req){
  files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||a.name.localeCompare(b.name,'de'));
  return{files,folderPath:path,folderMissing:false,folderWebUrl};
 }
+function mergeReferenceFileSources(graphFiles,azure,docs){
+ // A name is not a storage identity: distinct Graph/AV/REF originals may share a filename.
+ const files=Array.from(graphFiles||[]),seen=new Set();
+ files.forEach(file=>{if(file&&text(file.id))seen.add('graph:'+text(file.id))});
+ for(const [storage,items] of [['azure-av',azure],['azure-refdoc',docs]]){
+  for(const file of Array.isArray(items)?items:[]){
+   const id=text(file&&file.id),name=text(file&&file.name);
+   if(!id||!name)continue;
+   const key=storage+':'+id;
+   if(seen.has(key))continue;
+   seen.add(key);
+   files.push({id,name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+    lastModifiedDateTime:file.lastModifiedDateTime,storage});
+  }
+ }
+ return files;
+}
 function disposition(name,mode,req){const safe=text(name).replace(/[\r\n"]/g,'_').slice(0,180)||apiI18n.t(req,'api.reference.document');return(mode==='download'?'attachment':'inline')+"; filename*=UTF-8''"+encodeURIComponent(safe)}
 function requestBody(req){if(req&&req.body&&typeof req.body==='object'&&!Buffer.isBuffer(req.body))return req.body;try{return JSON.parse(String(req&&req.body||'{}'))}catch(_){return{}}}
 function signatureOk(ext,buf){if(ext==='.pdf')return buf.length>=5&&buf.subarray(0,5).toString('ascii')==='%PDF-';if(ext==='.jpg'||ext==='.jpeg')return buf.length>=3&&buf[0]===0xff&&buf[1]===0xd8&&buf[2]===0xff;if(ext==='.png')return buf.length>=8&&buf.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));return false}
@@ -218,21 +235,21 @@ module.exports=async function(context,req){
     'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
-  const azure=await avBlob.list(ref,env);
-  // Azure-Kopien von Sendungsdokumenten: ein Lesefehler im Speicher darf die SharePoint-Liste nicht blockieren.
-  let docs=[];try{docs=await refDocBlob.list(ref,env)}catch(_){docs=[]}
+  // Fail separately: an unavailable Azure source must not suppress a readable Graph folder.
+  let azure=[],azureError=null;
+  try{azure=await avBlob.list(ref,env)}catch(e){azureError=e}
+  let docs=[],docsError=null;
+  try{docs=await refDocBlob.list(ref,env)}catch(e){docsError=e}
   let listed,graphError=null;
   try{listed=await listFiles(ref,req)}
   catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
-  const files=Array.from(listed.files||[]);
-  for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
-   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
-  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
-   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
+  const files=mergeReferenceFileSources(listed.files,azure,docs);
+  // Never claim "0 documents" when an independent source was unreadable.
+  if(!files.length&&(azureError||docsError))throw error('REFERENCE_FILE_SOURCES_INCOMPLETE',
+   'Die Dokumentenquellen konnten nicht vollständig geprüft werden. Bitte erneut laden.',503);
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
-    folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
+    folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,
+    partial:!!(graphError||azureError||docsError),files});return}
   const item=files.find(f=>f.id===itemId);
   if(!item)throw error('FILE_NOT_FOUND','api.reference.fileNotFound',404);
   if(Number(item.size||0)>MAX_FILE_BYTES)throw error('FILE_TOO_LARGE','api.reference.fileTooLarge',413);
