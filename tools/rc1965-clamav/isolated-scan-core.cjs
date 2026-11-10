@@ -69,6 +69,10 @@ async function scanOfflineCandidate({
     await fs.chmod(stageDir,0o700);
     const stage=path.join(stageDir,'candidate.bin');
     await fs.writeFile(stage,first.bytes,{flag:'wx',mode:0o600});
+    // Bind the candidate proof to the trusted scanner signature snapshot
+    // observed BEFORE scanning. Never substitute a post-scan update as proof
+    // of what the engine actually used.
+    const definitionsBefore=await getDefinitionsUpdatedAt();
     // The RC1956 scanner copies again into its own private, immutable directory
     // and returns no release permission even when clamscan exits 0.
     const scanned=await scanLocalQuarantine({
@@ -84,14 +88,20 @@ async function scanOfflineCandidate({
      if(!snapshotMatches(second,expected)){
       result=blocked('blob-changed-after-scan');
      }else{
-      const definitionsUpdatedAt=await getDefinitionsUpdatedAt();
-      // Only candidate evidence. No trust assertion about the injected
-      // runner is made by this offline component.
-      const receipt=createCandidateAttestation({
-       candidate:scanned,context:expected,secret:proofSecret,
-       definitionsUpdatedAt,now
-      });
-      result={...DENIED,status:'candidate-only',receipt};
+      const definitionsAfter=await getDefinitionsUpdatedAt();
+      if(definitionsAfter!==definitionsBefore){
+       // Signatures updated during scan: the observed post-scan freshness
+       // cannot attest the engine signatures that scanned these bytes.
+       result=blocked('definitions-changed-during-scan');
+      }else{
+       // Only candidate evidence. An authorized worker must additionally
+       // prove this metadata belongs to the actual loaded scan engine.
+       const receipt=createCandidateAttestation({
+        candidate:scanned,context:expected,secret:proofSecret,
+        definitionsUpdatedAt:definitionsBefore,now
+       });
+       result={...DENIED,status:'candidate-only',receipt};
+      }
      }
     }
    }
