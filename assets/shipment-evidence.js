@@ -185,6 +185,15 @@ function showForm(record){state.searchRun++;state.view='form';if(record!==undefi
  const grid=make('div','eh1903-grid'),defaults={dispatchDate:today};
  FIELDS.forEach(([key,kind])=>labelField(grid,key,kind,r&&r.fields&&r.fields[key]||defaults[key]||''));
  card.appendChild(grid);
+ // An independent DOK is not automatically a shipment REF. Explain the exact
+ // link requirement instead of silently implying its files appear in a REF folder.
+ const linkedRef=grid.querySelector('[data-evidence-field="exporthubRef"]');
+ if(linkedRef){
+  const hint=make('p','eh1903-muted',t('notLinked'));
+  hint.setAttribute('role','note');
+  const updateHint=()=>{hint.hidden=!!String(linkedRef.value||'').trim()};
+  linkedRef.addEventListener('input',updateHint);updateHint();card.appendChild(hint);
+ }
  const act=make('div','eh1903-actions');act.appendChild(button(t('save'),async()=>{
   const current=Object.assign({},r&&r.fields||{},readFields(app));if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
   await write(r?'save':'create',{fields:current});
