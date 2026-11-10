@@ -280,9 +280,19 @@ function installClosureSettings(host){
    text.textContent=[item.startDate+' – '+item.endDate,tr('closureMail.lastPickup')+': '+item.lastPickupDate+' '+item.lastPickupTime,tr('closureMail.reopens')+': '+item.reopenDate,tr('closureMail.advance')+': '+item.leadDays+ ' '+tr('closureMail.days'),item.enabled?tr('closureMail.on'):tr('closureMail.off'),item.animateSnow===true?tr('closureMail.snowOn'):tr('closureMail.snowOff')].join(' · ');
    remove.type='button';remove.className='btn flat small';remove.textContent=tr('closureMail.remove');remove.setAttribute('aria-label',tr('closureMail.removeAria')+' '+(index+1));
    remove.addEventListener('click',async function(){
+    // Removing a closure also reopens booking. Never do that from a single
+    // accidental click, even when the admin has permission to edit settings.
+    if(!w.confirm||!w.confirm(tr('closureMail.removeConfirm')))return;
     remove.disabled=true;show(tr('closureMail.saving'));
-    try{var entries=closureEntries();entries.splice(index,1);await persistClosureEntries(entries);display();show(tr('closureMail.removed'),'ok')}
-    catch(e){show(tr('closureMail.removeFailed')+': '+q(e&&e.message),'error');remove.disabled=false}
+    try{
+     var entries=closureEntries(),current=entries[index];
+     if(!current||current.startDate!==item.startDate||current.endDate!==item.endDate||
+        current.lastPickupDate!==item.lastPickupDate||current.lastPickupTime!==item.lastPickupTime||
+        current.reopenDate!==item.reopenDate||current.enabled!==item.enabled)
+      throw new Error(tr('closureMail.invalid'));
+     entries.splice(index,1);
+     await persistClosureEntries(entries);display();show(tr('closureMail.removed'),'ok')
+    }catch(e){show(tr('closureMail.removeFailed')+': '+q(e&&e.message),'error');remove.disabled=false}
    });
    var snowToggle=w.document.createElement('button');
    snowToggle.type='button';snowToggle.className='btn flat small rc1337-snow-toggle';
