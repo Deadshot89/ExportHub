@@ -169,3 +169,27 @@ test('RC1965: worker is inert to Azure, browser uploads, Defender tags and produ
  assert.doesNotMatch(src,/BlobServiceClient|DefaultAzureCredential|setTags\s*\(|uploadData\s*\(|createContainer/);
  assert.match(src,/authorizedForRelease:false/);
 });
+
+test('RC1965: a duplicate signed job cannot re-read files when the claim store atomically rejects replay',async()=>{
+ const claimed=new Set();
+ let reads=0;
+ const f=fixture({
+  claimJob:async({jobId})=>{
+   if(claimed.has(jobId))return false;
+   claimed.add(jobId);
+   return true;
+  },
+  readSnapshot:async()=>{
+   reads++;
+   return{bytes:Buffer.from(payload),etag:context.blobEtag};
+  }
+ });
+ const first=await scanOfflineCandidate(f.settings);
+ const second=await scanOfflineCandidate(f.settings);
+ assert.equal(first.status,'candidate-only');
+ assert.equal(first.authorizedForRelease,false);
+ assert.equal(second.status,'blocked');
+ assert.equal(second.reason,'job-already-claimed');
+ assert.equal(reads,2,'second attempt must not read any customer data');
+ assert.equal(second.receipt,undefined);
+});
