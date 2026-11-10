@@ -126,7 +126,15 @@ function num(value){
  else if(comma>=0)s=s.replace(',','.');
  const n=Number(s);return Number.isFinite(n)?n:null
 }
-const countries={DEU:'DE',GBR:'GB',USA:'US',NLD:'NL',FRA:'FR',ITA:'IT',ESP:'ES',CHE:'CH',POL:'PL',CHN:'CN',AUT:'AT',BEL:'BE',CZE:'CZ',DNK:'DK',SWE:'SE',NOR:'NO',FIN:'FI',IRL:'IE',IND:'IN',CAN:'CA',AUS:'AU',JPN:'JP',KOR:'KR',TUR:'TR',MEX:'MX',BRA:'BR'};
+// Keep the exact D365 country conversion table used by the server analyzer.
+const countries={
+ AUT:'AT',BEL:'BE',BGR:'BG',CHE:'CH',CHN:'CN',CZE:'CZ',DEU:'DE',DNK:'DK',ESP:'ES',
+ EST:'EE',FIN:'FI',FRA:'FR',GBR:'GB',GRC:'GR',HRV:'HR',HUN:'HU',IDN:'ID',
+ IND:'IN',IRL:'IE',ISR:'IL',ITA:'IT',JPN:'JP',KOR:'KR',LTU:'LT',LUX:'LU',
+ LVA:'LV',MEX:'MX',NLD:'NL',NOR:'NO',POL:'PL',PRT:'PT',ROU:'RO',RUS:'RU',
+ SVK:'SK',SVN:'SI',SWE:'SE',THA:'TH',TUR:'TR',TWN:'TW',UKR:'UA',USA:'US',
+ VNM:'VN',ZAF:'ZA',CAN:'CA',AUS:'AU',BRA:'BR',ARE:'AE'
+};
 function iso(v){const s=String(v||'').trim().toUpperCase();return countries[s]||s}
 function docsFromSheets(entries){
  const strings=sharedStrings(entries['xl/sharedStrings.xml']);
@@ -145,7 +153,8 @@ function docsFromSheets(entries){
    const isBackorder=get('SALESORDERLINESTATUS').toLowerCase()==='backorder';
    let value=num(get('SHIPPEDAMOUNT'));
    if(value===null&&!isBackorder)value=num(get('LINEAMOUNT'));
-   const packingSlip=get('PACKINGSLIPID'),recipient=get('DELIVERYADDRESSNAME')||get('DELIVERYADDRESSDESCRIPTION');
+   const packingSlip=get('PACKINGSLIPID')||get('SALESORDERNUMBER'),recipient=get('DELIVERYADDRESSNAME')||get('DELIVERYADDRESSDESCRIPTION');
+   if(!packingSlip)fail('D365_REFERENCE_MISSING');
    const address=get('FORMATTEDDELVERYADDRESS')||[get('DELIVERYADDRESSSTREET'),get('DELIVERYADDRESSZIPCODE'),get('DELIVERYADDRESSCITY')].join('|');
    const dest=get('DELIVERYADDRESSCOUNTRYREGIONISOCODE')||iso(get('DELIVERYADDRESSCOUNTRYREGIONID'));
    const key=[packingSlip,recipient,address,dest].join('\u001f');
