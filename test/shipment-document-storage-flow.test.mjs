@@ -105,3 +105,18 @@ test('SharePoint-only invoice can be removed without deleting its physical Graph
  await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-signed',name:'POD_Signed_Original.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
  await assert.rejects(()=>store.hideSharePoint(REF,'production',{id:'graph-wrong-ref',name:'Rechnung_ZZ99YY_20261110-071411_SIDE.pdf'},'operator'),e=>e.code==='REFDOC_DELETE_FORBIDDEN');
 });
+
+test('Zwei identisch benannte Rechnungen bleiben einzeln per Azure-ID löschbar',async()=>{
+ const {store,blobs}=fixture();
+ const first=await store.save(REF,'production',INVOICE,Buffer.from('FIRST'),'application/pdf');
+ const second=await store.save(REF,'production',INVOICE,Buffer.from('SECOND'),'application/pdf');
+ assert.notEqual(first.id,second.id);
+ assert.equal((await store.list(REF,'production')).length,2);
+ await store.softDelete(REF,'production',first.id,'operator');
+ const visible=await store.list(REF,'production');
+ assert.equal(visible.length,1);
+ assert.equal(visible[0].id,second.id);
+ assert.equal((await store.read(REF,'production',second.id)).buffer.toString(),'SECOND');
+ assert.equal(blobs.has(first.blobName),true,'Archived removed original remains intact');
+ assert.equal(blobs.has(second.blobName),true,'Visible sibling original remains intact');
+});
