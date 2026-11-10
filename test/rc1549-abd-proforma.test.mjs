@@ -86,6 +86,8 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
  fs.writeFileSync(path.join(root,'assets/rc1549-abd-proforma.js'),'window.__RC1549__=true;\n');
  fs.copyFileSync('assets/rc1790-delivery-note.js',path.join(root,'assets/rc1790-delivery-note.js'));
   fs.copyFileSync('assets/rc1940-documents-workspace.js',path.join(root,'assets/rc1940-documents-workspace.js'));
+  // RC1962: the release integrator must also copy the two mandatory local XLSX assets.
+  for(const asset of ['rc1962-d365-local-import.js','rc1962-d365-xlsx-worker.js'])fs.copyFileSync(path.join('assets',asset),path.join(root,'assets',asset));
  fs.mkdirSync(path.join(root,'assets/i18n'),{recursive:true});
  fs.copyFileSync('assets/i18n/rc1790-delivery-note.js',path.join(root,'assets/i18n/rc1790-delivery-note.js'));
 
