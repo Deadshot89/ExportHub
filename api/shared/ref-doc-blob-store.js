@@ -115,8 +115,8 @@ async function softDelete(ref, env, id, actor) {
   const uploadName = new RegExp('^(?:Lieferschein|Rechnung|Packliste|Excel|Dokument)_' + avBlob.refValue(ref) + '_[0-9]{8}-[0-9]{6}_', 'i');
   if (!uploadName.test(file.name))
     throw err('REFDOC_DELETE_FORBIDDEN', 'Originale und andere Belege sind vor dem Entfernen geschützt.', 403);
-  const siblings = (await list(ref, env)).filter(f => f.name.toLowerCase() === file.name.toLowerCase());
-  if (siblings.length !== 1) throw err('REFDOC_DELETE_AMBIGUOUS', 'Mehrere gleichnamige Uploads: bitte einzeln klären.', 409);
+  // Each archive has a distinct, reference-scoped ID: identical filenames do not
+  // make the selected ID ambiguous. Never hide or delete its sibling Azure blob.
   const record = { id: itemId, name: file.name, reference: avBlob.refValue(ref), environment: environment(env), deletedAt: new Date().toISOString(), actor: text(actor) || 'authenticated-user', archived: true };
   const data = Buffer.from(JSON.stringify(record), 'utf8'), blob = client(env).getBlockBlobClient(removedPrefix(ref, env) + itemId.slice(7) + '.json');
   await blob.uploadData(data, { conditions: { ifNoneMatch: '*' }, blobHTTPHeaders: { blobContentType: 'application/json', blobCacheControl: 'private, no-store' } });
