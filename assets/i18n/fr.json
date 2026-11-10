@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Activer la fermeture",
   "closureMail.deactivate": "Désactiver la fermeture",
   "closureMail.disableConfirm": "Désactiver cette fermeture ? Les créneaux d'enlèvement de cette période pourront de nouveau être réservés.",
-  "closureMail.removeConfirm": "Supprimer définitivement cette fermeture ? Les enlèvements pendant cette période pourraient être de nouveau réservables. Cette action est irréversible."
+  "closureMail.removeConfirm": "Supprimer définitivement cette fermeture ? Les enlèvements pendant cette période pourraient être de nouveau réservables. Cette action est irréversible.",
+  "urgentOrderV2.priorityLegend": "P1 – Transport spécial · P2 – Livraison express · P3 – Commandes en retard · P4 – Commande du jour",
+  "urgentOrderV2.p1ApprovalConfirm": "Je confirme que la prise en charge des frais de transport spécial a été approuvée.",
+  "urgentOrderV2.wholeOrder": "Commande entière (toutes les lignes)",
+  "urgentOrderV2.individualLinesNotChecked": "Lignes individuelles non vérifiées",
+  "urgentOrderV2.wholeOrderOption": "Commande entière – toutes les lignes",
+  "urgentOrderV2.individualLinesOption": "Saisir des articles / lignes individuels",
+  "urgentOrderV2.requestScope": "Portée de la demande"
 }
