@@ -103,3 +103,12 @@ test('P0: older REF folder response cannot overwrite a newer response for the sa
   assert.equal(h.panels.length,1);
   assert.deepEqual(Array.from(h.panels[0].docs,d=>d.name),['LATEST.pdf']);
 });
+
+test('RC1959: a partial source failure keeps available documents visible and signals incomplete coverage',async()=>{
+ const h=harness({ok:true,available:true,partial:true,files:[{id:'GRAPH-1',name:'SIDE_9WX5K6.pdf'}]});
+ const pending=h.run();h.resolve();await pending;
+ assert.equal(h.panels.length,1);
+ assert.deepEqual(Array.from(h.panels[0].docs,d=>d.name),['SIDE_9WX5K6.pdf']);
+ assert.equal(h.panels[0].error,true);
+ assert.match(build,/Mindestens eine Dokumentenquelle ist derzeit nicht erreichbar/);
+});

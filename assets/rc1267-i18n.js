@@ -541,13 +541,20 @@ function watch(){
  if(observer||typeof MutationObserver==='undefined'||!d.body)return;
  observer=new MutationObserver(function(records){
   records.forEach(function(record){
+   // Legacy forms may update an existing placeholder after a language change.
+   // Observe only placeholder attributes; do not retranslate on every DOM mutation.
+   if(record.type==='attributes'&&record.attributeName==='placeholder'){
+    var node=record.target,value=node&&node.getAttribute&&q(node.getAttribute('placeholder'));
+    if(current!=='de'&&value&&keyForSource(value)&&translateLegacyValue(value,current)!==value)queueTranslateRoot(node);
+    return;
+   }
    Array.from(record.addedNodes||[]).forEach(function(node){
     if(node.nodeType===1)queueTranslateRoot(node);
     else if(node.nodeType===3)queueTranslateText(node);
    });
   });
  });
- observer.observe(d.body,{subtree:true,childList:true});
+ observer.observe(d.body,{subtree:true,childList:true,attributes:true,attributeFilter:['placeholder']});
 }
 async function boot(){
  installApiLanguageFetch();

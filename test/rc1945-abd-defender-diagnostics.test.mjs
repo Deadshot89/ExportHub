@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const {PREFIX,collectTestserviceAbdDefenderDiagnostics}=require('../api/shared/rc1945-abd-defender-diagnostics.js');
+const {PREFIX,collectTestserviceAbdDefenderDiagnostics,matchesObservedPortalAccount}=require('../api/shared/rc1945-abd-defender-diagnostics.js');
 const fixtureSource=fs.readFileSync('api/e2e-test-fixture/index.js','utf8');
 const workflowSource=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
@@ -130,4 +130,41 @@ test('RC1945: SDK connection-string failures are redacted before generic fixture
  assert.match(block,/try\s*\{[\s\S]*BlobServiceClient\.fromConnectionString\(cs\)/);
  assert.match(block,/catch\s*\(_\)\s*\{[\s\S]*diagnostics=await collectTestserviceAbdDefenderDiagnostics\(\)/);
  assert.doesNotMatch(block,/context\.log|console\.log|message\s*:\s*[^,}]+/);
+});
+
+test('RC1960: classify only the actual Azure Blob SDK endpoint, without exposing its identity',()=>{
+ assert.equal(matchesObservedPortalAccount('https://exporthubdata89.blob.core.windows.net/'),true);
+ assert.equal(matchesObservedPortalAccount('https://differentaccount.blob.core.windows.net/'),false);
+ for(const endpoint of [
+  '', 'not-a-url','http://exporthubdata89.blob.core.windows.net/',
+  'https://exporthubdata89.blob.core.windows.net.attacker.invalid/',
+  'https://corporate-custom-domain.example/',
+  'https://127.0.0.1:10000/devstoreaccount1',
+  'https://exporthubdata89.blob.core.windows.net:8080/',
+  'https://exporthubdata89.blob.core.usgovcloudapi.net/'
+ ])assert.equal(matchesObservedPortalAccount(endpoint),null,endpoint);
+});
+
+test('RC1960: account proof remains behind existing TESTSERVICE OIDC gate',()=>{
+ const start=fixtureSource.indexOf("if(action==='diagnose-abd-defender')");
+ const end=fixtureSource.indexOf("if(action==='inventory-blob-policy')",start);
+ assert.ok(start>0&&end>start);
+ const block=fixtureSource.slice(start,end);
+ assert.match(block,/matchesObservedPortalAccount\(account\.url\)/);
+ assert.match(block,/observedPortalAccountMatchesActiveBlob:diagnostics\.status==='verified'\?observedAccountMatch:null/);
+ assert.doesNotMatch(block,/console\.log|context\.log|\.setTags\(|\.upload\(|\.delete\(/);
+ assert.ok(fixtureSource.indexOf('if(!await githubOidcAuthorized(req))')<start);
+ assert.ok(fixtureSource.indexOf('requireTestservice(req,payload)')<start);
+});
+
+test('RC1961: signed TESTSERVICE workflow reports only validated storage-account tri-state',()=>{
+ assert.match(workflowSource,/const observedAccountMatch=v\.observedPortalAccountMatchesActiveBlob/);
+ assert.match(workflowSource,/observedAccountMatch===true\|\|observedAccountMatch===false\|\|observedAccountMatch===null/);
+ assert.match(workflowSource,/v\.status!=="verified"&&observedAccountMatch!==null/);
+ assert.match(workflowSource,/report\.observedPortalAccountMatchesActiveBlob=observedAccountMatch/);
+ assert.match(workflowSource,/Tatsächliches ABD-Speicherkonto entspricht Portalbefund/);
+ const begin=workflowSource.indexOf('const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob');
+ const end=workflowSource.indexOf('console.log("RC1945 Defender-Scan-Diagnose ',begin);
+ assert.ok(begin>=0&&end>begin);
+ assert.doesNotMatch(workflowSource.slice(begin,end),/account\.url|connectionString|AccountKey|sasToken/);
 });

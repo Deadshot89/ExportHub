@@ -115,3 +115,49 @@ test('navigation badge uses cookie-only sessions and never shows a stale count a
  handlers['exporthub:logout']();
  assert.equal(node.badge.hidden,true,'logout hides count immediately');
 });
+
+test('RC1960: rejected badge counts back off 5 minutes, but a new session retries immediately',async()=>{
+ const source=menu.slice(menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count'));
+ assert.ok(source.startsWith('/* Urgent Order:'));
+ for(const denial of [401,403]){
+  let now=1000000,calls=0,reply={ok:false,status:denial};
+  const handlers={},styleHost={appendChild(node){styleHost.style=node}};
+  const node={badge:null,setAttribute(){},appendChild(el){this.badge=el},
+   querySelector(sel){return sel==='[data-urgent-open-count]'?this.badge:null}};
+  const d={hidden:false,readyState:'complete',head:styleHost,documentElement:styleHost,
+   querySelector(sel){return sel==='[data-exporthub-urgent-nav]'?node:null},
+   getElementById(id){return id==='exporthub-urgent-nav-counter-style'?styleHost.style||null:null},
+   createElement(name){return {tagName:name,hidden:false,dataset:{},setAttribute(){}}},
+   addEventListener(name,fn){handlers[name]=fn}};
+  const w={document:d,sessionStorage:{getItem(){return '{}'}},
+   addEventListener(name,fn){handlers[name]=fn},setInterval(){},
+   async fetch(){calls++;return reply}};
+  const Clock={now:()=>now};
+  vm.runInNewContext(source,{window:w,document:d,globalThis:w,Date:Clock,Promise,JSON,Number,Error});
+  const flush=()=>new Promise(resolve=>setImmediate(resolve));
+  await flush();
+  assert.equal(calls,1,'first cookie-only request is always attempted');
+  assert.equal(node.badge.hidden,true,'a denial cannot expose stale counts');
+  for(const event of ['focus','exporthub:state-loaded','focus'])handlers[event]();
+  await flush();
+  assert.equal(calls,1,'focus and state-loaded cannot flood denied endpoint');
+  now+=299999;handlers.focus();await flush();
+  assert.equal(calls,1,'still inside the auth backoff window');
+  now+=2;reply={ok:true,status:200,json:async()=>({ok:true,open:4})};
+  handlers.focus();await flush();
+  assert.equal(calls,2,'bounded retry is allowed after five minutes');
+  assert.equal(node.badge.textContent,'4');
+  assert.equal(node.badge.hidden,false);
+  now+=1000;reply={ok:false,status:denial};handlers.focus();await flush();
+  assert.equal(calls,3);
+  assert.equal(node.badge.hidden,true);
+  reply={ok:true,status:200,json:async()=>({ok:true,open:2})};
+  handlers['exporthub:authenticated']();await flush();
+  assert.equal(calls,4,'a real session event bypasses cooldown and refreshes');
+  assert.equal(node.badge.textContent,'2');
+  assert.equal(node.badge.hidden,false);
+  handlers['exporthub:logout']();handlers.focus();await flush();
+  assert.equal(calls,4,'after logout the protected counts API is never called');
+  assert.equal(node.badge.hidden,true);
+ }
+});

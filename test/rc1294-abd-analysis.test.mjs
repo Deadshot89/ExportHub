@@ -165,3 +165,35 @@ test('RC1793 API: missing Defender scan tag after 120 s reports delay, never gra
   assert.equal(rec.deleted,true);
  }finally{fx.restore()}
 });
+
+
+test('RC1959 API: stale Defender clean tag cannot authorize altered CSV bytes',async()=>{
+ const fx=loadEndpoint();
+ try{
+  const csv='Pos;Warenbeschreibung;HS Code;Ursprungsland;Eigenmasse;Warenwert;Währung\n1;Teil A;39269097;DE;12,5;245,90;EUR';
+  const upload=await fx.call({action:'upload',file:{name:'original.csv',type:'text/csv',base64:Buffer.from(csv).toString('base64')}});
+  assert.equal(upload.status,202);
+  const rec=[...fx.records.values()][0];
+  rec.tags['Malware scanning scan result']='No threats found';
+  rec.buffer=Buffer.from('Pos;HS Code\n1;99999999','utf8');
+  const status=await fx.call({action:'status',uploadId:upload.body.upload.id});
+  assert.equal(status.status,409);
+  assert.equal(status.body.code,'ABD_SCAN_CONTENT_MISMATCH');
+  assert.equal(status.body.analysis,undefined,'never parse content not covered by original upload hash');
+  assert.equal(rec.deleted,true,'tainted quarantine object must be discarded');
+ }finally{fx.restore()}
+});
+
+test('RC1959 API: oversized replacement after clean tag fails before parsing',async()=>{
+ const fx=loadEndpoint();
+ try{
+  const upload=await fx.call({action:'upload',file:{name:'original.csv',type:'text/csv',base64:Buffer.from('Pos;HS Code\n1;39269097').toString('base64')}});
+  const rec=[...fx.records.values()][0];
+  rec.tags['Malware scanning scan result']='No threats found';
+  rec.buffer=Buffer.alloc(12*1024*1024+1,65);
+  const status=await fx.call({action:'status',uploadId:upload.body.upload.id});
+  assert.equal(status.status,409);
+  assert.equal(status.body.code,'ABD_SCAN_CONTENT_MISMATCH');
+  assert.equal(rec.deleted,true);
+ }finally{fx.restore()}
+});

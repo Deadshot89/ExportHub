@@ -83,7 +83,17 @@ function scope(environment,current){return pdfSecurity.scopeHash('abd-analysis|'
 function uploadId(hash,kind,nonce){return hash+':'+kind+(nonce?':'+nonce:'')}
 function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|txt|tsv|jpg|png)(?::([a-f0-9]{32}))?$/);return m?{sha256:m[1],kind:m[2],nonce:m[3]||''}:null}
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+(id.nonce?'-'+id.nonce:'')+'.'+id.kind}
-async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
+async function readBuffer(blob){
+ const r=await blob.download(0),chunks=[];let total=0;
+ for await(const part of r.readableStreamBody){
+  const chunk=Buffer.from(part);total+=chunk.length;
+  // Defender tags describe uploaded content, not arbitrarily replaced blob data.
+  // Fail closed before an oversized or replaced blob can reach a parser.
+  if(total>MAX_BYTES)throw error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+  chunks.push(chunk);
+ }
+ return Buffer.concat(chunks,total)
+}
 function cellText(cell){
  if(cell==null)return'';
  if(typeof cell==='string'||typeof cell==='number'||typeof cell==='boolean')return String(cell);
@@ -185,7 +195,12 @@ async function status(req,current,environment,payload){
  const encoded=text(props&&props.metadata&&props.metadata.name);let name='ABD-Datei.'+id.kind;
  try{if(encoded)name=safeName(Buffer.from(encoded,'base64url').toString('utf8'))}catch(_){}
  let analysis;
- try{analysis=await analyzeFile(await readBuffer(blob),name,id.kind)}
+ try{
+  const scannedBytes=await readBuffer(blob);
+  const actualSha256=crypto.createHash('sha256').update(scannedBytes).digest('hex');
+  if(actualSha256!==id.sha256)throw error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+  analysis=await analyzeFile(scannedBytes,name,id.kind);
+ }
  catch(e){throw error(e&&e.code||'ABD_ANALYSIS_FAILED',e&&e.message||apiI18n.t(req,'api.abdAnalysis.failed'),e&&e.status||422)}
  finally{await blob.deleteIfExists().catch(()=>{})}
  return{httpStatus:200,body:{ok:true,status:'ready',provider:'Microsoft Defender for Storage',scanResult:scan.result||'',analysis}}
