@@ -15,17 +15,18 @@ const mergeSource=source.slice(start,end);
 const handlerSource=source.slice(handlerStart,handlerEnd);
 const text=v=>String(v==null?'':v).trim();
 
-function exercise({graph=[],azure=[],docs=[],failGraph=false,failAzure=false,failDocs=false,auth=false}={}){
+function exercise({graph=[],azure=[],docs=[],failGraph=false,failAzure=false,failDocs=false,auth=false,gate=null}={}){
  const calls=[];
+ if(gate)gate.calls=calls;
  const denied=Object.assign(new Error('Session denied'),{code:'AUTH_REQUIRED',status:401});
  const scope={
   module:{exports:{}},text,lower:v=>text(v).toLowerCase(),
   validateSession:async()=>{if(auth)throw denied;return{user:{id:'synthetic'}}},
   publicAccess:{environment:()=> 'production'},
   refValue:v=>{const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw new Error('Invalid REF');return ref},
-  avBlob:{list:async ref=>{calls.push('azure:'+ref);if(failAzure)throw Error('synthetic-azure-error');return azure}},
-  refDocBlob:{list:async ref=>{calls.push('refdoc:'+ref);if(failDocs)throw Error('synthetic-refdoc-error');return docs}},
-  listFiles:async ref=>{calls.push('graph:'+ref);if(failGraph)throw Object.assign(Error('synthetic-graph-error'),{code:'GRAPH_LIST_FAILED',status:403});return{files:graph,folderPath:'REF/'+ref,folderMissing:graph.length===0}},
+  avBlob:{list:async ref=>{calls.push('azure:'+ref);if(gate)await gate.wait;if(failAzure)throw Error('synthetic-azure-error');return azure}},
+  refDocBlob:{list:async ref=>{calls.push('refdoc:'+ref);if(gate)await gate.wait;if(failDocs)throw Error('synthetic-refdoc-error');return docs}},
+  listFiles:async ref=>{calls.push('graph:'+ref);if(gate)await gate.wait;if(failGraph)throw Object.assign(Error('synthetic-graph-error'),{code:'GRAPH_LIST_FAILED',status:403});return{files:graph,folderPath:'REF/'+ref,folderMissing:graph.length===0}},
   folderPath:ref=>'REF/'+ref,
   error:(code,message,status)=>Object.assign(new Error(message||code),{code,status}),
   json:(status,body)=>({status,body:JSON.stringify(body)}),
@@ -102,4 +103,18 @@ test('RC1959: unauthorized callers cannot enumerate any document source',async()
  const r=await exercise({auth:true});
  assert.equal(r.status,401);
  assert.deepEqual(r.calls,[]);
+});
+
+test('RC1959: independent authorized Graph and Azure listings all start before the slowest source finishes',async()=>{
+ let release;
+ const gate={wait:new Promise(resolve=>{release=resolve})};
+ const pending=exercise({graph:[graphFile],azure:[avFile],docs:[refFile],gate});
+ // The old sequential implementation started only Azure AV before the gate released.
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(gate.calls,['azure:9WX5K6','refdoc:9WX5K6','graph:9WX5K6']);
+ release();
+ const r=await pending;
+ assert.equal(r.status,200);
+ assert.equal(r.body.partial,false);
+ assert.deepEqual(Array.from(r.body.files,f=>f.id),[graphFile.id,avFile.id,refFile.id]);
 });

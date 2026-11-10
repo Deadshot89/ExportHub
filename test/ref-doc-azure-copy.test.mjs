@@ -48,7 +48,11 @@ test('Dokument-Azure-Kopie: Liste und Download führen Azure-Dokumente mit Share
   assert.match(refs, /refDocBlob\.read\(ref,env,itemId\)/);
   assert.match(refs, /refDocBlob\.list\(ref,env\)/);
   assert.match(refs, /storage:'azure-refdoc'/);
-  assert.match(refs, /if\(!azure\.length&&!docs\.length\)throw e/, 'Graph-Ausfall ist nur ohne Azure-Dokumente ein Fehler');
+  // RC1962 starts independent sources concurrently. The graphError branch keeps
+  // Azure originals visible while failing closed if all source inventories are empty.
+  assert.match(refs, /Promise\.allSettled\(\[/, 'unabhängige REF-Quellen parallel lesen');
+  assert.match(refs, /if\(graphError\)\{\s*if\(!azure\.length&&!docs\.length\)throw graphError;/,
+    'Graph-Ausfall ist nur ohne Azure-Dokumente ein Fehler');
 });
 
 // ---- Avis -----------------------------------------------------------------------------
