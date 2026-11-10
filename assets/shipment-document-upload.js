@@ -118,7 +118,7 @@ function showReviewDocuments(ref,items){
    var actions=el('div',{class:'eh-review-actions'}),plus=el('button',{type:'button',class:'ghost'},t('reviewAdd')),approve=el('button',{type:'button',class:'btn primary'},t('reviewConfirm'));
    plus.addEventListener('click',function(){if(tbody.children.length<100)appendReviewRow(tbody,{})});
    approve.addEventListener('click',async function(){
-    if(ref!==refOf(currentShipment()))return;
+    if(ref!==refOf(currentShipment())||selectedAvisAudience()!=='customer')return;
     var rows=Array.from(tbody.querySelectorAll('[data-review-row]')).map(function(row){
      var data={};row.querySelectorAll('[data-review-field]').forEach(function(input){data[input.getAttribute('data-review-field')]=q(input.value)});return data
     });
@@ -178,26 +178,54 @@ async function uploadOne(ref,file,docKind){
   var data=await readBase64(file);
   var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'upload-document',kind:docKind,reference:ref,fileName:file.name,mimeType:file.type,data:data})}),body={};
   try{body=await res.json()}catch(_){}
-  if(!res.ok||body.ok===false)throw new Error(q(body.message)||('HTTP '+res.status));
-  var info=body.file||{};info.sharepointSaved=body.sharepointSaved;info.azureSaved=body.azureSaved;return info;
+  if(!res.ok||body.ok!==true)throw new Error(q(body.message)||('HTTP '+res.status));
+  var info=body.file||{};
+  // HTTP 200 alone does not prove a file was written. Require a concrete receipt
+  // and re-read the exact REF file identity, including its full byte size.
+  if(!q(info.id)||!q(info.name)||!(Number(info.size)>0)||Number(info.size)!==file.size||
+    (!body.azureSaved&&!body.sharepointSaved))throw new Error(t('uploadUnverified'));
+  var check=await fetch('/api/reference-files?reference='+encodeURIComponent(ref),
+    {method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'}),listing={};
+  try{listing=await check.json()}catch(_){}
+  if(!check.ok||listing.ok!==true||(listing.reference&&q(listing.reference).toUpperCase()!==ref)||
+   !Array.isArray(listing.files)||!listing.files.some(function(saved){
+    return q(saved.id)===q(info.id)&&q(saved.name)===q(info.name)&&Number(saved.size)===file.size;
+   }))throw new Error(t('uploadNotListed'));
+  // Azure already verifies SHA-256 bytes server-side. If only SharePoint saved,
+  // require a readable byte-exact archive copy before reporting success.
+  if(!body.azureSaved&&body.sharepointSaved){
+   var download=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(info.id),
+    {method:'GET',headers:requestHeaders(),credentials:'same-origin',cache:'no-store'});
+   if(!download.ok||typeof download.arrayBuffer!=='function')throw new Error(t('uploadNotReadable'));
+   var stored=new Uint8Array(await download.arrayBuffer()),original=new Uint8Array(await file.arrayBuffer());
+   if(stored.length!==original.length||stored.some(function(byte,i){return byte!==original[i]}))
+    throw new Error(t('uploadNotReadable'));
+  }
+  return{id:info.id,name:info.name,size:info.size,
+   sharepointSaved:body.sharepointSaved===true,azureSaved:body.azureSaved===true};
 }
 async function uploadAll(){
   var ref=refOf(currentShipment());
   if(!ref||busy)return false;
   if(!picked.length){window.alert(t('noFiles'));return false}
-  busy=true;var files=picked.slice(),docKind=KINDS.indexOf(kind)>=0?kind:'sonstiges',ok=0;
+  busy=true;var files=picked.slice(),docKind=KINDS.indexOf(kind)>=0?kind:'sonstiges',ok=0,azureCopies=0,sharepointCopies=0;
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
   for(var i=0;i<files.length;i++){
     log[i]={state:'busy',text:t('busy',{name:files[i].name})};renderList();
-    try{var info=await uploadOne(ref,files[i],docKind);ok++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
+    try{var info=await uploadOne(ref,files[i],docKind);ok++;if(info.azureSaved)azureCopies++;if(info.sharepointSaved)sharepointCopies++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
   }
   log.push({state:ok===files.length?'ok':'error',text:t('summary',{ok:ok,total:files.length})});
-  picked=[];busy=false;renderList();
+  // Failed files remain selectable for a deliberate retry. Never count an
+  // unverified response as successful or claim all copies are in SharePoint.
+  picked=files.filter(function(_,index){return log[index]&&log[index].state!=='ok'});busy=false;renderList();
+  if(ok){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{
+    detail:{reference:ref,kind:docKind,count:ok,referenceFolder:sharepointCopies===ok,
+      azureSaved:azureCopies>0,azureCopies:azureCopies,sharepointCopies:sharepointCopies}}))}catch(_){}
+    var view=window.ExportHUBShipmentView;
+    if(refOf(currentShipment())===ref&&view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   if(ok&&reviewPanel())loadReview(ref);
-  if(ok){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:docKind,count:ok,referenceFolder:true}}))}catch(_){}
-    var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles()}
   return ok===files.length;
 }
 document.addEventListener('click',function(e){
