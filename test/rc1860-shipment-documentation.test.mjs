@@ -77,7 +77,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
  const azure=JSON.parse(fs.readFileSync('api/shipment-documentation/function.json','utf8'));
- assert.match(build,/rc1860-shipment-documentation\.js\?v=1931/);
+ assert.match(build,/rc1860-shipment-documentation\.js\?v=1932/);
  assert.match(build,/'assets\/rc1860-shipment-documentation\.js'/);
  assert.match(ui,/getElementById\('rc786ReferenceFilesCard'\)/);
  assert.match(ui,/action:'complaint'/);
@@ -196,4 +196,15 @@ test('TESTSERVICE kann keine Produktionssendung als eigene Dokumentation freigeb
  assert.equal((await get('ABC123')).status,404);
  assert.equal((await get('XYZ987')).status,200);
  assert.equal(requestedPath,'testservice/shipment-documentation/XYZ987.json');
+});
+
+
+test('RC1860: vier abbestellte Felder fehlen in Sendungsansicht und gespeicherte Werte bleiben erhalten',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(ui,new RegExp("\\['"+field+"'"),'Shipment view must not render '+field);
+ }
+ assert.match(ui,/Object\.assign\(\{\},activeRecord&&activeRecord\.fields\|\|\{\},values\(box\)\)/,'Save must preserve stored legacy fields');
+ assert.match(ui,/\['carrier',tr\('carrier'\),'text'\]/,'Carrier remains editable');
+ assert.match(ui,/\['remarks',tr\('remarks'\),'textarea',true\]/,'Notes remain editable');
 });
