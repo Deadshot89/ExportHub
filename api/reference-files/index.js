@@ -57,6 +57,23 @@ async function graphFetch(url,options,environment='production'){const token=awai
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','api.reference.invalidReference',400);return ref}
 function folderPath(ref){return REFERENCE_FOLDER+'/'+ref}
+function mergeReferenceFileSources(graphFiles,azure,docs){
+ // A name is not a storage identity: distinct Graph/AV/REF originals may share a filename.
+ const files=Array.from(graphFiles||[]),seen=new Set();
+ files.forEach(file=>{if(file&&text(file.id))seen.add('graph:'+text(file.id))});
+ for(const {storage,items} of [{storage:'azure-av',items:azure},{storage:'azure-refdoc',items:docs}]){
+  for(const file of Array.isArray(items)?items:[]){
+   const id=text(file&&file.id),name=text(file&&file.name);
+   if(!id||!name)continue;
+   const key=storage+':'+id;
+   if(seen.has(key))continue;
+   seen.add(key);
+   files.push({id,name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+    lastModifiedDateTime:file.lastModifiedDateTime,storage});
+  }
+ }
+ return files;
+}
 async function listFiles(ref,req){
  const environment=publicAccess.environment(req,{});
  const target=referenceFolder.exactTarget(environment);
@@ -249,21 +266,31 @@ module.exports=async function(context,req){
     'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
     'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
   }
-  const azure=await avBlob.list(ref,env);
-  // Azure-Kopien von Sendungsdokumenten: ein Lesefehler im Speicher darf die SharePoint-Liste nicht blockieren.
-  let docs=[];try{docs=await refDocBlob.list(ref,env)}catch(_){docs=[]}
-  let listed,graphError=null;
-  try{listed=await listFiles(ref,req)}
-  catch(e){graphError=e;if(!azure.length&&!docs.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
-  const files=Array.from(listed.files||[]);
-  for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
-   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
-  for(const file of docs){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
-   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
-     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-refdoc'});}
+  // All three listings are independent, read-only and already authorized.
+  // Run them together: a slow Azure source must not delay the start of Graph.
+  // allSettled preserves each source error so a partial list is never reported as complete.
+  const [avResult,docResult,graphResult]=await Promise.allSettled([
+   Promise.resolve().then(()=>avBlob.list(ref,env)),
+   Promise.resolve().then(()=>refDocBlob.list(ref,env)),
+   Promise.resolve().then(()=>listFiles(ref,req))
+  ]);
+  const azure=avResult.status==='fulfilled'&&Array.isArray(avResult.value)?avResult.value:[];
+  const docs=docResult.status==='fulfilled'&&Array.isArray(docResult.value)?docResult.value:[];
+  const azureError=avResult.status==='rejected'?avResult.reason:null;
+  const docsError=docResult.status==='rejected'?docResult.reason:null;
+  const graphError=graphResult.status==='rejected'?graphResult.reason:null;
+  let listed=graphResult.status==='fulfilled'?graphResult.value:null;
+  if(graphError){
+   if(!azure.length&&!docs.length)throw graphError;
+   listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''};
+  }
+  const files=mergeReferenceFileSources(listed.files,azure,docs);
+  // Never claim "0 documents" when an independent source was unreadable.
+  if(!files.length&&(azureError||docsError))throw error('REFERENCE_FILE_SOURCES_INCOMPLETE',
+   'Die Dokumentenquellen konnten nicht vollständig geprüft werden. Bitte erneut laden.',503);
   if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
-    folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,files});return}
+    folderMissing:listed.folderMissing&&!azure.length&&!docs.length,sharepointAvailable:!graphError,
+    partial:!!(graphError||azureError||docsError),files});return}
   const item=files.find(f=>f.id===itemId);
   if(!item)throw error('FILE_NOT_FOUND','api.reference.fileNotFound',404);
   if(Number(item.size||0)>MAX_FILE_BYTES)throw error('FILE_TOO_LARGE','api.reference.fileTooLarge',413);
