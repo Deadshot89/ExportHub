@@ -2684,5 +2684,12 @@
   "closureMail.activate": "Schließzeit aktivieren",
   "closureMail.deactivate": "Schließzeit deaktivieren",
   "closureMail.disableConfirm": "Schließzeit wirklich deaktivieren? Abholtermine in diesem Zeitraum können dann wieder gebucht werden.",
-  "closureMail.removeConfirm": "Schließzeit wirklich löschen? Dadurch können Abholtermine in diesem Zeitraum wieder buchbar werden. Dieser Schritt kann nicht rückgängig gemacht werden."
+  "closureMail.removeConfirm": "Schließzeit wirklich löschen? Dadurch können Abholtermine in diesem Zeitraum wieder buchbar werden. Dieser Schritt kann nicht rückgängig gemacht werden.",
+  "urgentOrderV2.priorityLegend": "P1 – Sondertransport · P2 – Express-Lieferung · P3 – Backlog (Rückstand) · P4 – Auftrag von heute",
+  "urgentOrderV2.p1ApprovalConfirm": "Ich bestätige, dass die Übernahme der Sondertransportkosten genehmigt wurde.",
+  "urgentOrderV2.wholeOrder": "Kompletter Auftrag (alle Positionen)",
+  "urgentOrderV2.individualLinesNotChecked": "Einzelpositionen nicht geprüft",
+  "urgentOrderV2.wholeOrderOption": "Kompletter Auftrag – alle Lines",
+  "urgentOrderV2.individualLinesOption": "Einzelne Artikel / Lines erfassen",
+  "urgentOrderV2.requestScope": "Umfang der Anfrage"
 }
