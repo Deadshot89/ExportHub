@@ -64,11 +64,15 @@ function publicNotice(s,lang,now){
  const l=langOf(lang),t=COPY[l];
  return{title:t[0],intro:t[1],lastLabel:t[2],lastPickup:fmt(s.lastPickup,l),closedLabel:t[3],closedFrom:fmt(s.closedFrom,l),closedUntil:fmt(s.closedUntil,l),firstLabel:t[4],firstPickup:fmt(s.firstPickup,l),greeting:t[5],animate:s.animate===true};
 }
+function emailBlock(s,lang,now){
+ if(!isActive(s,'mail',now))return '';
+ const l=langOf(lang),t=COPY[l];
+ return [t[0],t[1],t[2]+': '+fmt(s.lastPickup,l),t[3]+': '+fmt(s.closedFrom,l)+' – '+fmt(s.closedUntil,l),t[4]+': '+fmt(s.firstPickup,l),t[5]].join('\n');
+}
 function appendEmail(body,s,lang,now){
  const base=String(body==null?'':body);
- if(!isActive(s,'mail',now))return base;
- const l=langOf(lang),t=COPY[l];
- const extra=[t[0],t[1],t[2]+': '+fmt(s.lastPickup,l),t[3]+': '+fmt(s.closedFrom,l)+' – '+fmt(s.closedUntil,l),t[4]+': '+fmt(s.firstPickup,l),t[5]].join('\n');
+ const extra=emailBlock(s,lang,now);if(!extra)return base;
+ const l=langOf(lang);
  const sig={de:/\n(?:Mit freundlichen Grüßen|Viele Grüße)\s*$/i,en:/\n(?:Kind regards|Best regards)\s*$/i,pl:/\nZ poważaniem\s*$/i,es:/\nAtentamente\s*$/i,fr:/\nCordialement\s*$/i,it:/\nCordiali saluti\s*$/i}[l];
  const m=base.match(sig);
  return m?base.slice(0,m.index).trimEnd()+'\n\n'+extra+'\n\n'+base.slice(m.index).trimStart():base+'\n\n'+extra;
@@ -95,4 +99,4 @@ async function save(env,input){
  }
  throw auth.error('AVIS_NOTICE_WRITE_CONFLICT','Einstellungen wurden gleichzeitig geändert.',409);
 }
-module.exports={normalize,berlinNow,isActive,langOf,publicNotice,appendEmail,load,save};
+module.exports={normalize,berlinNow,isActive,langOf,publicNotice,emailBlock,appendEmail,load,save};
