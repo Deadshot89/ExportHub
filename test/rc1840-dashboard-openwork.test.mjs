@@ -54,6 +54,10 @@ test('Open-work API reads authenticated aggregate count only; rejects unauthoriz
   assert.equal(JSON.parse(calls[0].options.body).action,'counts');
   ctx.w.fetch=async()=>({ok:false,status:403});
   await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_UNAVAILABLE/);
+  // A denied session must respect its backoff; a new login then resets the gate.
+  await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_AUTH_BACKOFF/);
+  ctx.openWorkEpoch++;
+  ctx.openWorkAuthBackoff={urgent:0,quality:0};
   ctx.w.fetch=async()=>({ok:true,redirected:false,type:'basic',headers:{get:()=> 'application/json'},json:async()=>({ok:true,open:'0'})});
   await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_INVALID/);
 });
