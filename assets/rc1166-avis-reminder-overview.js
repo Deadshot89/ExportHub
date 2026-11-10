@@ -222,6 +222,14 @@ function recordDraft(sh,result,mode,target,language){
  }
  try{w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}));schedule()}catch(_){}
 }
+function withClosureMailNotice(content,lang){
+ var runtime=w.ExportHUBRC1065RegistrationCC;
+ var notice='';
+ try{if(runtime&&typeof runtime.closureNoticeText==='function')notice=q(runtime.closureNoticeText(lang))}catch(_){notice=''}
+ if(!notice||q(content).indexOf('=== ExportHUB360 ===')>=0)return content;
+ return content+'\n\n'+notice
+}
+
 async function carrierAudienceLink(sh){
  var api=w.ExportHUBRC1027Lieferavis;
  if(!api||typeof api.carrierAvisUrl!=='function')throw new Error('Separate carrier AVIS link is unavailable.');
@@ -235,12 +243,28 @@ async function sendReminder(sh,email,target,lang,url,mode){
  if(!gate.enabled||gate.mode!==mode){var unavailable=new Error(tr(gate.reason==='pickup-date'?'avisReminder.pickupRecorded':'avisReminder.notReady'));unavailable.code='AVIS_DRAFT_NOT_READY';throw unavailable}
  if(closed(sh)||exception(sh)||!avisLink(sh))throw new Error(tr('avisReminder.notReady'));
  url=target==='carrier'?await carrierAudienceLink(sh):safeAvisLink(sh,url||avisLink(sh));
- var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),cc=draftCc(sh,email);
+ var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=withClosureMailNotice(mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),lang),cc=draftCc(sh,email);
  var href='mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&cc='+encodeURIComponent(cc.join(';'))+'&body='+encodeURIComponent(content);
  var link=d.createElement('a');link.href=href;link.style.display='none';link.setAttribute('aria-hidden','true');link.setAttribute('data-rc1166-mail-draft','1');d.body.appendChild(link);
  try{link.click()}finally{link.remove()}
  var result={openedAt:new Date().toISOString(),to:q(email),subject:sub,cc:emails(new URL(href).searchParams.get('cc'))};
  recordDraft(sh,result,mode,target,lang);
+ return result
+}
+
+async function previewHtmlAvis(sh,email,target,lang,url,mode){
+ // This endpoint uses the same server-side HTML renderer as Graph sending.
+ if(avisRecipientExcluded(email))throw new Error('AVIS_RECIPIENT_EXCLUDED');
+ lang=normalizeLanguage(lang);target=target==='carrier'?'carrier':'customer';mode=mode==='initial'?'initial':'reminder';
+ var response=await w.fetch('/api/avis-reminder-mail',{
+  method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-ExportHUB-Environment':environmentName()},
+  body:JSON.stringify({action:'preview',shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target,language:lang,mode:mode,avisUrl:safeAvisLink(sh,url||avisLink(sh))})
+ });
+ var result=await response.json().catch(function(){return{}});
+ if(!response.ok||result.ok!==true||result.preview!==true||typeof result.html!=='string'||result.html.length>100000){
+  var err=new Error(q(result.message)||tr('closureMail.previewFailed',null,lang));
+  err.code=q(result.code)||'AVIS_HTML_PREVIEW_FAILED';throw err
+ }
  return result
 }
 
@@ -284,7 +308,7 @@ async function sendHtmlAvis(sh,email,target,lang,url,mode){
 function inOverview(){var b=d.body;return !!(b&&low(b.getAttribute('data-exporthub-view'))==='shipmentoverview')}
 function ensureStyle(){
  if(d.getElementById('rc1166AvisReminderStyle'))return;
- var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}.rc1207-send-status{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700}.rc1207-send-status[data-kind="ok"]{background:#ecfdf5;color:#166534;border:1px solid #86efac}.rc1207-send-status[data-kind="bad"]{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
+ var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}.rc1328-closure-preview{white-space:pre-line;padding:14px 16px;border:2px solid #b45309;border-radius:10px;background:#fff7ed;color:#78350f;font-weight:600;line-height:1.5;margin:12px 0}.rc1328-closure-preview[hidden]{display:none}.rc1328-pickup-warning{padding:12px 14px;margin:10px 0;border-radius:9px;background:#fff7ed;border:2px solid #b45309;color:#78350f;font-size:14px;font-weight:700;line-height:1.4}.rc1328-html-preview{border:1px solid #cbd5e1;border-radius:10px;margin:10px 0;overflow:hidden}.rc1328-html-preview[hidden]{display:none}.rc1328-html-preview .rc1166-note{padding:10px;background:#f1f5f9;color:#334155;font-weight:700}.rc1328-html-preview iframe{width:100%;min-height:370px;border:0;background:white;display:block}.rc1207-send-status{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700}.rc1207-send-status[data-kind="ok"]{background:#ecfdf5;color:#166534;border:1px solid #86efac}.rc1207-send-status[data-kind="bad"]{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function closeDialog(){if(dialog&&dialog.parentNode)dialog.parentNode.removeChild(dialog);dialog=null}
@@ -292,19 +316,22 @@ function options(list){return list.map(function(x){return'<option value="'+esc(x
 function openDialog(sh,mode){
  mode=mode==='initial'?'initial':'reminder';
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><p class="rc1166-note" data-html-hint></p><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-html-send></button><button type="button" class="ghost" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><div class="rc1328-closure-preview" data-closure-preview role="note" hidden></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><p class="rc1166-note" data-html-hint></p><section class="rc1328-html-preview" data-html-preview-panel hidden><div class="rc1166-note" data-preview-subject></div><iframe data-preview-frame sandbox title="'+esc(tr('closureMail.htmlPreview'))+'"></iframe></section><div class="rc1166-actions"><button type="button" class="ghost" data-html-preview>'+esc(tr('closureMail.htmlPreview'))+'</button><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-html-send></button><button type="button" class="ghost" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
  d.body.appendChild(dialog);
- var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]'),htmlSend=dialog.querySelector('[data-html-send]'),htmlHint=dialog.querySelector('[data-html-hint]');
+ var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),closurePreview=dialog.querySelector('[data-closure-preview]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]'),htmlSend=dialog.querySelector('[data-html-send]'),htmlHint=dialog.querySelector('[data-html-hint]'),htmlPreview=dialog.querySelector('[data-html-preview]'),previewPanel=dialog.querySelector('[data-html-preview-panel]'),previewFrame=dialog.querySelector('[data-preview-frame]'),previewSubject=dialog.querySelector('[data-preview-subject]'),previewGeneration=0;
  var previewRequest=0;
  function refresh(){
+  previewGeneration++;
   var revision=++previewRequest,t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
   var previewUrl=t==='carrier'?'[…]':url;
-  text.value=mode==='initial'?initialBody(sh,t,l,previewUrl):body(sh,t,l,previewUrl);
-  var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>';
+  text.value=withClosureMailNotice(mode==='initial'?initialBody(sh,t,l,previewUrl):body(sh,t,l,previewUrl),l);
+  var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlPreview.disabled=!has;previewPanel.hidden=true;previewFrame.removeAttribute('srcdoc');htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>';
+  var notice='';try{var noticeRuntime=w.ExportHUBRC1065RegistrationCC;if(noticeRuntime&&typeof noticeRuntime.closureNoticeText==='function')notice=q(noticeRuntime.closureNoticeText(l))}catch(_){}
+  if(closurePreview){closurePreview.textContent=notice;closurePreview.hidden=!notice}
   if(t==='carrier')carrierAudienceLink(sh).then(function(carrierUrl){
    if(revision!==previewRequest||!dialog||target.value!=='carrier')return;
-   text.value=mode==='initial'?initialBody(sh,t,l,carrierUrl):body(sh,t,l,carrierUrl);
+   text.value=withClosureMailNotice(mode==='initial'?initialBody(sh,t,l,carrierUrl):body(sh,t,l,carrierUrl),l);
   }).catch(function(){
    if(revision!==previewRequest||!dialog)return;
    open.disabled=true;
@@ -314,6 +341,24 @@ function openDialog(sh,mode){
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
  dialog.querySelector('[data-close]').addEventListener('click',closeDialog);
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
+ htmlPreview.addEventListener('click',async function(){
+  var email=q(recipient.value);if(!email)return;
+  var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value);
+  htmlPreview.disabled=true;previewPanel.hidden=true;sendStatus.hidden=true;sendStatus.textContent='';
+  var generation=++previewGeneration,ownDialog=dialog;
+  try{
+   var result=await previewHtmlAvis(sh,email,t,l,url,mode);
+   if(generation!==previewGeneration||dialog!==ownDialog)return;
+   // Sandbox without allow-scripts/allow-same-origin/top-navigation.
+   previewFrame.setAttribute('srcdoc',result.html);
+   previewSubject.textContent=result.subject||'';
+   previewPanel.hidden=false
+  }catch(err){
+   if(generation!==previewGeneration||dialog!==ownDialog)return;
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');
+   sendStatus.textContent=q(err&&err.message)||tr('closureMail.previewFailed',null,l)
+  }finally{htmlPreview.disabled=false}
+ });
  htmlSend.addEventListener('click',async function(){
   var email=q(recipient.value);if(!email)return;
   var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value);
@@ -340,6 +385,25 @@ function openDialog(sh,mode){
   }
  });
  refresh();return true
+}
+
+function renderPickupClosureWarning(card,sh){
+ var current=card&&card.querySelector&&card.querySelector('[data-rc1328-pickup-warning]');
+ var date=pickupDateOf(sh),slotEnd=q(sh&&(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo)),api=w.ExportHUBRC1065RegistrationCC,hit=null;
+ try{if(api&&typeof api.pickupClosureWarning==='function')hit=api.pickupClosureWarning(date,slotEnd)}catch(_){}
+ if(!hit){if(current)current.remove();return false}
+ var lang='de';
+ try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
+ var locale={de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'}[lang];
+ function formatted(v){return new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z'))}
+ var message=tr('closureMail.pickupWarning',{date:formatted(hit.pickupDate),last:formatted(hit.lastPickupDate),time:hit.lastPickupTime,from:formatted(hit.startDate),to:formatted(hit.endDate),reopen:formatted(hit.reopenDate)},lang);
+ if(!current){
+  current=d.createElement('div');current.className='rc1328-pickup-warning';
+  current.setAttribute('data-rc1328-pickup-warning','1');current.setAttribute('role','alert');
+  card.appendChild(current)
+ }
+ if(current.textContent!==message)current.textContent=message;
+ return true
 }
 
 function ensureButton(card,sh){
@@ -373,14 +437,14 @@ function overviewCards(shipments){
 function render(){
  if(!inOverview()){d.querySelectorAll('[data-rc1166-avis-reminder]').forEach(function(x){x.remove()});closeDialog();return 0}
  ensureStyle();var shipments=allShipments(),rows=overviewCards(shipments),count=0;
- rows.forEach(function(row){if(row.shipment&&ensureButton(row.card,row.shipment))count++});return count
+ rows.forEach(function(row){if(row.shipment){renderPickupClosureWarning(row.card,row.shipment);if(ensureButton(row.card,row.shipment))count++}});return count
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1316 Avis-Erinnerung',e)}catch(_){}}},0)}
 var observerCardSelector='.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference],article,.card,[role="article"]';
 function observerElement(node){return node&&node.nodeType===1?node:null}
 function ownReminderNode(node){
  var el=observerElement(node);if(!el)return false;
- try{return !!((el.matches&&el.matches('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog'))||(el.closest&&el.closest('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog')))}catch(_){return false}
+ try{return !!((el.matches&&el.matches('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog,.rc1328-pickup-warning'))||(el.closest&&el.closest('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog,.rc1328-pickup-warning')))}catch(_){return false}
 }
 function nodeTouchesOverviewCard(node){
  var el=observerElement(node);if(!el)return false;
