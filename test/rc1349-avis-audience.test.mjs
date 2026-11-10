@@ -65,6 +65,24 @@ test('RC1349 all carrier email paths must use dedicated token',()=>{
  assert.match(sender,/return replaceAvisToken\(original,issued\.token\)/);
 });
 
+test('RC1349 HTML carrier link replaces path and removes hidden customer token parameters',()=>{
+ const source=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
+ const begin=source.indexOf('function replaceAvisToken('),end=source.indexOf('async function audienceBoundMailUrl(',begin);
+ assert.ok(begin>=0&&end>begin);
+ const replace=new Function('URL','auth',source.slice(begin,end)+';return replaceAvisToken;')(URL,{error(){throw Error('Invalid URL')}});
+ for(const original of [
+  'https://www.exporthub360.de/avis/old-customer-token?token=also-customer&avis=legacy&lang=de',
+  'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=old-customer-token&lang=en',
+  'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?avis=old-customer-token&lang=pl'
+ ]){
+  const generated=new URL(replace(original,'new-carrier-token'));
+  assert.ok(!generated.href.includes('old-customer-token'));
+  assert.ok(!generated.href.includes('also-customer'));
+  assert.equal(generated.searchParams.get('avis'),null);
+  assert.equal(generated.pathname.startsWith('/avis/')?generated.pathname.slice(6):generated.searchParams.get('token'),'new-carrier-token');
+ }
+});
+
 test('RC1349 syntax: recipient-aware modules parse as JavaScript',()=>{
  for(const file of ['api/customer-avis/index.js','api/shared/public-access-store.js','api/shared/customer-avis-audience.js',
   'assets/rc1015-lieferavis-mail-flow.js','assets/rc1027-lieferavis-immediate.js','assets/rc1166-avis-reminder-overview.js','api/avis-reminder-mail/index.js']){
