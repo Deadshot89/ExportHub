@@ -56,15 +56,23 @@ function isCandidate(file,r){
   new RegExp('^Lieferschein_'+ref(r)+'_[0-9]{8}-[0-9]{6}_.+\\.pdf$','i').test(t(file.name))&&
   Number(file.size||0)>0&&Number(file.size)<=15*1024*1024;
 }
+function timestamp(file){
+ const raw=t(file&&file.createdDateTime)||t(file&&file.lastModifiedDateTime);
+ const parsed=Date.parse(raw);
+ // For an upload response no server creation date is available yet.
+ return Number.isFinite(parsed)?new Date(parsed).toISOString():new Date().toISOString();
+}
 async function register(r,e,file,sha){
  if(!file||!isCandidate(file,r)||!(/^[a-f0-9]{64}$/.test(t(sha))))return;
  return mutate(r,e,state=>{
   if(state.documents.some(d=>d.sha256===sha&&d.current===true))return false; // echte identische Kopie
-  const same=originalName(file.name);
+  const same=originalName(file.name),when=timestamp(file);
+  // A delayed discovery of an older copy must never re-activate an outdated delivery note.
+  if(state.documents.some(d=>d.current===true&&d.originalName===same&&Date.parse(d.createdAt||'')>Date.parse(when)))return false;
   state.documents.forEach(d=>{if(d.current===true&&d.originalName===same){d.current=false;d.status='superseded'}});
   if(state.documents.length>=MAX_DOCUMENTS)throw problem('DELIVERY_ITEMS_DOCUMENT_LIMIT','Zu viele Lieferscheine für eine automatische Prüfung.',409);
   state.documents.push({id:file.id,name:file.name,originalName:same,sha256:sha,
-   current:true,status:'scan_pending',scanStatus:'pending',rows:[],createdAt:new Date().toISOString()});
+   current:true,status:'scan_pending',scanStatus:'pending',rows:[],createdAt:when});
  });
 }
 // Bei Ersatz eines PDF-Lieferscheins alte Freigaben sofort zurückziehen,
@@ -81,10 +89,19 @@ async function invalidateByName(r,e,fileName){
  });
 }
 async function discover(r,e){
- const files=(await docs.list(r,e)).filter(file=>isCandidate(file,r)).slice(0,MAX_DOCUMENTS);
+ const files=(await docs.list(r,e)).filter(file=>isCandidate(file,r))
+  .sort((a,b)=>Date.parse(b.createdDateTime||'')-Date.parse(a.createdDateTime||''))
+  .slice(0,MAX_DOCUMENTS);
  let current=(await load(r,e)).state.documents;
- for(const file of files){
-  if(current.some(d=>d.id===file.id))continue;
+ const candidates=files.filter(file=>{
+  if(current.some(d=>d.id===file.id))return false;
+  const date=Date.parse(file.createdDateTime||file.lastModifiedDateTime||'');
+  // Unknown timestamps cannot safely supersede an existing current approval.
+  if(current.some(d=>d.current===true&&d.originalName===originalName(file.name)&&
+       (!Number.isFinite(date)||Date.parse(d.createdAt||'')>date)))return false;
+  return true;
+ }).slice(0,2);
+ for(const file of candidates){
   // Vor der fachlichen Erkennung nur neue Dokument-ID vormerken, noch keinen Parser ausführen.
   const result=await docs.read(r,e,file.id);
   const sha=parser.fingerprint(result.buffer);
