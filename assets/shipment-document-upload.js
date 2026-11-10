@@ -10,7 +10,7 @@ var EXT=['.pdf','.jpg','.jpeg','.png','.xlsx','.xlsm','.xls','.csv','.docx','.do
 function q(v){return String(v==null?'':v).trim()}
 // Texte liegen in assets/i18n/shipment-document-upload.js (wird vorher geladen)
 function packs(){var p=window.ExportHUBShipmentDocUploadI18n;return p&&p.packs||{de:{}}}
-function lang(){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.language==='function'){var l=q(window.ExportHUBI18n.language()).toLowerCase();if(packs()[l])return l}}catch(_){}return'de'}
+function lang(){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.language==='function'){var l=q(window.ExportHUBI18n.language()).toLowerCase().split(/[-_]/)[0];if(packs()[l])return l}}catch(_){}return'de'}
 function t(key,vars){var all=packs(),pack=all[lang()]||all.de||{},text=pack[key]||(all.de||{})[key]||key;if(vars)Object.keys(vars).forEach(function(k){text=text.split('{'+k+'}').join(String(vars[k]))});return text}
 function currentShipment(){var sh=window.__EXPORTHUB_RC776_VIEW_SHIPMENT__;return sh&&typeof sh==='object'?sh:null}
 function refOf(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
@@ -119,8 +119,7 @@ function showReviewDocuments(ref,items){
     approve.disabled=true;reviewStatus(t('reviewSaving'));
     try{
      await apiReview(ref,'POST',{documentId:doc.id,sha256:doc.sha256,rows:rows});
-     reviewStatus(t('reviewSaved'));
-     await loadReview(ref);
+     await loadReview(ref,t('reviewSaved'));
     }catch(e){reviewStatus(q(e&&e.message)||t('reviewError'));approve.disabled=false}
    });
    actions.appendChild(plus);actions.appendChild(approve);box.appendChild(actions);
@@ -129,14 +128,14 @@ function showReviewDocuments(ref,items){
   host.appendChild(box);
  });
 }
-async function loadReview(ref){
+async function loadReview(ref,successMessage){
  if(!reviewPanel()||ref!==refOf(currentShipment()))return;
  reviewStatus(t('reviewLoading'));
  try{
   var result=await apiReview(ref,'GET');
   if(ref!==refOf(currentShipment())||!reviewPanel())return;
   showReviewDocuments(ref,result.documents||[]);
-  reviewStatus(t('reviewUpdated'));
+  reviewStatus(successMessage||t('reviewUpdated'));
  }catch(e){reviewStatus(q(e&&e.message)||t('reviewUnavailable'))}
 }
 function toggleReview(){
