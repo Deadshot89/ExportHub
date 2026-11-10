@@ -176,8 +176,16 @@ async function carrierAvisUrl(sh){
   var data=await res.json().catch(function(){return{}});
   if(!res.ok||data.ok!==true||data.avisAudience!=='carrier'||!data.url)
    throw new Error(q(data.message)||tr('avisFlow.unavailable',null,'Carrier AVIS unavailable')+' ('+res.status+')');
-  var url=rc1333SafeAvisUrl(sh,data.url);
-  if(!rc1333IsSafeAvisUrl(url))throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS link'));
+  // Never pick the customer's cached token when normalizing a carrier response.
+  // Require an issued 48-hex access token that exactly matches the server URL.
+  var carrierToken=q(data.token);
+  if(!/^[a-f0-9]{48}$/i.test(carrierToken)||rc1331AvisToken({},data.url)!==carrierToken||
+   carrierToken===q(sh&&(sh.customerAvisToken||sh.avisToken)))
+   throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS token'));
+  var carrierSubject=Object.assign({},sh,{customerAvisToken:carrierToken,avisToken:carrierToken});
+  var url=rc1333SafeAvisUrl(carrierSubject,data.url);
+  if(!rc1333IsSafeAvisUrl(url)||rc1331AvisToken({},url)!==carrierToken)
+   throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS link'));
   rc1349CarrierCache[key]=url;return url
  })();
  try{return await rc1349CarrierPending[key]}
