@@ -142,9 +142,9 @@ test('RC1349 HTML mail recipient isolation: wrong-audience and foreign shipment 
   async issue(req,kind,meta){issued.push(meta);return{token:d}}
  };
  const mockAuth={environmentFromRequest(){return'testservice'},error(code,message){return Object.assign(Error(message),{code})}};
- const fn=new Function('URL','auth','publicAccess','safeAvisUrl','text',
+ const fn=new Function('URL','auth','require','safeAvisUrl','text',
   source.slice(start,end)+';return audienceBoundMailUrl;')(
-   URL,mockAuth,pub,(req,url)=>url,v=>String(v==null?'':v).trim());
+   URL,mockAuth,id=>{if(id==='../shared/public-access-store')return pub;throw Error('unexpected '+id)},(req,url)=>url,v=>String(v==null?'':v).trim());
  const sh={id:'S-123',reference:'ABC123'};
  const base='https://testservice.example/customer-avis.html?token=';
  const reused=await fn({},sh,{},'carrier',base+b);
@@ -159,6 +159,12 @@ test('RC1349 HTML mail recipient isolation: wrong-audience and foreign shipment 
  const correctCustomer=await fn({},sh,{},'customer',base+a);
  assert.equal(new URL(correctCustomer).searchParams.get('token'),a);
  assert.equal(issued.length,2);
+ // HTML preview is read-only and cannot borrow a customer's link for a carrier.
+ const customerPreview=await fn({},sh,{},'customer',base+a,true);
+ assert.equal(new URL(customerPreview).searchParams.get('token'),a);
+ const carrierPreview=await fn({},sh,{},'carrier',base+a,true);
+ assert.equal(new URL(carrierPreview).searchParams.get('token'),'preview-carrier-no-access');
+ assert.equal(issued.length,2,'Preview must not create access records');
 });
  
 test('RC1349 syntax: recipient-aware modules parse as JavaScript',()=>{
