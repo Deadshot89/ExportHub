@@ -9,6 +9,7 @@ const fakeFetch=async (url)=>({status:200,text:async()=>url.includes('/assets/')
 
 test('RC1943 live guard: deployed root and actual uploaded JavaScript are both required',()=>{
  assert.doesNotThrow(()=>assertDocumentUploadAssets(html,js,'testservice'));
+ assert.doesNotThrow(()=>assertDocumentUploadAssets(html.replace('v=1943','v=1962'),js,'testservice'));
  assert.throws(()=>assertDocumentUploadAssets('<html></html>',js,'testservice'),/workspace script/);
  assert.throws(()=>assertDocumentUploadAssets(html,'<!doctype html><html/>','testservice'),/deployed document-upload asset misses/);
  assert.throws(()=>assertDocumentUploadAssets(html,js.replace('data-rc1940-files','missing'),'testservice'),/data-rc1940-files/);
