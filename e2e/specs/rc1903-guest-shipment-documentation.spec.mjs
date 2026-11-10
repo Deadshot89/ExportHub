@@ -46,6 +46,7 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  const publicRoot=page.locator('#eh1903-guest-root');
  await expect(publicRoot).toBeVisible();
  await expect(page.getByRole('heading',{name:'Neue Sendung'})).toBeVisible();
+ await expect(publicRoot).toContainText('Die Referenznummer wird beim ersten Speichern automatisch vergeben.');
  await expect(page.locator('[data-eh1903-guest-open]')).toHaveCount(0);
  await expect(page.locator('#login')).toHaveCount(0);
  for(const removed of ['packaging','shippingMethod','contents','loadSecuring'])
@@ -59,6 +60,8 @@ test('RC1903 public link creates, uploads and submits read-only records without 
  await page.locator('[data-guest-field="weightKg"]').fill('27.5');
  await page.getByRole('button',{name:'Weiter zu Fotos und Lieferscheinen'}).click();
  await expect(publicRoot).toContainText(id);
+ await expect(page.getByText('Referenznummer: '+id)).toBeVisible();
+ await expect(page.getByRole('button',{name:'Referenz kopieren'})).toBeVisible();
  const files=page.locator('.eh1903-uploads input[type="file"]');
  await expect(files).toHaveCount(2);
  await files.nth(0).setInputFiles({name:'Abfahrt.jpg',mimeType:'image/jpeg',buffer:Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x00])});
