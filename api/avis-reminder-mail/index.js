@@ -64,6 +64,18 @@ async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl){
  const environment=auth.environmentFromRequest(req);
  const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
  const subjectId=text(shipment.id||shipment.shipmentId||ref);
+ // Reuse only a VERIFIED carrier token for this exact subject; never trust a URL flag.
+ // This avoids issuing another permanent token for every HTML mail.
+ const parsed=new URL(original),match=parsed.pathname.match(/^\/avis\/([^/]+)\/?$/i);
+ const suppliedToken=text(parsed.searchParams.get('token')||parsed.searchParams.get('avis')||(match&&decodeURIComponent(match[1])));
+ if(/^[a-f0-9]{48}$/.test(suppliedToken)){
+  try{
+   const existing=await publicAccess.resolve(req,'avis',suppliedToken,{allowUsed:true},{environment});
+   const record=existing.record||{};
+   if(record.avisAudience==='carrier'&&record.subjectId===subjectId&&record.reference===ref)
+    return replaceAvisToken(original,suppliedToken);
+  }catch(_){/* Missing, revoked or mismatched token: create an isolated carrier token. */}
+ }
  const issued=await publicAccess.issue(req,'avis',
   {subjectId,shipmentId:subjectId,reference:ref,actor:'AVIS Reminder',avisAudience:'carrier'},
   null,{environment});
