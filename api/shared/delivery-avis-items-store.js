@@ -157,8 +157,13 @@ async function approve(r,e,id,hash,rows,reviewer){
   const target=state.documents.find(d=>d.id===id&&d.sha256===hash&&d.current===true);
   if(!target||!['review_required','manual_review_required','approved'].includes(target.status))
    throw problem('DELIVERY_ITEMS_NOT_REVIEWABLE','Lieferschein ist nicht für die Freigabe verfügbar.',409);
+  const approvedAt=new Date().toISOString(),actor=t(reviewer).slice(0,120);
+  const prior=Array.isArray(target.reviewHistory)?target.reviewHistory:[];
+  // Bounded append-only approval ledger, without duplicating customer line data.
+  target.reviewHistory=prior.slice(-19).concat([{event:target.status==='approved'?'reapproved':'approved',
+   at:approvedAt,actor,rowCount:reviewed.length,rowsSha256:parser.fingerprint(Buffer.from(JSON.stringify(reviewed))),sourceSha256:hash}]);
   target.rows=reviewed;target.scanStatus='clean';target.status='approved';
-  target.reviewedBy=t(reviewer).slice(0,120);target.reviewedAt=new Date().toISOString();
+  target.reviewedBy=actor;target.reviewedAt=approvedAt;
  });
 }
 async function publicRows(r,e){
