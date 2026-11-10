@@ -122,3 +122,28 @@ No Azure storage read, ClamAV process, deployment or resource creation
 was performed. All scans and parser releases remain blocked until an
 authorized real trusted worker, malware verification and independently
 proven cost envelope are available.
+
+## RC1971 – Reject stale ClamAV signatures before scan
+
+A real performance/security gap remained in the offline worker core:
+previously, `getDefinitionsUpdatedAt()` was checked for validity only
+when creating the candidate receipt **after** running the scanner. A
+stale, future, absent or malformed signature timestamp could therefore
+consume ClamAV CPU and memory even though no candidate would be
+accepted. On a consumption-billed cloud job that is unnecessary work.
+
+The worker now checks the definition metadata immediately after the
+first signed Blob snapshot and **before** launching `clamscan`.
+It requires a positive, safe integer timestamp that is not in the future
+and no more than 24 hours old. If this fails, the scanner is never
+started and the result remains blocked with no proof or release.
+The existing post-scan verification is unchanged and still rejects
+a signature update occurring during scanning.
+
+The additional RC1971 test uses synthetic timestamps and a mock runner
+whose invocation count must remain **zero** on every invalid value.
+This proves fail-fast control flow, not the authenticity of the
+signature database or a real ClamAV malware-detection result.
+
+No Azure job, resource, queue, scan or release was activated. The
+existing ABD API continues to block unverifiable uploads.
