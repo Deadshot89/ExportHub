@@ -109,6 +109,20 @@ test('RC1945: TESTSERVICE CI uses existing OIDC fixture and never changes Azure 
  assert.doesNotMatch(workflowSource,/az security pricing create|az security pricing update|defender-plan enable/i);
 });
 
+test('RC1963: read-only Defender diagnostics have bounded transport timeouts, mutation stays separate',()=>{
+ const begin=workflowSource.indexOf('fixture() {');
+ const end=workflowSource.indexOf('fixture_response="$(mktemp)"',begin);
+ assert.ok(begin>=0&&end>begin);
+ const block=workflowSource.slice(begin,end);
+ assert.match(block,/inventory-team\|inventory-scopes\|inventory-blob-policy\|diagnose-abd-defender\)/);
+ assert.match(block,/inventory_timeout=\(--connect-timeout 8 --max-time 35\)/);
+ assert.doesNotMatch(block,/prepare\|cleanup\|upload\|scan\)/);
+ const curl=workflowSource.slice(end,workflowSource.indexOf('if [ "$fixture_status" -lt 200 ]',end));
+ assert.match(curl,/curl -sS "\$\{inventory_timeout\[@\]\}"/);
+ assert.match(workflowSource,/RC1945: Defender-Diagnoseantwort nicht vertrauenswürdig; keine Freigabe/);
+ assert.match(workflowSource,/RC1945: Defender-Tags im TESTSERVICE nicht überprüfbar; Quarantäne bleibt gesperrt/);
+});
+
 test('RC1945: stale slow tag response never yields verified inventory',async()=>{
  const h=harness([{name:'delayed.xlsx',ageMs:180000,tags:{}}]);
  let calls=0;
