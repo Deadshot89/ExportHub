@@ -327,7 +327,8 @@ function installClosureSettings(host){
     try{
      var rows=closureEntries(),current=rows[index];
      if(!current||current.startDate!==item.startDate||current.endDate!==item.endDate||
-        current.lastPickupDate!==item.lastPickupDate||current.reopenDate!==item.reopenDate)
+        current.lastPickupDate!==item.lastPickupDate||current.lastPickupTime!==item.lastPickupTime||
+        current.reopenDate!==item.reopenDate||current.enabled!==item.enabled)
       throw new Error(tr('closureMail.invalid'));
      current.enabled=current.enabled!==true;
      await persistClosureEntries(rows);display();show(tr('closureMail.saved'),'ok')
