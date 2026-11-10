@@ -132,13 +132,13 @@ jobs:
             echo "Android start result (no user data):" >&2
             cat /tmp/exporthub-first-start.txt /tmp/exporthub-restart.txt 2>/dev/null || true
             adb logcat -d -s AndroidRuntime:E -v brief 2>/dev/null |
-              grep -E 'FATAL EXCEPTION|Process: de\\.exporthub\\.test|[A-Za-z.]+(Exception|Error):' |
-              sed -E 's/([?&](token|access|secret|key)=)[^[:space:]&]+/\\1[REDACTED]/Ig' |
+              grep -E 'FATAL EXCEPTION|Process: de\.exporthub\.test|[A-Za-z.]+(Exception|Error):' |
+              sed -E 's/([?&](token|access|secret|key)=)[^[:space:]&]+/\1[REDACTED]/Ig' |
               tail -n 25 >&2 || true
           }
           persisted_testservice() {
             adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml 2>/dev/null |
-              tr -d '\\r' | grep -Fq '<string name="selected_environment">testservice</string>'
+              tr -d '\r' | grep -Fq '<string name="selected_environment">testservice</string>'
           }
           wait_for_environment() {
             local attempt
