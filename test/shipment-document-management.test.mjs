@@ -41,7 +41,8 @@ test('API: authentifizierte Löschung nur für exakt nachgewiesene Upload-ID', (
 });
 
 test('AVIS: entfernte Dokumente werden nicht über Graph erneut veröffentlicht', () => {
- assert.match(avis, /filters=await refDocStore\.removalFilters\(reference,environment\)/);
+ assert.match(avis, /removal=await refDocStore\.removalFilters\(reference,environment\)/);
+ assert.match(avis, /refDocStore\.list\(reference,environment,removal\)/);
  assert.match(avis, /hiddenGraphHashes\.has\(crypto\.createHash\('sha256'\)/);
  assert.match(avis, /hidden\.has\(key\)/);
 });
