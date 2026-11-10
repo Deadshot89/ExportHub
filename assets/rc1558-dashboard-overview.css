@@ -298,6 +298,15 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick
 .rc1573-head h3{margin:0;font-size:16px}
 .rc1573-sub{margin:0;font-size:12px;color:var(--pc-muted,#5d6b80)}
 .rc1573-empty{margin:0;padding:12px;border:1px dashed var(--pc-line,#dde3ec);border-radius:10px;text-align:center;font-weight:700;color:var(--pc-muted,#5d6b80)}
+/* One compact tile for two independently authorized, live counters. */
+.rc1573-openwork-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex:1 1 auto;min-height:0}
+.rc1573-openwork-metric{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0;padding:10px;border:1px solid var(--pc-line,#dde3ec);border-radius:11px;background:var(--pc-field,#f1f4f9);color:var(--pc-text,#152235);cursor:pointer;text-align:left;font:inherit}
+.rc1573-openwork-metric:hover{border-color:var(--pc-primary,#1f6fd1);background:var(--pc-card-bg,#fff)}
+.rc1573-openwork-metric:focus-visible{outline:3px solid var(--pc-primary,#1f6fd1);outline-offset:2px}
+.rc1573-openwork-count{font-size:clamp(25px,3vw,38px);line-height:1.04;font-weight:850;font-variant-numeric:tabular-nums}
+.rc1573-openwork-name{font-size:12px;line-height:1.3;font-weight:700;overflow-wrap:break-word}
+.rc1573-openwork-action{margin-top:5px;font-size:11px;font-weight:700;color:var(--pc-primary,#1f6fd1)}
+@media(max-width:550px){.rc1573-openwork-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1573-openwork-count{font-size:28px}}
 .rc1573-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;min-height:96px;flex:1 1 auto}
 .rc1573-bar{all:unset;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(48px,1fr) auto;justify-items:center;gap:3px;height:100%;cursor:pointer;min-width:0}
 .rc1573-bar-value{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
