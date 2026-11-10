@@ -45,7 +45,7 @@ function parseQuantityCell(cell,defaultUnit){
 // kein Raten und automatische Freigabe bleibt ohnehin gesperrt.
 function dncCustomerOrder(lines){
  const input=lines.join('\n');
- const direct=input.match(/(?:^|\n)\s*Customer Order Number[ \t]{2,}([A-Z0-9][A-Z0-9._/-]{3,39})(?:[ \t]|$)/i);
+ const direct=input.match(/(?:^|\n)\s*Customer Order Number(?: {2,}|\t+)([A-Z0-9][A-Z0-9._/-]{3,39})(?:[ \t]|$)/i);
  if(direct&&cleanToken(direct[1],40))return direct[1];
  // Manche PDF-Textextraktoren geben alle Feldnamen, dann die Werte aus.
  // Diese Zuordnung ist nur bei der belegbaren DNC -> SO -> Kunden-PO-Folge gültig.
