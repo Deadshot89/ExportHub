@@ -60,8 +60,8 @@ function replaceAvisToken(url,token){
 }
 async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl){
  const original=safeAvisUrl(req,rawUrl,shipment,customer);
- if(target!=='carrier')return original;
  const environment=auth.environmentFromRequest(req);
+ const requiredAudience=target==='carrier'?'carrier':'customer';
  const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
  const subjectId=text(shipment.id||shipment.shipmentId||ref);
  // Reuse only a VERIFIED carrier token for this exact subject; never trust a URL flag.
@@ -72,12 +72,12 @@ async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl){
   try{
    const existing=await publicAccess.resolve(req,'avis',suppliedToken,{allowUsed:true},{environment});
    const record=existing.record||{};
-   if(record.avisAudience==='carrier'&&record.subjectId===subjectId&&record.reference===ref)
+   if(record.avisAudience===requiredAudience&&record.subjectId===subjectId&&record.reference===ref)
     return replaceAvisToken(original,suppliedToken);
-  }catch(_){/* Missing, revoked or mismatched token: create an isolated carrier token. */}
+  }catch(_){/* Missing, revoked or mismatched token: create a fresh scoped token. */}
  }
  const issued=await publicAccess.issue(req,'avis',
-  {subjectId,shipmentId:subjectId,reference:ref,actor:'AVIS Reminder',avisAudience:'carrier'},
+  {subjectId,shipmentId:subjectId,reference:ref,actor:'AVIS Reminder',avisAudience:requiredAudience},
   null,{environment});
  return replaceAvisToken(original,issued.token);
 }
