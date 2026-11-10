@@ -183,14 +183,14 @@ test('RC1965: signatures changed during scan cannot be falsely attested as updat
  const f=fixture({
   getDefinitionsUpdatedAt:async()=>{
    reads++;
-   if(reads===1)assert.equal(scannerRan,false,'record signature state before scanning');
-   if(reads===2)assert.equal(scannerRan,true,'recheck signatures only after scanning');
-   return reads===1?NOW-60000:NOW-1000;
+   if(reads<=2)assert.equal(scannerRan,false,'preflight and pre-scan checks precede scan');
+   if(reads===3)assert.equal(scannerRan,true,'post-scan checks follow scan');
+   return reads<=2?NOW-60000:NOW-1000;
   },
   runner:async()=>{scannerRan=true;return safe();}
  });
  const r=await scanOfflineCandidate(f.settings);
- assert.equal(reads,2);
+ assert.equal(reads,3);
  assert.equal(r.status,'blocked');
  assert.equal(r.reason,'definitions-changed-during-scan');
  assert.equal(r.receipt,undefined);
@@ -204,11 +204,11 @@ test('RC1965: signature metadata disappears after scanning, no candidate receipt
  let reads=0;
  const f=fixture({getDefinitionsUpdatedAt:async()=>{
   reads++;
-  if(reads===2)throw Error('Untrusted metadata failure');
+  if(reads===3)throw Error('Untrusted metadata failure');
   return NOW-60000;
  }});
  const r=await scanOfflineCandidate(f.settings);
- assert.equal(reads,2);
+ assert.equal(reads,3);
  assert.equal(r.status,'blocked');
  assert.equal(r.reason,'worker-error');
  assert.equal(r.receipt,undefined);
@@ -235,8 +235,45 @@ test('RC1971: invalid AV definition metadata blocks BEFORE an expensive scan',as
   assert.equal(r.authorizedForRelease,false);
   assert.equal(r.receipt,undefined);
   assert.equal(scans,0,'invalid signatures must not consume scanner execution');
-  assert.deepEqual(f.counters(),{claims:1,reads:1,scans:0});
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
  }
+});
+
+test('RC1974: stale signatures do not run self-test or read any quarantined customer bytes',async()=>{
+ for(const updatedAt of [
+  NOW-25*60*60*1000,NOW+1,0,undefined,'invalid',Number.NaN
+ ]){
+  let engineProbes=0;
+  const f=fixture({
+   getDefinitionsUpdatedAt:async()=>updatedAt,
+   engineCheck:async()=>{engineProbes++;return{verified:true,authorizedForRelease:false};}
+  });
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(engineProbes,0,'reject stale state without CPU-heavy EICAR probes');
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+ }
+});
+
+test('RC1974: signature update during EICAR self-test prevents any customer scan',async()=>{
+ let reads=0,probes=0;
+ const f=fixture({
+  getDefinitionsUpdatedAt:async()=>{
+   reads++;
+   return reads===1?NOW-60000:NOW-500;
+  },
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ const result=await scanOfflineCandidate(f.settings);
+ assert.equal(probes,1);
+ assert.equal(reads,2);
+ assert.equal(result.status,'blocked');
+ assert.equal(result.reason,'worker-error');
+ assert.equal(result.receipt,undefined);
+ assert.equal(result.authorizedForRelease,false);
+ assert.deepEqual(f.counters(),{claims:1,reads:1,scans:0});
 });
 
 test('RC1965: stale or future AV definitions are never signed',async()=>{
