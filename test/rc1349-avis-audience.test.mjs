@@ -54,9 +54,12 @@ test('RC1349 all carrier email paths must use dedicated token',()=>{
  assert.match(template,/type==='carrier'\?rc1349CarrierUrl\(sh\)/);
  assert.match(template,/if\(!u\)return stripAvisBlocks\(source\)/);
  assert.match(immediate,/action:'issue-carrier'/);
- assert.match(immediate,/type==='carrier'\?carrierAvisForMail\(sh\):url/);
- assert.match(immediate,/type==='carrier'\?carrierAvisForMail\(sh\):q\(opt\.url\)/);
- assert.match(immediate,/return link\|\|'…'/);
+ assert.match(immediate,/function carrierAvisReady\(sh\)/);
+ assert.match(immediate,/pending\.code='AVIS_CARRIER_LINK_PENDING'/);
+ assert.match(immediate,/if\(type==='carrier'\)return standaloneAvis\(sh,type,lang,carrierAvisReady\(sh\)\)/);
+ assert.match(immediate,/type==='carrier'\?carrierAvisReady\(sh\):q\(opt\.url\)/);
+ assert.match(immediate,/if\(type==='carrier'&&!carrierLink\)return false/);
+ assert.doesNotMatch(immediate,/return link\|\|'…'/,'Speditionsmails dürfen keinen Platzhalter erhalten');
  assert.match(immediate,/data\.avisAudience!=='carrier'/);
  assert.match(sender,/const requiredAudience=target==='carrier'\?'carrier':'customer'/);
  assert.match(sender,/record\.avisAudience===requiredAudience/);
