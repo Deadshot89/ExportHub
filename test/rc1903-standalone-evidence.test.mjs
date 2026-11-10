@@ -546,3 +546,79 @@ test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',(
  assert.ok(workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate')<workflow.indexOf('RC1810 Urgent Order TESTSERVICE'));
  assert.match(workflow,/git diff --name-only HEAD\^ HEAD/);
 });
+
+
+test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, ohne historische Daten zu löschen',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const match=staff.match(/const FIELDS=\[([\s\S]*?)\];/);
+ assert.ok(match,'Internal field schema must exist');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(match[1],new RegExp("\\['"+field+"'"),'Internal form must not render '+field);
+  assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
+ }
+ assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
+ assert.match(build,/shipment-evidence\.js\?v=1908/,'Staff runtime must have cache-busted version');
+});
+
+
+test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cache-Busting',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const html=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const context={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),context);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const strings=context.window.ExportHUBEvidenceI18n[locale];
+  for(const key of ['docId','referencePending','copyReference','referenceCopied'])assert.ok(strings[key],locale+' '+key);
+ }
+ assert.equal(context.window.ExportHUBEvidenceI18n.de.docId,'Referenznummer');
+ assert.match(staff,/reference\.appendChild\(make\('strong',null,r\.id\)\)/);
+ assert.match(staff,/clipboard\.writeText\(r\.id\)/);
+ assert.match(staff,/t\('referencePending'\)/);
+ assert.match(guest,/t\('docId'\)\+': '\+record\.id/);
+ assert.match(guest,/clipboard\.writeText\(record\.id\)/);
+ assert.match(guest,/t\('referencePending'\)/);
+ assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
+ assert.match(build,/shipment-evidence\.js\?v=1908/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=1908/);
+ assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
+ assert.match(html,/shipment-evidence-guest\.js\?v=1907/);
+});
+
+test('RC1903: live TESTSERVICE smoke rejects outdated public upload scripts',()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ const guest=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.ok(live.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
+ assert.match(live,/Public evidence page still serves a stale upload runtime/);
+ assert.match(guest,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(live,/healthData\?\.deployment\?\.buildId,sha/);
+ assert.match(live,/assert\.deepEqual\(read\.data,bytes/);
+});
+
+test('RC1903: first photo upload creates own DOK; public and staff require persisted file read-back',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ assert.doesNotMatch(staff,/input\.disabled=!record/,'First upload picker must stay enabled');
+ assert.match(staff,/const created=await write\('create',\{fields:current\}\)/);
+ assert.match(staff,/docId=created\.record\.id/);
+ assert.match(staff,/await request\('GET',\{action:'get',id:docId\}\)/);
+ assert.match(staff,/state\.uploading=true/);
+ assert.match(staff,/!ids\.has\(f\.id\)/);
+ assert.match(staff,/uploadUnverified/);
+ assert.match(guest,/await api\('GET','public-get',\{id:record\.id\},token\)/);
+ assert.match(guest,/!beforeIds\.has\(f\.id\)/);
+ assert.match(guest,/uploadUnverified/);
+ const ctx={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),ctx);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const strings=ctx.window.ExportHUBEvidenceI18n[locale];
+  for(const key of ['uploadAutoCreate','uploadBusy','verifyingUpload','uploadVerified','uploadUnverified'])
+   assert.ok(strings[key],locale+' '+key);
+ }
+});

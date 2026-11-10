@@ -3,11 +3,11 @@
 if(!w||!d||w.ExportHUBStandaloneEvidence)return;
 const FIELDS=[
  ['shipmentNumber','text'],['customer','text'],['dispatchDate','date'],
- ['colli','number'],['weightKg','number'],['packaging','text'],['shippingMethod','text'],
+ ['colli','number'],['weightKg','number'],
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
- ['contents','textarea'],['loadSecuring','textarea'],['remarks','textarea']
+ ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,canDelete:false,canRegisterCustomer:false};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -71,7 +71,7 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{const row=make('div','eh1903-row'),data=make('div');
     data.appendChild(make('b',null,r.fields&&r.fields.customer||'–'));
-    data.appendChild(make('p',null,[r.fields&&r.fields.shipmentNumber,r.id,dateText(r.fields&&r.fields.dispatchDate)].filter(Boolean).join(' · ')));
+    data.appendChild(make('p',null,[t('docId')+': '+r.id,r.fields&&r.fields.shipmentNumber,dateText(r.fields&&r.fields.dispatchDate)].filter(Boolean).join(' · ')));
     data.appendChild(make('p',null,(r.files||[]).length+' '+t('fileCount')+' · '+(r.complaints||[]).length+' '+t('complaintCount')));
     row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)});
  }
@@ -101,7 +101,7 @@ async function scanAll(){
   if(run===state.searchRun&&state.view==='list'&&active()&&!state.continuation)status(t('searchFinished'),false);
  }
 }
-function labelField(grid,key,kind,value){const label=make('label',key==='contents'||key==='loadSecuring'||key==='remarks'?'eh1903-wide':'',t(key));
+function labelField(grid,key,kind,value){const label=make('label',key==='remarks'?'eh1903-wide':'',t(key));
  const el=make(kind==='textarea'?'textarea':'input');el.setAttribute('data-evidence-field',key);
  if(kind!=='textarea')el.type=kind;if(key==='colli'||key==='weightKg'){el.min='0';el.step=key==='colli'?'1':'0.001';}
  el.value=value==null?'':value;label.appendChild(el);grid.appendChild(label);return el}
@@ -117,7 +117,7 @@ async function write(action,extra,expectedId){
   if(originalId&&action!=='save'&&action!=='create'){
    const currentRoot=root();
    if(currentRoot&&currentRoot.querySelector('[data-evidence-field]')){
-    const draft=readFields(currentRoot);
+    const draft=Object.assign({},state.record&&state.record.fields||{},readFields(currentRoot));
     const stored=state.record&&state.record.fields||{};
     const changed=FIELDS.some(([key])=>String(draft[key]||'').trim()!==String(stored[key]||'').trim());
     if(changed){
@@ -133,7 +133,7 @@ async function write(action,extra,expectedId){
   if(serial===state.serial&&state.view==='form'&&active()&&
     (state.record&&state.record.id||null)===originalId){
    state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;if(typeof result.canRegisterCustomer==='boolean')state.canRegisterCustomer=result.canRegisterCustomer;showForm(state.record);
-   status(action==='create'?t('created'):action==='upload'?t('uploaded'):t('saved'),false);
+   status(action==='create'?t('created'):action==='upload'?t('verifyingUpload'):t('saved'),false);
   }
   return result;
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
@@ -142,7 +142,16 @@ async function write(action,extra,expectedId){
 function showForm(record){state.searchRun++;state.view='form';if(record!==undefined){state.record=record;if(!record){state.canDelete=false;state.canRegisterCustomer=false;}}const app=initPage();if(!app)return;
  const r=state.record||null;app.appendChild(hero(t('title'),t('independent')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('back'),()=>{showList();loadList(true)}));app.appendChild(actions);
- if(r)app.appendChild(make('p','eh1903-muted',t('docId')+': '+r.id));
+ if(r){
+  const reference=make('section','eh1903-panel');
+  reference.appendChild(make('p','eh1903-muted',t('docId')));
+  reference.appendChild(make('strong',null,r.id));
+  reference.appendChild(button(t('copyReference'),async()=>{
+   try{await w.navigator.clipboard.writeText(r.id);status(t('referenceCopied'),false)}
+   catch(_){status(r.id,false)}
+  }));
+  app.appendChild(reference);
+ }else app.appendChild(make('p','eh1903-muted',t('referencePending')));
  if(r&&r.fields&&r.fields.customerMode==='pending'){
   const pending=make('p','eh1903-muted',t('customerPendingMessage'));
   app.appendChild(pending);
@@ -176,8 +185,17 @@ function showForm(record){state.searchRun++;state.view='form';if(record!==undefi
  const grid=make('div','eh1903-grid'),defaults={dispatchDate:today};
  FIELDS.forEach(([key,kind])=>labelField(grid,key,kind,r&&r.fields&&r.fields[key]||defaults[key]||''));
  card.appendChild(grid);
+ // An independent DOK is not automatically a shipment REF. Explain the exact
+ // link requirement instead of silently implying its files appear in a REF folder.
+ const linkedRef=grid.querySelector('[data-evidence-field="exporthubRef"]');
+ if(linkedRef){
+  const hint=make('p','eh1903-muted',t('notLinked'));
+  hint.setAttribute('role','note');
+  const updateHint=()=>{hint.hidden=!!String(linkedRef.value||'').trim()};
+  linkedRef.addEventListener('input',updateHint);updateHint();card.appendChild(hint);
+ }
  const act=make('div','eh1903-actions');act.appendChild(button(t('save'),async()=>{
-  const current=readFields(app);if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
+  const current=Object.assign({},r&&r.fields||{},readFields(app));if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
   await write(r?'save':'create',{fields:current});
  },true));card.appendChild(act);
  app.appendChild(card);app.appendChild(uploadsPanel(r));app.appendChild(complaintsPanel(r));app.appendChild(historyPanel(r));
@@ -186,23 +204,46 @@ function showForm(record){state.searchRun++;state.view='form';if(record!==undefi
 function uploadsPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('files')));panel.appendChild(make('p','eh1903-muted',t('info')));
  const grid=make('div','eh1903-uploads');
  for(const [kind,key,accept] of [['foto','uploadPhotos','image/jpeg,image/png'],['lieferschein','uploadNotes','application/pdf,image/jpeg,image/png']]){
-  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.disabled=!record;input.addEventListener('change',async()=>{
-   const selected=[...input.files],docId=record&&record.id;
-   input.value='';
-   if(!docId||!state.record||state.record.id!==docId){status(t('uploadFirst'),true);return}
-   for(const file of selected){
-    if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
-    if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
-    try{
-     status(t('uploading'),false);
-     const base64=await asBase64(file);
-     const uploaded=await write('upload',{kind,fileName:file.name,base64},docId);
-     if(!uploaded)break;
-    }catch(e){status(e.message,true);break}
-   }
+  const cell=make('div','eh1903-upload'),label=make('label',null,t(key)),input=make('input');input.type='file';input.accept=accept;input.multiple=true;input.addEventListener('change',async()=>{
+   const selected=[...input.files];input.value='';
+   if(!selected.length)return;
+   if(state.uploading||state.busy){status(t('uploadBusy'),true);return}
+   state.uploading=true;
+   try{
+    // A new record has no DOK ID yet. Create it from the visible fields before
+    // uploading so files can never be attached to the previous document.
+    let docId=state.record&&state.record.id||null;
+    if(!docId){
+     const current=readFields(root());
+     if(!current.customer||!current.shipmentNumber||!current.dispatchDate){status(t('required'),true);return}
+     const created=await write('create',{fields:current});
+     if(!created||!created.record||!created.record.id)return;
+     docId=created.record.id;
+    }
+    for(const file of selected){
+     if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
+     if(file.size>15*1024*1024){status(file.name+' · 15 MB',true);continue}
+     try{
+      status(t('uploading'),false);
+      const ids=new Set((state.record.files||[]).map(f=>f.id));
+      const base64=await asBase64(file);
+      const uploaded=await write('upload',{kind,fileName:file.name,base64},docId);
+      if(!uploaded)break;
+      const entry=(uploaded.record&&uploaded.record.files||[]).find(f=>!ids.has(f.id)&&f.kind===kind&&Number(f.size)===file.size);
+      if(!entry){status(t('uploadUnverified'),true);break}
+      const check=await request('GET',{action:'get',id:docId});
+      const verified=check.record&&check.record.id===docId&&(check.record.files||[]).some(f=>f.id===entry.id&&Number(f.size)===file.size&&f.kind===kind);
+      if(!verified){status(t('uploadUnverified'),true);break}
+      if(!state.record||state.record.id!==docId||state.view!=='form'||!active())break;
+      state.record=check.record;
+      showForm(check.record);
+      status(file.name+' · '+t('uploadVerified'),false);
+     }catch(e){status(t('uploadUnverified')+' '+e.message,true);break}
+    }
+   }finally{state.uploading=false}
   });label.appendChild(input);cell.appendChild(label);grid.appendChild(cell)}
  panel.appendChild(grid);
- if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
+ if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadAutoCreate')));return panel}
  syncGallery(record.id);
  const gallery=make('div','eh1903-photo-grid');
  (record.files||[]).forEach(file=>{

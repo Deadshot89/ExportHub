@@ -13,7 +13,12 @@ async function openPublished(page){
  expect(response?.status(),'Actual public TESTSERVICE page must respond 200').toBe(200);
  expect(new URL(page.url()).hostname).toBe('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
  await expect(page.locator('#eh1903-guest-root')).toBeVisible();
- await expect(page.locator('script[src*="shipment-evidence-guest.js?v=1905"]')).toHaveCount(1);
+ const js=page.locator('script[src*="shipment-evidence-guest.js?v="]');
+ await expect(js).toHaveCount(1);
+ const src=await js.getAttribute('src');
+ expect(src).toMatch(/shipment-evidence-guest\.js\?v=190[567]$/);
+ // PR tests may see the previous TESTSERVICE deployment. Main after deployment must show the new version.
+ if(process.env.GITHUB_EVENT_NAME==='push')expect(src).toMatch(/v=1907$/);
  await expect(page.locator('link[href*="shipment-evidence.css?v=1906-gallery"]')).toHaveCount(1);
  await expect(page.locator('#login')).toHaveCount(0);
 }
@@ -65,7 +70,7 @@ test('RC1903 published TESTSERVICE: actual customer selector and visible downloa
    const photo=payload.kind==='foto';
    const entry={id:String(record.files.length+1),
     name:photo?'TESTFOTO.png':'TEST-Lieferschein.pdf',kind:payload.kind,
-    mime:photo?'image/png':'application/pdf',size:photo?photoBytes.length:16,
+    mime:photo?'image/png':'application/pdf',size:Buffer.from(payload.base64,'base64').length,
     uploadedAt:moment};
    record={...record,revision:record.revision+1,files:[...record.files,entry]};
    return send(200,{ok:true,record});
@@ -94,6 +99,10 @@ test('RC1903 published TESTSERVICE: actual customer selector and visible downloa
  await expect(page.locator('#eh1903-guest-root')).toContainText('D1001 · TESTKUNDE');
  await page.locator('[data-guest-field="shipmentNumber"]').fill('VISUAL-TEST-ONLY');
  await page.getByRole('button',{name:'Weiter zu Fotos und Lieferscheinen'}).click();
+ if((await page.locator('script[src*="shipment-evidence-guest.js?v=1907"]').count())===1){
+  await expect(page.getByText('Referenznummer: '+DOC)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Referenz kopieren'})).toBeVisible();
+ }
  expect(record.fields.customerMode).toBe('existing');
  expect(record.fields.customerNumber).toBe('D1001');
  const inputs=page.locator('.eh1903-uploads input[type=file]');
@@ -159,7 +168,7 @@ test('RC1903 published TESTSERVICE: pending new customer form does not write to 
  await page.locator('[data-guest-customer-name]').fill('NUR TEST – Kein echter Kunde');
  await page.locator('[data-guest-field="shipmentNumber"]').fill('NEU-TEST-ONLY');
  await page.getByRole('button',{name:'Weiter zu Fotos und Lieferscheinen'}).click();
- await expect(page.getByText(DOC)).toBeVisible();
+ await expect(page.locator('#eh1903-guest-root')).toContainText(DOC);
  expect(submitted?.fields?.customerMode).toBe('pending');
  expect(submitted?.fields?.customerNumber).toBe('N12345');
  expect(submitted?.fields?.customer).toBe('NUR TEST – Kein echter Kunde');

@@ -92,15 +92,24 @@ for(const viewport of ['desktop','mobile-standard']){
     await editorAfterMove.locator('[data-sop-editor-field="visual-src"]').fill(IMAGE);
     await editorAfterMove.locator('[data-sop-editor-field="visual-caption"]').fill('RC1502 E2E ABD-Schrittbild');
     const assignVisual=editorAfterMove.locator('[data-sop-editor-action="assign-visual"]');
-    // The fixed toolbar and reminder toast can cover controls when Playwright
-    // uses the shortest scroll. Scroll to a clear central hit target, as a user can.
+    // A reminder toast or sticky toolbar can temporarily cover the button
+    // centre. Click a genuinely visible point; never force or dispatch a
+    // synthetic click, which could hide a real unusable editor.
     await assignVisual.evaluate(button=>button.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'}));
-    await expect.poll(()=>assignVisual.evaluate(button=>{
-      const r=button.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-      const hit=document.elementFromPoint(x,y);
-      return r.top>=0&&r.bottom<=innerHeight&&(hit===button||button.contains(hit));
-    }),{timeout:10000}).toBe(true);
-    await assignVisual.click();
+    const visibleHitPoint=()=>assignVisual.evaluate(button=>{
+      const r=button.getBoundingClientRect();
+      for(const yRatio of [0.5,0.3,0.7]){
+        for(const xRatio of [0.5,0.25,0.75]){
+          const x=r.left+r.width*xRatio,y=r.top+r.height*yRatio;
+          if(x<0||x>=innerWidth||y<0||y>=innerHeight)continue;
+          const hit=document.elementFromPoint(x,y);
+          if(hit===button||button.contains(hit))return{x:r.width*xRatio,y:r.height*yRatio};
+        }
+      }
+      return null;
+    });
+    await expect.poll(async()=>Boolean(await visibleHitPoint()),{timeout:15000}).toBe(true);
+    await assignVisual.click({position:await visibleHitPoint()});
 
     doc=page.locator(`.rc1007-sop-document[data-sop-number="${SOP}"]`);
     row=doc.locator(`[data-sop-editor-step="${STEP_ID}"]`);

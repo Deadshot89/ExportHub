@@ -56,7 +56,7 @@ function addField(grid,key,label,type,wide){
  var labelEl=el('label',wide?'wide':'',label),input=el(type==='textarea'?'textarea':'input');
  if(type!=='textarea')input.type=type||'text';
  input.setAttribute('data-proof-field',key);
- var limits={shipmentNumber:100,customer:200,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,contents:3000,loadSecuring:1500,remarks:2000,complaintText:2000};
+ var limits={shipmentNumber:100,customer:200,carrier:160,trackingNumber:160,remarks:2000,complaintText:2000};
  if(limits[key])input.maxLength=limits[key];
  if(key==='reference')input.readOnly=true;
  if(key==='colli'){input.min='0';input.max='100000';input.step='1'}
@@ -73,10 +73,7 @@ function build(ref){
  [
   ['reference',tr('reference'),'text'],['shipmentNumber',tr('shipmentNumber'),'text'],['customer',tr('customer'),'text'],
   ['dispatchDate',tr('dispatchDate'),'date'],['colli',tr('colliCount'),'number'],['weightKg',tr('weightKg'),'number'],
-  ['packaging',tr('packaging'),'text'],['shippingMethod',tr('shippingMethod'),'text'],['carrier',tr('carrier'),'text'],
-  ['trackingNumber',tr('tracking'),'text'],
-  ['contents',tr('contents'),'textarea',true],
-  ['loadSecuring',tr('securing'),'textarea',true],
+  ['carrier',tr('carrier'),'text'],['trackingNumber',tr('tracking'),'text'],
   ['remarks',tr('remarks'),'textarea',true]
  ].forEach(function(f){addField(grid,f[0],f[1],f[2],!!f[3])});
  box.appendChild(grid);
@@ -120,11 +117,9 @@ function snapshot(shipment,ref){
  return{reference:ref,shipmentNumber:q(shipment&&(shipment.shipmentNumber||shipment.carrierShipmentNumber||shipment.consignmentNumber)),
  customer:safeCustomer(shipment),
  dispatchDate:'',colli:count?String(count):'',weightKg:weight?String(weight):'',
- packaging:rows.map(function(r){return q(r.type||r.packaging)}).filter(Boolean).filter(function(s,i,a){return a.indexOf(s)===i}).join(', '),
- shippingMethod:q(shipment&&(shipment.shippingMethod||shipment.transportMode||shipment.serviceName)),
  carrier:q(shipment&&(shipment.carrier||shipment.carrierName||shipment.forwarder)),
  trackingNumber:q(shipment&&(shipment.trackingNumber||shipment.waybillNumber)),
- contents:'',loadSecuring:'',remarks:''};
+ remarks:''};
 }
 function fill(box,fields){
  var f=Object.assign({},snapshot(sh(),activeRef),fields||{});
@@ -155,7 +150,7 @@ async function load(box,ref){
 }
 async function saveRecord(box,ref){
  if(busy||!isCurrent(box,ref))return;
- var fields=values(box),expectedRevision=activeRecord?activeRecord.revision:0;
+ var fields=Object.assign({},activeRecord&&activeRecord.fields||{},values(box)),expectedRevision=activeRecord?activeRecord.revision:0;
  setBusy(box,true);status(box,tr('saving'));
  try{
   var d=await api('POST',ref,{action:'save',expectedRevision:expectedRevision,fields:fields});
@@ -203,7 +198,7 @@ async function uploadFiles(box,ref,input,type){
  var files=Array.from(input.files||[]);input.value='';if(!files.length)return;
  var runtime=w.ExportHUBShipmentDocUpload;
  if(!runtime||typeof runtime.upload!=='function'){status(box,tr('uploadUnavailable'),'error',true);return}
- setBusy(box,true);var ok=0,errors=[];
+ setBusy(box,true);var ok=0,azureOnly=0,errors=[];
  for(var i=0;i<files.length;i++){
   if(!isCurrent(box,ref))break;
   var f=files[i],ext=q(f.name).toLowerCase();
@@ -211,15 +206,27 @@ async function uploadFiles(box,ref,input,type){
   if(f.size>15*1024*1024){errors.push(f.name+tr('max15'));continue}
   try{
    var prepared=new File([f],filenameForProof(f,type,i),{type:f.type});
-   await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');ok++;
+   var fBytes=f.size,receipt=await runtime.upload(ref,prepared,type==='photo'?'sonstiges':'lieferschein');
+   if(!receipt||!receipt.id||!receipt.name||!receipt.azureSaved&&!receipt.sharepointSaved)
+    throw new Error(tr('uploadNotConfirmed'));
+   // A 200 POST is not enough: the file must be discoverable in the REF listing
+   // before we tell the employee that the photo or delivery note arrived.
+   var check=await fetch('/api/reference-files?reference='+encodeURIComponent(ref),
+    {headers:headers(),credentials:'same-origin',cache:'no-store'});
+   var listed={};try{listed=await check.json()}catch(_){}
+   if(!check.ok||listed.ok!==true||
+      !(listed.files||[]).some(function(f){return q(f.id)===q(receipt.id)&&q(f.name)===receipt.name&&Number(f.size)===fBytes}))
+    throw new Error(tr('uploadNotListed'));
+   ok++;
+   if(receipt.sharepointSaved!==true)azureOnly++;
    if(!isCurrent(box,ref))break;
   }catch(e){errors.push(f.name+': '+q(e.message))}
   status(box,tr('uploadedProgress')+ok+' / '+files.length+(errors.length?' · '+errors.join('; '):''),errors.length?'error':'ok',true);
  }
  setBusy(box,false);
  if(!isCurrent(box,ref))return;
- if(ok){status(box,ok+tr('filesSaved')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
-  try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:true}}))}catch(_){}
+ if(ok){status(box,ok+tr('filesVerified')+(azureOnly?' · '+azureOnly+tr('azureOnly'):'')+(errors.length?tr('failed')+errors.join('; '):''),errors.length?'error':'ok',true);
+  try{w.dispatchEvent(new CustomEvent('exporthub:shipment-document-uploaded',{detail:{reference:ref,kind:type==='photo'?'versandfoto':'lieferschein',count:ok,referenceFolder:azureOnly===0,azureSaved:ok>0}}))}catch(_){}
   if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.refreshReferenceFiles==='function')w.ExportHUBShipmentView.refreshReferenceFiles();
   loadFiles(box,ref);
  }else status(box,tr('uploadNone')+errors.join('; '),'error',true);
@@ -324,6 +331,10 @@ async function loadFiles(box,ref){
   var notes=(data.files||[]).filter(function(f){return /^Lieferschein_[A-Z0-9]{6}_\d{8}-\d{6}_/i.test(q(f.name))}).map(function(f){return Object.assign({source:'reference'},f)});
   appendGallery(host,tr('photosSection')+' ('+photos.length+')',box,ref,photos,generation);
   appendGallery(host,tr('notesSection')+' ('+notes.length+')',box,ref,notes,generation);
+  if(data.partial===true){
+   var warning=el('p','eh1860-status',tr('refPartial'));warning.setAttribute('data-kind','error');
+   warning.setAttribute('role','status');host.appendChild(warning);
+  }
  }catch(e){if(isCurrent(box,ref))host.appendChild(el('p','eh1860-status',tr('refListError')+q(e.message)))}
  if(!isCurrent(box,ref)||generation!==galleryGeneration)return;
  // The standalone DOK store is separate. Show only explicitly linked evidence.

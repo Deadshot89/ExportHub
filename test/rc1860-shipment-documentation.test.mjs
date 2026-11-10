@@ -77,7 +77,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
  const azure=JSON.parse(fs.readFileSync('api/shipment-documentation/function.json','utf8'));
- assert.match(build,/rc1860-shipment-documentation\.js\?v=1931/);
+ assert.match(build,/rc1860-shipment-documentation\.js\?v=1934/);
  assert.match(build,/'assets\/rc1860-shipment-documentation\.js'/);
  assert.match(ui,/getElementById\('rc786ReferenceFilesCard'\)/);
  assert.match(ui,/action:'complaint'/);
@@ -85,7 +85,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.match(ui,/runtime\.upload\(ref,prepared,type==='photo'\?'sonstiges':'lieferschein'\)/);
  assert.match(ui,/filenameForProof\(f,type,i\)/);
  assert.match(ui,/if\(!isCurrent\(box,ref\)\)return/);
- assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1931/);
+ assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1933/);
  const translations=fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8');
  for(const key of ['previewUnavailable','linkedError','download','close','linkedPhotosSection'])assert.match(translations,new RegExp('"'+key+'"'));
  assert.equal(azure.bindings[0].type,'httpTrigger');
@@ -196,4 +196,37 @@ test('TESTSERVICE kann keine Produktionssendung als eigene Dokumentation freigeb
  assert.equal((await get('ABC123')).status,404);
  assert.equal((await get('XYZ987')).status,200);
  assert.equal(requestedPath,'testservice/shipment-documentation/XYZ987.json');
+});
+
+
+test('RC1860: vier abbestellte Felder fehlen in Sendungsansicht und gespeicherte Werte bleiben erhalten',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(ui,new RegExp("\\['"+field+"'"),'Shipment view must not render '+field);
+ }
+ assert.match(ui,/Object\.assign\(\{\},activeRecord&&activeRecord\.fields\|\|\{\},values\(box\)\)/,'Save must preserve stored legacy fields');
+ assert.match(ui,/\['carrier',tr\('carrier'\),'text'\]/,'Carrier remains editable');
+ assert.match(ui,/\['remarks',tr\('remarks'\),'textarea',true\]/,'Notes remain editable');
+});
+
+test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut bestaetigt',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ const api=fs.readFileSync('api/reference-files/index.js','utf8');
+ assert.match(ui,/var check=await fetch\('\/api\/reference-files\?reference='/);
+ assert.match(ui,/receipt\.name/);
+ assert.match(ui,/q\(f\.id\)===q\(receipt\.id\)/,'Upload receipt must match exact persisted file ID, not a same-name older original');
+ assert.match(ui,/receipt\.azureSaved/);
+ assert.match(ui,/uploadNotListed/);
+ assert.match(ui,/if\(data\.partial===true\)/,'Never hide partial Azure/SharePoint listing failures');
+ assert.match(ui,/tr\('refPartial'\)/,'Inform employees when the REF list is incomplete');
+ assert.match(ui,/referenceFolder:azureOnly===0/);
+ assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs\)/,'Keep separate source identities for same-name originals');
+ assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs\)/);
+ assert.match(api,/partial:!!\(graphError\|\|azureError\|\|docsError\)/,'Report incomplete storage sources');
+ const ctx={};
+ new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  for(const key of ['filesVerified','azureOnly','uploadNotListed','uploadNotConfirmed','refPartial'])
+   assert.ok(ctx.ExportHUBShipmentDocumentationI18n.packs[locale][key],locale+' '+key);
+ }
 });
