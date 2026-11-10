@@ -102,6 +102,7 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
       "uniqueArchiveEntries(entries);",
       "var rc1957Expected=entries.filter(function(e){return e&&/\\.pdf$/i.test(String(e.name||''))});",
       "var rc1957Pdfs=rc1957Expected.filter(function(e){return e.data&&e.data.byteLength>0});",
+      "if(rc1957Expected.length!==entries.length)fail.push('RC1957_UNEXPECTED_ENTRY');",
       "if(rc1957Expected.length!==rc1957Pdfs.length)fail.push('RC1957_EMPTY_PDF');",
       "var rc1957Subtle=globalThis.crypto&&globalThis.crypto.subtle,rc1957Sums=[];",
       "if(!rc1957Subtle){fail.push('RC1957_SHA256_UNAVAILABLE')}else{",
