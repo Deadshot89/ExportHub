@@ -99,7 +99,7 @@ test('RC1349 metadata: Freigabe ist sendungs- und umgebungsspezifisch',async()=>
  assert.equal(docs[0].scanStatus,'clean');
  const reviewed=parser.safeReviewRows(docs[0].rows);
  await h.store.approve('ABC123','testservice',source.file.id,source.hash,reviewed,'Reviewer');
- assert.deepEqual(JSON.parse(JSON.stringify(await h.store.publicRows('ABC123','testservice'))),reviewed);
+ assert.deepEqual(JSON.parse(JSON.stringify(await h.store.publicRows('ABC123','testservice'))),JSON.parse(JSON.stringify(reviewed)));
  const approvedState=JSON.parse(JSON.stringify((await h.store.load('ABC123','testservice')).state.documents[0]));
  assert.equal(approvedState.reviewHistory.length,1);
  assert.equal(approvedState.reviewHistory[0].actor,'Reviewer');
