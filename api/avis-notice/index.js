@@ -20,6 +20,9 @@ module.exports=async function(context,req){
    return;
   }
   if(method==='POST'){
+   const headers=req.headers||{},csrf=headers['x-exporthub-avis-settings']||headers['X-ExportHUB-Avis-Settings']||'';
+   const contentType=headers['content-type']||headers['Content-Type']||'';
+   if(csrf!=='1'||!/^application\/json(?:;|$)/i.test(String(contentType)))throw auth.error('AVIS_NOTICE_REQUEST_INVALID','Nur bestätigte JSON-Einstellungsanfragen sind erlaubt.',403);
    const current=await auth.validateSession(req);
    if(!auth.isAdmin(current.user))throw auth.error('AVIS_NOTICE_FORBIDDEN','Nur Administratoren dürfen Avis-Einstellungen verwalten.',403);
    // This endpoint updates only the isolated notice document, never shipment or team-state.
@@ -29,6 +32,7 @@ module.exports=async function(context,req){
   }
   context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED'});
  }catch(e){
-  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'AVIS_NOTICE_UNAVAILABLE',message:e.message||'Avis-Einstellungen sind momentan nicht verfügbar.'});
+  const status=e.status||e.statusCode||500;
+  context.res=response(status,{ok:false,code:status>=500?'AVIS_NOTICE_UNAVAILABLE':e.code||'AVIS_NOTICE_INVALID',message:status>=500?'Avis-Einstellungen sind momentan nicht verfügbar.':e.message||'Ungültige Avis-Einstellung.'});
  }
 };
