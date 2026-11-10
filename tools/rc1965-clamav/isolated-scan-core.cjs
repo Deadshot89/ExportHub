@@ -13,6 +13,8 @@ const {MAX_BYTES,scanLocalQuarantine,runClamscan}=
 const {verifyQueueCandidate}=require('../rc1964-clamav/cloud-job-preflight.cjs');
 const {createCandidateAttestation}=
  require('../rc1963-clamav/scan-candidate-attestation.cjs');
+const {verifyClamAvEngine}=
+ require('../rc1972-clamav/engine-selftest.cjs');
 
 const DENIED=Object.freeze({authorizedForRelease:false,dispatchAuthorized:false,deployAuthorized:false});
 const blocked=reason=>({...DENIED,status:'blocked',reason});
@@ -39,7 +41,7 @@ function snapshotMatches(snapshot,expected){
 async function scanOfflineCandidate({
  envelope,expected,queueSecret,proofSecret,
  claimJob,readSnapshot,getDefinitionsUpdatedAt,
- runner=runClamscan,now=Date.now()
+ runner=runClamscan,engineCheck=verifyClamAvEngine,now=Date.now()
 }={}){
  if(!expected||expected.environment!=='testservice'||
     !Number.isSafeInteger(now)||now<=0)return blocked('invalid-context');
@@ -48,7 +50,8 @@ async function scanOfflineCandidate({
  });
  if(queue.valid!==true)return blocked('invalid-queue-proof');
  if(typeof claimJob!=='function'||typeof readSnapshot!=='function'||
-    typeof getDefinitionsUpdatedAt!=='function'||typeof runner!=='function')
+    typeof getDefinitionsUpdatedAt!=='function'||typeof runner!=='function'||
+    typeof engineCheck!=='function')
   return blocked('worker-adapter-unavailable');
 
  let stageDir=null;
@@ -60,6 +63,12 @@ async function scanOfflineCandidate({
   const claimed=await claimJob({jobId,environment:'testservice'});
   if(claimed!==true){result=blocked('job-already-claimed');}
   else{
+   // RC1973: prevent any customer-blob read unless the actual engine has
+   // completed a clean-control + EICAR-detection self-test. The default
+   // invokes real clamscan; only synthetic tests inject a fake check.
+   const engine=await engineCheck();
+   if(!engine||engine.verified!==true||engine.authorizedForRelease!==false)
+    return blocked('engine-self-test-failed');
    const locator=Object.freeze({jobId,environment:'testservice',
     scopeHash:expected.scopeHash,blobKeyHash:expected.blobKeyHash});
    const first=await readSnapshot(locator);
