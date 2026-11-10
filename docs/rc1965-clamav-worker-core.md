@@ -19,8 +19,8 @@ tools/rc1965-clamav/isolated-scan-core.cjs combines the still-inert HMAC queue c
 2. Require a trusted, **atomic one-time job claim** adapter; duplicate or unavailable jobs fail closed.
 3. Read a fixed-scope Blob snapshot through a trusted injected adapter only (no Azure SDK or customer data access in this code).
 4. Compare ETag, byte length and SHA-256 against signed original; stage private 0700 directory and 0600 file.
-5. Invoke the RC1956 scanner using a second private immutable copy; any malware/error/timeout blocks.
-6. Read the Blob **again** and compare its ETag, SHA-256 and byte length before generating a signed, short-lived candidate proof.
+5. Read trusted ClamAV signature metadata **before** scanning, then invoke the RC1956 scanner using a second private immutable copy; any malware/error/timeout blocks.
+6. Read the Blob **again** and compare its ETag, SHA-256 and byte length; re-read signature metadata **after** scanning and reject any change. Only the unchanged **pre-scan** value may enter a signed, short-lived candidate proof. A deployed adapter must also attest that the inspected metadata belongs to the engine's actually loaded signatures, not just a newer file on disk.
 7. Remove both staged files; cleanup failure invalidates positive evidence. Never echo paths, keys, customer filenames or low-level scanner errors.
 
 **No trust escalation:** Every result carries authorizedForRelease:false, dispatchAuthorized:false and deployAuthorized:false. The receipt itself also has authorizedForRelease:false. The current production API still requires the original genuine Defender clean tag; it is NOT wired to this helper.
