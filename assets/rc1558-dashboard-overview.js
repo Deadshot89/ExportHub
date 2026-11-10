@@ -662,8 +662,8 @@ function refresh(){
   bind(section);
   applyTiles(root,arr(state.shipments));
   bindTiles(root);
-  loadOpenWorkCounts();
   removeDashboardLieferavis(root);
+  loadOpenWorkCounts();
   d.body.setAttribute(BODY_FLAG,'1');
   fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
