@@ -110,3 +110,35 @@ test('RC1957: no Graph access, upload or original POD mutation added to the expo
   assert.match(controller, /function zip\(entries\)\{uniqueArchiveEntries\(entries\);/);
   assert.doesNotThrow(() => new Function(controller));
 });
+
+
+test('RC1957: never call a ZIP complete when unexpected entries lack a checksum', async () => {
+  const pdf = bytes('%PDF-1.7\nORIGINAL');
+  const { entries, fail } = await run([
+    { name: 'POD_ABC123.pdf', data: pdf },
+    { name: 'unexpected.txt', data: bytes('this cannot silently skip the hash list') }
+  ]);
+  assert.ok(fail.includes('RC1957_UNEXPECTED_ENTRY'));
+  assert.equal(entries.some(entry => entry.name === 'SHA256SUMS.txt'), false);
+  assert.deepEqual(entries[0].data, pdf);
+});
+
+test('RC1957: rejected crypto digest midway cannot produce a partial checksum manifest', async () => {
+  const first = bytes('%PDF-1.7\nFIRST');
+  const second = bytes('%PDF-1.7\nSECOND');
+  let digestCalls = 0;
+  const crypto = { subtle: { digest: async (algorithm, data) => {
+    digestCalls++;
+    if(digestCalls === 2) throw new Error('SYNTHETIC_DIGEST_ERROR');
+    return webcrypto.subtle.digest(algorithm, data);
+  } } };
+  const { entries, fail } = await run([
+    { name: 'POD_ABC123.pdf', data: first },
+    { name: 'POD_ABC124.pdf', data: second }
+  ], crypto);
+  assert.equal(digestCalls, 2);
+  assert.ok(fail.includes('RC1957_SHA256_FAILED'));
+  assert.equal(entries.some(entry => entry.name === 'SHA256SUMS.txt'), false);
+  assert.deepEqual(entries[0].data, first);
+  assert.deepEqual(entries[1].data, second);
+});
