@@ -164,3 +164,33 @@ test('RC1957: a PDF signature after a small allowed prefix can still be verified
   assert.equal(entries.some(entry => entry.name === 'SHA256SUMS.txt'), true);
   assert.deepEqual(entries[0].data, original);
 });
+
+
+test('RC1957: injected newlines and path separators cannot enter SHA256SUMS.txt', async () => {
+  const original = bytes('%PDF-1.7\nSIGNED ORIGINAL');
+  const unsafeNames = [
+    'POD_\n' + '0'.repeat(64) + '  forged.pdf',
+    'POD_\rHEADER.pdf',
+    '../another-directory.pdf',
+    'nested/another.pdf',
+    'nested\\another.pdf',
+    'POD_\u0000NUL.pdf',
+    'POD_' + 'A'.repeat(181) + '.pdf'
+  ];
+  for (const name of unsafeNames) {
+    const { entries, fail } = await run([{ name, data: original }]);
+    assert.ok(fail.includes('RC1957_UNSAFE_FILENAME'), JSON.stringify(name));
+    assert.equal(entries.some(e => e.name === 'SHA256SUMS.txt'), false, JSON.stringify(name));
+    assert.deepEqual(entries[0].data, original, 'signed bytes must remain unchanged');
+  }
+});
+
+test('RC1957: safe Unicode PDF filenames remain valid and hashes are byte-exact', async () => {
+  const original = bytes('%PDF-1.7\nSIGNED ORIGINAL');
+  const name = 'POD_Änderung_équipe_2026.pdf';
+  const { entries, fail } = await run([{ name, data: original }]);
+  assert.deepEqual(fail, []);
+  const sums = new TextDecoder().decode(entries.find(e => e.name === 'SHA256SUMS.txt').data);
+  assert.equal(sums, digest(original) + '  ' + name + '\n');
+  assert.deepEqual(entries[0].data, original);
+});
