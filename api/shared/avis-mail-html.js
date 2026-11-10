@@ -49,7 +49,7 @@ function normalizeClosureNotice(value){
     startDate>endDate||lastPickupDate>=startDate||reopenDate<=endDate||
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(lastPickupTime)||
     !Number.isInteger(leadDays)||leadDays<0||leadDays>90)return null;
- return{startDate,endDate,lastPickupDate,lastPickupTime,reopenDate,leadDays};
+ return{startDate,endDate,lastPickupDate,lastPickupTime,reopenDate,leadDays,animateSnow:value.animateSnow===true};
 }
 function activeClosureNotices(state,now){
  const settings=state&&state.settings;
