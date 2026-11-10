@@ -2680,5 +2680,8 @@
   "closureMail.mailShow": "Mailhinweis einschalten",
   "closureMail.mailHide": "Mailhinweis ausschalten",
   "closureMail.portalShow": "Avis-Seitenhinweis einschalten",
-  "closureMail.portalHide": "Avis-Seitenhinweis ausschalten"
+  "closureMail.portalHide": "Avis-Seitenhinweis ausschalten",
+  "closureMail.activate": "Schließzeit aktivieren",
+  "closureMail.deactivate": "Schließzeit deaktivieren",
+  "closureMail.disableConfirm": "Schließzeit wirklich deaktivieren? Abholtermine in diesem Zeitraum können dann wieder gebucht werden."
 }
