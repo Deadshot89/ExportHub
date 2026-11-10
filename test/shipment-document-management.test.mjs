@@ -45,13 +45,23 @@ test('AVIS: entfernte Dokumente werden nicht über Graph erneut veröffentlicht'
 });
 
 test('Sendungsansicht: sichtbare Aktionen für Originaldatei, sichere Vorschau und Rückfrage', () => {
- assert.match(ui, /\['open','Öffnen'\]/);
- assert.match(ui, /\['download','Herunterladen'\]/);
- assert.match(ui, /\['delete','Löschen'\]/);
- assert.match(ui, /q\(d\.itemId\)\)\?\[\['delete','Löschen'\]\]/);
+ assert.match(ui, /\['open',t\('open'\)\]/);
+ assert.match(ui, /\['download',t\('download'\)\]/);
+ assert.match(ui, /\['delete',t\('remove'\)\]/);
+ assert.match(ui, /q\(d\.itemId\)\)\?\[\['delete',t\('remove'\)\]\]/);
  assert.match(ui, /action:'delete-document'/);
- assert.match(ui, /window\.confirm\(/);
+ assert.match(ui, /window\.confirm\(t\('removeConfirm'/);
+ assert.match(ui, /t\('removed'\)/);
+ assert.match(ui, /t\('actionError'/);
  assert.match(ui, /fetchStoredFile\(ctx\.reference,d\)/);
  assert.match(ui, /URL\.createObjectURL\(blob\)/);
  assert.match(ui, /info\.name\?' → '\+info\.name/);
+});
+
+test('Dokument-Aktionen besitzen Übersetzungen in allen sechs Sprachen', () => {
+ const src=fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8');
+ for (const lang of ['de','en','pl','es','fr','it']) {
+  assert.match(src,new RegExp('"'+lang+'":\\{'));
+ }
+ for (const key of ['removeConfirm','removed','actionError','open','download','remove'])assert.match(src,new RegExp('"'+key+'":'));
 });
