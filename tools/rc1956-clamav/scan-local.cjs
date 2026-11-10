@@ -43,8 +43,13 @@ function runClamscan(filePath,timeoutMs=DEFAULT_TIMEOUT_MS){
    resolve(result);
   };
   // No shell, no filename output, no network, and no unattended retry.
-  const timer=setTimeout(()=>{timedOut=true;if(child)child.kill('SIGKILL');
-   settle({exitCode:null,timedOut:true});},timeoutMs);
+  // Wait for the process close event after SIGKILL: resolving at the timer
+  // boundary would let the caller delete staged bytes while ClamAV still runs.
+  // The enclosing isolated job must enforce its own hard execution deadline.
+  const timer=setTimeout(()=>{
+   timedOut=true;
+   try{if(child)child.kill('SIGKILL');}catch(_){/* keep waiting for close */}
+  },timeoutMs);
   try{
    child=cp.spawn('clamscan',[
     '--no-summary','--infected','--alert-exceeds-max=yes',
