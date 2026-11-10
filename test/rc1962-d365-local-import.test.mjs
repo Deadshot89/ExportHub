@@ -101,6 +101,18 @@ test('RC1962 rejects missing shipment references instead of silently mixing docu
  assert.equal(result.ok,false);
  assert.equal(result.code,'D365_REFERENCE_MISSING');
 });
+test('RC1962 rejects worksheet external relationship targets, macro-enabled packages and hyperlinks',async()=>{
+ const evil=[
+  xlsx([record('S-1','ITEM',1,4)],{extra:{'xl/worksheets/_rels/sheet1.xml.rels':'<Relationships><Relationship Id="rId1" Target="https://example.invalid" TargetMode="External"/></Relationships>'}}),
+  xlsx([record('S-1','ITEM',1,4)],{extra:{'[Content_Types].xml':'<Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/></Types>'}}),
+  xlsx([record('S-1','ITEM',1,4)],{extra:{'xl/worksheets/sheet1.xml':'<worksheet><sheetData/><hyperlinks><hyperlink ref="A1" r:id="rId1"/></hyperlinks></worksheet>'}})
+ ];
+ for(const bytes of evil){
+  const result=await run(bytes);
+  assert.equal(result.ok,false);
+  assert.equal(result.code,'D365_ACTIVE_CONTENT');
+ }
+});
 test('RC1962 never silently discards shipped positions beyond 500',async()=>{
  const rows=Array.from({length:501},(_,i)=>record('SAME','ART-'+i,1,2));
  const output=await run(xlsx(rows));assert.equal(output.ok,false);assert.equal(output.code,'D365_POSITION_LIMIT')

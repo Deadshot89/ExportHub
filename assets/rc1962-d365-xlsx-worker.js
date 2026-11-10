@@ -53,7 +53,8 @@ async function unzip(file){
   list.push({name,method,crc,csize,usize,start})
  }
  if(offset!==cdOffset+cdSize||xmlCount>MAX_SHEETS)fail('D365_ZIP_LIMIT');
- const needed=list.filter(f=>f.name==='[Content_Types].xml'||f.name==='xl/workbook.xml'||f.name==='xl/sharedStrings.xml'||f.name==='xl/_rels/workbook.xml.rels'||/^xl\/worksheets\/[^/]+\.xml$/i.test(f.name));
+ // Every package relationship must be checked, including worksheet relationships.
+ const needed=list.filter(f=>f.name==='[Content_Types].xml'||f.name==='xl/workbook.xml'||f.name==='xl/sharedStrings.xml'||/\.rels$/i.test(f.name)||/^xl\/worksheets\/[^/]+\.xml$/i.test(f.name));
  const result=Object.create(null);
  for(const f of needed){
   const p=f.start;if(p+30>bytes.length||u32(view,p)!==0x04034b50||u16(view,p+8)!==f.method)fail('D365_ZIP_INVALID');
@@ -75,7 +76,10 @@ async function unzip(file){
    uncompressed=new Uint8Array(size);let pos=0;for(const chunk of chunks){uncompressed.set(chunk,pos);pos+=chunk.length}
   }
   if(uncompressed.length!==f.usize||crc32(uncompressed)!==f.crc)fail('D365_ZIP_CHECKSUM');
-  result[f.name]=safeXml(decode(uncompressed))
+  const xml=safeXml(decode(uncompressed));
+  if(/\.rels$/i.test(f.name)&&/\bTargetMode\s*=\s*["']External["']/i.test(xml))fail('D365_ACTIVE_CONTENT');
+  if(f.name==='[Content_Types].xml'&&/macroEnabled|vnd\.ms-office\.activeX|vnd\.ms-office\.vbaProject/i.test(xml))fail('D365_ACTIVE_CONTENT');
+  result[f.name]=xml
  }
  if(!result['[Content_Types].xml']||!result['xl/workbook.xml'])fail('D365_XLSX_INVALID');
  return result
@@ -90,7 +94,7 @@ function sharedStrings(xml){
  return strings
 }
 function parseSheet(xml,strings){
- if(/<f(?:\s|>)/i.test(xml)||/TargetMode\s*=\s*["']External["']/i.test(xml))fail('D365_ACTIVE_CONTENT');
+ if(/<f(?:\s|>)/i.test(xml)||/<hyperlink(?:\s|\/?>)|<oleObject(?:\s|\/?>)|<controls(?:\s|\/?>)/i.test(xml))fail('D365_ACTIVE_CONTENT');
  const rows=[],re=/<row(?:\s[^>]*)?>([\s\S]*?)<\/row>/g;let row;
  while((row=re.exec(xml))){
   if(rows.length>=MAX_ROWS+1)fail('D365_ROW_LIMIT');
