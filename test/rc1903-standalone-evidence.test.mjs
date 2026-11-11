@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import crypto from 'node:crypto';
 import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
@@ -683,4 +684,44 @@ test('RC1903 P0: live TESTSERVICE pins fingerprinted root and unmodified public 
  assert.ok(live.includes('assert.ok(ROOT_GUEST_ASSET.test(html),'),'Main TESTSERVICE root must validate fingerprinted script without leaking raw HTML');
  assert.ok(live.includes('assert.ok(PUBLIC_GUEST_ASSET.test(publicHtml),'),'Public page must keep separate guest asset check without leaking raw HTML');
  assert.doesNotMatch(live,/assert\.match\((?:html|publicHtml),/,'Failed live gate must not dump full HTML into GitHub logs');
+});
+
+test('RC2007: live fingerprint compares delivered JS bytes to the claimed hash before writes',async()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ const start=live.indexOf('const expectedGuestHash=ROOT_GUEST_ASSET.exec(html)[1];');
+ const end=live.indexOf('\nconst publicPage=',start);
+ assert.ok(start>=0&&end>start,'Real byte verification must precede public guest writes');
+ const runtime=live.slice(start,end);
+ assert.match(runtime,/crypto\.createHash\('sha256'\)/);
+ assert.match(runtime,/assert\.equal\(servedGuestHash,expectedGuestHash,/);
+ assert.match(runtime,/guestAsset\.arrayBuffer\(\)/);
+ const src=live.match(/^const ROOT_GUEST_ASSET=(.+);$/m);
+ assert.ok(src);
+ const pattern=vm.runInNewContext(src[1]);
+ const content=Buffer.from('Actual TESTSERVICE-only synthetic guest JS runtime','utf8');
+ const expected=crypto.createHash('sha256').update(content).digest('hex').slice(0,10);
+ const service='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ async function verify(bytes,claim,status=200){
+  const calls=[];
+  const fakeFetch=async(url,opts)=>{
+   calls.push({url:String(url),method:opts.method||'GET'});
+   return{status,arrayBuffer:async()=>bytes};
+  };
+  const html='<script src="/assets/shipment-evidence-guest.js?v=1907&h='+claim+'"></script>';
+  const gate=vm.runInNewContext('(async()=>{'+runtime+'})()',{
+   html,ROOT_GUEST_ASSET:pattern,fetch:fakeFetch,URL,BASE:service,
+   noStore:{Accept:'application/json'},AbortSignal,timeoutMs:5000,
+   Buffer,crypto,assert
+  });
+  let failure=null;
+  try{await gate;}catch(e){failure=e}
+  assert.deepEqual(calls,[{url:service+'/assets/shipment-evidence-guest.js?v=1907&h='+claim,method:'GET'}],
+   'Never fetch URLs from arbitrary HTML content, issue POST, or leave TESTSERVICE');
+  return failure;
+ }
+ assert.equal(await verify(content,expected),null,'Matching bytes and hash must pass');
+ assert.match(String(await verify(Buffer.from('different data'),expected)),/fingerprint mismatch/,
+  'Same-looking but stale JS must fail closed');
+ assert.match(String(await verify(content,expected,404)),/TESTSERVICE guest runtime asset unavailable/,
+  'Missing deployed asset must fail before any DOK write');
 });
