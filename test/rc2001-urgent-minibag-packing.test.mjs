@@ -4,10 +4,12 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const packing=require('../api/shared/urgent-packing.js');
 const model=require('../api/shared/urgent-orders.js');
+const internal=require('../api/urgent-orders/index.js');
+const publicApi=require('../api/urgent-order-public/index.js');
 const data='Item number\tNet weight\tPacking quantity\n50607055\t0,00120\t1.000,00\n10000021\t0,00180\t100,00\n99999999\t0,00000\t0,00\n';
 const catalog=packing.parseCatalog(data);
 const line=(quantity,minibag=false,reviewed=false)=>({line:'10',article:'50607055',quantity,minibag,minibagReviewed:reviewed,pickableStock:true,holdsClear:true,minibagLeadtime:minibag?true:null});
-const base=items=>({orderNumber:'SO20261111',delivery:'DRP',priority:'P2',email:'cs@example.org',requestedDispatchDate:'2026-11-12',items});
+const base=items=>({orderNumber:'SO20261111',delivery:'DRP',priority:'P2',email:'cs@example.org',requestedDispatchDate:'2099-11-12',items});
 const actor={id:'test-user',name:'Test User'},now='2026-11-11T11:00:00Z';
 test('private catalog parser respects actual pack sizes; zero is unknown',()=>{
  assert.equal(catalog.count,2);
@@ -50,4 +52,29 @@ test('malformed or duplicate catalog data rejected atomically',()=>{
  assert.throws(()=>packing.parseCatalog('Item\tQuantity\n50607055\t1000'),e=>e.code==='URGENT_PACKING_HEADER_INVALID');
  assert.throws(()=>packing.parseCatalog('Item number\tPacking quantity\n50607055\t100\n50607055\t200'),e=>e.code==='URGENT_PACKING_DUPLICATE');
  assert.throws(()=>packing.parseCatalog('Item number\tPacking quantity\n50607055\t1.2'),e=>e.code==='URGENT_PACKING_ROW_INVALID');
+});
+
+test('public CS cannot create an unreviewed partial pack; acknowledged exception survives persistence',async()=>{
+ const originalWrite=internal.write,originalCatalog=internal.readPackingCatalog;
+ const state={orders:[],reporterGroups:[],profiles:{}};
+ internal.write=async (_refs,mutator)=>mutator(state);
+ internal.readPackingCatalog=async ()=>catalog;
+ const request=body=>({headers:{'x-forwarded-for':'192.0.2.77'},body});
+ const refs={environment:'testservice'};
+ try{
+  const draft={action:'create',...base([line(900)])};
+  await assert.rejects(publicApi.publicAction(request(draft),refs),e=>e.code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&e.status===409);
+  assert.equal(state.orders.length,0,'the original unconfirmed request creates no order or tracking group');
+  assert.equal(state.reporterGroups.length,0);
+  const approved={...draft,items:[line(900,false,true)]};
+  const success=await publicApi.publicAction(request(approved),refs);
+  assert.equal(state.orders.length,1);
+  assert.equal(state.orders[0].items[0].minibagReview.confirmedWithoutMinibag,true);
+  assert.equal(state.orders[0].items[0].minibagReview.remainder,900);
+  assert.equal(success.order.items[0].article,'50607055');
+  assert.equal(success.order.items[0].minibagReview,undefined,'anonymous tracking list does not expose private master data');
+ }finally{
+  internal.write=originalWrite;
+  internal.readPackingCatalog=originalCatalog;
+ }
 });
