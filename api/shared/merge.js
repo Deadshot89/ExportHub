@@ -929,7 +929,13 @@ function normalizeTombstones(meta) {
     if (!tombstone || !tombstone.collection || !tombstone.id) continue;
     const key = `${tombstone.collection}:${lower(tombstone.id)}`;
     const current = map.get(key);
-    if (!current || Date.parse(tombstone.deletedAt || '') >= Date.parse(current.deletedAt || '')) {
+    // A newer automatic marker must not downgrade a prior user-confirmed
+    // task deletion. Otherwise the same task ID could return on another device.
+    if (current && tombstone.collection === 'tasks' &&
+        current.explicitUserAction === true && tombstone.explicitUserAction !== true) continue;
+    if (!current || (tombstone.collection === 'tasks' &&
+        tombstone.explicitUserAction === true && current.explicitUserAction !== true) ||
+        Date.parse(tombstone.deletedAt || '') >= Date.parse(current.deletedAt || '')) {
       map.set(key, clone(tombstone));
     }
   }
