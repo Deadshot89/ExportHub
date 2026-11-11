@@ -69,11 +69,35 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
  function updateRows(){list.replaceChildren();more.hidden=!state.continuation;fullSearch.hidden=!state.continuation||!state.search.trim();const term=state.search.toLowerCase().trim();
   const matches=state.records.filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber].some(x=>String(x||'').toLowerCase().includes(term)));
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
-  matches.forEach(r=>{const row=make('div','eh1903-row'),data=make('div');
-    data.appendChild(make('b',null,r.fields&&r.fields.customer||'–'));
-    data.appendChild(make('p',null,[t('docId')+': '+r.id,r.fields&&r.fields.shipmentNumber,dateText(r.fields&&r.fields.dispatchDate)].filter(Boolean).join(' · ')));
-    data.appendChild(make('p',null,(r.files||[]).length+' '+t('fileCount')+' · '+(r.complaints||[]).length+' '+t('complaintCount')));
-    row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)});
+  matches.forEach(r=>{
+    const row=make('div','eh1903-row eh1903-record-row'),data=make('div','eh1903-record-grid'),fields=r.fields||{};
+    const cell=(label,value,cls)=>{
+      const section=make('div','eh1903-record-cell'+(cls?' '+cls:''));
+      section.appendChild(make('span','eh1903-record-label',label));
+      section.appendChild(make('strong','eh1903-record-value',value==null||value===''?'–':value));
+      data.appendChild(section);return section
+    };
+    const ref=cell(t('refShort'),fields.exporthubRef||'–','eh1903-record-ref');
+    ref.appendChild(make('span','eh1903-record-sub',t('documentationRefShort')+': '+r.id));
+    const customer=cell(t('customer'),fields.customer||'–','eh1903-record-customer');
+    if(fields.shipmentNumber)customer.appendChild(make('span','eh1903-record-sub',t('shipmentNumber')+': '+fields.shipmentNumber));
+    cell(t('dispatchDate'),dateText(fields.dispatchDate));
+    cell(t('colli'),fields.colli);
+    cell(t('weightKg'),fields.weightKg==null||fields.weightKg===''?'–':fields.weightKg+' kg');
+    const statuses=make('div','eh1903-record-cell eh1903-record-complaints');
+    statuses.appendChild(make('span','eh1903-record-label',t('complaintStatus')));
+    const cases=(r.complaints||[]).filter(Boolean),counts={offen:0,in_pruefung:0,abgeschlossen:0};
+    cases.forEach(c=>{counts[c.state==='abgeschlossen'?'abgeschlossen':c.state==='in_pruefung'?'in_pruefung':'offen']++});
+    const chips=make('div','eh1903-status-chips');
+    if(!cases.length)chips.appendChild(make('span','eh1903-record-sub',t('noComplaintsShort')));
+    for(const statusKey of ['offen','in_pruefung','abgeschlossen']){
+      if(!counts[statusKey])continue;
+      const chip=make('span','eh1903-status-chip',t(statusKey==='abgeschlossen'?'complaintCompleted':statusKey)+' · '+counts[statusKey]);
+      chip.setAttribute('data-complaint-state',statusKey);chips.appendChild(chip);
+    }
+    statuses.appendChild(chips);data.appendChild(statuses);
+    row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)
+  });
  }
  search.addEventListener('input',()=>{state.search=search.value;state.searchRun++;updateRows()});updateRows();
 }
@@ -312,7 +336,7 @@ function complaintsPanel(record){
   return el;
  }
  complaints.slice().reverse().forEach(c=>{
-  const details=make('details','eh1903-complaint'),summary=make('summary',null,dateText(c.reportedDate)+' · '+(c.createdBy||'')+' · '+t(c.category||'sonstiges')+' · '+t(c.state));
+  const details=make('details','eh1903-complaint'),summary=make('summary',null,dateText(c.reportedDate)+' · '+(c.createdBy||'')+' · '+t(c.category||'sonstiges')+' · '+t(c.state==='abgeschlossen'?'complaintCompleted':c.state));
   const openKey=record.id+':'+c.id;
   if(state.expandedComplaintId===openKey)details.open=true;
   details.addEventListener('toggle',()=>{
@@ -322,7 +346,8 @@ function complaintsPanel(record){
   });
   details.appendChild(summary);details.appendChild(make('p',null,c.text));
   const statusSelect=make('select');statusSelect.setAttribute('aria-label',t('state'));
-  ['offen','in_pruefung','abgeschlossen'].forEach(st=>{const o=make('option',null,t(st));o.value=st;o.selected=c.state===st;statusSelect.appendChild(o)});
+  (c.state==='abgeschlossen'?['abgeschlossen','in_pruefung']:['offen','in_pruefung'])
+   .forEach(st=>{const o=make('option',null,t(st==='abgeschlossen'?'complaintCompleted':st));o.value=st;o.selected=c.state===st;statusSelect.appendChild(o)});
   statusSelect.addEventListener('change',async()=>{
    const changed=await write('complaint-status',{complaintId:c.id,state:statusSelect.value});
    if(!changed)statusSelect.value=c.state;
@@ -405,6 +430,23 @@ function complaintsPanel(record){
    const result=await write('complaint-update',data,record.id);
    if(!result&&details.isConnected)details.open=true;
   },true));
+  // A verified case can be completed, but never with unsaved changed proof fields.
+  if(c.state!=='abgeschlossen'){
+   const done=button(t('markComplaintDone'),async()=>{
+    const fields=[...details.querySelectorAll('[data-complaint-field]')];
+    const dirty=fields.some(el=>String(el.value||'').trim()!==String(c[el.getAttribute('data-complaint-field')]||'').trim());
+    if(dirty){status(t('saveComplaintFirst'),true);return}
+    if(c.effectivenessResult!=='wirksam'||!c.verifiedBy||!c.verifiedOn){
+     status(t('verifyBeforeDone'),true);return
+    }
+    if(!w.confirm(t('confirmComplaintDone')))return;
+    state.expandedComplaintId=openKey;
+    await write('complaint-status',{complaintId:c.id,state:'abgeschlossen'},record.id);
+   });
+   done.disabled=c.effectivenessResult!=='wirksam'||!c.verifiedBy||!c.verifiedOn;
+   done.title=t(done.disabled?'verifyBeforeDone':'markComplaintDone');
+   toolbar.appendChild(done);
+  }
   const consentLabel=make('label','eh1903-consent'),consent=make('input');
   consent.type='checkbox';consentLabel.appendChild(consent);consentLabel.appendChild(make('span',null,t('complaintAiConsent')));
   toolbar.appendChild(consentLabel);
