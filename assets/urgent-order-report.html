@@ -363,13 +363,13 @@ function render(){
   const deleteButton=node.querySelector('[data-delete-order]');
   if(deleteButton)deleteButton.addEventListener('click',async ev=>{
    ev.preventDefault();ev.stopPropagation();
-   if(!window.confirm(localeV2('deletePublicPrompt',"Urgent-Order-Anfrage löschen? Wenn schon jemand daran arbeitet, braucht es eine Bestätigung.")))return;
+   if(!window.confirm(localeV2('deletePublicPrompt',"Delete this Urgent Order? If processing has started, approval is required.")))return;
    deleteButton.disabled=true;
    try{
     const result=await api('request-delete',{accessToken:secret,id:o.id});
     await refresh();
-    showMessage(result.deleted?localeV2('deletePublicSuccess',"Anfrage gelöscht."):
-      localeV2('deletePublicPendingToast',"Löschung angefragt. Die Logistik muss zustimmen."),'ok');
+    showMessage(result.deleted?localeV2('deletePublicSuccess',"Request deleted."):
+      localeV2('deletePublicPendingToast',"Deletion requested. Logistics approval is required."),'ok');
    }catch(error){deleteButton.disabled=false;showMessage(error.message,'error');}
   });
   target.appendChild(node);
@@ -378,10 +378,10 @@ function render(){
 function publicDeleteMarkup(order){
  const record=order.deletion||{},pending=record.state==='pending';
  const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
- const note=pending?'<p role="status">'+esc(localeV2('deletePublicPending',"Löschung angefragt – wartet auf Freigabe durch die Logistik."))+'</p>':
-  record.state==='rejected'?'<p role="status">'+esc(localeV2('deletePublicRejected',"Die letzte Löschanfrage wurde abgelehnt."))+'</p>':'';
- return '<div class="order-delete"><p class="muted">'+esc(localeV2('deletePublicDisclaimer',"Löschung betrifft nur die Urgent-Order-Anfrage, nicht die tatsächliche Sendung."))+'</p>'+
-  note+(pending||complete?'':'<button type="button" class="btn secondary small" data-delete-order>'+esc(localeV2('deleteButton',"Anfrage löschen"))+'</button>')+'</div>';
+ const note=pending?'<p role="status">'+esc(localeV2('deletePublicPending',"Deletion requested – waiting for logistics approval."))+'</p>':
+  record.state==='rejected'?'<p role="status">'+esc(localeV2('deletePublicRejected',"The previous deletion request was declined."))+'</p>':'';
+ return '<div class="order-delete"><p class="muted">'+esc(localeV2('deletePublicDisclaimer',"Deletion affects the Urgent Order request, not the actual shipment."))+'</p>'+
+  note+(pending||complete?'':'<button type="button" class="btn secondary small" data-delete-order>'+esc(localeV2('deleteButton',"Delete request"))+'</button>')+'</div>';
 }
 function urgentTrackingBase(){
  const host=String(location.hostname||'').toLowerCase();
