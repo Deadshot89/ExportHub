@@ -85,7 +85,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.match(ui,/runtime\.upload\(ref,prepared,type==='photo'\?'sonstiges':'lieferschein'\)/);
  assert.match(ui,/filenameForProof\(f,type,i\)/);
  assert.match(ui,/if\(!isCurrent\(box,ref\)\)return/);
- assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1933/);
+ assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1935/);
  const translations=fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8');
  for(const key of ['previewUnavailable','linkedError','download','close','linkedPhotosSection'])assert.match(translations,new RegExp('"'+key+'"'));
  assert.equal(azure.bindings[0].type,'httpTrigger');
@@ -113,6 +113,10 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
  t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
   getContainerClient:()=>({
+   listBlobsFlat:({prefix})=>({byPage:()=>({next:async()=>({
+    value:{segment:{blobItems:[...stored.keys()].filter(name=>name.startsWith(prefix)).map(name=>({name}))},
+     continuationToken:null}
+   })})}),
    getBlockBlobClient:(key)=>{
     paths.push(key);
     return{
@@ -157,6 +161,32 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  assert.equal(complaint.status,200);
  assert.equal(complaint.data.record.complaints.length,1);
  assert.equal(complaint.data.record.complaints[0].state,'offen');
+ const complaintId=complaint.data.record.complaints[0].id;
+ const initiallyOpen=await call('GET',{action:'counts'});
+ assert.equal(initiallyOpen.status,200);
+ assert.deepEqual(initiallyOpen.data,{ok:true,open:1},'REF counter must not reveal case details');
+ const premature=await call('POST',{reference:'ABC123',action:'complaint-status',
+  expectedRevision:2,complaintId,state:'abgeschlossen'});
+ assert.equal(premature.status,422,'Without verified effectiveness, closure is forbidden even through the API');
+ assert.equal(premature.data.code,'EFFECTIVENESS_REQUIRED');
+ const firstReview=await call('POST',{reference:'ABC123',action:'complaint-update',
+  expectedRevision:2,complaintId,rootCause:'Verpackung nicht ausreichend',
+  correctiveAction:'Zweite Lade- und Verpackungskontrolle',
+  checkDate:'2026-11-10',checkMethod:'10 Packstuecke geprueft',
+  checkCriteria:'Null neue Transportschaeden',effectivenessEvidence:'Kontrollliste bestaetigt'});
+ assert.equal(firstReview.status,200);
+ assert.equal(firstReview.data.record.complaints[0].effectivenessResult,'offen');
+ const confirmed=await call('POST',{reference:'ABC123',action:'complaint-update',
+  expectedRevision:3,complaintId,effectivenessResult:'wirksam'});
+ assert.equal(confirmed.status,200);
+ assert.equal(confirmed.data.record.complaints[0].verifiedBy,'Lagerteam');
+ const finished=await call('POST',{reference:'ABC123',action:'complaint-status',
+  expectedRevision:4,complaintId,state:'abgeschlossen'});
+ assert.equal(finished.status,200);
+ assert.equal(finished.data.record.complaints[0].state,'abgeschlossen');
+ const afterClosure=await call('GET',{action:'counts'});
+ assert.equal(afterClosure.status,200);
+ assert.equal(afterClosure.data.open,0);
  const stale=await call('POST',{reference:'ABC123',action:'save',expectedRevision:0,fields:{contents:'Ueberschreiben'}});
  assert.equal(stale.status,409);
  assert.equal((await call('GET',{reference:'ABC123'})).data.record.fields.contents,'5 Kartons');
