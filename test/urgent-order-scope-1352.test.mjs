@@ -125,3 +125,30 @@ test('whole-order checks appear in both creation forms, not in fabricated line d
   }
  }
 });
+
+test('clicking whole-order scope hides only line inputs and keeps real whole-order checks usable',()=>{
+ for(const [file,publicView] of [['urgent-order-report.html',true],['urgent-orders.html',false]]){
+  const html=fs.readFileSync(new URL('../assets/'+file,import.meta.url),'utf8');
+  const start=html.indexOf('function syncScope(){'),end=html.indexOf('function wholeOrderChecks(){',start);
+  assert.ok(start>=0&&end>start,'scope controller exists for '+file);
+  const controls={lines:[{disabled:false}],allChecks:[{id:'stock',disabled:true},{id:'holds',disabled:true}]};
+  const ids=publicView?
+   {lines:'lines',add:'addLine',check:'wholeOrderChecks',header:'urgentStepTwoHeading',stock:'wholeOrderPickableRow'}:
+   {lines:'lineFields',add:'addLine',check:'internalWholeOrderChecks',header:'internalStepTwoHeading'};
+  const nodes={};for(const id of Object.values(ids))nodes[id]={hidden:false,textContent:'',querySelectorAll:()=>id===ids.lines?controls.lines:controls.allChecks};
+  if(publicView){nodes.orderType={value:'STANDARD'};controls.allChecks[0].id='wholeOrderPickable';}
+  let all=true;
+  const context={$:id=>nodes[id],isAllLines:()=>all,localeV2:(_key,fallback)=>fallback};
+  const sync=vm.runInNewContext(html.slice(start,end)+';syncScope',context);
+  sync();
+  assert.equal(nodes[ids.lines].hidden,true,file+' must hide per-line entry');
+  assert.equal(nodes[ids.check].hidden,false,file+' must show whole-order checks');
+  assert.equal(controls.lines[0].disabled,true);
+  assert.equal(controls.allChecks[1].disabled,false);
+  all=false;sync();
+  assert.equal(nodes[ids.lines].hidden,false);
+  assert.equal(nodes[ids.check].hidden,true);
+  assert.equal(controls.lines[0].disabled,false);
+  assert.equal(controls.allChecks[1].disabled,true);
+ }
+});
