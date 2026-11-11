@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:''};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:''};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -19,6 +19,13 @@ function active(){return d.body&&d.body.getAttribute('data-exporthub-view')==='s
 function status(message,error){const el=root()&&root().querySelector('[data-eh1903-status]');if(el){el.textContent=message||'';el.setAttribute('data-error',error?'true':'false')}}
 function headers(){const r=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},token=r.authToken||r.token||r.sessionToken||'';const h={'Accept':'application/json','Content-Type':'application/json'};if(token)h['X-ExportHUB-Token']=String(token);return h}
 async function request(method,params){let url='/api/shipment-evidence',options={method,headers:headers(),credentials:'same-origin',cache:'no-store'};if(method==='GET')url+='?'+new URLSearchParams(params);else options.body=JSON.stringify(params);const response=await fetch(url,options);let value;try{value=await response.json()}catch(_){value={}}if(!response.ok||value.ok!==true)throw new Error(value.message||'HTTP '+response.status);return value}
+async function legacyRequest(params){
+ const url='/api/shipment-documentation?'+new URLSearchParams(params);
+ const response=await fetch(url,{method:'GET',headers:headers(),credentials:'same-origin',cache:'no-store'});
+ let value;try{value=await response.json()}catch(_){value={}};
+ if(!response.ok||value.ok!==true)throw new Error(value.message||'HTTP '+response.status);
+ return value
+}
 async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLSearchParams({action:'file',id,fileId:file.id,...(file.complaintId?{complaintId:file.complaintId}:{})});const response=await fetch(url,{headers:headers(),credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);return response.blob()}
 const isPhoto=file=>/^image\/(jpeg|png)$/.test(String(file&&file.mime||'').toLowerCase());
 function syncGallery(recordId){
@@ -49,7 +56,7 @@ async function downloadEvidence(id,file){
 function dateText(s){try{return s?new Date(s).toLocaleDateString(language()==='de'?'de-DE':'en-GB'):''}catch(_){return s}}
 function hero(title,desc){const h=make('header','eh1903-hero');h.appendChild(make('h1',null,title));h.appendChild(make('p','eh1903-muted',desc));return h}
 function initPage(){const container=host();if(!container)return null;const app=make('main');app.id='eh1903-root';container.replaceChildren(app);d.body.setAttribute('data-exporthub-view','shipmentevidence');return app}
-function showList(){syncGallery('');state.serial++;state.view='list';state.record=null;state.canDelete=false;state.canRegisterCustomer=false;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
+function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;state.view='list';state.record=null;state.canDelete=false;state.canRegisterCustomer=false;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('intro')));
  const actions=make('div','eh1903-actions');actions.appendChild(button(t('new'),()=>showForm(null),true));
  const publicLink=make('a','eh1903-public-link',t('publicPage'));
  publicLink.href='/sendungsdokumentation';publicLink.target='_self';actions.appendChild(publicLink);
@@ -107,7 +114,7 @@ async function loadList(reset){if(state.loading&&!reset)return false;state.loadi
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
   state.continuation=result.continuation||null;
-  if(state.view==='list'&&active())showList();
+  if(state.view==='list'&&active())showList(true);
   return true;
  }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true);return false}
  finally{if(listToken===state.listToken)state.loading=false}}
