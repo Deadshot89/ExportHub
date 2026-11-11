@@ -2754,5 +2754,6 @@
   "urgentOrderV2.issueDamage": "Merce danneggiata o incompleta",
   "urgentOrderV2.issueDelay": "Impossibile spedire entro la data richiesta",
   "urgentOrderV2.issueRegenerate": "Rigenera la bozza dell'e-mail.",
-  "urgentOrderV2.issueTooLong": "La descrizione del problema, inclusi i modelli selezionati, non può superare 2000 caratteri."
+  "urgentOrderV2.issueTooLong": "La descrizione del problema, inclusi i modelli selezionati, non può superare 2000 caratteri.",
+  "urgentOrderV2.shippingNotReady": "Disponibile solo dopo la spedizione di tutte le righe."
 }
