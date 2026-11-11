@@ -52,7 +52,7 @@
       customer:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),stationName:q(n.packStationName||n.packStationId),createdAt:q(n.createdAt),
       packageType:q(n.packageType),packageCount:Number(n.packageCount)||0,totalWeight:Number(n.totalWeight)||0,
       packages:arr(n.packages).map(x=>({...x})),documents:arr(n.documents).map(x=>({...x})),note:q(n.note),
-      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId),
+      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId),abdRequestId:q(n.abdRequestId),abdRequestRef:q(n.abdRequestRef),
       deliveryNoteReference:q(n.deliveryNoteReference),cancelledAt:q(n.cancelledAt),editedAt:q(n.editedAt)
     };
   }
@@ -214,7 +214,7 @@
   function detailHtml(model){
     const packages=`${model.packageCount}${model.packageType?` · ${model.packageType}`:''}`;
     return `<div class="pack-internal-shell">
-      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`}</span></header>
+      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-action="abd">${esc(model.abdRequestId?tr('pack.internal.openAbd'):tr('pack.internal.createAbd'))}</button>`}</span></header>
       <div class="pack-internal-facts">${factHtml('box',tr('pack.internal.packages'),packages)}${factHtml('weight',tr('pack.internal.totalWeight'),`${model.totalWeight} kg`)}${factHtml('station',tr('pack.internal.station'),model.stationName||'–')}${factHtml('clock',tr('pack.internal.reported'),formatDate(model.createdAt))}</div>
       <div class="pack-internal-detail-grid">
         <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl>${customerIdentityHtml(model)}<div><dt>${esc(tr('pack.internal.deliveryNoteReference'))}</dt><dd>${esc(model.deliveryNoteReference||'–')}</dd></div></dl></article>
@@ -230,7 +230,7 @@
     const back=`<button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.back'))}</button>`;
     if(cancelled)return`${back}<span class="pack-internal-locked-hint">${esc(tr('pack.internal.cancelledHint'))}</span>`;
     const edit=editable?`<button type="button" class="btn pack-internal-danger" data-pack-action="cancel">${esc(tr('pack.internal.cancel'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-action="edit">${esc(tr('pack.internal.edit'))}</button>`:'';
-    return`${back}<span class="pack-internal-actions-spacer"></span>${edit}<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`;
+    return`${back}<span class="pack-internal-actions-spacer"></span>${edit}<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-action="abd">${esc(model.abdRequestId?tr('pack.internal.openAbd'):tr('pack.internal.createAbd'))}</button>`;
   }
   function editRowsHtml(packages,count){
     const rows=[];
@@ -244,7 +244,7 @@
   function editHtml(model,draft,errorText){
     const d=draft||model,count=Math.max(1,Math.floor(Number(d.packageCount))||1);
     return `<div class="pack-internal-shell">
-      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="edit-cancel">${esc(tr('pack.internal.backToDetail'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(tr('pack.internal.editTitle'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`}</span></header>
+      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="edit-cancel">${esc(tr('pack.internal.backToDetail'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(tr('pack.internal.editTitle'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-action="abd">${esc(model.abdRequestId?tr('pack.internal.openAbd'):tr('pack.internal.createAbd'))}</button>`}</span></header>
       <form class="pack-internal-edit" data-pack-edit-form novalidate>
         ${errorText?`<p class="pack-internal-edit-error" role="alert">${esc(errorText)}</p>`:''}
         <article class="pack-internal-panel"><h2>${esc(tr('pack.internal.summary'))}</h2>
@@ -313,6 +313,10 @@
     try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-shipment',{detail:{notificationId:model.notificationId,reference:model.reference,shipmentId:model.shipmentId}}));return true;}}catch(_){}
     return false;
   }
+  function dispatchAbd(model){
+    try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-abd',{detail:{notificationId:model.notificationId,reference:model.reference}}));return true;}}catch(_){}
+    return false;
+  }
   let inboxFilter='open';
   function renderPackInbox(){
     const doc=root.document;if(!doc)return false;const host=doc.getElementById('content')||doc.querySelector('main');if(!host)return false;
@@ -345,6 +349,7 @@
       const action=target.getAttribute('data-pack-action');
       if(action==='back')renderPackInbox();
       else if(action==='shipment')dispatchShipment(model);
+      else if(action==='abd')dispatchAbd(model);
       else if(action==='edit')showEdit(null,'');
       else if(action==='edit-cancel')reopen();
       else if(action==='edit-save'){if(busy)return;busy=true;const draft=collectEditForm(section);const result=await saveEdit(model.notificationId,draft);busy=false;if(result.ok)reopen();else showEdit(draft,editErrorText(result));}
