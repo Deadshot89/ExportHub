@@ -31,7 +31,7 @@ jobs:
           node .github/rc1112/build-three-env.mjs
           test -s dist-rc1112/assets/rc1570-tasks-focus.js
           test -s dist-rc1112/assets/i18n/rc1570-tasks-focus.js
-          grep -q 'rc1570-tasks-focus.js?v=1754' dist-rc1112/index.html
-          grep -q 'rc1570-tasks-focus.js?v=1754' dist-rc1112/TESTVERSION.html
+          grep -q 'rc1570-tasks-focus.js?v=1985' dist-rc1112/index.html
+          grep -q 'rc1570-tasks-focus.js?v=1985' dist-rc1112/TESTVERSION.html
       - name: No production deployment
         run: echo 'Branch verification only, no deployment'
