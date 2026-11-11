@@ -258,6 +258,8 @@ test('RC1969: jede Dashboard-KPI hat ein eigenes sichtbares, barrierefrei dekora
   assert.match(runtime,/kind:'quality',route:'quality'[^\n]*icon:'quality'/,'Fehler & Verbesserungen nutzt das Werkzeug-/Verbesserungssymbol');
   assert.match(css,/\.rc1558-kpi-top \.rc1558-kpi-icon\{/,'Icon-Glasfläche fehlt');
   assert.match(css,/@media\(max-width:480px\)/,'responsive Icon-Größe fehlt');
+  assert.match(css,/var\(--pc-icon-bg,#e8f1ff\)/,'Iconfläche muss den Design-Modus statt hartem Weiß verwenden');
+  assert.doesNotMatch(css,/background:linear-gradient\(145deg,rgba\(255,255,255,\.78\)/,'Neon-Night-Icons dürfen keine fast weiße Fläche bekommen');
   assert.equal((html.match(/class="rc1558-icon rc1558-panel-icon"/g)||[]).length,3,'Abholungen, Aufmerksamkeit und Aufgaben haben eigene Titelicons');
   assert.match(runtime,/function ensureLegacyTileIcon\(el,id\)/,'Icons der vorhandenen unteren Karten fehlen');
   assert.match(runtime,/\{quick:'quick',abd:'abd',pallet:'pallet'\}/,'Schnellzugriffe, ABD und Palettenkonto müssen eigene Icons haben');
