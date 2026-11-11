@@ -1231,6 +1231,9 @@ function pruneTombstones(state, maxAgeDays = 365) {
   if (!state || !state._teamSyncMeta) return state;
   const cutoff = Date.now() - maxAgeDays * 86400000;
   state._teamSyncMeta.tombstones = normalizeTombstones(state._teamSyncMeta).filter((item) => {
+    // Never discard an explicit task-delete marker: an offline device can
+    // reconnect after the normal retention period and reintroduce that ID.
+    if (item.collection === 'tasks' && item.explicitUserAction === true) return true;
     const time = Date.parse(item.deletedAt || '');
     return !Number.isFinite(time) || time >= cutoff;
   });
