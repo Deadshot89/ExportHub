@@ -83,6 +83,23 @@ export function injectPackRuntime(html,file='index.html'){
   return out;
 }
 
+export function injectAvisPlaceholderOptIn(html,file='index.html'){
+  // RC opt-in: patch the original large inline shipment mail composer only in
+  // the final release artifact. No automatic AVIS footer is allowed.
+  let out=String(html||'');
+  const previewAnchor='if(draftBody!==null)body=draftBody;';
+  const previewPatch=previewAnchor+"\n if(window.ExportHUBRC1027Lieferavis&&typeof window.ExportHUBRC1027Lieferavis.renderSubject==='function')subject=window.ExportHUBRC1027Lieferavis.renderSubject(subject,lang);";
+  const sendAnchor="if(f.to)f.to.value=rec.to.join('; ');";
+  const sendPatch="if(window.ExportHUBRC1027Lieferavis&&typeof window.ExportHUBRC1027Lieferavis.renderSubject==='function')subject=window.ExportHUBRC1027Lieferavis.renderSubject(subject,q((document.getElementById('rc543MailLang')||{}).value));if(/\\{\\{\\s*LIEFERAVIS\\s*\\}\\}/i.test(mailBody)){alert('Der Lieferavis-Link ist nicht verfügbar oder für diesen Empfänger gesperrt. Bitte Lieferavis prüfen oder den Platzhalter entfernen.');return null}"+sendAnchor;
+  for(const [before,after,name] of [[previewAnchor,previewPatch,'Mailvorschau'],[sendAnchor,sendPatch,'Outlook-Versand']]){
+    if(out.includes(after))continue;
+    const count=out.split(before).length-1;
+    if(count!==1)throw new Error(file+': '+name+' muss genau einmal vorhanden sein (gefunden '+count+')');
+    out=out.replace(before,after);
+  }
+  return out;
+}
+
 export function copyPackFiles(root,out){
   fs.mkdirSync(path.join(out,'assets'),{recursive:true});
   fs.copyFileSync(path.join(root,'pack.html'),path.join(out,'pack.html'));
@@ -100,7 +117,7 @@ export function build(root=process.cwd()){
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const target=path.join(out,file);
     const html=fs.readFileSync(target,'utf8');
-    fs.writeFileSync(target,injectPackRuntime(injectInactivePackagingSuppression(html,file),file));
+    fs.writeFileSync(target,injectAvisPlaceholderOptIn(injectPackRuntime(injectInactivePackagingSuppression(html,file),file),file));
   }
   const customerAvis=path.join(out,'customer-avis.html');
   if(fs.existsSync(customerAvis)){
