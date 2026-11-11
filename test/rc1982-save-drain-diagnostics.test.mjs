@@ -19,13 +19,16 @@ function diagnostic(runtime){
 test('RC1982: saving/pending/generation evidence is returned without payload data',async()=>{
   const result=await diagnostic({
     saving:true,pendingSave:true,dirty:true,saveTimer:12,
-    changeGeneration:18,lastSavedGeneration:17,
+    changeGeneration:18,lastSavedGeneration:17,activeSaveGeneration:18,
+    lastServerSaveAckGeneration:17,network:{posts:5},lastSaveMs:8200,
     lastSaveErrorCode:'STATE_API_UNREACHABLE',
     token:'SHOULD_NOT_LOG',customerEmail:'private@example.test'
   });
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{
     saving:true,pending:true,dirty:true,hasTimer:true,
-    changedGeneration:18,savedGeneration:17,lastErrorCode:'STATE_API_UNREACHABLE'
+    changedGeneration:18,savedGeneration:17,activeSaveGeneration:18,
+    serverAckGeneration:17,networkSaveRequests:5,saveElapsedMs:null,lastSaveMs:8200,
+    lastErrorCode:'STATE_API_UNREACHABLE'
   });
   const output=JSON.stringify(result);
   assert.doesNotMatch(output,/SHOULD_NOT_LOG|private@example/);
@@ -39,6 +42,8 @@ test('RC1982: unknown, freeform and potentially sensitive error messages are not
     lastSaveErrorMessage:'Password and shipment contents must never appear in test log'
   });
   assert.equal(result.lastErrorCode,'UNRECOGNIZED');
+  assert.equal(result.serverAckGeneration,null);
+  assert.equal(result.networkSaveRequests,null);
   assert.doesNotMatch(JSON.stringify(result),/example.test|Password|shipment contents/);
 });
 
@@ -49,4 +54,5 @@ test('RC1982: diagnostic collection fails closed and never approves a save',asyn
   assert.match(source,/if\(result&&result\.timeout\)\{const snapshot=await rc1982DrainSnapshot\(page\);throw new Error\('Azure-Save Drain Timeout: '\+JSON\.stringify\(snapshot\)\);\}/);
   assert.match(source,/Promise\.resolve\(clean\.flushSave\(/);
   assert.match(source,/if\(result&&result\.ok!==true\)/);
+  assert.match(source,/const finalState=await rc1982DrainSnapshot\(page\)/);
 });
