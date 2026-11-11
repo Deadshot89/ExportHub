@@ -69,6 +69,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Trust only this checked-out GitHub workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Require current main as ancestor
         shell: bash
         run: |
@@ -104,11 +106,18 @@ jobs:
 
   integrated-browser:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Trust only this checked-out GitHub workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Require current main as ancestor
         shell: bash
         run: |
@@ -130,7 +139,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
           # A successful real Chromium launch is mandatory before any browser gate.
           node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Protect ExportHUB core browser flows
@@ -176,11 +185,18 @@ jobs:
 
   environment-package:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Trust only this checked-out GitHub workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Require current main as ancestor
         shell: bash
         run: |
@@ -202,7 +218,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
           # A successful real Chromium launch is mandatory before any browser gate.
           node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Verify Production candidate package read-only

@@ -155,20 +155,39 @@ function statusLabel(status){
   return text===key?status:text
 }
 
-/* 24px stroke icons, drawn in currentColor so every design colors them. */
+/* RC1969 – eigene, semantische Vektoricons je Dashboard-Kachel (ohne Bilddateien).
+   24px SVG, currentColor für alle Designs, aria-hidden da der Kacheltext den Namen trägt. */
 var ICONS={
-  today:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
-  open:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
-  abd:'<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8v5M12 16v.5"/>',
-  avMissing:'<path d="M7 3h8l4 4v14H7zM15 3v4h4"/><path d="M13 11v5M13 19v.5"/>',
-  documents:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
-  pack:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
-  pod:'<path d="M4 17c3-1 4-5 6-5s1.5 4 3.5 4 2-3 3.5-3 2 1.5 3 2"/><path d="M4 21h16"/>',
-  tasks:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
+  // Heutige Abholungen: Kalender + Lieferwagen
+  today:'<rect x="2.5" y="3.5" width="14" height="16" rx="2"/><path d="M2.5 8h14M6 2v4M13 2v4M5.5 11.5h3"/><path d="M15 12h4l2.5 3v4H15z"/><circle cx="17" cy="19" r="1.5"/><circle cx="21" cy="19" r="1.5"/>',
+  // Offene Sendungen: zwei gestapelte Versandkartons
+  open:'<path d="m3 8 7-4 7 4-7 4-7-4ZM3 8v9l7 4 7-4V8M10 12v9"/><path d="m14.5 5 3-2L22 6v9l-4 2M17.5 3v4"/>' ,
+  // Wartet auf ABD: Exportdokument + Sanduhr
+  abd:'<path d="M4 2.5h10l4 4V13M14 2.5v4h4M4 2.5v19h9M7 10h7M7 13h4"/><path d="M15 14h8M15 22h8M16 14c0 3 5 4 5 4s-5 1-5 4M22 14c0 3-5 4-5 4s5 1 5 4"/>',
+  // Ausgangsvermerk fehlt: Lieferscheindokument + Warnzeichen
+  avMissing:'<path d="M5 2.5h10l4 4V14M15 2.5v4h4M5 2.5v19h8M8 10h8M8 13h6"/><circle cx="18.5" cy="18" r="4"/><path d="M18.5 16v2.5M18.5 20v.2"/>',
+  // Dokumente prüfen: Dokument + Lupe
+  documents:'<path d="M5 2.5h10l4 4V12M15 2.5v4h4M5 2.5v19h9M8 10h8M8 14h4"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="m20 20 2.5 2.5"/>',
+  // Vom Packtisch: offener Karton auf Packtisch
+  pack:'<path d="M2 17h20M4 17v4M20 17v4M8 17V9l4 2 4-2v8M8 9l-3-3 4-3 3 4 3-4 4 3-3 3M12 11v6"/>',
+  // POD fehlt: Versandbeleg mit Signaturfeld und fehlendem Nachweis
+  pod:'<path d="M5 2.5h10l4 4v15H5zM15 2.5v4h4M8 10h8M8 13h6M8 17c1-2 2 1 3-1"/><path d="m15 16 5 5m0-5-5 5"/>',
+  // Aufgaben fällig: Checkliste + Uhr
+  tasks:'<path d="M4 4h13M4 9h9M4 14h7M4 19h7M2 4l1 1 2-2M2 9l1 1 2-2"/><circle cx="17.5" cy="17.5" r="5"/><path d="M17.5 14.5v3l2 1"/>',
+  // Urgent Orders: Paket mit Blitz – nicht dieselbe Grafik wie Aufgaben
+  urgent:'<path d="m2 7 7-4 7 4-7 4-7-4ZM2 7v10l7 4 4-2M9 11v10M16 7v4"/><path d="m19 11-4.5 6h4l-1 5 5-7h-4z"/>',
+  // Fehler & Verbesserungen: Zahnrad + Werkzeug
+  quality:'<circle cx="10" cy="11" r="3"/><path d="M8 2.5h4l.6 2.2 2 1.1 2.2-.8 2 3.4-1.6 1.7v2l1.6 1.7-2 3.4-2.2-.8-1.5.9M8 19.5l-1-2-2-.9-2.2.8-2-3.4 1.6-1.7v-2L.8 8.5l2-3.4 2.2.8 2-1.1z"/><path d="m15 17 5.5-5.5 2 2L17 19l-3 1z"/>',
+  // Weitere Dashboard-Bereiche unterhalb der KPIs
+  attention:'<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5M12 17v.5"/>',
+  lager:'<path d="M2 21V5l10-3 10 3v16M2 8h20M5 8v13M19 8v13M5 14h14M8 11h3v3H8zM13 11h3v3h-3zM8 17h3v4H8zM13 17h3v4h-3z"/>',
+  week:'<rect x="2.5" y="4.5" width="19" height="17" rx="2"/><path d="M2.5 9h19M7 2v5M17 2v5M6.5 13h3M12 13h3M17.5 13h1M7 17h3M12 17h3"/>',
+  quick:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 21h7v-7M14 14l7 7"/>',
+  pallet:'<path d="M3 19h18M4 22v-3M10 22v-3M15 22v-3M20 22v-3M4 11h7v8H4zM13 11h7v8h-7zM8 3h8v8H8zM8 7h8M11 11V7"/>',
   check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
   chevron:'<path d="M9 6l6 6-6 6"/>'
 };
-function icon(name,cls){return'<svg class="'+(cls||'rc1558-icon')+'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(ICONS[name]||'')+'</svg>'}
+function icon(name,cls){return'<svg class="'+(cls||'rc1558-icon rc1558-kpi-icon')+'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(ICONS[name]||'')+'</svg>'}
 
 function isoWeek(d){
   var x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));var day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);
@@ -233,7 +252,8 @@ function renderHtml(model,meta){
   }).join('')+'</ul>':emptyHtml('dashboard.overview.tasks.empty');
 
   function head(titleKey,count,route,linkKey){
-    return'<div class="rc1558-head"><h3>'+esc(t(titleKey))+'</h3>'+(count!=null?'<span class="rc1558-count">'+count+'</span>':'')+
+    var headerIcon={'dashboard.overview.today.title':'today','dashboard.overview.attention.title':'attention','dashboard.overview.tasks.title':'tasks'}[titleKey]||'check';
+    return'<div class="rc1558-head"><h3>'+icon(headerIcon,'rc1558-icon rc1558-panel-icon')+esc(t(titleKey))+'</h3>'+(count!=null?'<span class="rc1558-count">'+count+'</span>':'')+
       (route?'<button type="button" class="rc1558-link" data-rc1558-route="'+esc(route)+'">'+esc(t(linkKey))+'</button>':'')+'</div>'
   }
 
@@ -542,8 +562,8 @@ function openWorkTopKpi(){
   // Open work uses exactly the same standalone KPI button structure as all other top tiles.
   // Never substitute 0 for unavailable/auth-blocked counts; each button opens its own internal module.
   return [
-    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent',icon:'tasks'},
-    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality',icon:'documents'}
+    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent',icon:'urgent'},
+    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality',icon:'quality'}
   ].map(function(item){
     var count=openWorkCounts[item.kind],available=Number.isSafeInteger(count)&&count>=0;
     var label=t(item.key),display=available?String(count):t('dashboard.overview.tile.unavailable');
@@ -562,17 +582,30 @@ function tileHtml(id,shipments){
   if(id==='lager'){
     var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
     var items=m.rows.map(function(r){var label=locationLabel(r.code);return{value:r.count,route:'warehouse',short:LOCATION_SHORT[r.code],title:t('dashboard.overview.lager.bar',{label:label,count:r.count,colli:r.colli})}});
-    return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.lager'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="warehouse">'+esc(t('dashboard.overview.lager.open'))+'</button></div>'+
+    return'<div class="rc1573-head"><h3>'+icon('lager','rc1558-icon rc1558-panel-icon')+esc(t('dashboard.overview.tile.lager'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="warehouse">'+esc(t('dashboard.overview.lager.open'))+'</button></div>'+
       '<p class="rc1573-sub">'+esc(t('dashboard.overview.lager.sub',{count:m.total,colli:m.colli}))+'</p>'+
       (m.total?barsHtml(items,max,'lager'):'<p class="rc1573-empty">'+esc(t('dashboard.overview.lager.empty'))+'</p>')
   }
   if(id==='week'){
     var wk=weekModel(shipments,new Date()),wmax=0;wk.days.forEach(function(d){if(d.count>wmax)wmax=d.count});
     var days=wk.days.map(function(d){var name='';try{name=d.date.toLocaleDateString(currentLang(),{weekday:'short'})}catch(_){name=d.key.slice(5)}return{value:d.count,done:d.done,current:d.key===wk.today,route:'pickupcalendar',short:name,title:t('dashboard.overview.week.bar',{day:name+' '+d.key.slice(8)+'.'+d.key.slice(5,7)+'.',count:d.count,done:d.done})}});
-    return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.week'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="pickupcalendar">'+esc(t('dashboard.overview.week.open'))+'</button></div>'+
+    return'<div class="rc1573-head"><h3>'+icon('week','rc1558-icon rc1558-panel-icon')+esc(t('dashboard.overview.tile.week'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="pickupcalendar">'+esc(t('dashboard.overview.week.open'))+'</button></div>'+
       '<p class="rc1573-sub">'+esc(t('dashboard.overview.week.sub',{count:wk.total,done:wk.done}))+'</p>'+barsHtml(days,wmax,'week')
   }
   return''
+}
+/* Legacy-Dashboardkarten behalten ihr DOM und bekommen nur ein dekoratives Symbol im Titel. */
+function ensureLegacyTileIcon(el,id){
+  var names={quick:'quick',abd:'abd',pallet:'pallet'},name=names[id];
+  if(!el||!name||!w.document)return;
+  var title=el.querySelector('.rc205-widget-header h3,.rc205-widget-header h2,.rc205-quick-title,h3,h2');
+  if(!title||title.querySelector('[data-rc1969-icon]'))return;
+  var tag=w.document.createElement('span');
+  tag.setAttribute('data-rc1969-icon',id);
+  tag.setAttribute('aria-hidden','true');
+  tag.className='rc1969-card-icon';
+  tag.innerHTML=icon(name,'rc1558-icon rc1558-panel-icon');
+  title.insertBefore(tag,title.firstChild);
 }
 function applyTiles(root,shipments){
   var d=w.document;if(!d||!root)return;
@@ -591,6 +624,7 @@ function applyTiles(root,shipments){
       }else if(el){el.remove();el=null}
     }
     if(!el)return;
+    ensureLegacyTileIcon(el,id);
     if(el.getAttribute('data-rc1573-tile')!==id)el.setAttribute('data-rc1573-tile',id);
     var off=cfg.on[id]?'0':'1';if(el.getAttribute('data-rc1573-off')!==off)el.setAttribute('data-rc1573-off',off);
     var sp=String(span[id]||60);if(el.getAttribute('data-rc1573-span')!==sp)el.setAttribute('data-rc1573-span',sp);

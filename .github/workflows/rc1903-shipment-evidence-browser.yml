@@ -32,7 +32,9 @@ concurrency:
 
 jobs:
   guest_browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
@@ -59,7 +61,8 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
+          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Verify public link, own read-only records and upload on desktop and mobile
         env:
@@ -68,6 +71,7 @@ jobs:
         run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
 
       - name: Verify real TESTSERVICE frontend with mocked customer and photo APIs
+        shell: bash
         run: |
           set -euo pipefail
           # The browser downloads actual deployed HTML/JS/CSS, but all /api requests are intercepted.

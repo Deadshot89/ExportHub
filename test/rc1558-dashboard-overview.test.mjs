@@ -46,9 +46,9 @@ const tasks=[
 ];
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
-  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1965/);
-  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1965/);
-  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1965/);
+  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1971/);
+  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1969/);
+  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
   const a=build.indexOf('html=patchRc1371Dashboard(html,file);');
   const b=build.indexOf('html=patchRc1558DashboardOverview(html,file);');
@@ -184,7 +184,7 @@ test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; 
   assert.match(api.renderHtml(model,{now:new Date(2026,9,17,19,0),userName:''}),/>Guten Abend</,'ohne Namen kein hängendes Komma');
   assert.equal(api.isoWeek(new Date(2026,0,1)),1);
   assert.equal(api.isoWeek(new Date(2027,0,1)),53);
-  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,9,'sieben bisherige Kennzahlen plus zwei gleich gestaltete Status-Kacheln oben');
+  assert.equal((morning.match(/<svg class="rc1558-icon rc1558-kpi-icon"/g)||[]).length,9,'sieben bisherige Kennzahlen plus zwei gleich gestaltete Status-Kacheln oben');
   const empty=api.renderHtml(api.buildModel(fakeApi([],[]),[],NOW),{now:NOW,userName:'A'});
   assert.equal((empty.match(/data-zero="1"/g)||[]).length,7);
   assert.match(empty,/rc1558-empty-icon/);
@@ -238,4 +238,40 @@ test('RC1563 Listen scrollen im Panel; Tabelle füllt die Höhe der rechten Spal
 test('RC1565 Dashboard scrollt auch mit langen ABD- und Palettenlisten nicht',()=>{
   assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid \.rc205-widget > \.rc205-list\{display:none!important\}/);
   assert.match(css,/\.rc1558-stack \.rc1558-list\{overflow-x:hidden\}/);
+});
+
+test('RC1969: ABD- und Palettenkonto-Zahlen werden kleiner dargestellt, ohne andere KPI-Kacheln zu ändern',()=>{
+  assert.ok(css.includes('body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:19px!important;line-height:1.15!important}'),'ABD/Palettenkonto auf Desktop 19px');
+  assert.ok(css.includes('.rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:16px!important}'),'kompakte Höhe 16px');
+  assert.ok(css.includes('.rc1558-kpi-value{font-size:28px'),'übrige KPI-Kacheln unverändert');
+});
+
+test('RC1969: jede Dashboard-KPI hat ein eigenes sichtbares, barrierefrei dekoratives SVG-Icon',()=>{
+  const w=load('de');
+  w.ExportHUBPackNotificationNav={};
+  w.__EXPORTHUB_GET_STATE__=()=>({packNotifications:[],tasks:[]});
+  const api=w.ExportHUBDashboardOverview1558;
+  const model=api.buildModel(fakeApi(shipments,tasks),shipments,NOW);
+  assert.equal(model.kpis.length,8,'Packtisch + sieben reguläre KPI-Kacheln');
+  const html=api.renderHtml(model);
+  const upper=html.split('<div class="rc1558-grid">')[0];
+  assert.equal((upper.match(/class="rc1558-icon rc1558-kpi-icon"/g)||[]).length,10,'jede der zehn Kacheln bekommt ein eigenes SVG');
+  assert.equal((upper.match(/<svg class="rc1558-icon rc1558-kpi-icon"[^>]*aria-hidden="true"/g)||[]).length,10,'dekorative SVGs sind für Screenreader verborgen');
+  assert.match(upper,/data-rc1558-route="packnotifications"/);
+  assert.match(upper,/data-rc1558-open-module="urgentorders"/);
+  assert.match(upper,/data-rc1558-open-module="quality"/);
+  assert.match(runtime,/kind:'urgent',route:'urgentorders'[^\n]*icon:'urgent'/,'Urgent Orders nutzt das Blitzsymbol');
+  assert.match(runtime,/kind:'quality',route:'quality'[^\n]*icon:'quality'/,'Fehler & Verbesserungen nutzt das Werkzeug-/Verbesserungssymbol');
+  assert.match(css,/\.rc1558-kpi-top \.rc1558-kpi-icon\{/,'Icon-Glasfläche fehlt');
+  assert.match(css,/@media\(max-width:480px\)/,'responsive Icon-Größe fehlt');
+  assert.match(css,/var\(--pc-icon-bg,#e8f1ff\)/,'Iconfläche muss den Design-Modus statt hartem Weiß verwenden');
+  assert.match(css,/width:30px;\s*height:30px;\s*min-width:30px;\s*padding:6px;\s*flex:0 0 30px/,'obere KPI-Icons müssen 30px breit und hoch sein');
+  assert.match(css,/width:28px;height:28px;min-width:28px;flex-basis:28px;padding:5px/,'Smartphone-Icons müssen 28px breit und hoch sein');
+  assert.match(css,/flex:0 0 22px;width:22px;height:22px;padding:4px/,'untere Dashboard-Icons müssen 22px breit und hoch sein');
+  assert.doesNotMatch(css,/background:linear-gradient\(145deg,rgba\(255,255,255,\.78\)/,'Neon-Night-Icons dürfen keine fast weiße Fläche bekommen');
+  assert.equal((html.match(/class="rc1558-icon rc1558-panel-icon"/g)||[]).length,3,'Abholungen, Aufmerksamkeit und Aufgaben haben eigene Titelicons');
+  assert.match(runtime,/function ensureLegacyTileIcon\(el,id\)/,'Icons der vorhandenen unteren Karten fehlen');
+  assert.match(runtime,/\{quick:'quick',abd:'abd',pallet:'pallet'\}/,'Schnellzugriffe, ABD und Palettenkonto müssen eigene Icons haben');
+  assert.match(runtime,/icon\('lager','rc1558-icon rc1558-panel-icon'\)/,'Lagerbelegung erhält ein eigenes Icon');
+  assert.match(runtime,/icon\('week','rc1558-icon rc1558-panel-icon'\)/,'Wochenabholungen erhalten ein Kalendericon');
 });
