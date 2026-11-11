@@ -103,9 +103,9 @@ const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel=
 const CUSTOMER_FOLDER_GUARD_TAG='<script id="exporthub-customer-folder-guard">window.__EXPORTHUB_CF_EARLY_GUARD__=true;window.addEventListener(\'click\',function(e){var g=window.ExportHUBCustomerFolder;if(g&&g.onLeaveClick)g.onLeaveClick(e)},true);window.addEventListener(\'keydown\',function(e){var g=window.ExportHUBCustomerFolder;if(g&&g.onKey)g.onKey(e)},true);</script>';
 const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="/assets/customer-folder-redesign.js?v=2"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
-const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1965">';
-const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1965"><\/script>';
-const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1965"><\/script>';
+const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1966">';
+const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1966"><\/script>';
+const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1966"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1754">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1985"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1985"></script>';
@@ -345,9 +345,9 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_I18N_TAG,'exporthub-rc1558-overview-i18n');
   html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_SCRIPT_TAG,'exporthub-rc1558-overview-script');
   if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
-  if(!html.includes('rc1558-dashboard-overview.css?v=1965'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
-  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1965'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
-  if(!html.includes('rc1558-dashboard-overview.js?v=1965'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
+  if(!html.includes('rc1558-dashboard-overview.css?v=1966'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
+  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1966'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
+  if(!html.includes('rc1558-dashboard-overview.js?v=1966'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
@@ -1768,11 +1768,11 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=3"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report-i18n" defer src="/assets/i18n/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report" defer src="/assets/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1933"></script>','exporthub-rc1860-shipment-documentation-i18n');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1934"></script>','exporthub-rc1860-shipment-documentation');
-  html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1903-shipment-evidence-css" rel="stylesheet" href="/assets/shipment-evidence.css?v=1906">','exporthub-rc1903-shipment-evidence-css');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-i18n" defer src="/assets/i18n/shipment-evidence.js?v=1934"></script>','exporthub-rc1903-shipment-evidence-i18n');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence" defer src="/assets/shipment-evidence.js?v=1934"></script>','exporthub-rc1903-shipment-evidence');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation-i18n" defer src="/assets/i18n/rc1860-shipment-documentation.js?v=1935"></script>','exporthub-rc1860-shipment-documentation-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1860-shipment-documentation" defer src="/assets/rc1860-shipment-documentation.js?v=1935"></script>','exporthub-rc1860-shipment-documentation');
+  html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1903-shipment-evidence-css" rel="stylesheet" href="/assets/shipment-evidence.css?v=2010">','exporthub-rc1903-shipment-evidence-css');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-i18n" defer src="/assets/i18n/shipment-evidence.js?v=2010"></script>','exporthub-rc1903-shipment-evidence-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence" defer src="/assets/shipment-evidence.js?v=2010"></script>','exporthub-rc1903-shipment-evidence');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1903-shipment-evidence-guest" defer src="/assets/shipment-evidence-guest.js?v=1907"></script>','exporthub-rc1903-shipment-evidence-guest');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1872-unified-notifications" defer src="/assets/rc1872-unified-notifications.js?v=1872"></script>','exporthub-rc1872-unified-notifications');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');

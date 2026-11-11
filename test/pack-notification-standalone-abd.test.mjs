@@ -161,6 +161,22 @@ test('RC1382: final HTML injector is idempotent and never accepts partial Pack-A
   }
 });
 
+test('RC1382: fully patched ABD authorization body must never be accepted when weakened',()=>{
+  for(const file of ['index.html','TESTVERSION.html']){
+    const source=fs.readFileSync(file,'utf8');
+    const once=injectPackAbdOwnership(source,file);
+    const authorization="typeof window.ExportHUBPackAbd.canSave!=='function'";
+    assert.ok(once.includes(authorization),'protected ABD save hook must exist');
+    const corrupted=once.replace(authorization,"typeof window.ExportHUBPackAbd.canSave==='function'");
+    assert.throws(()=>injectPackAbdOwnership(corrupted,file),/RC1382 ABD ownership (?:contract drift|partial patch)/,
+      'a mutated permission check must fail even when all abbreviated patch signatures remain');
+    const legacyExtra=once+'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;';
+    assert.throws(()=>injectPackAbdOwnership(legacyExtra,file),/RC1382 ABD ownership contract drift/,
+      'a second legacy save hook must not be silently accepted');
+    assert.equal(injectPackAbdOwnership(once,file),once,'complete second build pass remains byte-identical');
+  }
+});
+
 test('ABD-only user may open Pack detail without staging an unauthorized task write',()=>{
   const state={view:'packnotifications',
     packNotifications:[{id:'PN-1',reference:'PK-1',customer:'Customer',status:'new',documents:[]}],

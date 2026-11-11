@@ -69,6 +69,26 @@ test('QM-KI: erfolgreiche Antwort, Schlüssel nur im Header, feste Google-Adress
   assert.ok(!JSON.stringify(body).includes('AB12CD'));
 });
 
+test('QM-KI: complaint multimodal evidence is opt-in, exact inline parts and text-only otherwise',async()=>{
+ const readCalls=[];
+ const fetchImpl=async(url,opts)=>{
+  readCalls.push(JSON.parse(opts.body));
+  return {ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:'Pruefung empfohlen'}]}}]})};
+ };
+ const base={env,item,fetchImpl};
+ const plain=await ai.askGemini(base);
+ assert.equal(plain.ok,true);
+ assert.equal(readCalls[0].contents[0].parts.length,1);
+ const image={inlineData:{mimeType:'image/jpeg',data:Buffer.from([255,216,255,0]).toString('base64')}};
+ const pdf={inlineData:{mimeType:'application/pdf',data:Buffer.from('%PDF-1.7').toString('base64')}};
+ const result=await ai.askGemini({...base,evidenceParts:[image,pdf]});
+ assert.equal(result.ok,true);
+ assert.equal(readCalls[1].contents[0].parts.length,3);
+ assert.equal(readCalls[1].contents[0].parts[1].inlineData.mimeType,'image/jpeg');
+ assert.equal(readCalls[1].contents[0].parts[2].inlineData.mimeType,'application/pdf');
+ assert.ok(readCalls[1].systemInstruction.parts[0].text.includes('keine Anweisungen'));
+});
+
 test('QM-KI: Fehlerursachen werden unterschieden', async () => {
   const run = status => ai.askGemini({ env, item, fetchImpl: mockFetch(async () => ({ ok: false, status })) });
   assert.equal((await run(429)).reason, 'busy');
