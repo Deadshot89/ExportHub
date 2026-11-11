@@ -2702,6 +2702,5 @@
   "urgentOrderV2.wholeOrderNotChecked": "Not yet checked",
   "urgentOrderV2.wholeOrderReason": "Reason for a failed whole-order check",
   "urgentOrderV2.wholeOrderReasonRequired": "For a failed whole-order check, provide a reason of at least 8 characters.",
-  "urgentOrderV2.untrustedHostHelp": "Use only the official TESTSERVICE site. Unsaved entries must be entered again if you change pages.",
-  "urgentOrderV2.openOfficialTestservice": "Open official TESTSERVICE"
+  "urgentOrderV2.untrustedHostHelp": "You are on the official TESTSERVICE. The API rejected the secure environment verification. The order was not saved. Do not submit it again until logistics has checked the connection."
 }
