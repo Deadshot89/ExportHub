@@ -1,0 +1,124 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {injectPackAbdOwnership} from '../.github/packmeldungen/build-three-env.mjs';
+
+const original=fs.readFileSync('TESTVERSION.html','utf8');
+const patched=injectPackAbdOwnership(original,'TESTVERSION.html');
+const match=patched.match(/<script id="rc626-shipping-inspections-abd-controller"[^>]*>([\s\S]*?)<\/script>/);
+assert.ok(match,'real lazy ABD editor must be present');
+const testedLegacy=match[1].replace(
+  'window.ExportHUBRC626=Object.freeze(',
+  'window.__RC1382_TEST__={saveAbdInternal:saveAbdInternal};window.ExportHUBRC626=Object.freeze('
+);
+
+function setup(options={}){
+  const state={
+    customers:[],
+    shipments:[{id:'SHIP-OTHER',ref:'Z9Z9Z9',customerName:'Foreign shipment'}],
+    packNotifications:[{id:'PN-1',reference:'PACK-01',status:'in_review',customer:'Acme',
+      customerAccount:'10001',packageCount:1,totalWeight:5}],
+    abdRequests:[],
+    abdDraft:{
+      source:'manual',ref:'A1B2C3',language:'de',customerName:'Acme',customerNumber:'10001',
+      packNotificationId:'PN-1',packNotificationRef:'PACK-01',linkedShipmentId:'',
+      rows:[{id:'PACK-R1',type:'Karton',count:'1',weight:'5'}],deliveryNotes:'DNC1234567',
+      invoiceFiles:[],abdFiles:[],country:'',status:'Entwurf'
+    }
+  };
+  const alerts=[],writes=[],location={href:''},actions={};
+  const clean={
+    queueSave(reason){writes.push('queue:'+reason);return Promise.resolve(true)},
+    flushSave(reason){writes.push('flush:'+reason);return Promise.resolve(options.saveOk!==false)}
+  };
+  const document={
+    readyState:'loading',body:null,
+    addEventListener(){},querySelector(){return null},querySelectorAll(){return []},
+    getElementById(){return null}
+  };
+  const root={
+    document,location,ExportHUBClean:clean,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    addEventListener(){},setTimeout(){return 1},MutationObserver:undefined,
+    alert(message){alerts.push(String(message))},
+    __EXPORTHUB_TEST_NO_MAILTO__:options.preventMail===true
+  };
+  const context=vm.createContext({window:root,globalThis:root,document,console,Date,Math,
+    Intl,structuredClone,Promise,Number,String,Array,Object,Error,setTimeout:()=>1});
+  vm.runInContext(fs.readFileSync('assets/i18n/pack-notification.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('assets/pack-notification-abd.js','utf8'),context);
+  vm.runInContext(testedLegacy,context);
+  return {state,alerts,writes,location,root,actions,save:root.__RC1382_TEST__.saveAbdInternal};
+}
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('real legacy Pack ABD save stores ownership but does not attach to any shipment',async()=>{
+  const ctx=setup();
+  const result=ctx.save(false);
+  assert.ok(result);
+  assert.equal(result.packNotificationId,'PN-1');
+  assert.equal(result.packNotificationRef,'PACK-01');
+  assert.equal(result.linkedShipmentId,'');
+  assert.equal(ctx.state.packNotifications[0].abdRequestId,result.id);
+  assert.equal(ctx.state.shipments[0].abdRequestId,undefined);
+  assert.equal(ctx.alerts.length,0,'no success alert before Azure ack');
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaved'));
+  assert.ok(ctx.writes.some(x=>x.startsWith('flush:')));
+  assert.equal(ctx.state.abdRequests.length,1);
+});
+
+test('Pack ABD save never claims success if Azure flush fails; retries reuse same ID',async()=>{
+  const ctx=setup({saveOk:false});
+  const item=ctx.save(true);
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.ok(ctx.alerts.some(x=>x.includes('nicht bestätigt')));
+  assert.ok(ctx.alerts.every(x=>!x.includes('wurde gespeichert')));
+  assert.equal(ctx.state.abdRequests.length,1);
+  assert.equal(ctx.save(false).id,item.id,'retry must not generate a second ABD');
+  await tick();
+  assert.equal(ctx.state.abdRequests.length,1);
+});
+
+test('Pack ABD opens Outlook only after verified save and never on unconfirmed save',async()=>{
+  const ok=setup();
+  let release;
+  ok.root.ExportHUBClean.flushSave=()=>new Promise(resolve=>{release=resolve});
+  const a=ok.save(false,'Angefragt');
+  assert.ok(a);
+  assert.equal(ok.location.href,'');
+  await tick();
+  assert.equal(ok.location.href,'');
+  assert.equal(ok.root.ExportHUBPackAbd.saveStatusText(),ok.root.ExportHUBPackI18n.t('pack.internal.abdSaving'));
+  release(true);
+  await tick();
+  assert.match(ok.location.href,/^mailto:/);
+  assert.match(ok.location.href,/subject=/);
+  const failed=setup({saveOk:false});
+  failed.save(false,'Angefragt');
+  await tick();
+  assert.equal(failed.location.href,'','no mail on unconfirmed Azure persistence');
+});
+
+test('Pack ABD rejects a REF belonging to an existing shipment, without modifying shipment',async()=>{
+  const ctx=setup();
+  ctx.state.shipments[0].ref='A1B2C3';
+  assert.equal(ctx.save(false),null);
+  assert.equal(ctx.state.abdRequests.length,0);
+  assert.equal(ctx.state.packNotifications[0].abdRequestId,undefined);
+  assert.equal(ctx.state.shipments[0].abdRequestId,undefined);
+});
+
+test('foreign Pack ownership and cancelled Pack records reject saves before modifying state',async()=>{
+  for(const mode of ['foreign','cancelled']){
+    const ctx=setup();
+    if(mode==='foreign')ctx.state.abdDraft.packNotificationRef='PACK-OTHER';
+    else ctx.state.packNotifications[0].status='cancelled';
+    assert.equal(ctx.save(false),null);
+    assert.equal(ctx.state.abdRequests.length,0);
+    assert.equal(ctx.state.shipments[0].abdRequestId,undefined);
+  }
+});
