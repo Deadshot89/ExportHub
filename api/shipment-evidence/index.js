@@ -470,7 +470,7 @@ async function processRequest(req){
  }else if(action==='complaint-analysis'){
   const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
   if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
-  const suggestions=complaintOps.proposal(complaint,record.fields);
+  const suggestions=complaintOps.proposal(complaint,record.fields,ctx.user);
   const fallback=(reason)=>json(200,{ok:true,mode:'regelbasiert',reason,suggestions,
    notice:'Regelvorschlag (ohne KI) – keine Dateien oder Sendungsdaten extern uebertragen.'});
   if(payload.consent!==true)return fallback('no_consent');
