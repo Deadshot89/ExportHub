@@ -160,3 +160,45 @@ test('a selected problem alone meets the minimum note requirement',async()=>{
  assert.equal(elements.mailIssueError.hidden,true);
  assert.equal(apiCalls[0].payload.note,'Nicht genügend Bestand verfügbar');
 });
+
+test('an older API response never overwrites an edited problem note or its mail draft',async()=>{
+ const {context,elements,apiCalls,location}=harness();
+ elements.mailIssue.value='Bestand ist nicht verfügbar';
+ elements.mailSubject.value='Keep manual subject';
+ elements.mailBody.value='Keep manual body';
+ let resolveDraft;
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return new Promise(resolve=>{resolveDraft=resolve;});
+ };
+ const running=context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ elements.mailIssue.value='Artikel wurde nachträglich geändert';
+ context.draftNeedsRegenerate=true;
+ resolveDraft({draft:{to:'cs@example.org',subject:'Old subject',body:'Old body'}});
+ await running;
+ assert.equal(elements.mailSubject.value,'Keep manual subject');
+ assert.equal(elements.mailBody.value,'Keep manual body');
+ assert.equal(context.draftNeedsRegenerate,true);
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'stale problem text must not be recorded as a sent-mail handoff');
+ assert.equal(location.href,'');
+});
+
+test('changing the draft language during the API call also rejects an outdated template',async()=>{
+ const {context,elements,apiCalls}=harness();
+ elements.mailIssue.value='Kunde erwartet neue Lieferung';
+ let resolveDraft;
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return new Promise(resolve=>{resolveDraft=resolve;});
+ };
+ const running=context.generateDraft();
+ assert.equal(apiCalls[0].payload.language,'de');
+ elements.mailLanguage.value='en';
+ resolveDraft({draft:{to:'cs@example.org',subject:'Old German draft',body:'Outdated'}});
+ await running;
+ assert.equal(elements.mailSubject.value,'');
+ assert.equal(elements.mailBody.value,'');
+ assert.equal(context.draftNeedsRegenerate,true);
+});
