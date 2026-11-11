@@ -139,6 +139,29 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
   const tiny='<html><head></head><body></body></html>';
   assert.equal(injectPackRuntime(tiny,'demo.html').includes('/assets/pack-notification-abd.js?v=1'),true);
 });
+test('Pack detail derives the sole ABD association from authorized ABD state without changing Pack record',()=>{
+  const root={};
+  vm.runInNewContext(fs.readFileSync('assets/pack-notification-internal.js','utf8'),
+    {window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout},
+    {filename:'pack-notification-internal.js'});
+  const state={
+    packNotifications:[{id:'PN-1',reference:'PK-001',customer:'Acme',status:'new'}],
+    tasks:[{id:'TASK-1',sourceId:'PN-1',sourceType:'pack_notification'}],
+    abdRequests:[{id:'ABD-1',ref:'A1B2C3',packNotificationId:'PN-1',packNotificationRef:'PK-001'}]
+  };
+  const ui=root.ExportHUBPackNotifications;
+  let model=ui.detailModel(state,state.tasks[0]);
+  assert.equal(model.abdRequestId,'ABD-1');
+  assert.equal(model.abdRequestRef,'A1B2C3');
+  assert.equal(state.packNotifications[0].abdRequestId,undefined,'no Pack task write on ABD-only save');
+  state.abdRequests.push({id:'ABD-OTHER',ref:'X1X2X3',packNotificationId:'PN-OTHER',packNotificationRef:'PK-OTHER'});
+  model=ui.detailModel(state,state.tasks[0]);
+  assert.equal(model.abdRequestId,'ABD-1','foreign ABD must never replace the owned one');
+  state.abdRequests.push({id:'ABD-DUP',ref:'B1B2C3',packNotificationId:'PN-1',packNotificationRef:'PK-001'});
+  model=ui.detailModel(state,state.tasks[0]);
+  assert.equal(model.abdRequestId,'','ambiguous ABD association must fail closed in UI');
+});
+
 test('internal detail has two independent actions and locale labels exist in six languages',()=>{
   const internal=fs.readFileSync('assets/pack-notification-internal.js','utf8');
   assert.match(internal,/data-pack-action="abd"/);
