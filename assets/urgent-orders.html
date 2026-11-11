@@ -120,6 +120,12 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div id="orders" aria-live="polite"><div class="empty">Aufträge werden geladen …</div></div>
 </section>
 </div>
+<section id="packingCatalogPanel" class="panel" hidden style="margin-top:16px" aria-labelledby="packingCatalogTitle">
+ <h2 id="packingCatalogTitle" data-i18n="urgentOrderV2.packingCatalogTitle">Minibag · Artikelstamm sicher verwalten</h2>
+ <p class="help" data-i18n="urgentOrderV2.packingCatalogHelp">Import the TSV item list; pack sizes are stored privately in Azure.</p>
+ <div class="btn-row"><label class="field" style="flex:1 1 320px"><span data-i18n="urgentOrderV2.packingCatalogInput">Item list (TSV/TXT)</span><input id="packingCatalogFile" type="file" accept=".txt,.tsv,text/plain,text/tab-separated-values"></label><button type="button" class="btn alt" id="packingCatalogImport" data-i18n="urgentOrderV2.packingCatalogImport">Securely update item list</button></div>
+ <p id="packingCatalogMessage" class="message" role="status" aria-live="polite"></p>
+</section>
 </main>
 <div class="overlay" id="mailOverlay" hidden role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="mailTitle"><div class="toprow"><h2 id="mailTitle">E-Mail vorbereiten</h2><button id="closeMail" type="button" class="btn flat small" aria-label="Schließen">Schließen</button></div><p class="help" data-i18n="urgentOrderV2.mailIntro">Beim Klick auf „Im E-Mail-Programm öffnen“ speichert ExportHUB360 den genauen E-Mail-Text und übergibt ihn an dein Mailprogramm. Du versendest die E-Mail dort selbst. Eine weitere Bestätigung in ExportHUB360 ist nicht nötig; den tatsächlichen Versand kann ExportHUB360 nicht erkennen.</p><label class="field">E-Mail-Sprache<select id="mailLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label><label class="field" id="issueField"><span data-i18n="urgentOrderV2.problemDescription">Problembeschreibung *</span><textarea id="mailIssue" placeholder="Was ist das Problem?" minlength="8" maxlength="2000" aria-describedby="mailIssueError"></textarea><small id="mailIssueError" class="field-error" role="alert" hidden></small></label><div class="btn-row"><button type="button" class="btn alt small" id="generateMail">Vorlage erzeugen</button></div><label class="field">Empfänger<input id="mailTo" type="email" readonly></label><label class="field">Betreff<input id="mailSubject"></label><label class="field">E-Mail-Text<textarea class="mailbody" id="mailBody"></textarea></label><div class="btn-row"><button type="button" class="btn" id="openMailer">Im E-Mail-Programm öffnen</button><button type="button" class="btn alt" id="copyMail">Text kopieren</button></div><div id="mailMessage" class="message" role="status" aria-live="polite"></div></section></div>
 <script>
@@ -172,7 +178,7 @@ async function api(action,payload){
  if(!response.ok||result.ok===false){
   const code=/^[A-Z][A-Z0-9_]{2,60}$/.test(String(result.code||''))?result.code:'';
   const error=new Error((result.message||'HTTP '+response.status)+(code?' (Code: '+code+')':''));
-  error.status=response.status;error.code=code;throw error;
+  error.status=response.status;error.code=code;error.minibagArticles=Array.isArray(result.minibagArticles)?result.minibagArticles:[];error.minibagIndices=Array.isArray(result.minibagIndices)?result.minibagIndices:[];throw error;
  }
  return result;
 }
@@ -423,12 +429,15 @@ function render(){
 async function refresh(){
  try{
   const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;viewerId=txt(data.currentUserId||'');
+   $('packingCatalogPanel').hidden=!data.canImportPackingCatalog;
+   if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',localeV2('packingCatalogAvailable','{count} items available · {unknown} without valid pack sizes.').replace('{count}',s.count).replace('{unknown}',s.unknownPackSize),'ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
   // Email autocomplete intentionally does not use the API's legacy login profile.
   renderSavedEmails();
   render();
  }catch(e){
-  $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
+  $('packingCatalogPanel').hidden=true;
+   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
   $('createButton').disabled=true;$('saveProfile').disabled=true;
   const authMessage=e.status===401?localizedLoginRequired():e.message;
   $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(authMessage)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
@@ -480,6 +489,37 @@ function internalLateChoice(moveTomorrow){
  hideInternalCutoffChoice();
  $('newOrder').requestSubmit();
 }
+async function createWithMinibagReview(p){
+ try{return await api('create',p);}
+ catch(e){
+  if(e.code!=='URGENT_MINIBAG_CONFIRM_REQUIRED')throw e;
+  const articles=new Set(e.minibagArticles||[]);
+  const indices=new Set(e.minibagIndices||[]);
+  const affected=p.items.filter((x,i)=>!x.minibag&&(indices.size?indices.has(i):articles.has(x.article)));
+  if(!affected.length)throw e;
+  const en=p.language==='en';
+  const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
+  const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
+  if(!window.confirm(msg)){
+   showInternalStep(2);
+   throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
+  }
+  affected.forEach(x=>{x.minibagReviewed=true;});
+  return await api('create',p);
+ }
+}
+async function importPackingCatalog(){
+ const file=$('packingCatalogFile').files&&$('packingCatalogFile').files[0];
+ if(!file){setMessage('packingCatalogMessage',localeV2('packingCatalogPickFile','Please select the item list first.'),'error');return;}
+ if(file.size>5000000){setMessage('packingCatalogMessage',localeV2('packingCatalogTooLarge','File exceeds the 5 MB limit.'),'error');return;}
+ const button=$('packingCatalogImport');button.disabled=true;
+ try{
+  setMessage('packingCatalogMessage',localeV2('packingCatalogSaving','Validating and securely saving the item list …'),'');
+  const result=await api('import-packing-catalog',{tsv:await file.text()});
+  setMessage('packingCatalogMessage',localeV2('packingCatalogSaved','{count} items saved · {unknown} without valid pack sizes.').replace('{count}',result.count).replace('{unknown}',result.unknownPackSize),'ok');
+ }catch(e){setMessage('packingCatalogMessage',e.message,'error');}
+ finally{button.disabled=false;}
+}
 async function submit(ev){
  ev.preventDefault();const form=$('newOrder');
  if(internalStep!==3){showInternalStep(1);return;}
@@ -496,7 +536,7 @@ async function submit(ev){
  hideInternalCutoffChoice();
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
+ try{const r=await createWithMinibagReview(body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
@@ -575,6 +615,7 @@ async function copyDraft(){
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
 $('newOrder').addEventListener('submit',submit);
+ $('packingCatalogImport').addEventListener('click',importPackingCatalog);
 $('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
 $('internalLateSubmitToday').addEventListener('click',()=>internalLateChoice(false));
 $('internalLateMoveTomorrow').addEventListener('click',()=>internalLateChoice(true));

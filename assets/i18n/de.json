@@ -2725,5 +2725,16 @@
   "urgentOrderV2.deletePublicPendingToast": "Löschung angefragt. Die Logistik muss zustimmen.",
   "urgentOrderV2.deletePublicPending": "Löschung angefragt – wartet auf Freigabe durch die Logistik.",
   "urgentOrderV2.deletePublicRejected": "Die letzte Löschanfrage wurde abgelehnt.",
-  "urgentOrderV2.deletePublicDisclaimer": "Löschung betrifft nur die Urgent-Order-Anfrage, nicht die tatsächliche Sendung."
+  "urgentOrderV2.deletePublicDisclaimer": "Löschung betrifft nur die Urgent-Order-Anfrage, nicht die tatsächliche Sendung.",
+  "urgentOrderV2.minibagReviewPrompt": "Minibag überprüfen: {articles} entspricht keiner vollen Standardverpackung. Bist du sicher, dass es kein Minibag ist? Bitte prüfen. OK = ohne Minibag melden; Abbrechen = Artikel korrigieren.",
+  "urgentOrderV2.minibagReviewCancel": "Bitte den Minibag-Haken und die Menge überprüfen.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Artikelstamm sicher verwalten",
+  "urgentOrderV2.packingCatalogHelp": "TSV-Liste mit „Item number“, „Net weight“ und „Packing quantity“ importieren. Verpackungsgrößen werden nur im geschützten Azure-Datenspeicher gespeichert.",
+  "urgentOrderV2.packingCatalogInput": "Artikelliste (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Artikelliste sicher aktualisieren",
+  "urgentOrderV2.packingCatalogAvailable": "{count} Artikel mit Verpackungsgröße verfügbar · {unknown} ohne gültige Verpackungsgröße.",
+  "urgentOrderV2.packingCatalogPickFile": "Bitte zuerst die Artikelliste auswählen.",
+  "urgentOrderV2.packingCatalogTooLarge": "Die Datei ist zu groß (maximal 5 MB).",
+  "urgentOrderV2.packingCatalogSaving": "Artikelliste wird geprüft und geschützt gespeichert …",
+  "urgentOrderV2.packingCatalogSaved": "{count} Artikel gespeichert · {unknown} ohne gültige Verpackungsgröße."
 }
