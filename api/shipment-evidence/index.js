@@ -346,6 +346,26 @@ async function upload(ctx,record,blob,etag,input){
   throw e;
  }
 }
+// Authenticated dashboard summary: scan every page, never return a partial
+// count or expose customer/case details. Uses the same isolated storage as DOK.
+async function complaintCounts(ctx){
+ let continuation,open=0,pages=0;
+ do{
+  if(++pages>200)fail('COUNT_UNAVAILABLE','Reklamationszaehler: Datenbestand zu gross. Bitte erneut pruefen.',503);
+  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'})
+   .byPage({continuationToken:continuation,maxPageSize:50});
+  const page=(await pager.next()).value||{};
+  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name)
+   .filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
+  const batch=await Promise.all(names.map(async name=>{
+   try{return(await getRecord(ctx,name.split('/').pop().slice(0,-5))).record}
+   catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  }));
+  open+=complaintOps.openCount(batch);
+  continuation=page.continuationToken||undefined;
+ }while(continuation);
+ return json(200,{ok:true,open});
+}
 async function list(ctx,query){
  const continuationToken=txt(query.continuation,1200)||undefined;
  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'}).byPage({continuationToken,maxPageSize:50});
@@ -398,6 +418,7 @@ async function processRequest(req){
  if(PUBLIC_ACTIONS.has(action))return guestRequest(req,method,payload,action);
  const ctx=await login(req,method==='POST');
  if(method==='GET'&&action==='list')return list(ctx,payload);
+ if(method==='GET'&&action==='counts')return complaintCounts(ctx);
   if(method==='GET'&&action==='for-reference')return recordsForReference(ctx,payload);
  if(method==='POST'&&action==='create'){
   const normalized=fields(payload.fields),now=new Date().toISOString();
