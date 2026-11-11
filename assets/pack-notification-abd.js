@@ -95,8 +95,9 @@
       const acknowledged=flushed===true||(target>0&&Number(runtime&&runtime.lastSavedGeneration)>=target);
       if(!acknowledged)throw new Error('ABD_SAVE_UNCONFIRMED');
       const n=notification(item.packNotificationId);
-      const current=arr(state().abdRequests).find(r=>q(r.id)===q(item.id));
-      if(!n||!owned(current,n)||q(n.abdRequestId)!==q(item.id)||q(n.abdRequestRef)!==q(item.ref))
+      const matches=arr(state().abdRequests).filter(r=>owned(r,n));
+      const current=matches.length===1?matches[0]:null;
+      if(!n||!current||q(current.id)!==q(item.id)||q(current.ref||current.reference)!==q(item.ref))
         throw new Error('ABD_SAVE_LINK_MISMATCH');
       lastSave={id:q(item.id),status:'saved'};
       if(opts.showAlert&&typeof root.alert==='function')root.alert(tr('pack.internal.abdSaved'));
