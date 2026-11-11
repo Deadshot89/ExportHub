@@ -2754,5 +2754,6 @@
   "urgentOrderV2.issueDamage": "Goods are damaged or incomplete",
   "urgentOrderV2.issueDelay": "Cannot ship by the requested date",
   "urgentOrderV2.issueRegenerate": "Please regenerate the email draft.",
-  "urgentOrderV2.issueTooLong": "The problem description including selected templates must not exceed 2,000 characters."
+  "urgentOrderV2.issueTooLong": "The problem description including selected templates must not exceed 2,000 characters.",
+  "urgentOrderV2.shippingNotReady": "Available only once all items have been shipped."
 }
