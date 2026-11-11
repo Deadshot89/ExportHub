@@ -517,7 +517,7 @@ async function processRequest(req){
     evidenceParts.push({inlineData:{mimeType:file.mime,data:bytes.toString('base64')}});
    }
    providerCalled=true;
-   answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase(),evidenceParts});
+   answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase(),evidenceParts,complaintMode:true});
   }catch(e){answer={ok:false,reason:'server',validationError:e&&e.code}}
   // Never keep the decoded attachments longer than this invocation.
   evidenceParts=[];
