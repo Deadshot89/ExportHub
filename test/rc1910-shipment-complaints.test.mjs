@@ -159,6 +159,14 @@ test('Historische REF-Dokumentationen erscheinen ohne Dateikopie in Alle Dokumen
  assert.doesNotMatch(exposed,/text:c\.text|description:|evidence:|id:c\.id/);
 });
 
+test('Defekter Reklamationsbestand wird nicht als null offene Fälle ausgegeben',()=>{
+ assert.throws(()=>complaints.openCount([{id:'DOK-broken',revision:1}]),
+  e=>e.code==='CORRUPT_COMPLAINTS'&&e.status===503);
+ assert.throws(()=>complaints.openCount([{complaints:null}]),
+  e=>e.code==='CORRUPT_COMPLAINTS');
+ assert.equal(complaints.openCount([{complaints:[]},{deletedAt:'2026-11-11',complaints:null}]),0);
+});
+
 test('DOK- und REF-Seiten laden parallel ohne gegenseitige Ungültigmachung',async()=>{
  const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
  const begin=ui.indexOf('async function loadList(reset){');
