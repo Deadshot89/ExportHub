@@ -64,7 +64,8 @@ function changeStatus(c,value,actor){
  const state=str(value,30);
  if(!['offen','in_pruefung','abgeschlossen'].includes(state))fail('BAD_STATUS','Status ungueltig.');
  if(state==='abgeschlossen'&&(!c.rootCause||!c.correctiveAction||c.effectivenessResult!=='wirksam'||
-     !c.effectivenessEvidence||!c.checkCriteria||!c.verifiedOn))
+     !c.effectivenessEvidence||!c.checkCriteria||!c.checkMethod||!c.checkDate||
+     !c.verifiedOn||!c.verifiedBy))
   fail('EFFECTIVENESS_REQUIRED','Abschluss erst nach dokumentierter, wirksamer Pruefung moeglich.',422);
  if(c.state==='abgeschlossen'&&state!=='in_pruefung')fail('REOPEN_REQUIRED','Bitte abgeschlossene Reklamation zur Pruefung wieder oeffnen.',409);
  const previous=c.state;c.state=state;c.changedAt=new Date().toISOString();c.changedBy=actor;
