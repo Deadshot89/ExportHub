@@ -180,20 +180,30 @@ function candidates(state,now){
   return out.sort((a,b)=>a.lastCheckedAt.localeCompare(b.lastCheckedAt)||a.reference.localeCompare(b.reference));
 }
 
-function missingTask(sh,nowIso){
+function missingTask(sh,nowIso,copies){
   const ref=refOf(sh),customer=text(sh.customer&&sh.customer.name||sh.customerName),day=pickupDay(sh);
-  return{
+  // A REF can exist in several state collections. Conflicting customer accounts
+  // must not be guessed or copied into a new task.
+  const numberOf=s=>text(s&&(s.customerAccount||s.customerNumber||s.customerNo||s.kundennummer||s.account||
+    s.customer&&(s.customer.account||s.customer.customerNumber)));
+  const numbers=Array.from(new Set((Array.isArray(copies)&&copies.length?copies:[sh]).map(numberOf).filter(Boolean)));
+  const customerNumber=numbers.length===1?numbers[0]:'';
+  const task={
     id:taskId(ref),sourceType:SOURCE_TYPE,sourceId:ref,sourceRef:ref,
     title:'Ausgangsvermerk nicht vorhanden · '+ref+(customer?' · '+customer:''),
     area:AREA,group:AREA,status:'offen',priority:'high',manual:false,unread:true,
     owner:text(sh.customer&&sh.customer.owner)||'Tobias',
     dueDate:todayOf(nowIso),day:'',time:'',
     linkedShipmentId:text(sh.id||sh.shipmentId),linkedShipmentRef:ref,linkedCustomer:customer,
-    linkedAccount:text(sh.customer&&(sh.customer.account||sh.customer.customerNumber)),
+    linkedAccount:customerNumber,
     actualPickupDate:day,
     note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
     createdAt:nowIso,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'
   };
+  // Absent is unknown; an explicit empty customerNumber can mean a user
+  // intentionally cleared it and must never be silently restored.
+  if(customerNumber)task.customerNumber=customerNumber;
+  return task;
 }
 
 // Der Status wird ausschließlich nach erfolgreichem, signiertem REF-Ordner-Readback geändert.
@@ -233,7 +243,7 @@ function applyResult(state,reference,result,now){
       avMissingCount:missing,avRequiredCount:required,avFoundCount:count,
       updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
   }else if(sh){
-    const task=missingTask(sh,nowIso);
+    const task=missingTask(sh,nowIso,copies);
     task.avMissingCount=missing;task.avRequiredCount=required;task.avFoundCount=count;
     state.tasks.unshift(task);
   }
@@ -286,7 +296,7 @@ function applyUploadRequirement(state,reference,archivedFiles,now){
     return{reference:ref,status:'verified-elsewhere',createdTask:false,closedTasks:0};
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
   const id=taskId(ref),existing=state.tasks.find(task=>text(task&&task.id)===id);
-  const task=existing||missingTask(sh,at),wasOpen=existing&&isOpenTask(existing);
+  const task=existing||missingTask(sh,at,copies),wasOpen=existing&&isOpenTask(existing);
   if(!existing)state.tasks.unshift(task);
   const customer=text(sh.customer&&sh.customer.name||sh.customerName);
   Object.assign(task,{
