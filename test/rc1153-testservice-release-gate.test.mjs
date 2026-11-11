@@ -56,3 +56,14 @@ test('RC1240: Live-E2E speichert keine Playwright-Netzwerktraces mit Sessiondate
   assert.match(fixture,/E2E_SESSION_TTL_MS=45\*60\*1000/);
   assert.match(fixture,/Date\.now\(\)\+E2E_SESSION_TTL_MS/);
 });
+
+test('RC1972: AVIS-Outlook-Live-Gate wartet begrenzt auf Azure und behält echten History-Readback',()=>{
+  const helper=read('e2e/helpers/exporthub-browser.mjs');
+  const spec=read('e2e/specs/testservice-mutation.spec.mjs');
+  assert.match(helper,/Math\.min\(65_000,deadline-Date\.now\(\)\)/,'Live-Flush braucht einen begrenzten erweiterten Zeitrahmen');
+  assert.match(helper,/rc1982DrainSnapshot\(page\)/,'Timeout muss sicheren RC1982-Azure-Status liefern');
+  assert.doesNotMatch(helper,/String\(r\.lastSaveErrorMessage\|\|''\)/,'Fehlerfreitext darf nicht in CI protokolliert werden');
+  assert.match(spec,/await settleStateSave\(page,\{timeout:85_000\}\)/,'AVIS-Gate muss tatsächlich auf die Azure-Bestätigung warten');
+  assert.match(spec,/expect\(proof\.labels\)\.toContain\('Avis-Erinnerung in Outlook geöffnet'\)/,'Persistierte Historie muss nach eigenständigem Azure-Readback geprüft werden');
+  assert.match(spec,/expect\(proof\.labels\)\.not\.toContain\('Avis-Erinnerung versendet'\)/,'Outlook-Entwurf darf nicht als versendete Mail gelten');
+});

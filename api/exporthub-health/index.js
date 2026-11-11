@@ -84,14 +84,21 @@ function deploymentIdentity() {
     builtAt: null,
     environment: null
   };
-  const complete = completeMetadata(metadata);
-  const source = fileIsComplete
+  // Urgent Order rejects conflicting server-side environment identities.
+  // Health must not mark that same deployment as verified: otherwise the
+  // RC1553 live gate can pass while the internal API stays fail-closed.
+  // Stale runtime versions within the SAME environment remain file-authoritative.
+  const environmentConflict = Boolean(
+    fileIsComplete && fromRuntime && fromFile.environment !== fromRuntime.environment
+  );
+  const complete = completeMetadata(metadata) && !environmentConflict;
+  const source = environmentConflict ? 'conflict' : (fileIsComplete
     ? 'release-metadata'
     : (fromRuntime
       ? 'runtime-env'
-      : (metadata.buildId || metadata.visibleRelease || metadata.technicalBuild || metadata.builtAt || metadata.environment ? 'release-metadata' : 'none'));
+      : (metadata.buildId || metadata.visibleRelease || metadata.technicalBuild || metadata.builtAt || metadata.environment ? 'release-metadata' : 'none')));
   return {
-    status: complete ? 'verified' : 'unknown',
+    status: environmentConflict ? 'conflict' : (complete ? 'verified' : 'unknown'),
     verified: complete,
     buildId: metadata.buildId,
     visibleRelease: metadata.visibleRelease,

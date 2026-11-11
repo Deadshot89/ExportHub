@@ -221,7 +221,7 @@ export async function settleStateSave(page,options={}){
 
     if(!snapshot.saving&&(snapshot.pending||snapshot.dirty)&&!forced){
       forced=true;
-      const remaining=Math.max(1000,Math.min(18_000,deadline-Date.now()));
+      const remaining=Math.max(1000,Math.min(65_000,deadline-Date.now()));
       const result=await page.evaluate(async timeoutMs=>{
         const clean=window.ExportHUBClean;
         if(!clean||typeof clean.flushSave!=='function')return {ok:false};
