@@ -21,9 +21,14 @@ test('Urgent Order problem note is checked locally, beside the correct field and
  const end=html.indexOf('async function mailto(){',start);
  assert.ok(start>0&&end>start);
  const handler=html.slice(start,end);
- const validation=handler.indexOf("if(modalKind==='problem'&&$('mailIssue').value.trim().length<8)");
+ const assembled=handler.indexOf("const preparedNote=modalKind==='problem'?selectedProblemNote():''");
+ const validation=handler.indexOf("if(modalKind==='problem'&&preparedNote.length<8)");
+ const maxLength=handler.indexOf("if(preparedNote.length>2000)");
  const request=handler.indexOf("await api('prepare-mail'");
- assert.ok(validation>=0&&validation<request,'invalid note must not trigger API call');
+ assert.ok(assembled>=0&&assembled<validation&&validation<maxLength&&maxLength<request,
+  'empty or excessively long combined note must be rejected before calling the API');
+ assert.match(handler,/note:preparedNote,noteLanguage:websiteLanguage/,
+  'the submitted note must contain selected templates and free text');
  assert.match(handler,/if\(e\.code==='URGENT_MAIL_NOTE_REQUIRED'\)\{showMailIssueError\(\);return;\}/);
 });
 

@@ -2743,5 +2743,18 @@
   "urgentOrderV2.packingPreflightUnknown": "Manca una quantità per confezione valida per: {articles}. Queste righe non sono state verificate.",
   "urgentOrderV2.packingPreflightUnknownConfirm": "Controlla i codici articolo. Continuare comunque?",
   "urgentOrderV2.packingPreflightConfirmed": "Quantità Minibag verificate. La tua conferma è stata salvata per questi articoli e quantità.",
-  "urgentOrderV2.packingPreflightRetry": "Controlla la quantità o seleziona Minibag."
+  "urgentOrderV2.packingPreflightRetry": "Controlla la quantità o seleziona Minibag.",
+  "urgentOrderV2.issueTemplatesTitle": "Seleziona i problemi",
+  "urgentOrderV2.issueTemplatesHint": "Puoi scegliere più motivi · aggiungi una descrizione",
+  "urgentOrderV2.issueStock": "Scorte insufficienti",
+  "urgentOrderV2.issuePick": "Impossibile prelevare la merce",
+  "urgentOrderV2.issueHold": "L'ordine è bloccato",
+  "urgentOrderV2.issueMismatch": "L'articolo o la quantità non corrisponde",
+  "urgentOrderV2.issueDocuments": "Mancano i documenti di spedizione",
+  "urgentOrderV2.issueDamage": "Merce danneggiata o incompleta",
+  "urgentOrderV2.issueDelay": "Impossibile spedire entro la data richiesta",
+  "urgentOrderV2.issueRegenerate": "Rigenera la bozza dell'e-mail.",
+  "urgentOrderV2.issueTooLong": "La descrizione del problema, inclusi i modelli selezionati, non può superare 2000 caratteri.",
+  "urgentOrderV2.shippingNotReady": "Disponibile solo dopo la spedizione di tutte le righe.",
+  "urgentOrderV2.mailShippingPreparing": "Preparazione della conferma di spedizione."
 }
