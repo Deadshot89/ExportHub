@@ -78,9 +78,9 @@ test('RC1555 QR client keeps active master packaging selectable when dimensions 
   assert.match(source,/length\s*=\s*positive\(raw&&raw\.length\)\s*\|\|\s*null/,'missing master length should remain null until the packer enters it');
   assert.match(source,/width\s*=\s*positive\(raw&&raw\.width\)\s*\|\|\s*null/,'missing master width should remain null until the packer enters it');
   assert.match(source,/if\(input&&size!=null\)input\.value=String\(size\)/,'individual row dimensions must only auto-fill for a defined master value');
-  assert.match(source,/entry&&entry\.length!=null\?String\(entry\.length\):''/,'master missing dimensions cannot invent dimensions');
-  assert.match(source,/entry&&entry\.width!=null\?String\(entry\.width\):''/,'missing width stays blank');
-  assert.match(source,/data-pack-type/,'every package must choose its own type');
+  assert.match(source,/selected\[field\]!=null\?String\(selected\[field\]\):''/,'master missing dimensions cannot invent dimensions');
+  assert.match(source,/fillEntryDimensions\(row\)/,'width must come from real catalog value');
+  assert.match(source,/data-entry-type/,'every input line must choose its canonical package type');
 });
 
 test('RC1555 shipment packaging chooser is searchable without replacing the existing RC682 selection behavior',()=>{
