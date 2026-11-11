@@ -396,7 +396,7 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc46SopEditorHolder{display:none!important}
 
 
-/* RC1965: all top KPI cards are equal-width siblings: eight legacy + two standalone open-work counters. */
+/* RC1965/RC1911: top KPI cards are equal-width siblings, including open complaints. */
 @media(min-width:1000px){
   .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))}
   html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))!important}
@@ -407,4 +407,16 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
 }
 @media(max-width:640px){
   .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* RC1911: eleven KPI cards use balanced rows rather than a single orphan tile. */
+@media(min-width:1100px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(6,minmax(0,1fr))}
+ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(6,minmax(0,1fr))!important}
+}
+@media(min-width:1000px) and (max-width:1099px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(min-width:641px) and (max-width:999px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(3,minmax(0,1fr))}
 }

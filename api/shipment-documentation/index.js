@@ -8,6 +8,7 @@ const apiI18n=require('../shared/i18n');
 const rights=require('../shared/state-write-guard');
 const shipments=require('../shared/av-check');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
+const complaintOps=require('../shipment-evidence/complaints');
 
 const FIELDS={
   shipmentNumber:100,customer:200,dispatchDate:10,colli:10,weightKg:16,
@@ -95,9 +96,68 @@ function assertShipmentAccess(user,team,ref,method){
  const state=team&&team.state&&typeof team.state==='object'?team.state:{};
  if(!shipments.allShipments(state).some(sh=>['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'].some(k=>txt(sh&&sh[k],40).toUpperCase()===ref)))throw problem('SHIPMENT_NOT_FOUND','Diese Sendungsreferenz existiert nicht im zentralen ExportHUB-Sendungsbestand.',404);
 }
+// Authenticated read-only aggregate, no names, texts or REF details are returned.
+function knownRefs(team){
+ const state=team&&team.state&&typeof team.state==='object'?team.state:{};
+ const keys=['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'];
+ const known=new Set();
+ shipments.allShipments(state).forEach(sh=>keys.forEach(key=>{
+  const value=txt(sh&&sh[key],40).toUpperCase();
+  if(/^[A-Z0-9]{6}$/.test(value))known.add(value);
+ }));
+ return known;
+}
+async function countsForEnvironment(env,allowedRefs){
+ const cfg=clientFor(env),client=cfg.service.getContainerClient(cfg.container);
+ let cursor,pages=0,count=0;
+ do{
+  if(++pages>200)throw problem('COUNT_UNAVAILABLE','Reklamationszaehler umfasst zu viele Seiten.',503);
+  const pager=client.listBlobsFlat({prefix:cfg.prefix}).byPage({continuationToken:cursor,maxPageSize:50});
+  const page=(await pager.next()).value||{};
+  const names=(page.segment&&page.segment.blobItems||[]).map(item=>item.name)
+   .filter(name=>name.startsWith(cfg.prefix)&&/^[A-Z0-9]{6}\.json$/.test(name.slice(cfg.prefix.length))&&allowedRefs.has(name.slice(cfg.prefix.length,-5)));
+  const batch=await Promise.all(names.map(async name=>{
+   const ref=name.slice(cfg.prefix.length,-5);
+   const entry=await read(client.getBlockBlobClient(name),ref);
+   return entry.etag?entry.record:null;
+  }));
+  count+=complaintOps.openCount(batch);
+  cursor=page.continuationToken||undefined;
+ }while(cursor);
+ return json(200,{ok:true,open:count});
+}
+// Read-only, authenticated REF preview; no complaint descriptions or evidence.
+async function listForEnvironment(env,allowedRefs,query){
+ const cfg=clientFor(env),client=cfg.service.getContainerClient(cfg.container);
+ const cursor=txt(query&&query.continuation,1200)||undefined;
+ const pager=client.listBlobsFlat({prefix:cfg.prefix}).byPage({continuationToken:cursor,maxPageSize:50});
+ const page=(await pager.next()).value||{};
+ const names=(page.segment&&page.segment.blobItems||[]).map(item=>item.name)
+  .filter(name=>name.startsWith(cfg.prefix)&&/^[A-Z0-9]{6}\.json$/.test(name.slice(cfg.prefix.length))&&allowedRefs.has(name.slice(cfg.prefix.length,-5)));
+ const records=await Promise.all(names.map(async name=>{
+  const ref=name.slice(cfg.prefix.length,-5),entry=await read(client.getBlockBlobClient(name),ref);
+  if(!entry.etag)return null;
+  const fields=entry.record.fields||{};
+  return{source:'ref',reference:ref,id:'REF-'+ref,updatedAt:entry.record.updatedAt||'',
+   fields:{exporthubRef:ref,shipmentNumber:fields.shipmentNumber||'',customer:fields.customer||'',
+    dispatchDate:fields.dispatchDate||'',colli:fields.colli||'',weightKg:fields.weightKg||''},
+   complaints:(entry.record.complaints||[]).filter(Boolean).map(c=>({state:c.state||'offen'}))};
+ }));
+ return json(200,{ok:true,records:records.filter(Boolean),continuation:page.continuationToken||null});
+}
 async function handle(req){
  const {env,username,user,team}=await userEnvironment(req);
  const input=req.method==='GET'?(req.query||{}):bodyOf(req);
+ if(req.method==='GET'&&input.action==='counts'){
+  if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))
+   throw problem('DOCUMENTATION_FORBIDDEN','Keine Leseberechtigung fuer die Sendungsdokumentation.',403);
+  return countsForEnvironment(env,knownRefs(team))
+ }
+ if(req.method==='GET'&&input.action==='list'){
+  if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))
+   throw problem('DOCUMENTATION_FORBIDDEN','Keine Leseberechtigung fuer die Sendungsdokumentation.',403);
+  return listForEnvironment(env,knownRefs(team),input)
+ }
  const ref=reference(input.reference);
  assertShipmentAccess(user,team,ref,req.method);
  const blob=blobFor(env,ref);
@@ -116,15 +176,26 @@ async function handle(req){
   if(rec.complaints.length>=200)throw problem('COMPLAINT_LIMIT','Die maximale Anzahl Beschwerden ist erreicht.',413);
   const reportedDate=txt(input.reportedDate,10)||now.slice(0,10);
   if(!validDate(reportedDate))throw problem('INVALID_COMPLAINT_DATE','Beschwerdedatum ist ungueltig.');
-  rec.complaints.push({id:crypto.randomUUID(),date:now,reportedDate,
-   text:complaintText(input.text),state:'offen',createdBy:username,changedAt:now,changedBy:username});
+  const item=complaintOps.created({text:complaintText(input.text),reportedDate,category:input.category||'sonstiges'},username);
+  item.date=now;item.changedAt=now;item.changedBy=username;
+  rec.complaints.push(item);
  }else if(action==='complaint-status'){
   const id=txt(input.complaintId,80),state=txt(input.state,32);
   if(!STATES.has(state))throw problem('INVALID_STATUS','Ungueltiger Beschwerdestatus.');
   const item=rec.complaints.find(x=>x.id===id);
   if(!item)throw problem('COMPLAINT_NOT_FOUND','Beschwerde nicht gefunden.',404);
-  statusChange={complaintId:id,before:item.state,after:state};
-  item.state=state;item.changedAt=now;item.changedBy=username;
+  const before=complaintOps.changeStatus(item,state,username);
+  statusChange={complaintId:id,before,after:item.state};
+ }else if(action==='complaint-update'){
+  const item=rec.complaints.find(x=>x.id===txt(input.complaintId,80));
+  if(!item)throw problem('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  const before={effectivenessResult:item.effectivenessResult||'offen',verifiedOn:item.verifiedOn||'',
+   verifiedBy:item.verifiedBy||'',checkCriteria:item.checkCriteria||'',
+   effectivenessEvidence:item.effectivenessEvidence||''};
+  const changed=complaintOps.edit(item,input,username);
+  statusChange={complaintId:item.id,changed,effectivenessAudit:{before,
+   after:{effectivenessResult:item.effectivenessResult,verifiedOn:item.verifiedOn,
+    verifiedBy:item.verifiedBy,checkCriteria:item.checkCriteria,effectivenessEvidence:item.effectivenessEvidence}}};
  }else throw problem('ACTION_INVALID','Unbekannte Aktion.');
  const event={date:now,user:username,action,revision:rec.revision+1};
  if(statusChange)event.statusChange=statusChange;
