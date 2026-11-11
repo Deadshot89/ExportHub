@@ -5,7 +5,7 @@ const TYPES=['schaden','fehlmenge','falscher_artikel','verspaetung','dokumentenf
 const RESULTS=['offen','wirksam','unwirksam'];
 function fail(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;throw e}
 function str(x,n=2000){const t=String(x==null?'':x).trim();if(t.length>n)fail('FIELD_TOO_LONG','Eingabe zu lang.',413);return t}
-function date(v){const s=str(v,10);if(!s)return'';if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||new Date(s+'T12:00:00Z').toISOString().slice(0,10)!==s)fail('BAD_DATE','Ungueltiges Datum.');return s}
+function date(v){const s=str(v,10);if(!s)return'';const parsed=new Date(s+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==s)fail('BAD_DATE','Ungueltiges Datum.');return s}
 function created(input,actor){
  const text=str(input.text,2000),reportedDate=date(input.reportedDate)||new Date().toISOString().slice(0,10);
  if(!text)fail('BAD_COMPLAINT','Bitte die Reklamation beschreiben.');
@@ -31,6 +31,7 @@ function edit(c,input,actor){
   if(value!==String(c[k]||'')){c[k]=value;changed.push(k)}
  }
  const revised=['rootCause','correctiveAction','preventiveAction'].some(k=>changed.includes(k));
+ if(revised&&input.effectivenessResult==='wirksam')fail('RECHECK_REQUIRED','Massnahmen zuerst speichern, Wirksamkeit anschliessend getrennt bestaetigen.',422);
  if(revised){
   c.effectivenessResult='offen';c.effectivenessEvidence='';c.verifiedOn='';c.verifiedBy='';
   c.state='in_pruefung';
