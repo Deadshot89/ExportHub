@@ -105,7 +105,10 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/expectedId&&expectedId!==originalId/);
  assert.match(ui,/node\.classList\.add\('active'\)/);
  assert.match(ui,/async function scanAll\(\)/);
- assert.match(ui,/const ok=await loadList\(false\)/);
+ // Full search must walk DOK first, then the authenticated historical REF archive.
+ assert.match(ui,/const ok=state\.continuation\?await loadList\(false\):await loadLegacyList\(false\)/);
+ assert.match(ui,/while\(run===state\.searchRun&&state\.view==='list'&&active\(\)&&\(state\.continuation\|\|state\.legacyContinuation\)\)/);
+ assert.match(ui,/if\(token!==state\.legacyRequestToken\|\|serial!==state\.serial\|\|state\.view!=='list'\)return false/);
  assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
