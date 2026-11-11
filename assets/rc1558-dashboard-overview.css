@@ -173,7 +173,7 @@ body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metric
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{min-height:0!important;padding:8px 10px!important}
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::before,
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::after{display:none!important}
-body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:22px!important;line-height:1.15!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:19px!important;line-height:1.15!important}
 
 @media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-kpis:has(>.rc1558-kpi:nth-child(7)){grid-template-columns:repeat(4,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
@@ -204,7 +204,7 @@ body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metric
   .rc1558-stack .rc1558-list{max-height:90px}
   .rc1558-list li{padding:4px 0}
   body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{padding:6px 9px!important}
-  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:18px!important}
+  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:16px!important}
 }
 
 /* RC1569 drill-down from a dashboard tile: filter bar, matching records only */
