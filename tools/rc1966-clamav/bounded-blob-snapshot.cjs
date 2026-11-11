@@ -10,6 +10,13 @@ const HEX32=/^[0-9a-f]{32}$/;
 const ETAG=/^"[A-Za-z0-9!#$%&'*+.^_|~-]{1,128}"$/;
 const KINDS=new Set(['pdf','xlsx','csv','txt','tsv','jpg','png']);
 const fail=()=>{throw Error('RC1966_BLOB_UNVERIFIED')};
+// RC1978: Azure SDK and injected test streams may throw from destroy().
+// A throw inside the timeout callback would otherwise become an uncaught
+// exception outside the async read's catch/finally path.
+const safeDestroy=stream=>{
+ try{if(stream&&typeof stream.destroy==='function')stream.destroy();return true;}
+ catch(_){return false;/* SDK details never leave the worker */}
+};
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 function deriveBlobName(expected,kind){
  if(!expected||expected.environment!=='testservice'||!KINDS.has(kind)||
@@ -34,13 +41,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
      locator.scopeHash!==scope.scopeHash||locator.blobKeyHash!==scope.blobKeyHash||
      !HEX32.test(locator.jobId||''))return fail();
   const controller=new AbortController();
-  let activeStream=null,watchdog;
+  let activeStream=null,watchdog,cleanupFailed=false;
+  const destroyStream=stream=>{if(!safeDestroy(stream))cleanupFailed=true;};
   // RC1968: SDK transports may ignore AbortSignal. A separate deadline
   // rejects even if getProperties, download, or an async iterator never ends.
   const deadline=new Promise((_,reject)=>{
    watchdog=setTimeout(()=>{
     controller.abort();
-    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+    destroyStream(activeStream);
     reject(Error('RC1966_BLOB_TIMEOUT'));
    },timeoutMs);
   });
@@ -61,11 +69,19 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    // its stream before checking cancellation so it cannot leak resources.
    const stream=response&&response.readableStreamBody;
    activeStream=stream;
+   // RC1979: after timeout an SDK stream may emit 'error' asynchronously,
+   // even if destroy() has already returned. Attach a permanent scoped
+   // listener so late errors cannot terminate the isolated Node worker.
+   // Async iteration still rejects on stream errors; this never marks clean.
+   if(stream&&typeof stream.on==='function'){
+    try{stream.on('error',()=>{});}
+    catch(_){return fail();}
+   }
    if(controller.signal.aborted)return fail();
    if(!response||response.etag!==scope.blobEtag||
       response.contentLength!==scope.bytes||
       !stream||typeof stream[Symbol.asyncIterator]!=='function'){
-    if(stream&&typeof stream.destroy==='function')stream.destroy();
+    destroyStream(stream);
     return fail();
    }
    const parts=[];let total=0;
@@ -73,19 +89,24 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
     for await(const part of stream){
      if(controller.signal.aborted)return fail();
      if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))return fail();
+     // RC1969: reject a large transport chunk BEFORE copying it into a new
+     // Buffer. The old order allocated attacker-sized memory, then rejected.
+     const size=part.byteLength;
+     if(!Number.isSafeInteger(size)||size<1||size>scope.bytes-total||
+        size>MAX_BYTES-total)return fail();
      const chunk=Buffer.from(part);
-     total+=chunk.length;
-     if(total>scope.bytes||total>MAX_BYTES)return fail();
+     if(chunk.length!==size)return fail();
+     total+=size;
      parts.push(chunk);
     }
-   }finally{if(typeof stream.destroy==='function')stream.destroy();}
-   if(controller.signal.aborted||total!==scope.bytes)return fail();
+   }finally{destroyStream(stream);}
+   if(controller.signal.aborted||cleanupFailed||total!==scope.bytes)return fail();
    const bytes=Buffer.concat(parts,total);
    if(hash(bytes)!==scope.uploadSha256){bytes.fill(0);return fail();}
    return{bytes,etag:scope.blobEtag};
    }catch(_){return fail();}
    finally{
-    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+    destroyStream(activeStream);
    }
   };
   try{
@@ -93,7 +114,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
   }catch(_){return fail();}
   finally{
    clearTimeout(watchdog);
-   if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+   destroyStream(activeStream);
   }
  };
 }

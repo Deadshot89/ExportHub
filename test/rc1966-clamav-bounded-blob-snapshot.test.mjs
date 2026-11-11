@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {Readable} from 'node:stream';
+import {EventEmitter} from 'node:events';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -98,6 +99,37 @@ test('RC1966: altered stream metadata, bytes or excess stream length reject',asy
  }
 });
 
+
+test('RC1969: over-limit transport chunks are rejected before Buffer.from allocates a copy',async()=>{
+ const cases=[
+  [Buffer.alloc(bytes.length+1)],
+  [Buffer.alloc(bytes.length-1),Buffer.alloc(2)]
+ ];
+ for(const chunks of cases){
+  const oversized=chunks[chunks.length-1];
+  const f=fixture({response:{readableStreamBody:Readable.from(chunks)}});
+  const original=Buffer.from;
+  let copiedRejectedChunk=false;
+  Buffer.from=function(value,...args){
+   if(value===oversized)copiedRejectedChunk=true;
+   return original.call(this,value,...args);
+  };
+  try{
+   const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx'});
+   await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+   assert.equal(copiedRejectedChunk,false,'reject the chunk BEFORE duplicating it in memory');
+  }finally{Buffer.from=original;}
+ }
+});
+
+test('RC1969: empty or nonbinary stream chunks remain fail-closed',async()=>{
+ for(const part of [Buffer.alloc(0),'untrusted text']){
+  const f=fixture({response:{readableStreamBody:Readable.from([part])}});
+  const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx'});
+  await assert.rejects(read(locator),error=>error.message==='RC1966_BLOB_UNVERIFIED');
+ }
+});
+
 test('RC1966: SDK failures are sanitized without leaking account keys or paths',async()=>{
  const container={getBlobClient(){throw Error('FAKE_SECRET AccountKey=test blobName=secret')}};
  const read=createBoundedReadSnapshot({container,expected,kind:'xlsx'});
@@ -185,4 +217,57 @@ test('RC1968: non-cooperative stream iterator cannot hang the caller',async()=>{
  await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
  assert.ok(destroyed>=1);
  assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1978: stream destroy throwing on timeout cannot crash the timer callback',async()=>{
+ let destroyCalls=0;
+ const stalled={
+  [Symbol.asyncIterator](){return{next:()=>new Promise(()=>{})}},
+  destroy(){destroyCalls++;throw Error('AccountKey=FAKE_TIMEOUT_SECRET');}
+ };
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1,'reader must attempt to close stalled stream');
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1978: throwing stream cleanup fails closed even after exact matching data',async()=>{
+ let destroyCalls=0;
+ const invalidCleanup={
+  async *[Symbol.asyncIterator](){yield Buffer.from(bytes);},
+  destroy(){destroyCalls++;throw Error('AccountKey=FAKE_CLEANUP_SECRET');}
+ };
+ const f=fixture({response:{readableStreamBody:invalidCleanup}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:250});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1);
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1979: asynchronous SDK error after timeout cannot crash the worker',async()=>{
+ const stalled=new EventEmitter();
+ let destroyCalls=0;
+ stalled[Symbol.asyncIterator]=()=>({next:()=>new Promise(()=>{})});
+ stalled.destroy=()=>{destroyCalls++};
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1);
+ assert.ok(stalled.listenerCount('error')>=1,'late errors need a permanent handler');
+ assert.doesNotThrow(()=>stalled.emit('error',Error('AccountKey=SECRET_LATE_SDK_ERROR')));
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1979: broken SDK error-listener registration is rejected without accepting bytes',async()=>{
+ let cleaned=0;
+ const malformed={
+  [Symbol.asyncIterator](){return{next:async()=>({done:false,value:Buffer.from(bytes)})}},
+  on(){throw Error('AccountKey=SECRET_LISTENER_FAILURE');},
+  destroy(){cleaned++}
+ };
+ const f=fixture({response:{readableStreamBody:malformed}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:250});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(cleaned>=1,'failed listener registration must close stream');
 });
