@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - test/rc1255-no-deploy-evidence-20261111
+  pull_request:
+    branches:
+      - release/rc1984-four-functions-p0-integration-20261111
+    paths:
+      - .github/workflows/rc1255-no-deploy-save-evidence.yml
   workflow_dispatch:
 
 permissions:
@@ -15,7 +20,12 @@ concurrency:
 
 jobs:
   offline-save-evidence:
-    if: github.ref == 'refs/heads/test/rc1255-no-deploy-evidence-20261111'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/test/rc1255-no-deploy-evidence-20261111') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/test/rc1255-no-deploy-evidence-20261111') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.ref == 'test/rc1255-no-deploy-evidence-20261111' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
