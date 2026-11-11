@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const packing=require('../shared/urgent-packing');
 const mailTranslation=require('../shared/urgent-mail-translation');
 const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
 const MAX_RETRIES=8;
@@ -14,6 +15,8 @@ const MAX_RETRIES=8;
 const READ_RETRY_DELAYS_MS=[150,450];
 const PROD_BLOB='urgent-orders/v1.json';
 const TEST_BLOB='testservice/urgent-orders/v1.json';
+const PROD_PACKING_BLOB='urgent-orders/packing-catalog-v1.json';
+const TEST_PACKING_BLOB='testservice/urgent-orders/packing-catalog-v1.json';
 
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},reporterGroups:[]};}
@@ -138,7 +141,8 @@ function storage(req){
  if(!configured)throw model.problem('URGENT_STORAGE_MISSING','Azure-Speicherung für Urgent Orders ist nicht konfiguriert.',503);
  const service=BlobServiceClient.fromConnectionString(configured);
  const container=service.getContainerClient(isolated.enabled?isolated.container:(process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data'));
- return{blob:container.getBlockBlobClient(environment==='testservice'?TEST_BLOB:PROD_BLOB),environment};
+ return{blob:container.getBlockBlobClient(environment==='testservice'?TEST_BLOB:PROD_BLOB),
+  catalogBlob:container.getBlockBlobClient(environment==='testservice'?TEST_PACKING_BLOB:PROD_PACKING_BLOB),environment};
 }
 async function write(storageRef,mutator){
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
@@ -164,6 +168,19 @@ async function withReadRetry(read){
  }
 }
 function readDoc(refs){return withReadRetry(()=>auth.readJson(refs.blob,empty(),{missingBlobOnly:true}));}
+async function readPackingCatalog(refs){
+ if(!refs.catalogBlob)return {schemaVersion:1,count:0,unknownPackSize:0,quantities:{}}; // unit tests with mocked refs
+ const data=await withReadRetry(()=>auth.readJson(refs.catalogBlob,{schemaVersion:1,count:0,unknownPackSize:0,quantities:{}},{missingBlobOnly:true}));
+ const catalog=data.value||{};
+ if(!catalog.quantities||typeof catalog.quantities!=='object'||Array.isArray(catalog.quantities))
+  throw model.problem('URGENT_PACKING_CATALOG_INVALID','Die Verpackungsgrößen sind beschädigt. Bitte die Logistik informieren.',503);
+ return catalog;
+}
+function canImportCatalog(user){
+ if(user&&user.globalAdmin===true)return true;
+ const rights=user&&user.rights&&user.rights.shipmentoverview||{};
+ return rights.admin===true||rights.functionAdmin===true||String(rights.level||rights.access||'').toLowerCase()==='admin';
+}
 // Only codes/names, never messages: storage messages may contain account details.
 function safeCode(value){const v=String(value==null?'':value);return /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(v)?v:'';}
 function failureDetails(e){
@@ -180,7 +197,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   // Account-linked email profiles are deprecated; only the local browser's
   // non-authenticated address history supplies autocomplete suggestions.
-  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
+  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),canImportPackingCatalog:canImportCatalog(user),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
@@ -193,8 +210,27 @@ async function execute(req,user,refs){
   }
   return{open,closed,total:open+closed,environment:refs.environment};
  }
+ if(action==='packing-catalog-status'){
+  if(!canImportCatalog(user))throw model.problem('URGENT_FORBIDDEN','Keine Berechtigung zur Artikelstammdatenverwaltung.',403);
+  const catalog=await readPackingCatalog(refs);
+  return{count:catalog.count||0,unknownPackSize:catalog.unknownPackSize||0,environment:refs.environment};
+ }
+ if(action==='import-packing-catalog'){
+  if(!canImportCatalog(user))throw model.problem('URGENT_FORBIDDEN','Keine Berechtigung zur Artikelstammdatenverwaltung.',403);
+  if(!refs.catalogBlob)throw model.problem('URGENT_PACKING_STORAGE_MISSING','Der private Artikeldatenspeicher ist nicht erreichbar.',503);
+  const catalog=packing.parseCatalog(p.tsv);
+  const current=await withReadRetry(()=>auth.readJson(refs.catalogBlob,{schemaVersion:1,quantities:{}},{missingBlobOnly:true}));
+  catalog.importedAt=now;
+  const saved=await auth.writeJson(refs.catalogBlob,catalog,current.etag);
+  if(!saved||!saved.etag)throw model.problem('URGENT_PACKING_WRITE_UNVERIFIED','Die Artikelliste wurde nicht bestätigt. Bitte nicht als aktiv betrachten.',503);
+  const readback=await readPackingCatalog(refs);
+  if(readback.count!==catalog.count||readback.importedAt!==catalog.importedAt)
+   throw model.problem('URGENT_PACKING_READBACK_FAILED','Die gespeicherte Artikelliste konnte nicht bestätigt werden.',503);
+  return{count:catalog.count,unknownPackSize:catalog.unknownPackSize,environment:refs.environment};
+ }
  if(action==='create'){
-  const created=model.createOrder(p,identity(user),now);
+  const catalog=p.allLines===true?null:await readPackingCatalog(refs);
+  const created=model.createOrder(p,identity(user),now,catalog);
   return write(refs,doc=>{
    const previous=doc.orders.find(x=>x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
@@ -270,6 +306,7 @@ module.exports=async function(context,req){
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
   const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  if(code==='URGENT_MINIBAG_CONFIRM_REQUIRED')response.minibagArticles=e.minibagArticles||[];
   if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
   context.res=json(status,response);
  }
@@ -280,6 +317,7 @@ module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
 module.exports.safeHostDiagnostic=safeHostDiagnostic;
 module.exports.deploymentEnv=deploymentEnv;
 module.exports.readDocument=async function(refs){return normalize((await readDoc(refs)).value);};
+module.exports.readPackingCatalog=readPackingCatalog;
 module.exports.withReadRetry=withReadRetry;
 module.exports.write=write;
 module.exports.empty=empty;
