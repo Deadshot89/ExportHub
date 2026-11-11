@@ -355,3 +355,32 @@ Container-Laufzeitabbruch nötig. Sie erlaubt weiterhin
 `authorizedForRelease:false` allein und stellt weder einen realen
 ClamAV-Scan noch einen kostenfreien Cloudbetrieb oder einen
 erfolgreichen Excel-Upload nach.
+
+## RC1978 – Ausnahmebehandlung beim Blob-Stream-Aufräumen
+
+Die RC1968/69-Blob-Leser-Funktion rief `stream.destroy()` auch direkt
+im Timer-Callback auf. Wirft ein ungewöhnlicher oder fehlerhafter
+Azure-SDK-Stream bei `destroy()` selbst eine Ausnahme, liegt diese
+außerhalb der normalen `Promise.race`-/`try/catch`-Behandlung.
+Sie kann als unbehandelte Node-Ausnahme den isolierten Worker beenden,
+anstatt die angefragte Datei kontrolliert zu sperren.
+
+RC1978 kapselt das Schließen des aktiven Streams in einen
+ausnahmesicheren `safeDestroy`-Adapter. Ein fehlgeschlagenes Schließen
+im Stream-Iterator setzt außerdem `cleanupFailed`, sodass auch bei
+ansonsten korrekt gelesener Länge und SHA-256 **kein Kandidat** aus
+dem betroffenen Read zurückgegeben wird. Fehler werden wie bisher
+auf `RC1966_BLOB_UNVERIFIED` reduziert. Das ist ein
+Availability-/Fail-Closed-Fix, keine neue Scanfreigabe.
+
+Die beiden neuen synthetischen RC1978-Regressionen prüfen
+(1) einen hängenden Async-Iterator, dessen `destroy()` im
+35-s-Deadline-Callback eine Ausnahme wirft (mit kurzem Testtimeout),
+und (2) exakte korrekte Bytes, deren Stream sich nicht sauber
+schließen lässt. Beide Fälle müssen sicher und ohne SDK-
+Geheimnisse abgewiesen werden. Ein realer Azure SDK-/Container-Livetest
+ist damit **nicht** ersetzt.
+
+Keine Azure-Ressource, keine neue laufende Gebühr, keine
+Cloudscanner-Bereitstellung oder ABD-Parserfreigabe; der
+sichere `ABD_SCAN_PENDING`-Block bleibt bestehen.
