@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import {hashFile} from '../.github/asset-fingerprint/fingerprint-assets.mjs';
+import {requireGuestRuntimeRef} from '../scripts/rc1903-guest-runtime-gate.mjs';
 import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
@@ -626,14 +628,32 @@ test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cac
 
 test('RC1903: live TESTSERVICE smoke rejects outdated public upload scripts',()=>{
  const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ const gate=fs.readFileSync('scripts/rc1903-guest-runtime-gate.mjs','utf8');
  const guest=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.ok(live.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
+ assert.ok(gate.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
+ assert.match(live,/requireGuestRuntimeRef\(html,guestBytes,\{fingerprintRequired:true\}\)/);
+ assert.match(live,/assert\.deepEqual\(Buffer\.from\(await asset\.arrayBuffer\(\)\),guestBytes/);
  assert.match(live,/Public evidence page still serves a stale upload runtime/);
  assert.match(guest,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(live,/healthData\?\.deployment\?\.buildId,sha/);
  assert.match(live,/assert\.deepEqual\(read\.data,bytes/);
+});
+
+test('RC1903: live guest gate accepts verified fingerprints and rejects stale or unversioned runtime',()=>{
+ const bytes=fs.readFileSync('assets/shipment-evidence-guest.js');
+ const fingerprint=hashFile('assets/shipment-evidence-guest.js');
+ const asset='/assets/shipment-evidence-guest.js?v=1907';
+ const checked='<script defer src="'+asset+'&h='+fingerprint+'"></script>';
+ const publicHtml='<script defer src="'+asset+'"></script>';
+ assert.equal(requireGuestRuntimeRef(checked,bytes,{fingerprintRequired:true}),asset+'&h='+fingerprint);
+ assert.equal(requireGuestRuntimeRef(publicHtml,bytes),asset,'Standalone public page may use the same version without a build hash');
+ assert.throws(()=>requireGuestRuntimeRef(publicHtml,bytes,{fingerprintRequired:true}),/fingerprint is missing or stale/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset+'&h=0000000000"></script>',bytes),/fingerprint is stale/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset.replace('1907','1906')+'"></script>',bytes),/runtime v=1907 is absent/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="/assets/shipment-evidence-guest.js"></script>',bytes),/runtime v=1907 is absent/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset+'&h=unverified"></script>',bytes),/runtime v=1907 is absent/);
 });
 
 test('RC1903: first photo upload creates own DOK; public and staff require persisted file read-back',()=>{
