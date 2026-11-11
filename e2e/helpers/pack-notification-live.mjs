@@ -32,16 +32,27 @@ async function createPackNotification(page,token,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packPackageType').selectOption({label:'Euro Palette'});
-  await page.locator('#packPackageCount').fill('2');
-  await page.locator('#packWeight').fill('680');
-  const rows=page.locator('[data-pack-package]');
+  // Exercise the *visible* Colli rows used by "Sendung erstellen".
+  // Both Euro pallets have different heights, so each is an independent line.
+  const rows=page.locator('[data-pack-entry]');
+  await expect(rows).toHaveCount(1);
+  const first=rows.first();
+  await first.locator('[data-entry-type]').selectOption({label:'Euro Palette'});
+  await first.locator('[data-entry-count]').fill('1');
+  await first.locator('[data-entry-weight]').fill('340');
+  await first.locator('[data-entry-length]').fill('120');
+  await first.locator('[data-entry-width]').fill('80');
+  await first.locator('[data-entry-height]').fill('145');
+  await page.locator('#packAddPackage').click();
   await expect(rows).toHaveCount(2);
-  for(let i=0;i<2;i++){
-    await rows.nth(i).locator('[data-dim="length"]').fill('120');
-    await rows.nth(i).locator('[data-dim="width"]').fill('80');
-    await rows.nth(i).locator('[data-dim="height"]').fill(i===0?'145':'130');
-  }
+  const second=rows.nth(1);
+  await second.locator('[data-entry-type]').selectOption({label:'Euro Palette'});
+  await second.locator('[data-entry-count]').fill('1');
+  await second.locator('[data-entry-weight]').fill('340');
+  await second.locator('[data-entry-length]').fill('120');
+  await second.locator('[data-entry-width]').fill('80');
+  await second.locator('[data-entry-height]').fill('130');
+  await expect(page.locator('#packEntryTotals')).toContainText('680');
   await page.locator('#packDocuments').setInputFiles({
     name:expected.sourceName,
     mimeType:'application/pdf',
@@ -86,7 +97,9 @@ async function createPackNotification(page,token,suffix='A'){
   await card.click();
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
-  await expect(page.locator('#packPackageCount')).toHaveValue('2');
+  await expect(page.locator('[data-pack-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-pack-entry] [data-entry-count]').first()).toHaveValue('1');
+  await expect(page.locator('[data-pack-entry] [data-entry-weight]').last()).toHaveValue('340');
   await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName);
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
