@@ -188,7 +188,7 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  const confirmed=await call('POST',{reference:'ABC123',action:'complaint-update',
   expectedRevision:3,complaintId,effectivenessResult:'wirksam'});
  assert.equal(confirmed.status,200);
- assert.equal(confirmed.data.record.complaints[0].verifiedBy,'Lagerteam');
+ assert.equal(confirmed.data.record.complaints[0].verifiedBy,auth.usernameOf(user),'audit reviewer follows the verified session username, not the display name');
  const finished=await call('POST',{reference:'ABC123',action:'complaint-status',
   expectedRevision:4,complaintId,state:'abgeschlossen'});
  assert.equal(finished.status,200);
