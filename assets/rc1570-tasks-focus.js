@@ -809,8 +809,17 @@ function canDeleteTask(task){
 function listHtml(){
   var model=managedRows(),rows=model.rows,us=model.users,counts=model.counts,shown=rows.slice(0,tv.moreCount);
   var tabs=['all','overdue','weekly','once','done'],keys={all:'managerAll',overdue:'overdue',weekly:'managerWeekly',once:'managerOnce',done:'done'};
-  var duplicateCounts={};
-  model.rows.forEach(function(x){var k=taskDuplicateKey(x);if(k)duplicateCounts[k]=(duplicateCounts[k]||0)+1});
+  // A matching text key alone does not prove a duplicate: separate customer
+  // accounts or different shipment IDs must never be labelled as duplicates.
+  var duplicateIds={},groups=Object.create(null);
+  model.rows.forEach(function(x){var k=taskDuplicateKey(x);if(k)(groups[k]=groups[k]||[]).push(x)});
+  Object.keys(groups).forEach(function(k){
+    var rows=groups[k];
+    if(rows.length<2||new Set(rows.map(taskId).filter(Boolean)).size<2)return;
+    for(var i=0;i<rows.length;i++)for(var j=i+1;j<rows.length;j++)
+      if(!sameShipmentEvidence(rows[i],rows[j]))return;
+    rows.forEach(function(x){duplicateIds[taskId(x)]=true})
+  });
   return'<aside class="rc1570-tv-list">'+
     '<input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'">'+
     '<div class="rc1570-tv-scope rc1570-scope" role="group">'+['mine','all'].map(function(scope){return'<button type="button" data-rc1570-tv-scope="'+scope+'" aria-pressed="'+(tv.scope===scope)+'">'+esc(t(scope==='mine'?'scopeMine':'scopeAll'))+'</button>'}).join('')+'</div>'+
@@ -819,7 +828,7 @@ function listHtml(){
     '<ul>'+shown.map(function(x){
       var id=taskId(x),d=taskDate(x),weekly=isWeekly(x),done=isDone(x),late=!done&&d&&dayKey(d)<model.today,system=isSystemManagedTask(x);
       return'<li class="rc1570-tv-row"'+(late?' data-late="true"':'')+'><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'>'+
-        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x),(taskDuplicateKey(x)&&duplicateCounts[taskDuplicateKey(x)]>1?t('duplicateLabel'):'')].filter(Boolean).join(' · '))+'</span>'+
+        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x),(duplicateIds[id]?t('duplicateLabel'):'')].filter(Boolean).join(' · '))+'</span>'+
         '</button>'+(canWrite()&&canDeleteTask(x)?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
     }).join('')+'</ul>'+
     (rows.length>shown.length?'<button type="button" class="ghost rc1570-tv-more" data-rc1570-tv-more="1">'+esc(t('managerMore',{count:rows.length-shown.length}))+'</button>':'')+
