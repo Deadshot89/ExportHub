@@ -467,8 +467,24 @@ async function processRequest(req){
  }else if(action==='complaint-update'){
   const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
   if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  // Audit retains the previous effectiveness evidence and result before
+  // a revised cause, method or sample can invalidate the old approval.
+  const proofSnapshot=caseItem=>({
+   result:caseItem.effectivenessResult||'offen',checkDate:caseItem.checkDate||'',
+   method:caseItem.checkMethod||'',sample:caseItem.checkSample||'',
+   criteria:caseItem.checkCriteria||'',evidence:caseItem.effectivenessEvidence||'',
+   verifiedOn:caseItem.verifiedOn||'',verifiedBy:caseItem.verifiedBy||''
+  });
+  const previous=proofSnapshot(complaint);
   const changed=complaintOps.edit(complaint,payload,ctx.user);
-  if(changed.length){bump(record,ctx,'complaint-update',{complaintId:complaint.id,changed});await saveRecord(blob,record,etag)}
+  if(changed.length){
+   const event={complaintId:complaint.id,changed};
+   if(changed.some(k=>['rootCause','correctiveAction','preventiveAction','checkDate','checkMethod',
+      'checkSample','checkCriteria','effectivenessEvidence','effectivenessResult'].includes(k)))
+    event.effectivenessAudit={before:previous,after:proofSnapshot(complaint)};
+   bump(record,ctx,'complaint-update',event);
+   await saveRecord(blob,record,etag)
+  }
  }else if(action==='complaint-analysis'){
   const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
   if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
