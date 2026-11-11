@@ -114,17 +114,25 @@ function shipmentCustomerNo(task){
 function taskDuplicateKey(task){
   var r=q(ref(task)).toUpperCase(),d=taskDate(task),source=low(task&&task.sourceType);
   if(!/^[A-Z0-9]{6}$/.test(r)||!d||!source||!title(task))return'';
-  return [r,low(title(task)),low(area(task)),low(processOf(task)),source,dayKey(d),
+  return [low(task.companyId),low(task.environment),r,low(title(task)),low(area(task)),low(processOf(task)),source,dayKey(d),
     low(q(task&&((task.effectiveAssignee||task.assignedTo||task.owner||task.assignee||task.assignedToName)))),
     low(q(task&&(task.seriesId||task.recurringSeriesId||task.weeklySeriesId||task.occurrenceKey||task.weekKey))),
     statusKey(task)].join('|')
+}
+function sameShipmentEvidence(a,b){
+  var aId=q(a&&(a.linkedShipmentId||a.shipmentId)),bId=q(b&&(b.linkedShipmentId||b.shipmentId));
+  if(aId&&bId&&aId!==bId)return false;
+  var aNo=low(a&&(a.customerNumber||a.linkedAccount||a.customerAccount||a.account)).replace(/\\s+/g,'');
+  var bNo=low(b&&(b.customerNumber||b.linkedAccount||b.customerAccount||b.account)).replace(/\\s+/g,'');
+  return !(aNo&&bNo&&aNo!==bNo)
 }
 function collapseExactTaskDuplicates(items){
   var selected=[],byKey={};
   arr(items).forEach(function(task){
     var key=taskDuplicateKey(task);if(!key){selected.push(task);return}
-    if(!Object.prototype.hasOwnProperty.call(byKey,key)){byKey[key]=selected.length;selected.push(task);return}
-    var index=byKey[key],old=selected[index];
+    var indices=byKey[key]||[],index=indices.find(function(i){return sameShipmentEvidence(selected[i],task)});
+    if(index===undefined){indices.push(selected.length);byKey[key]=indices;selected.push(task);return}
+    var old=selected[index];
     var score=function(x){return (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
     if(score(task)>score(old))selected[index]=task
   });
@@ -779,7 +787,7 @@ function systemDuplicateKeeper(task){
   var key=taskDuplicateKey(task);if(!key)return null;
   var seen={},similar=[];
   arr(state().tasks).forEach(function(row){
-    var id=taskId(row);if(!id||seen[id]||!isSystemManagedTask(row)||isWeekly(row)||taskDuplicateKey(row)!==key)return;
+    var id=taskId(row);if(!id||seen[id]||!isSystemManagedTask(row)||isWeekly(row)||taskDuplicateKey(row)!==key||!sameShipmentEvidence(task,row))return;
     seen[id]=true;similar.push(row)
   });
   if(similar.length<2)return null;
