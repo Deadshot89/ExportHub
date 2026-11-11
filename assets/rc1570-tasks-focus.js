@@ -122,8 +122,8 @@ function taskDuplicateKey(task){
 function sameShipmentEvidence(a,b){
   var aId=q(a&&(a.linkedShipmentId||a.shipmentId)),bId=q(b&&(b.linkedShipmentId||b.shipmentId));
   if(aId&&bId&&aId!==bId)return false;
-  var aNo=low(a&&(a.customerNumber||a.linkedAccount||a.customerAccount||a.account)).replace(/\\s+/g,'');
-  var bNo=low(b&&(b.customerNumber||b.linkedAccount||b.customerAccount||b.account)).replace(/\\s+/g,'');
+  var aNo=low(a&&(a.customerNumber||a.linkedAccount||a.customerAccount||a.account)).replace(/\s+/g,'');
+  var bNo=low(b&&(b.customerNumber||b.linkedAccount||b.customerAccount||b.account)).replace(/\s+/g,'');
   return !(aNo&&bNo&&aNo!==bNo)
 }
 function collapseExactTaskDuplicates(items){
