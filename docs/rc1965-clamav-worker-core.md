@@ -384,3 +384,30 @@ ist damit **nicht** ersetzt.
 Keine Azure-Ressource, keine neue laufende Gebühr, keine
 Cloudscanner-Bereitstellung oder ABD-Parserfreigabe; der
 sichere `ABD_SCAN_PENDING`-Block bleibt bestehen.
+
+## RC1979 – verspätete asynchrone Blob-Stream-Fehler nach Abbruch
+
+RC1978 kapselt synchrone `destroy()`-Ausnahmen; eine davon
+unabhängige Node-Stream-Gefahr blieb bestehen: Ein bereits
+abgebrochener Azure-SDK-Stream kann *später* noch ein asynchrones
+`error`-Event auslösen. Ohne registrierten EventEmitter-Handler
+würde Node das Ereignis als ungefangenen Fehler melden, obwohl
+der ursprüngliche `Promise.race`-Read bereits korrekt abgebrochen
+wurde.
+
+Der RC1966-Reader installiert jetzt beim Übernehmen des SDK-Streams
+einen `error`-Listener, der bis zur Freigabe des Streamobjekts
+bestehen bleibt. Fehler während der laufenden Async-Iteration werden
+weiterhin als ungültiger Download behandelt; das Ignorieren eines
+*späten* Events ist niemals ein `clean`-Verdikt. Scheitert schon
+die Listener-Registrierung, wird der Stream aufgeräumt und der
+Read fail-closed verworfen.
+
+Zwei synthetische RC1979-Regressionen prüfen:
+(1) ein SDK-Stream mit nicht kooperierendem Iterator, der nach
+einem Timeout noch ein `error`-Event emittiert, darf den Node-Worker
+nicht zum Absturz bringen;
+(2) eine fehlerhafte `on('error')`-Implementierung darf keine
+Blob-Bytes zurückgeben. Kein echter Azure-/ClamAV-Livetest.
+`ABD_SCAN_PENDING` und `authorizedForRelease:false` bleiben
+bestehen. Keine Cloud-Ressourcen, Kosten, Merge oder Bereitstellung.
