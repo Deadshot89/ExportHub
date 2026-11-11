@@ -72,6 +72,7 @@ jobs:
         run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
 
       - name: Verify real TESTSERVICE frontend with mocked customer and photo APIs
+        shell: bash
         run: |
           set -euo pipefail
           # The browser downloads actual deployed HTML/JS/CSS, but all /api requests are intercepted.
