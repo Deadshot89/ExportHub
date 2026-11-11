@@ -222,7 +222,7 @@ test('RC1968: customer without a stored address clears stale recipient address o
  const panel={querySelector(selector){
   if(selector==='[data-rc1549-recipient-search]')return search;
   if(selector==='[data-rc1549-recipient-results]')return results;
-  const match=/^\\[data-rc1549-header="([^"]+)"\\]$/.exec(selector);
+  const match=/^\[data-rc1549-header="([^"]+)"\]$/.exec(selector);
   return match?fields[match[1]]||null:null
  }};
  let confirm=false,invalidated=0,status='';
@@ -233,7 +233,7 @@ test('RC1968: customer without a stored address clears stale recipient address o
  };
  const headerDraft={recipient:'Previous Customer',recipientAddress:'Previous Customer Address',invoiceNumber:'KEEP-123'};
  const ctx={root,headerDraft,q:v=>String(v??'').trim(),language:()=> 'de',manualPanel:()=>panel,invalidate:()=>{invalidated++},setStatus:s=>{status=s}};
- const {rcmatches,rcrender,rcchoose}=vm.runInNewContext(proformaUi.slice(start,end)+'\\n({rcmatches,rcrender,rcchoose})',ctx);
+ const {rcmatches,rcrender,rcchoose}=vm.runInNewContext(proformaUi.slice(start,end)+'\n({rcmatches,rcrender,rcchoose})',ctx);
  assert.equal(rcmatches('0088').length,0);
  assert.equal(rcmatches('0089').length,0);
  assert.equal(rcmatches('0090').length,0);
