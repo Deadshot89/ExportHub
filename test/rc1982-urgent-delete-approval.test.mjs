@@ -54,6 +54,34 @@ test('RC1982: status change starts processing permanently; only handler can acce
  assert.throws(()=>model.resolveDeletion(o,worker,true),error('URGENT_DELETE_NOT_PENDING'));
 });
 
+test('RC1982: claim processing before a status change prevents immediate deletion',()=>{
+ const order=make('SO198280');
+ assert.equal(model.workStarted(order),false);
+ const claim=model.startProcessing(order,worker,'2026-11-11T09:01:00Z');
+ assert.equal(claim.started,true);
+ assert.equal(claim.handler.id,worker.id);
+ assert.equal(order.history.at(-1).event,'processing_claimed');
+ assert.equal(model.startProcessing(order,worker).handler.id,worker.id,'same employee claim is idempotent');
+ assert.throws(()=>model.startProcessing(order,another),error('URGENT_PROCESSING_OWNER_EXISTS'));
+ assert.throws(()=>model.startProcessing(order,creator),error('URGENT_FORBIDDEN'));
+ assert.equal(model.requestDeletion(order,creator).state,'pending');
+ assert.throws(()=>model.setItemStatus(order,order.items[0].id,'Waved',another,date),error('URGENT_DELETE_PENDING'));
+ assert.equal(model.processingOwner(order).id,worker.id);
+ assert.throws(()=>model.resolveDeletion(order,another,true),error('URGENT_DELETE_NOT_HANDLER'));
+ assert.equal(model.resolveDeletion(order,worker,false).state,'rejected');
+ assert.equal(model.startProcessing(order,worker).handler.id,worker.id);
+});
+
+test('RC1982: later collaborators cannot steal deletion approval identity',()=>{
+ const order=make('SO198281');
+ model.startProcessing(order,worker);
+ model.setItemStatus(order,order.items[0].id,'Waved',another,date);
+ assert.equal(model.processingOwner(order).id,worker.id);
+ model.recordMailHandoff(order,{kind:'problem',to:order.email,subject:'Problem',body:'Please review this urgent order'},another,date);
+ assert.equal(model.processingOwner(order).id,worker.id);
+ assert.equal(model.requestDeletion(order,creator).handler.id,worker.id);
+});
+
 test('RC1982: responsible employee may refuse; order remains and requester may try again',()=>{
  const o=make();
  model.setItemStatus(o,o.items[0].id,'In Progress',worker,date);
@@ -139,6 +167,9 @@ test('RC1982: both inline UIs compile and expose the exact approval/delete API a
  assert.match(internalHtml,/respond-delete/);
  assert.match(internalHtml,/data-urgent-deletion/);
  assert.match(internalHtml,/ownerId===viewerId/,'approval buttons must be visible only to the handler');
+ assert.match(internalHtml,/data-delete-action=\\"start\\"/);
+ assert.match(internalHtml,/start-processing/);
+ assert.match(fs.readFileSync('api/urgent-orders/index.js','utf8'),/model\\.startProcessing/);
  assert.match(fs.readFileSync('api/urgent-orders/index.js','utf8'),/currentUserId:model\.text\(user&&user\.id/);
  assert.match(fs.readFileSync('api/urgent-orders/index.js','utf8'),/model\.resolveDeletion/);
  assert.match(fs.readFileSync('api/urgent-order-public/index.js','utf8'),/groupByToken\(doc,accessToken\)/);
