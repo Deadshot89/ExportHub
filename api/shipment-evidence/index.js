@@ -404,10 +404,10 @@ async function inspectDeletedEvidence(ctx,docId){
   const exact=ctx.prefix+'records/'+docId+'.json';
   let versionEntries=0,storageHistoryCandidate=false,versionsKnown=true;
   try{
-   for await(const item of ctx.container.listBlobsFlat({prefix:exact,includeDeleted:true,includeVersions:true,includeSnapshots:true})){
+   for await(const item of ctx.container.listBlobsFlat({prefix:exact,includeDeleted:true,includeVersions:true,includeDeletedWithVersions:true,includeSnapshots:true})){
     if(item.name!==exact)continue;
     versionEntries++;
-    if(item.deleted||item.versionId||item.snapshot)storageHistoryCandidate=true;
+    if(item.deleted||item.versionId||item.snapshot||item.hasVersionsOnly===true)storageHistoryCandidate=true;
     if(versionEntries>=100)break;
    }
   }catch(_){versionsKnown=false}
