@@ -30,30 +30,34 @@
     return linked[0]||null;
   }
   function rowsFromPack(n){
-    const packages=arr(n&&n.packages);
-    const groups=[];
+    const packages=arr(n&&n.packages),groups=[];
     for(const part of packages){
       const type=q(part&&(part.packagingType||part.packageType||part.packaging));
-      const count=Number(part&&part.count);
-      const qty=Number.isInteger(count)&&count>0&&count<=999?count:1;
+      const count=Number(part&&part.count),qty=Number.isInteger(count)&&count>0&&count<=999?count:1;
+      // A declared package/line weight is evidence. Never divide an unknown
+      // shipment-level total across mixed package types as a guessed weight.
+      const weight=number(part&&(part.totalWeight||part.weight));
+      const known=weight>0;
       const last=groups[groups.length-1];
-      if(last&&last.type===type)last.count+=qty;
-      else groups.push({type,count:qty,weight:''});
+      if(last&&last.type===type){
+        last.count+=qty;last.weight+=weight;last.known=last.known&&known;
+      }else groups.push({type,count:qty,weight,known});
     }
-    if(!groups.length){
-      groups.push({type:q(n&&(n.packageType||n.packagingType)),count:Math.max(1,Math.trunc(number(n&&n.packageCount)||1)),weight:''});
-    }
-    const total=number(n&&n.totalWeight),pieces=groups.reduce((sum,g)=>sum+g.count,0);
-    if(total&&pieces){
-      let allocated=0;
-      for(let i=0;i<groups.length;i++){
-        const value=i===groups.length-1?Math.round((total-allocated)*10)/10:Math.round(total*groups[i].count/pieces*10)/10;
-        groups[i].weight=value>0?String(value):'';
-        allocated+=value;
-      }
-    }
-    return groups.map((g,i)=>({id:'PACK-COLLI-'+(i+1),type:g.type,count:String(g.count),weight:g.weight}));
+    if(!groups.length)groups.push({
+      type:q(n&&(n.packageType||n.packagingType)),
+      count:Math.max(1,Math.trunc(number(n&&n.packageCount)||1)),
+      weight:0,known:false
+    });
+    const total=number(n&&n.totalWeight),knownSum=groups.reduce((sum,g)=>sum+(g.known?g.weight:0),0);
+    const contradictory=!!total&&knownSum>total+0.11;
+    return groups.map((g,i)=>({
+      id:'PACK-COLLI-'+(i+1),
+      type:g.type,
+      count:String(g.count),
+      weight:contradictory?'':groups.length===1&&total?String(total):g.known?String(Math.round(g.weight*10)/10):''
+    }));
   }
+
   function report(error){
     const message=q(error&&error.message)||tr('pack.internal.abdOpenError');
     try{if(typeof root.alert==='function')root.alert(message);}catch(_){}
