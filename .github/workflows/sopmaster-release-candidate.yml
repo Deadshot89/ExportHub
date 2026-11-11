@@ -115,8 +115,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main
-          git merge-base --is-ancestor origin/main HEAD
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags origin main
+          git -c safe.directory="$GITHUB_WORKSPACE" merge-base --is-ancestor origin/main HEAD
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -187,8 +187,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main
-          git merge-base --is-ancestor origin/main HEAD
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags origin main
+          git -c safe.directory="$GITHUB_WORKSPACE" merge-base --is-ancestor origin/main HEAD
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
