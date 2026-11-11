@@ -674,11 +674,16 @@ async function generateDraft(){
   if(preparedNote.length>2000){setMessage('mailMessage',localeV2('issueTooLong','Problembeschreibung mit ausgewählten Vorlagen darf maximal 2000 Zeichen enthalten.'),'error');return;}
  clearMailIssueError();
  const button=$('generateMail');if(button.disabled)return;
- const orderId=modalOrder,kind=modalKind;button.disabled=true;
+ const orderId=modalOrder,kind=modalKind,language=$('mailLanguage').value;button.disabled=true;
  try{
   const websiteLanguage=(()=>{try{return window.ExportHUBI18n&&window.ExportHUBI18n.language()==='en'?'en':'de';}catch(_){return'de';}})();
-  const r=await api('prepare-mail',{id:orderId,kind,language:$('mailLanguage').value,note:preparedNote,noteLanguage:websiteLanguage});
+  const r=await api('prepare-mail',{id:orderId,kind,language,note:preparedNote,noteLanguage:websiteLanguage});
   if(modalOrder!==orderId||modalKind!==kind||$('mailOverlay').hidden)return;
+  if($('mailLanguage').value!==language||(kind==='problem'&&selectedProblemNote()!==preparedNote)){
+   draftNeedsRegenerate=true;
+   setMessage('mailMessage',localeV2('issueRegenerate','Bitte E-Mail-Vorlage neu erzeugen.'),'');
+   return;
+  }
   $('mailTo').value=r.draft.to;$('mailSubject').value=r.draft.subject;$('mailBody').value=r.draft.body;draftNeedsRegenerate=false;
   setMessage('mailMessage',r.translationWarning?r.translationWarningText:localeV2('mailDraftReady','Entwurf ist bereit.'),r.translationWarning?'error':'ok');
  }catch(e){
@@ -724,7 +729,7 @@ for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internal
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 $('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
 $('mailIssue').addEventListener('input',()=>{draftNeedsRegenerate=true;if(selectedProblemNote().length>=8)clearMailIssueError();});
-$('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft()});
+$('mailLanguage').addEventListener('change',()=>{if(modalKind==='shipping')generateDraft();else if(modalKind==='problem'){draftNeedsRegenerate=true;setMessage('mailMessage',localeV2('issueRegenerate','Bitte E-Mail-Vorlage neu erzeugen.'),'');}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').hidden)closeDraft()});
 window.addEventListener('exporthub:language-changed',render);window.addEventListener('exporthub:language-changed',()=>{if(!$('issueTemplates').hidden)renderIssueTemplates();});
 window.addEventListener('exporthub:language-changed',syncInternalCutoff);
