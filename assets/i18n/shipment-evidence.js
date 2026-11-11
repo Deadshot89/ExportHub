@@ -179,4 +179,27 @@ const complaintListI18n={
   confirmComplaintDone:'Efficacia confermata: completare il reclamo?'}
 };
 for(const [locale,strings] of Object.entries(complaintListI18n))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
+// RC1912 – historic REF documentation summaries remain in their original archive.
+const legacyRefListI18n={
+ de:{legacyUnavailable:'Historische REF-Dokumentationen unvollständig',loadMoreRef:'Weitere REF-Dokumentationen laden',
+  openShipment:'Sendung öffnen',openShipmentUnavailable:'Originalsendung konnte nicht geöffnet werden.',
+  legacyRefRecord:'Original-REF-Dokumentation'},
+ en:{legacyUnavailable:'Historical REF records incomplete',loadMoreRef:'Load more REF records',
+  openShipment:'Open shipment',openShipmentUnavailable:'Original shipment could not be opened.',
+  legacyRefRecord:'Original REF documentation'},
+ pl:{legacyUnavailable:'Niekompletna lista archiwalnych REF',loadMoreRef:'Załaduj więcej dokumentów REF',
+  openShipment:'Otwórz wysyłkę',openShipmentUnavailable:'Nie można otworzyć pierwotnej wysyłki.',
+  legacyRefRecord:'Oryginalna dokumentacja REF'},
+ es:{legacyUnavailable:'Registros REF históricos incompletos',loadMoreRef:'Cargar más registros REF',
+  openShipment:'Abrir envío',openShipmentUnavailable:'No se pudo abrir el envío original.',
+  legacyRefRecord:'Documentación REF original'},
+ fr:{legacyUnavailable:'Dossiers REF historiques incomplets',loadMoreRef:'Charger plus de dossiers REF',
+  openShipment:'Ouvrir l’expédition',openShipmentUnavailable:'Impossible d’ouvrir l’expédition d’origine.',
+  legacyRefRecord:'Documentation REF d’origine'},
+ it:{legacyUnavailable:'Documenti REF storici incompleti',loadMoreRef:'Carica altri documenti REF',
+  openShipment:'Apri spedizione',openShipmentUnavailable:'Impossibile aprire la spedizione originale.',
+  legacyRefRecord:'Documentazione REF originale'}
+};
+for(const [lang,strings] of Object.entries(legacyRefListI18n))
+ Object.assign(w.ExportHUBEvidenceI18n[lang],strings);
 })(window);
