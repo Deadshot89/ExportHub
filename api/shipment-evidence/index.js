@@ -227,7 +227,8 @@ async function guestRequest(req,method,payload,action){
  if(record.deletedAt)fail('NOT_FOUND','Versandnachweis nicht gefunden.',404);
  if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:publicRecord(record)});
  if(method==='GET'&&action==='public-file'){
-  const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular');
+  const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular'&&
+    ['foto','lieferschein'].includes(file.kind));
   if(!guestFile)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
   return downloadFile(ctx,docId,record,payload.fileId);
  }
@@ -236,6 +237,7 @@ async function guestRequest(req,method,payload,action){
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)
   fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
  if(action==='public-upload'){
+  if(!['foto','lieferschein'].includes(payload.kind))fail('PUBLIC_BAD_KIND','Nur Versandfotos und Lieferscheine ohne Anmeldung erlaubt.',403);
   if(record.files.length>=PUBLIC_FILE_COUNT)fail('PUBLIC_FILE_LIMIT','Maximal 12 Dateien ohne Anmeldung.',413);
   const accumulated=record.files.reduce((sum,file)=>sum+(Number(file.size)||0),0);
   if(accumulated>=PUBLIC_MAX_BYTES)fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
