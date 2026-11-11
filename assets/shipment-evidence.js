@@ -61,6 +61,11 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
  app.appendChild(actions);
  const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('list')));
  const search=make('input');search.type='search';search.placeholder=t('search');search.value=state.search;search.setAttribute('aria-label',t('search'));panel.appendChild(search);
+ const exactOpen=button(t('directOpen'),()=>{
+  const docId=String(search.value||'').trim().toUpperCase();
+  if(!/^DOK-\\d{8}-[A-F0-9]{8}$/.test(docId)){status(t('directRequired'),true);return}
+  openRecord(docId);
+ });panel.appendChild(exactOpen);
  const fullSearch=button(t('searchAll'),()=>scanAll());panel.appendChild(fullSearch);
  const list=make('div','eh1903-list');panel.appendChild(list);app.appendChild(panel);
  const more=button(t('loadMore'),()=>loadList(false));more.hidden=!state.continuation;panel.appendChild(more);
@@ -318,7 +323,32 @@ function historyPanel(record){const panel=make('section','eh1903-panel');panel.a
  return panel}
 async function openRecord(id){state.searchRun++;const serial=++state.serial;state.view='form';state.record=null;const app=initPage();if(!app)return;app.appendChild(hero(t('title'),t('loading')));
  try{const res=await request('GET',{action:'get',id});if(serial===state.serial&&state.view==='form'&&active()){state.canDelete=res.canDelete===true;state.canRegisterCustomer=res.canRegisterCustomer===true;showForm(res.record)}}
- catch(e){app.appendChild(make('p','eh1903-status',e.message));app.appendChild(button(t('back'),()=>showList()))}}
+ catch(e){
+  if(serial!==state.serial||!active())return;
+  const message=make('p','eh1903-status',e.message);app.appendChild(message);
+  // Only an authenticated admin can inspect a hidden tombstone; ordinary readers
+  // continue to see the original error without any record disclosure.
+  try{
+   const probe=await request('GET',{action:'inspect',id});
+   if(serial!==state.serial||!active())return;
+   if(probe.found&&probe.deleted){
+    app.appendChild(make('p','eh1903-muted',t('restoreFound')+' '+id));
+    if(probe.canRestore){
+     app.appendChild(button(t('restoreAction'),async()=>{
+      if(!w.confirm(t('restoreConfirm')))return;
+      message.textContent=t('saving');
+      try{
+       const restored=await request('POST',{action:'restore',id,expectedRevision:probe.revision});
+       if(restored.restored&&serial===state.serial&&active())await openRecord(id);
+      }catch(err){if(serial===state.serial&&active())message.textContent=err.message}
+     },true));
+    }else app.appendChild(make('p','eh1903-status',t('restoreMissingFiles')));
+   }else if(!probe.found){
+    app.appendChild(make('p','eh1903-muted',t('restoreNotFound')+(probe.storageHistoryCandidate?' '+t('restoreHistory'):'')));
+   }
+  }catch(_){/* Non-admin or unavailable storage: do not expose deleted metadata. */}
+  if(serial===state.serial&&active())app.appendChild(button(t('back'),()=>{showList();loadList(true)}));
+ }}
 function open(){const app=host();if(!app)return false;state.serial++;state.view='list';state.record=null;showList();loadList(true);try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}return true}
 function ensureNav(){const nav=d.getElementById('nav');if(!nav)return;
  let node=nav.querySelector('[data-exporthub-evidence-nav]');if(!node){node=make('button');node.type='button';node.setAttribute('data-exporthub-evidence-nav','');node.setAttribute('data-index321-view','shipmentevidence');node.setAttribute('data-menu-accent','#4c7cce');node.style.setProperty('--menu-accent','#4c7cce');
