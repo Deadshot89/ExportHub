@@ -139,6 +139,30 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
   const tiny='<html><head></head><body></body></html>';
   assert.equal(injectPackRuntime(tiny,'demo.html').includes('/assets/pack-notification-abd.js?v=1'),true);
 });
+test('ABD-only user may open Pack detail without staging an unauthorized task write',()=>{
+  const state={view:'packnotifications',
+    packNotifications:[{id:'PN-1',reference:'PK-1',customer:'Customer',status:'new',documents:[]}],
+    tasks:[{id:'T-1',sourceId:'PN-1',sourceType:'pack_notification',unread:true}]};
+  const writes=[],children=[];
+  const host={innerHTML:'',appendChild(node){children.push(node)}};
+  const doc={body:{setAttribute(){}},readyState:'loading',
+    addEventListener(){},getElementById(id){return id==='content'?host:null},
+    querySelector(){return null},
+    createElement(){return{innerHTML:'',addEventListener(){},setAttribute(){}}}};
+  const root={document:doc,__EXPORTHUB_GET_STATE__:()=>state,
+    canWrite(key){return key!=='tasks'},
+    ExportHUBClean:{queueSave(reason){writes.push(reason);return true},flushSave(){writes.push('flush');return true}},
+    addEventListener(){}};
+  vm.runInNewContext(fs.readFileSync('assets/pack-notification-internal.js','utf8'),
+    {window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout},
+    {filename:'pack-notification-internal.js'});
+  assert.equal(root.ExportHUBPackNotifications.openNotificationDetail(state.packNotifications[0]),true);
+  assert.equal(children.length,1);
+  assert.equal(state.packNotifications[0].status,'new');
+  assert.equal(state.tasks[0].unread,true);
+  assert.deepEqual(writes,[],'read-only Pack details must not enqueue a tasks write');
+});
+
 test('Pack detail derives the sole ABD association from authorized ABD state without changing Pack record',()=>{
   const root={};
   vm.runInNewContext(fs.readFileSync('assets/pack-notification-internal.js','utf8'),
