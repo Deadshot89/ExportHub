@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:''};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:'',legacyRequestToken:0};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -141,19 +141,19 @@ async function loadList(reset){if(state.loading&&!reset)return false;state.loadi
  }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true);return false}
  finally{if(listToken===state.listToken)state.loading=false}}
 async function loadLegacyList(reset){
- if(state.legacyLoading||state.view!=='list')return false;
- const serial=state.serial;state.legacyLoading=true;
+ if((state.legacyLoading&&!reset)||state.view!=='list')return false;
+ const serial=state.serial,token=++state.legacyRequestToken;state.legacyLoading=true;
  try{
   const result=await legacyRequest({action:'list',...(!reset&&state.legacyContinuation?{continuation:state.legacyContinuation}:{})});
-  if(serial!==state.serial||state.view!=='list')return false;
-  const merged=new Map([...(reset?[]:state.legacyRecords),...result.records].map(r=>[r.id,r]));
+  if(token!==state.legacyRequestToken||serial!==state.serial||state.view!=='list')return false;
+  const merged=new Map([...(reset?[]:state.legacyRecords),...(result.records||[])].map(r=>[r.id,r]));
   state.legacyRecords=[...merged.values()].sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
   state.legacyContinuation=result.continuation||null;state.legacyError='';
   if(active())showList(true);return true
  }catch(e){
-  if(serial===state.serial&&state.view==='list'){state.legacyError=e.message;if(active())showList(true)}
+  if(token===state.legacyRequestToken&&serial===state.serial&&state.view==='list'){state.legacyError=e.message;if(active())showList(true)}
   return false
- }finally{state.legacyLoading=false}
+ }finally{if(token===state.legacyRequestToken)state.legacyLoading=false}
 }
 async function scanAll(){
  if(state.scanning||state.loading||!(state.continuation||state.legacyContinuation)||!state.search.trim())return;
