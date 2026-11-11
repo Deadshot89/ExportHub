@@ -12,6 +12,7 @@ import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
 import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-shipment-delta.mjs';
+import {patchRc1982MetaDeltaHtml} from '../../scripts/rc1982-save-meta-delta.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 import {patchRc1716PodBatchHtml} from '../../scripts/rc1716-pod-batch-completeness.mjs';
 import {patchRc1718PrintIframeHtml} from '../../scripts/rc1718-qr-print-iframe-pages.mjs';
@@ -2172,7 +2173,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 }
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
-  const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
+  const hardened=hardenCustomerSaveHtml(patchRc1982MetaDeltaHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file),file));
   const paginated=patchRc1716PodBatchHtml(patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened)),file);
   const rc1718Printed=patchRc1718PrintIframeHtml(paginated,file);
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
