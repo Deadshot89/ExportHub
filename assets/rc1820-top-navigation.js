@@ -30,15 +30,18 @@
  // lassen das Dashboard "active"; ein echter Menüpunkt mit class active hat Vorrang (2026-11-06)
  var activeEl=null;
  function findActive(n){
-  var real=null,cur=null,dash=null;
+  var real=null,cur=null,dash=null,rendered=null;
+  var view=clean(d.body&&d.body.getAttribute('data-exporthub-view')).toLowerCase();
   Array.prototype.forEach.call(n.children,function(el){
    if(el.tagName!=='BUTTON')return;var v=viewOf(el);
+   if(view&&v===view&&allowed(el))rendered=el;
    if(el.classList.contains('active')){if(v==='dashboard')dash=el;else if(!real)real=el}
    else if(el.getAttribute('aria-current')==='page'&&!cur)cur=el;
   });
-  // Fehlerdiagnose, Release-Center und Update erscheinen als Punkt IT
-  if(real&&/^(diagnostics|release|update)$/.test(viewOf(real)))real=n.querySelector(':scope>[data-rc1579-proxy="it"]')||real;
-  return real||cur||dash;
+  // Die tatsächliche Ansicht hat Vorrang vor alten .active-Markierungen.
+  // IT-Unterseiten werden wie bisher über den gemeinsamen IT-Reiter dargestellt.
+  function asIt(el){return el&&/^(diagnostics|release|update)$/.test(viewOf(el))?n.querySelector(':scope>[data-rc1579-proxy="it"]')||el:el}
+  return asIt(rendered)||asIt(real)||cur||dash;
  }
  function isActive(el){return !!el&&el===activeEl}
  function iconVars(src){
@@ -180,11 +183,22 @@
  }
  new MutationObserver(function(){watch();if(!on())close();lastSig='';schedule()}).observe(d.documentElement,{attributes:true,attributeFilter:[ATTR]});
  d.addEventListener('click',function(e){if(openKey&&bar&&!bar.contains(e.target))close()},true);
+ w.addEventListener('exporthub:viewchange',schedule);
+ w.addEventListener('exporthub:rendered',schedule);
  w.addEventListener('exporthub:designchange',function(){lastSig='';schedule()});
  w.addEventListener('exporthub:languagechange',function(){lastSig='';schedule()});
  d.addEventListener('change',function(e){if(e.target&&e.target.id==='languageSelect'){lastSig='';setTimeout(schedule,50)}});
  w.addEventListener('resize',function(){if(openKey&&w.innerWidth<1024)close()});
- function boot(){watch();render(true)}
+ function boot(){
+  watch();
+  // Ein View-Wechsel kann die Körper-Ansicht aktualisieren, ohne den alten Nav-Knopf anzufassen.
+  if(d.body&&w.MutationObserver&&!d.body.__rc1820ViewWatch){
+   var observer=new w.MutationObserver(schedule);
+   observer.observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view']});
+   d.body.__rc1820ViewWatch=observer;
+  }
+  render(true);
+ }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot);else boot();
  // #nav entsteht teils erst nach dem Login: kurz nachfassen
  var tries=0,timer=setInterval(function(){tries++;watch();schedule();if(tries>40)clearInterval(timer)},500);
