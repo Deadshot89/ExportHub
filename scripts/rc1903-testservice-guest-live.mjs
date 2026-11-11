@@ -38,12 +38,12 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Updated guest runtime missing from verified TESTSERVICE HTML');
+assert.match(html,/\/assets\/shipment-evidence-guest\.js\?v=1907&h=[a-f0-9]{10}["']/,'Updated guest runtime missing from verified TESTSERVICE HTML');
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
 assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
-assert.match(publicHtml,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Public evidence page still serves a stale upload runtime');
+assert.match(publicHtml,/\/assets\/shipment-evidence-guest\.js\?v=1907&h=[a-f0-9]{10}["']/,'Public evidence page still serves a stale upload runtime');
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
 const unique=crypto.randomBytes(5).toString('hex');
