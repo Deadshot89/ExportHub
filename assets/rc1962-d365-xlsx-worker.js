@@ -140,6 +140,14 @@ const countries={
  VNM:'VN',ZAF:'ZA',CAN:'CA',AUS:'AU',BRA:'BR',ARE:'AE'
 };
 function iso(v){const s=String(v||'').trim().toUpperCase();return countries[s]||s}
+// D365 exports can append a plain-text filter summary after all shipped rows.
+ // Ignore it only when it is the final row and all other cells are empty.
+ // Invalid quantities in any actual item row must still fail the whole import.
+function isD365FilterFooter(row){
+ if(!Array.isArray(row)||!row.length)return false;
+ return /^(?:Angewendete\s+Filter|Applied\s+filters)\s*:/i.test(String(row[0]||'').trim())&&
+  row.slice(1).every(cell=>!String(cell==null?'':cell).trim());
+}
 function docsFromSheets(entries){
  const strings=sharedStrings(entries['xl/sharedStrings.xml']);
  const paths=Object.keys(entries).filter(k=>/^xl\/worksheets\/[^/]+\.xml$/i.test(k)).sort();
@@ -151,7 +159,9 @@ function docsFromSheets(entries){
   const col=Object.create(null);rows[0].forEach((s,i)=>{const key=header(s);if(key&&!Object.prototype.hasOwnProperty.call(col,key))col[key]=i});
   if(!required.every(k=>Object.prototype.hasOwnProperty.call(col,k)))fail('D365_SCHEMA_MISMATCH');
   for(let i=1;i<rows.length;i++){
-   const row=rows[i],get=k=>String(row[col[k]]==null?'':row[col[k]]).trim();
+   const row=rows[i];
+   if(i===rows.length-1&&isD365FilterFooter(row))continue;
+   const get=k=>String(row[col[k]]==null?'':row[col[k]]).trim();
    const qty=num(get('QTY'));if(qty===null||qty<0)fail('D365_QUANTITY_INVALID');if(qty===0)continue;
    if(++total>MAX_POSITIONS)fail('D365_POSITION_LIMIT');
    const isBackorder=get('SALESORDERLINESTATUS').toLowerCase()==='backorder';
