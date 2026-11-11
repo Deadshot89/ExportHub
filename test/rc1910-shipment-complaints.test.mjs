@@ -53,3 +53,30 @@ test('Reklamation: KI-freier Vorschlag erstellt keine Speditionsnachricht ohne S
  assert.match(withCarrier.carrierDraft,/Transportablauf/);
  assert.doesNotMatch(withCarrier.customerDraft,/Haftung|Schuld/i);
 });
+
+
+test('Reklamation: geändertes Prüfkriterium oder neue Belege widerrufen alte Freigabe',()=>{
+ for(const patch of [
+  {checkCriteria:'Neue Null-Fehler-Bedingung'},
+  {checkMethod:'Andere Stichprobe'},
+  {checkSample:'Prüfzeitraum jetzt 30 Tage'},
+  {effectivenessEvidence:'Zusätzlicher anderer Nachweis'}
+ ]){
+  const c=make();
+  complaints.edit(c,{rootCause:'Ursache',correctiveAction:'Abstellmaßnahme',checkDate:'2026-11-10',
+   checkMethod:'10 Sendungen kontrolliert',checkSample:'10 Sendungen',checkCriteria:'Null Fehler',
+   effectivenessEvidence:'10 geprüfte Vorgänge'},'A');
+  complaints.edit(c,{effectivenessResult:'wirksam'},'B');
+  complaints.edit(c,{...patch,effectivenessResult:'wirksam'},'C');
+  assert.equal(c.effectivenessResult,'offen',JSON.stringify(patch));
+  assert.equal(c.verifiedBy,'',JSON.stringify(patch));
+  assert.throws(()=>complaints.changeStatus(c,'abgeschlossen','C'),e=>e.code==='EFFECTIVENESS_REQUIRED');
+ }
+});
+test('Reklamation: Neu erfasster Nachweis darf bei erster Maßnahmenerfassung nicht verloren gehen',()=>{
+ const c=make();
+ complaints.edit(c,{rootCause:'Fehlkontrolle',correctiveAction:'Pflichtscan',
+  effectivenessEvidence:'Zehn archivierte Kontrollen'},'A');
+ assert.equal(c.effectivenessEvidence,'Zehn archivierte Kontrollen');
+ assert.equal(c.effectivenessResult,'offen');
+});
