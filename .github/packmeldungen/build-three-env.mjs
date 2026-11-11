@@ -35,10 +35,10 @@ const DOCUMENT_SCRIPT_TAGS=[
   '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=1"></script>'
 ];
 const PACK_SCRIPT_TAGS=[
-  '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=3"></script>',
+  '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=4"></script>',
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
-  '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=3"></script>',
+  '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=4"></script>',
   '<script id="exporthub-pack-notification-abd" defer src="/assets/pack-notification-abd.js?v=1"></script>',
   '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>',
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
@@ -87,6 +87,26 @@ export function injectPackAbdOwnership(html,file='index.html'){
   if(!out.includes('function saveAbdInternal(showAlert,status)')){
     if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
     throw new Error(file+': RC1382 legacy ABD storage hook missing');
+  }
+  // RC1382: the final HTML verifier intentionally runs this injector once
+  // more on dist. Accept only a FULLY patched legacy ABD module; never hide
+  // a partial injection or contract drift.
+  const applied=[
+    'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
+    'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;if(q(d.packNotificationId)){',
+    'source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
+    's.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);',
+    "source=d.packNotificationId?'Aus Packmeldung übernommen':",
+    'if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item,',
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(item.packNotificationId){renderAbd();return false;}"
+  ];
+  if(out.includes(applied[0])){
+    if(applied.some(signature=>out.split(signature).length!==2)||
+      out.includes('function shipmentForAbd(a){if(!a)return null;')||
+      out.includes('s.abdDraft=clone(item);var sh=item.linkedShipmentId&&findShipment(item.linkedShipmentId);')){
+      throw new Error(file+': RC1382 ABD ownership contract drift: partial injection');
+    }
+    return out;
   }
   function replaceOnce(needle,replacement){
     if(out.split(needle).length!==2)throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
