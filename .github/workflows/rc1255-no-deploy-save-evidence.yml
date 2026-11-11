@@ -30,7 +30,9 @@ jobs:
           node --test --test-concurrency=1 \
             test/p0-state-conditional-write-conflict.test.mjs \
             test/rc1549-live-browser-timeout-budget.test.mjs \
-            test/rc1124-browser-release-gate.test.mjs
+            test/rc1124-browser-release-gate.test.mjs \
+            test/rc1982-save-meta-delta.test.mjs \
+            test/rc1982-save-drain-diagnostics.test.mjs
       - name: Explicitly record live evidence as outstanding
         run: |
           echo 'OFFLINE_ONLY: no Azure deployment, no Azure mutation, no production changes.'
