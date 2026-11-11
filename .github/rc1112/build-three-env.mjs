@@ -352,7 +352,7 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
-  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1754')||!html.includes('/assets/rc1570-tasks-focus.js?v=1754')||!html.includes('rc1570-tasks-focus.css?v=1754'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1985')||!html.includes('/assets/rc1570-tasks-focus.js?v=1985')||!html.includes('rc1570-tasks-focus.css?v=1754'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
   // RC1650 tasks with a customer number are completed by a new shipment for that customer
   html=injectDeferredRuntimeInHead(html,RC1650_SHIPMENT_TASKS_SCRIPT_TAG,'exporthub-rc1650-shipment-tasks-script');
   if(!html.includes('/assets/rc1650-shipment-task-link.js?v=1650'))throw new Error(file+': RC1650 Aufgaben-Sendungsabgleich fehlt');
