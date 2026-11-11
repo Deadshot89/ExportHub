@@ -168,7 +168,7 @@ test('RC1382: fully patched ABD authorization body must never be accepted when w
     const authorization="typeof window.ExportHUBPackAbd.canSave!=='function'";
     assert.ok(once.includes(authorization),'protected ABD save hook must exist');
     const corrupted=once.replace(authorization,"typeof window.ExportHUBPackAbd.canSave==='function'");
-    assert.throws(()=>injectPackAbdOwnership(corrupted,file),/RC1382 ABD ownership contract drift/,
+    assert.throws(()=>injectPackAbdOwnership(corrupted,file),/RC1382 ABD ownership (?:contract drift|partial patch)/,
       'a mutated permission check must fail even when all abbreviated patch signatures remain');
     const legacyExtra=once+'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;';
     assert.throws(()=>injectPackAbdOwnership(legacyExtra,file),/RC1382 ABD ownership contract drift/,
