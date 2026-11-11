@@ -348,7 +348,8 @@ async function openRecord(id){state.searchRun++;const serial=++state.serial;stat
      },true));
     }else app.appendChild(make('p','eh1903-status',t('restoreMissingFiles')));
    }else if(!probe.found){
-    app.appendChild(make('p','eh1903-muted',t('restoreNotFound')+(probe.storageHistoryCandidate?' '+t('restoreHistory'):'')));
+    const historyNote=probe.versionsKnown===false?t('restoreHistoryUnavailable'):(probe.storageHistoryCandidate?t('restoreHistory'):'');
+    app.appendChild(make('p','eh1903-muted',t('restoreNotFound')+(historyNote?' '+historyNote:'')));
    }
   }catch(_){/* Non-admin or unavailable storage: do not expose deleted metadata. */}
   if(serial===state.serial&&active())app.appendChild(button(t('back'),()=>{showList();loadList(true)}));

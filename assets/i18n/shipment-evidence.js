@@ -79,4 +79,13 @@ for(const [locale,strings] of Object.entries({
  it:{storageLocation:'Archivio Azure collegato'}
 }))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 for(const [locale,strings] of Object.entries(recoveryUi))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
+for(const [locale,message] of Object.entries({
+ de:'Ältere Speicherversionen konnten nicht geprüft werden. Eine Wiederherstellung ist weiterhin ungeklärt.',
+ en:'Older storage versions could not be checked. Recovery remains unverified.',
+ pl:'Nie udało się sprawdzić starszych wersji. Możliwość odzyskania danych pozostaje niepotwierdzona.',
+ es:'No se pudieron comprobar las versiones anteriores. La recuperación sigue sin verificarse.',
+ fr:'Les anciennes versions n’ont pas pu être vérifiées. La récupération reste non confirmée.',
+ it:'Impossibile verificare le versioni precedenti. Il recupero non è ancora confermato.'
+}))Object.assign(w.ExportHUBEvidenceI18n[locale],{restoreHistoryUnavailable:message});
+
 })(window);
