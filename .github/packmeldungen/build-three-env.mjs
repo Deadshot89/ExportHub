@@ -88,6 +88,31 @@ export function injectPackAbdOwnership(html,file='index.html'){
     if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
     throw new Error(file+': RC1382 legacy ABD storage hook missing');
   }
+  // RC1382 must be safe to run again: multiple build checks process the same
+  // generated HTML. Accept a second pass only if ALL ownership protections
+  // are present exactly once; a partial or altered patch still fails closed.
+  const patchedShipment='function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;';
+  if(out.includes(patchedShipment)){
+    const required=[
+      patchedShipment,
+      "if(q(d.packNotificationId)){if(!window.ExportHUBPackAbd||typeof window.ExportHUBPackAbd.canSave!=='function'",
+      'source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
+      's.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);',
+      "source=d.packNotificationId?'Aus Packmeldung übernommen':",
+      "if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item,{showAlert:!!showAlert,openMail:status==='Angefragt'});}",
+      "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(item.packNotificationId){renderAbd();return false;}"
+    ];
+    const original=[
+      'function shipmentForAbd(a){if(!a)return null;',
+      'source:d.source,linkedShipmentId:q(d.linkedShipmentId||existing&&existing.linkedShipmentId),',
+      's.abdDraft=clone(item);var sh=item.linkedShipmentId&&findShipment(item.linkedShipmentId);',
+      "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(!window.__EXPORTHUB_TEST_NO_MAILTO__)"
+    ];
+    if(required.some(signature=>out.split(signature).length!==2)||original.some(signature=>out.includes(signature))){
+      throw new Error(file+': RC1382 ABD ownership contract drift: partially patched or duplicate protections');
+    }
+    return out;
+  }
   function replaceOnce(needle,replacement){
     if(out.split(needle).length!==2)throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
     out=out.replace(needle,replacement);
