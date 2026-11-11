@@ -112,3 +112,27 @@
  }
  :is(#eh1903-root,#eh1903-guest-root) .eh1903-photo-frame{height:112px}
 }
+
+
+/* RC1910: accessible complaint workflow, shared light/dark tokens */
+#eh1903-root .eh1903-complaint{margin:12px 0;border:1px solid var(--border,#dce3ed);border-radius:14px;padding:14px;background:var(--surface,#fff)}
+#eh1903-root .eh1903-complaint summary{cursor:pointer;font-weight:650;line-height:1.5;list-style:revert}
+#eh1903-root .eh1903-complaint[open] summary{margin-bottom:10px}
+#eh1903-root .eh1903-complaint-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}
+#eh1903-root .eh1903-complaint-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:16px 0}
+#eh1903-root .eh1903-complaint-fields label{display:flex;flex-direction:column;gap:6px;min-width:0}
+#eh1903-root .eh1903-complaint-fields :is(textarea,input,select){width:100%;min-width:0;box-sizing:border-box;font:inherit;padding:9px;border-radius:9px;border:1px solid var(--border,#cbd5e1);color:var(--text,#172033);background:var(--surface,#fff)}
+#eh1903-root .eh1903-complaint-fields textarea{min-height:90px;resize:vertical}
+#eh1903-root .eh1903-section-heading{grid-column:1/-1;font-size:1rem;margin:10px 0 0}
+#eh1903-root .eh1903-complaint-attachments{margin-top:12px;padding:12px;border-radius:10px;background:var(--surface-2,rgba(128,128,128,.07))}
+#eh1903-root .eh1903-complaint-attachments input{max-width:100%}
+#eh1903-root .eh1903-complaint-files{display:grid;gap:8px;margin-top:12px}
+#eh1903-root .eh1903-complaint-files .eh1903-file{display:flex;align-items:center;gap:8px;flex-wrap:wrap;word-break:break-word}
+#eh1903-root .eh1903-complaint-files .eh1903-file span{flex:1;min-width:140px}
+#eh1903-root .eh1903-consent{display:inline-flex;align-items:center;gap:7px;font-size:.9rem;max-width:420px}
+#eh1903-root .eh1903-consent input{width:auto}
+#eh1903-root .eh1903-complaint-advice{margin-top:12px}
+#eh1903-root .eh1903-complaint-advice textarea{width:100%;min-height:220px;resize:vertical}
+#eh1903-root .eh1903-complaint-suggestion{border-left:3px solid var(--accent,#5489b7);padding:10px 12px;margin:8px 0;background:var(--surface-2,rgba(128,128,128,.07));border-radius:0 9px 9px 0}
+#eh1903-root .eh1903-complaint-suggestion p{white-space:pre-wrap}
+@media(max-width:650px){#eh1903-root .eh1903-complaint-fields{grid-template-columns:1fr}#eh1903-root .eh1903-complaint{padding:10px}}
