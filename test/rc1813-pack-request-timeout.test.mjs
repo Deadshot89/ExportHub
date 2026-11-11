@@ -99,7 +99,7 @@ test('RC1813 malformed read responses fail instead of showing an empty successfu
 test('RC1813 both public entry pages invalidate cached request handling and timeout translations',()=>{
  for(const file of ['../pack.html','../assets/pack.html']){
   const page=fs.readFileSync(new URL(file,import.meta.url),'utf8');
-  assert.match(page,/src="\/assets\/pack-notification\.js\?v=10"/);
+  assert.match(page,/src="\/assets\/pack-notification\.js\?v=12"/);
   assert.match(page,/src="\/assets\/i18n\/pack-notification-drafts\.js\?v=2"/);
   assert.doesNotMatch(page,/src="\/assets\/pack-notification\.js\?v=(?:8|9)"/);
   assert.doesNotMatch(page,/src="\/assets\/i18n\/pack-notification-drafts\.js\?v=1"/);

@@ -94,7 +94,7 @@ test('packaging options are sorted into a practical warehouse order',()=>{const 
 
 test('desktop pack page uses a compact content width and control sizing',()=>{const css=read('assets/pack-notification.css');assert.match(css,/\.pack-shell\{[^}]*width:min\(760px,100%\)/);assert.match(css,/input,select,textarea\{[^}]*min-height:40px/);assert.match(css,/\.pack-section\{[^}]*padding:14px 0/);});
 
-test('pack client autofills known length width and height from selected master packaging without inventing missing height',()=>{const js=read('assets/pack-notification.js');assert.match(js,/applyPackageDimensions/);assert.match(js,/selectedPackageEntry/);assert.match(js,/data-dim="length"/);assert.match(js,/data-dim="width"/);assert.match(js,/data-dim="height"/);assert.match(js,/entry\.height\s*!=\s*null/);assert.match(js,/els\.type\.addEventListener\('change'/);});
+test('pack client autofills known length width and height from selected master packaging without inventing missing height',()=>{const js=read('assets/pack-notification.js');assert.match(js,/applyPackageDimensions/);assert.match(js,/selectedPackageEntry/);assert.match(js,/data-dim="length"/);assert.match(js,/data-dim="width"/);assert.match(js,/data-dim="height"/);assert.match(js,/selected\[field\]!=null/);assert.match(js,/els\.type\.addEventListener\('change'/);});
 
 test('pack PDF upload loads the shared DNC SIDE normalizer before the client and applies it before metadata is persisted',()=>{
   const html=read('pack.html'),js=read('assets/pack-notification.js'),build=read('.github/packmeldungen/build-three-env.mjs');
@@ -127,4 +127,48 @@ test('pack document selection never waits forever for optional PDF text detectio
   assert.match(js,/const naming=await optionalPdfNaming\(file\)/);
   assert.match(js,/MAX_PACK_DOCUMENT_BYTES=10\*1024\*1024/);
   assert.match(html,/pack-notification\.js\?v=\d+/,'deployed pack asset must load the new client');
+});
+
+
+test('Packmeldung uses repeatable package type / quantity / group weight lines in both public pages',()=>{
+  for(const page of ['pack.html','assets/pack.html']){
+    const html=read(page);
+    assert.match(html,/id="packEntryRows"/);
+    assert.match(html,/id="packAddPackage"/);
+    assert.match(html,/id="packEntryTotals"/);
+    assert.ok(html.indexOf('id="packEntryRows"')<html.indexOf('id="packStepDimensions"'));
+    assert.doesNotMatch(html,/id="packCountPlus"|id="packCountMinus"/);
+  }
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/function entriesFromPackages/);
+  assert.match(js,/function renderEntries/);
+  assert.match(js,/function syncEntrySummary/);
+  assert.match(js,/function entriesValid/);
+  assert.match(js,/data-entry-type/);
+  assert.match(js,/data-entry-count/);
+  assert.match(js,/data-entry-weight/);
+  assert.match(js,/data-entry-remove/);
+  assert.match(js,/weight:groupWeight\/count/);
+  assert.match(read('assets/pack-notification.css'),/\.pack-entry-fields/);
+});
+
+
+test('Packmeldung follows the same visible Colli sequence as Sendung erstellen (RC1903)',()=>{
+  const shipment=read('assets/rc1903-neue-erfassung.js'),pack=read('assets/pack-notification.js');
+  const names=shipment.match(/var names=\[([^\]]+)\]/);
+  assert.ok(names,'canonical shipment form must declare its Colli fields');
+  assert.deepEqual(names[1].replace(/'/g,'').split(',').map(x=>x.trim()),['type','count','weight','ldm','l','w','h']);
+  for(const page of ['pack.html','assets/pack.html']){
+    const html=read(page);
+    assert.match(html,/id="packEntryRows"/);
+    assert.doesNotMatch(html,/data-pack-step="dimensions"/,'dimension entry must not be a separate visible step');
+    assert.match(html,/id="packStepDimensions"[^>]*hidden/,'legacy compatible dimensions container stays hidden');
+  }
+  for(const field of ['type','count','weight','ldm','length','width','height']){
+    assert.match(pack,new RegExp('data-entry-'+field),'entry field '+field+' must exist in the same line');
+  }
+  assert.match(pack,/function fillEntryDimensions/);
+  assert.match(pack,/function entriesFromPackages/);
+  assert.match(pack,/function collectPackages/);
+  assert.match(pack,/const groupWeight=positive\(group\.weight\)/);
 });

@@ -5,16 +5,16 @@ import vm from 'node:vm';
 
 const read=path=>fs.readFileSync(path,'utf8');
 
-test('Packtisch: Schritte, Stepper, Kamera und Maße übernehmen sind auf beiden Packseiten vorhanden',()=>{
+test('Packtisch: Schritte, mehrzeilige Packstücke, Kamera und Maße übernehmen sind auf beiden Packseiten vorhanden',()=>{
   for(const file of ['pack.html','assets/pack.html']){
     const html=read(file);
     assert.match(html,/id="packProgress"/,file);
-    for(const step of ['shipment','dimensions','documents'])assert.match(html,new RegExp(`data-pack-step="${step}"`),file+': '+step);
-    assert.match(html,/id="packCountMinus"/,file);assert.match(html,/id="packCountPlus"/,file);
+    for(const step of ['shipment','documents'])assert.match(html,new RegExp(`data-pack-step="${step}"`),file+': '+step);assert.doesNotMatch(html,/data-pack-step="dimensions"/,'Maße sind Teil der Colli-Zeilen');
+    assert.match(html,/id="packEntryRows"/,file);assert.match(html,/id="packAddPackage"/,file);assert.doesNotMatch(html,/id="packCountMinus"|id="packCountPlus"/,file);
     assert.match(html,/id="packCopyDimensions"[^>]*hidden/,file);
     assert.match(html,/id="packCamera"[^>]*accept="image\/\*"[^>]*capture="environment"/,file);
     assert.match(html,/id="packNextShipment"/,file);
-    assert.match(html,/pack-notification\.css\?v=3/,file);
+    assert.match(html,/pack-notification\.css\?v=5/,file);
   }
 });
 
@@ -40,7 +40,7 @@ test('Packtisch: neue Texte gibt es in allen sechs Sprachen',()=>{
   const win={};const ctx=vm.createContext({window:win,globalThis:win});
   vm.runInContext(read('assets/i18n/pack-notification.js'),ctx);
   const packs=win.ExportHUBPackI18n.packs;
-  const keys=['pack.countDecrease','pack.countIncrease','pack.copyDimensions','pack.takePhoto','pack.takePhotoHint','pack.nextShipment','pack.missing','pack.missing.customerConfirm','pack.missing.packageType','pack.missing.weight','pack.draft.openCount','pack.addPackage'];
+  const keys=['pack.countDecrease','pack.countIncrease','pack.copyDimensions','pack.takePhoto','pack.takePhotoHint','pack.nextShipment','pack.missing','pack.missing.customerConfirm','pack.missing.packageType','pack.missing.weight','pack.draft.openCount','pack.addPackage','pack.addLine','pack.entrySummary','pack.entryMissing','pack.entryTitle','pack.entryHelp'];
   for(const lang of ['de','en','pl','es','fr','it'])for(const key of keys)assert.ok(packs[lang][key],lang+': '+key);
   for(const lang of ['de','en','pl','es','fr','it'])assert.match(packs[lang]['pack.missing'],/\{\{items\}\}/,lang);
 });
