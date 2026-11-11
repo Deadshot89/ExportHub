@@ -791,6 +791,10 @@ function systemDuplicateKeeper(task){
     seen[id]=true;similar.push(row)
   });
   if(similar.length<2)return null;
+  // An unnumbered legacy item can match two different customers. Never use
+  // it as a bridge that makes conflicting records look deletable.
+  for(var i=0;i<similar.length;i++)for(var j=i+1;j<similar.length;j++)
+    if(!sameShipmentEvidence(similar[i],similar[j]))return null;
   var canonical=low(task.sourceType)==='av_missing'?'task:av-missing:'+q(ref(task)).toUpperCase():'';
   var score=function(x){return (canonical&&taskId(x)===canonical?100:0)+
     (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
