@@ -2754,5 +2754,6 @@
   "urgentOrderV2.issueDamage": "Mercancía dañada o incompleta",
   "urgentOrderV2.issueDelay": "No es posible enviar en la fecha solicitada",
   "urgentOrderV2.issueRegenerate": "Vuelve a generar el borrador del correo.",
-  "urgentOrderV2.issueTooLong": "La descripción del problema y las plantillas seleccionadas no pueden superar los 2000 caracteres."
+  "urgentOrderV2.issueTooLong": "La descripción del problema y las plantillas seleccionadas no pueden superar los 2000 caracteres.",
+  "urgentOrderV2.shippingNotReady": "Solo disponible cuando se hayan enviado todas las posiciones."
 }
