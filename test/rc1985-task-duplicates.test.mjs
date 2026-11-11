@@ -24,7 +24,8 @@ test('RC1985 two conflicting shipment copies never assign an unverified number',
   const state={shipments:[shipment('1001')],savedShipments:[{...shipment('2002'),id:'S-2'}],tasks:[]};
   const result=av.applyUploadRequirement(state,'ABC123',[],NOW);
   assert.equal(result.createdTask,true);
-  assert.equal(state.tasks[0].customerNumber,'');
+  assert.equal(Object.prototype.hasOwnProperty.call(state.tasks[0],'customerNumber'),false,
+    'unknown customer must not become an explicitly cleared account');
   assert.equal(state.tasks[0].linkedAccount,'');
 });
 
