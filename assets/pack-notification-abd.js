@@ -129,9 +129,9 @@
     return false;
   }
   function route(){
-    if(typeof root.setView==='function'){root.setView('abd');return true;}
+    if(typeof root.setView==='function'){root.setView('abd');return q(state().view).toLowerCase()==='abd';}
     if(root.ExportHUBRC325&&typeof root.ExportHUBRC325.route==='function'){
-      root.ExportHUBRC325.route('abd','pack-abd');return true;
+      root.ExportHUBRC325.route('abd','pack-abd');return q(state().view).toLowerCase()==='abd';
     }
     return false;
   }
@@ -243,6 +243,7 @@
     event.preventDefault();
     if(target.hasAttribute('data-pack-abd-back')){
       const ui=root.ExportHUBPackNotifications;
+      if(typeof root.setView==='function')root.setView('packnotifications');
       if(ui&&typeof ui.openNotificationDetail==='function')ui.openNotificationDetail(n);
       return;
     }
