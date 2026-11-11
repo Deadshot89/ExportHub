@@ -96,7 +96,13 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
-<fieldset class="field" style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="inline-check"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="inline-check"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lineFields"></div>
+<fieldset class="field" style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="inline-check"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="inline-check"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lineFields"></div><div id="internalWholeOrderChecks" class="form-grid" hidden>
+<h4 data-i18n="urgentOrderV2.wholeOrderChecksTitle">Prüfungen für den gesamten Auftrag</h4>
+<p class="help" data-i18n="urgentOrderV2.wholeOrderChecksHelp">Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.</p>
+<label class="field"><span data-i18n="urgentOrderV2.wholeOrderStock">Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?</span><select id="internalWholeStock"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></label>
+<label class="field"><span data-i18n="urgentOrderV2.wholeOrderHolds">Weder Don't Process noch Credit Hold für den gesamten Auftrag?</span><select id="internalWholeHolds"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></label>
+<label class="field wide"><span data-i18n="urgentOrderV2.wholeOrderReason">Begründung bei negativer Gesamtprüfung</span><textarea id="internalWholeReason" maxlength="1000"></textarea></label>
+</div>
 </div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div>
 <section id="internalLateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="internalLateCutoffHeading" hidden>
 <h3 id="internalLateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
@@ -202,6 +208,18 @@ function isAllLines(){return document.querySelector('input[name="lineScope"]:che
 function syncScope(){
  const all=isAllLines();$('lineFields').hidden=all;$('addLine').hidden=all;
  for(const el of $('lineFields').querySelectorAll('input,select,textarea'))el.disabled=all;
+ $('internalWholeOrderChecks').hidden=!all;
+ $('internalWholeOrderChecks').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!all);
+}
+function wholeOrderChecks(){
+ const check=id=>$(id).value==='true'?true:$(id).value==='false'?false:null;
+ return {pickableStock:check('internalWholeStock'),holdsClear:check('internalWholeHolds'),exceptionReason:$('internalWholeReason').value.trim()};
+}
+function wholeOrderChecksMarkup(order){
+ if(!order.allLines)return'';
+ const c=order.orderChecks||{};
+ const label=v=>v===true?localeV2('yes','Ja'):v===false?localeV2('no','Nein'):localeV2('wholeOrderNotChecked','Noch nicht geprüft');
+ return '<p class="help" data-whole-order-checks="true"><strong>'+escapeHtml(localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'))+'</strong> · '+escapeHtml(localeV2('wholeOrderStock','Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?'))+' '+escapeHtml(label(c.pickableStock))+' · '+escapeHtml(localeV2('wholeOrderHolds',"Weder Don't Process noch Credit Hold für den gesamten Auftrag?"))+' '+escapeHtml(label(c.holdsClear))+(c.exceptionReason?' · '+escapeHtml(c.exceptionReason):'')+'</p>';
 }
 function syncP1Approval(){
  const p1=$('newOrder').elements.priority.value==='P1',field=$('p1CostApprovalField'),check=$('p1CostApproved');
@@ -232,7 +250,10 @@ function showInternalStep(step){
 function nextInternalStep(){
  const panel=document.querySelector('[data-internal-step="'+internalStep+'"]');
  for(const field of panel.querySelectorAll('input,select,textarea'))if(field.willValidate&&!field.checkValidity()){field.reportValidity();field.focus();return;}
- if(internalStep===2&&!isAllLines()){
+ if(internalStep===2&&isAllLines()){
+   const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){setMessage('createMessage',localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+  }
+  if(internalStep===2&&!isAllLines()){
   const items=formItems();
   if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage',localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
   if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
@@ -243,12 +264,12 @@ function stat(id,val){$(id).textContent=val;}
 function renderStats(){
  stat('statTotal',orders.length);stat('statP1',orders.filter(o=>o.priority==='P1').length);
  stat('statOpen',orders.flatMap(o=>o.items||[]).filter(x=>!['Shipped','Invoiced'].includes(x.status)).length);
- stat('statExceptions',orders.flatMap(o=>o.items||[]).filter(x=>x.checkResult==='exception').length);
+ stat('statExceptions',orders.flatMap(o=>o.items||[]).filter(x=>x.checkResult==='exception').length+orders.filter(o=>o.orderChecks&&o.orderChecks.checkResult==='exception').length);
 }
 function rank(order){return ({P1:1,P2:2,P3:3,P4:4})[order.priority]||5}
 function filtered(){
  const q=$('search').value.trim().toLowerCase(),p=$('filterPriority').value,d=$('filterDelivery').value,s=$('filterStatus').value;
- return orders.filter(o=>(currentTab==='closed'?isClosedOrder(o):!isClosedOrder(o))&&(!p||o.priority===p)&&(!d||o.delivery===d)&&(!s||(s==='exception'?(o.items||[]).some(x=>x.checkResult==='exception'):(o.items||[]).some(x=>x.status===s)))&&(!q||[o.orderNumber,o.email,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(v=>txt(v).toLowerCase().includes(q)))).sort((a,b)=>rank(a)-rank(b)||txt(b.updatedAt).localeCompare(txt(a.updatedAt)));
+ return orders.filter(o=>(currentTab==='closed'?isClosedOrder(o):!isClosedOrder(o))&&(!p||o.priority===p)&&(!d||o.delivery===d)&&(!s||(s==='exception'?((o.items||[]).some(x=>x.checkResult==='exception')||o.orderChecks?.checkResult==='exception'):(o.items||[]).some(x=>x.status===s)))&&(!q||[o.orderNumber,o.email,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(v=>txt(v).toLowerCase().includes(q)))).sort((a,b)=>rank(a)-rank(b)||txt(b.updatedAt).localeCompare(txt(a.updatedAt)));
 }
 function statusSummary(o){const list=[...new Set((o.items||[]).map(x=>x.status))];return list.length===1?list[0]:'Mixed'}
 function localizedLoginRequired(){
@@ -336,7 +357,7 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+'</div>';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();
@@ -427,11 +448,14 @@ async function submit(ev){
  const lateToday=syncInternalCutoff();
  if(!form.reportValidity()){showInternalStep(1);return;}
  const items=isAllLines()?[]:formItems();
+ if(isAllLines()){
+  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showInternalStep(2);setMessage('createMessage',localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+ }
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  if(lateToday&&!approved){showInternalCutoffChoice();return;}
  hideInternalCutoffChoice();
- const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,items};
+ const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
  try{const r=await api('create',body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
