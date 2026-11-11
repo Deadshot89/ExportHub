@@ -22,7 +22,7 @@ function createStore(){
  const put=(key,bytes)=>stored.set(key,{bytes:Buffer.from(bytes),etag:'"mock-'+(++seq)+'"'});
  put(RECORD,JSON.stringify({id:ID,revision:2,fields,files:[{id:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',name:'Foto.jpg'}],
    history:[{action:'create',revision:1},{action:'admin-delete',revision:2}],deletedAt:'2026-11-11T14:00:00Z',deletedBy:'Admin',
-   createdAt:'2026-11-11T13:00:00Z'}));
+   createdAt:'2026-11-11T13:00:00Z'},null,2)+'\n');
  put(FILE,Buffer.from('image-binary'));
  put(OTHER,JSON.stringify({id:'DOK-20261111-AAAAAAAA',revision:1,fields,files:[],history:[]}));
  const initial=Buffer.from(stored.get(RECORD).bytes),unrelated=Buffer.from(stored.get(OTHER).bytes),originalPhoto=Buffer.from(stored.get(FILE).bytes);
