@@ -178,7 +178,7 @@ async function api(action,payload){
  if(!response.ok||result.ok===false){
   const code=/^[A-Z][A-Z0-9_]{2,60}$/.test(String(result.code||''))?result.code:'';
   const error=new Error((result.message||'HTTP '+response.status)+(code?' (Code: '+code+')':''));
-  error.status=response.status;error.code=code;error.minibagArticles=Array.isArray(result.minibagArticles)?result.minibagArticles:[];throw error;
+  error.status=response.status;error.code=code;error.minibagArticles=Array.isArray(result.minibagArticles)?result.minibagArticles:[];error.minibagIndices=Array.isArray(result.minibagIndices)?result.minibagIndices:[];throw error;
  }
  return result;
 }
