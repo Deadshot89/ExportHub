@@ -199,6 +199,7 @@ export async function settleStateSave(page,options={}){
       const clean=window.ExportHUBClean;
       const runtime=clean&&clean.runtime;
       if(!clean||!runtime)return {available:false,idle:true};
+      if(typeof clean.flushSave!=='function')return {available:false,idle:true,missingFlush:true};
       return {
         available:true,
         saving:runtime.saving===true,
@@ -209,7 +210,7 @@ export async function settleStateSave(page,options={}){
       };
     });
 
-    if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: ExportHUBClean-Runtime nicht verfügbar');
+    if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: '+(snapshot.missingFlush?'ExportHUBClean-flushSave nicht verfügbar':'ExportHUBClean-Runtime nicht verfügbar'));
     const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer;
     if(!busy){
       if(!stableSince)stableSince=Date.now();
