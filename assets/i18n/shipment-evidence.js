@@ -70,5 +70,13 @@ const recoveryUi={
  fr:{directOpen:'Ouvrir le dossier par ID',directRequired:'Saisissez la référence DOK complète.',restoreFound:'Ce dossier est masqué. Une restauration avec sauvegarde est possible :',restoreAction:'Restaurer le dossier',restoreConfirm:'Restaurer après vérification des fichiers originaux ? Une sauvegarde sera créée au préalable.',restoreMissingFiles:'Un fichier original manque ou ne peut pas être vérifié. Restauration bloquée.',restoreNotFound:'Aucun dossier actif trouvé dans cet environnement.',restoreHistory:'Des versions précédentes peuvent exister. Vérifiez-les sans risque.'},
  it:{directOpen:'Apri documento per ID',directRequired:'Inserisci il riferimento DOK completo.',restoreFound:'Il documento è nascosto. È possibile ripristinarlo con una copia di sicurezza:',restoreAction:'Ripristina documento',restoreConfirm:'Ripristinare dopo aver verificato i file originali? Prima sarà creata una copia di sicurezza.',restoreMissingFiles:'Un file originale manca o non è verificabile. Ripristino bloccato.',restoreNotFound:'Nessun documento attivo trovato in questo ambiente.',restoreHistory:'Potrebbero esserci versioni precedenti. Verificale in modo sicuro.'}
 };
+for(const [locale,strings] of Object.entries({
+ de:{storageLocation:'Tatsächlich verbundener Azure-Speicher'},
+ en:{storageLocation:'Connected Azure storage target'},
+ pl:{storageLocation:'Połączony magazyn Azure'},
+ es:{storageLocation:'Almacenamiento Azure conectado'},
+ fr:{storageLocation:'Stockage Azure connecté'},
+ it:{storageLocation:'Archivio Azure collegato'}
+}))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 for(const [locale,strings] of Object.entries(recoveryUi))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 })(window);
