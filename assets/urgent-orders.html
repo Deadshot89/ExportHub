@@ -157,7 +157,7 @@ function rememberEmail(value){
 }
 function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
 // RC1811_INTERNAL_EMAIL_HISTORY_END
-let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open';
+let orders=[],canManage=false,viewerId='',modalOrder='',modalKind='',currentTab='open',activeView='open';
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
  try{const x=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return txt(x.token)}catch(_){return''}
@@ -338,11 +338,12 @@ function deleteActionsMarkup(order){
  const handler=order.processingBy||[...(order.history||[])].reverse().find(x=>x&&
   ['status','mail_open_requested','mail_sent_manually_confirmed','processing_claimed'].includes(x.event)&&x.actorId);
  const owner=handler?txt(handler.name||handler.actorName||handler.id||handler.actorId):'';
+ const ownerId=handler?txt(handler.id||handler.actorId):'';
  const info=pending?'<p role="status">'+escapeHtml(localeV2('deleteWaitPrefix',"Deletion requested – waiting for "))+escapeHtml(owner||localeV2('deleteAssignedProcessor',"assigned processor"))+'</p>':
    record.state==='rejected'?'<p role="status">'+escapeHtml(localeV2('deleteRejected',"Previous deletion request was declined."))+'</p>':'';
  const ask=!pending&&!complete?'<button type="button" class="btn alt small" data-delete-action="request">'+escapeHtml(localeV2('deleteButton',"Delete request"))+'</button>':'';
  const claim=pending&&canManage&&!owner?'<button type="button" class="btn alt small" data-delete-action="claim">'+escapeHtml(localeV2('deleteClaim',"Claim processing"))+'</button>':'';
- const decisions=pending&&canManage&&owner?
+ const decisions=pending&&canManage&&ownerId===viewerId&&!!ownerId?
   '<button type="button" class="btn danger small" data-delete-action="approve">'+escapeHtml(localeV2('deleteApprove',"Approve deletion"))+'</button>'+
   '<button type="button" class="btn alt small" data-delete-action="reject">'+escapeHtml(localeV2('deleteReject',"Reject"))+'</button>':'';
  return '<div class="mail-history" data-urgent-deletion><strong>'+escapeHtml(localeV2('deleteHeading',"Delete Urgent Order request"))+'</strong>'+
@@ -419,7 +420,7 @@ function render(){
 }
 async function refresh(){
  try{
-  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;
+  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;viewerId=txt(data.currentUserId||'');
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
   // Email autocomplete intentionally does not use the API's legacy login profile.
   renderSavedEmails();
