@@ -604,6 +604,6 @@ test('RC1985: production always revalidates task focus script and translations a
     assert.ok(service,route+' must be covered by testservice cache rules');
     assert.match(String(service.headers?.['Cache-Control']||''),/no-store/);
   }
-  assert.match(build,/rc1570-tasks-focus\\.js\\?v=1985/);
-  assert.match(build,/i18n\\/rc1570-tasks-focus\\.js\\?v=1985/);
+  assert.ok(build.includes('/assets/rc1570-tasks-focus.js?v=1985'));
+  assert.ok(build.includes('/assets/i18n/rc1570-tasks-focus.js?v=1985'));
 });
