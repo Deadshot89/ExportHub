@@ -182,6 +182,9 @@ function candidates(state,now){
 
 function missingTask(sh,nowIso){
   const ref=refOf(sh),customer=text(sh.customer&&sh.customer.name||sh.customerName),day=pickupDay(sh);
+  // RC1985: Most real shipments store their customer number directly, not in sh.customer.
+  const customerNumber=text(sh.customerAccount||sh.customerNumber||sh.customerNo||sh.kundennummer||sh.account||
+    sh.customer&&(sh.customer.account||sh.customer.customerNumber));
   return{
     id:taskId(ref),sourceType:SOURCE_TYPE,sourceId:ref,sourceRef:ref,
     title:'Ausgangsvermerk nicht vorhanden · '+ref+(customer?' · '+customer:''),
@@ -189,7 +192,7 @@ function missingTask(sh,nowIso){
     owner:text(sh.customer&&sh.customer.owner)||'Tobias',
     dueDate:todayOf(nowIso),day:'',time:'',
     linkedShipmentId:text(sh.id||sh.shipmentId),linkedShipmentRef:ref,linkedCustomer:customer,
-    linkedAccount:text(sh.customer&&(sh.customer.account||sh.customer.customerNumber)),
+    customerNumber:customerNumber,linkedAccount:customerNumber,
     actualPickupDate:day,
     note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
     createdAt:nowIso,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'
