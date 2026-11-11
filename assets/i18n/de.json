@@ -2701,5 +2701,7 @@
   "urgentOrderV2.wholeOrderHolds": "Weder Don't Process noch Credit Hold für den gesamten Auftrag?",
   "urgentOrderV2.wholeOrderNotChecked": "Noch nicht geprüft",
   "urgentOrderV2.wholeOrderReason": "Begründung bei negativer Gesamtprüfung",
-  "urgentOrderV2.wholeOrderReasonRequired": "Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben."
+  "urgentOrderV2.wholeOrderReasonRequired": "Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.",
+  "urgentOrderV2.untrustedHostHelp": "Bitte ausschließlich die offizielle TESTSERVICE-Seite verwenden. Nicht gespeicherte Eingaben müssen nach einem Seitenwechsel erneut erfasst werden.",
+  "urgentOrderV2.openOfficialTestservice": "Offizielles TESTSERVICE öffnen"
 }
