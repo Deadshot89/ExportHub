@@ -110,11 +110,7 @@ export function injectPackAbdOwnership(html,file='index.html'){
   );
   replaceOnce(
     "s.abdDraft=clone(item);var sh=item.linkedShipmentId&&findShipment(item.linkedShipmentId);if(!sh&&item.ref)sh=findShipment(item.ref);if(sh){",
-    "s.abdDraft=clone(item);if(item.packNotificationId){var pnSaved=arr(s.packNotifications).find(function(n){return q(n.id)===item.packNotificationId&&q(n.reference)===item.packNotificationRef});if(pnSaved){pnSaved.abdRequestId=item.id;pnSaved.abdRequestRef=item.ref;pnSaved.abdRequestedAt=item.updatedAt;}}var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);if(!item.packNotificationId&&!sh&&item.ref)sh=findShipment(item.ref);if(sh){"
-  );
-  replaceOnce(
-    "function deleteAbd(id){if(!confirm('ABD-Anfrage wirklich löschen?'))return false;var s=state();",
-    "function deleteAbd(id){if(!confirm('ABD-Anfrage wirklich löschen?'))return false;var s=state(),removed=arr(s.abdRequests).find(function(a){return q(a.id)===q(id)});if(removed&&q(removed.packNotificationId)){var pn=arr(s.packNotifications).find(function(n){return q(n.id)===q(removed.packNotificationId)&&q(n.reference)===q(removed.packNotificationRef)});if(pn&&q(pn.abdRequestId)===q(removed.id)){delete pn.abdRequestId;delete pn.abdRequestRef;delete pn.abdRequestedAt}}"
+    "s.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);if(!item.packNotificationId&&!sh&&item.ref)sh=findShipment(item.ref);if(sh){"
   );
   replaceOnce(
     "source=d.source==='shipment'?'Aus Sendung übernommen':'Manuelle Erstellung'",
