@@ -78,3 +78,16 @@ test('public CS cannot create an unreviewed partial pack; acknowledged exception
   internal.readPackingCatalog=originalCatalog;
  }
 });
+
+test('same article on two order lines: only the partial pack is flagged',()=>{
+ const items=[{...line(1000),line:'10'},{...line(900),line:'20'}];
+ assert.throws(()=>model.createOrder(base(items),actor,now,catalog),e=>
+  e.code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&
+  Array.isArray(e.minibagIndices)&&
+  e.minibagIndices.length===1&&e.minibagIndices[0]===1
+ );
+ const saved=model.createOrder(base([{...items[0]},{...items[1],minibagReviewed:true}]),actor,now,catalog);
+ assert.equal(saved.items[0].minibagReview,undefined);
+ assert.equal(saved.items[1].minibagReview.packingQuantity,1000);
+ assert.equal(saved.items[1].minibagReview.remainder,900);
+});
