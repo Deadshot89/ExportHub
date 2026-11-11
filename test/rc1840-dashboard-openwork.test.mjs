@@ -171,6 +171,26 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
   assert.equal(queued.length,8,'logout never calls a protected API');
 });
 
+test('Open complaint total is unavailable when the historical REF source fails',async()=>{
+ const requests=[];
+ const ctx={
+  w:{fetch:()=>{},document:{hidden:false}},isDashboard:()=>true,
+  boundedOpenWorkCount:()=>new Promise((resolve,reject)=>requests.push({resolve,reject})),
+  refreshNow:()=>{},Promise,Date,Error
+ };
+ vm.createContext(ctx);
+ vm.runInContext(
+  'var openWorkCounts={urgent:null,quality:null,complaints:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};\n'+
+  fn('loadOpenWorkCounts'),ctx);
+ ctx.loadOpenWorkCounts();
+ assert.equal(requests.length,4);
+ requests[0].resolve(6);requests[1].resolve(2);requests[2].resolve(4);
+ requests[3].reject(new Error('REF unavailable'));
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(ctx.openWorkCounts.urgent,6);
+ assert.equal(ctx.openWorkCounts.quality,2);
+ assert.equal(ctx.openWorkCounts.complaints,null,'do not display partial DOK-only count');
+});
 test('401/403 counts: getrennte Fünf-Minuten-Sperren, keine Dauerabfragen und Login-Recovery',async()=>{
   for(const denial of [401,403]){
     let now=1000000,qualityStatus=denial;
