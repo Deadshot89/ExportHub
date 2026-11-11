@@ -121,9 +121,9 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 </section>
 </div>
 <section id="packingCatalogPanel" class="panel" hidden style="margin-top:16px" aria-labelledby="packingCatalogTitle">
- <h2 id="packingCatalogTitle">Minibag · Artikelstamm sicher verwalten</h2>
- <p class="help">TSV-Liste mit „Item number“, „Net weight“ und „Packing quantity“ importieren. Die Verpackungsgrößen werden ausschließlich im geschützten Azure-Datenspeicher abgelegt – nicht in der öffentlichen Website.</p>
- <div class="btn-row"><label class="field" style="flex:1 1 320px">Artikelliste (TSV/TXT)<input id="packingCatalogFile" type="file" accept=".txt,.tsv,text/plain,text/tab-separated-values"></label><button type="button" class="btn alt" id="packingCatalogImport">Artikelliste sicher aktualisieren</button></div>
+ <h2 id="packingCatalogTitle" data-i18n="urgentOrderV2.packingCatalogTitle">Minibag · Artikelstamm sicher verwalten</h2>
+ <p class="help" data-i18n="urgentOrderV2.packingCatalogHelp">Import the TSV item list; pack sizes are stored privately in Azure.</p>
+ <div class="btn-row"><label class="field" style="flex:1 1 320px"><span data-i18n="urgentOrderV2.packingCatalogInput">Item list (TSV/TXT)</span><input id="packingCatalogFile" type="file" accept=".txt,.tsv,text/plain,text/tab-separated-values"></label><button type="button" class="btn alt" id="packingCatalogImport" data-i18n="urgentOrderV2.packingCatalogImport">Securely update item list</button></div>
  <p id="packingCatalogMessage" class="message" role="status" aria-live="polite"></p>
 </section>
 </main>
@@ -392,7 +392,7 @@ async function refresh(){
  try{
   const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;
    $('packingCatalogPanel').hidden=!data.canImportPackingCatalog;
-   if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',s.count+' Artikel mit Verpackungsgröße verfügbar · '+s.unknownPackSize+' ohne gültige Verpackungsgröße.','ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
+   if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',localeV2('packingCatalogAvailable','{count} items available · {unknown} without valid pack sizes.').replace('{count}',s.count).replace('{unknown}',s.unknownPackSize),'ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
   // Email autocomplete intentionally does not use the API's legacy login profile.
   renderSavedEmails();
@@ -460,10 +460,10 @@ async function createWithMinibagReview(p){
   if(!affected.length)throw e;
   const en=p.language==='en';
   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
-  const msg=en?'Minibag check: '+list+' does not match a full standard pack. Are you sure this is NOT a Minibag? Please check. OK = continue without Minibag; Cancel = correct the entry.':'Minibag überprüfen: '+list+' entspricht keiner vollen Standardverpackung. Bist du sicher, dass es kein Minibag ist? Bitte prüfen. OK = ohne Minibag melden; Abbrechen = Artikel korrigieren.';
+  const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
   if(!window.confirm(msg)){
    showInternalStep(2);
-   throw new Error(en?'Please check the Minibag option before sending.':'Bitte den Minibag-Haken und die Menge überprüfen.');
+   throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
   }
   affected.forEach(x=>{x.minibagReviewed=true;});
   return await api('create',p);
@@ -471,13 +471,13 @@ async function createWithMinibagReview(p){
 }
 async function importPackingCatalog(){
  const file=$('packingCatalogFile').files&&$('packingCatalogFile').files[0];
- if(!file){setMessage('packingCatalogMessage','Bitte zuerst die Artikelliste auswählen.','error');return;}
- if(file.size>5000000){setMessage('packingCatalogMessage','Die Datei ist zu groß (maximal 5 MB).','error');return;}
+ if(!file){setMessage('packingCatalogMessage',localeV2('packingCatalogPickFile','Please select the item list first.'),'error');return;}
+ if(file.size>5000000){setMessage('packingCatalogMessage',localeV2('packingCatalogTooLarge','File exceeds the 5 MB limit.'),'error');return;}
  const button=$('packingCatalogImport');button.disabled=true;
  try{
-  setMessage('packingCatalogMessage','Artikelliste wird geprüft und geschützt gespeichert …','');
+  setMessage('packingCatalogMessage',localeV2('packingCatalogSaving','Validating and securely saving the item list …'),'');
   const result=await api('import-packing-catalog',{tsv:await file.text()});
-  setMessage('packingCatalogMessage',result.count+' Artikel gespeichert · '+result.unknownPackSize+' ohne gültige Verpackungsgröße.','ok');
+  setMessage('packingCatalogMessage',localeV2('packingCatalogSaved','{count} items saved · {unknown} without valid pack sizes.').replace('{count}',result.count).replace('{unknown}',result.unknownPackSize),'ok');
  }catch(e){setMessage('packingCatalogMessage',e.message,'error');}
  finally{button.disabled=false;}
 }
