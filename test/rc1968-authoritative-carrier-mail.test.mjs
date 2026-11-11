@@ -31,13 +31,13 @@ function composers() {
 
 test('RC1968 #904: beide Mail-Renderer schließen alte Sendungs- und Legacy-Aliase aus',()=>{
  const {emailRecipient,carrierTo}=composers();
- const customer={id:'SW-3014',name:'Essentra Components AB - SE',
-  carrierEmail:'imp.hel.se@freja.com; pbe@freja.com',
-  carrierMail:'charter@gate41.com',speditionMail:'charter@gate41.com',
-  mailRecipients:'charter@gate41.com'};
- const shipment={reference:'GPJQC7',carrierEmail:'charter@gate41.com',
-  speditionMail:'charter@gate41.com',forwarderEmail:'charter@gate41.com'};
- const approved=['imp.hel.se@freja.com','pbe@freja.com'];
+ const customer={id:'C-1968',name:'Customer SE',
+  carrierEmail:'active-a@freight.example; active-b@freight.example',
+  carrierMail:'retired@freight.example',speditionMail:'retired@freight.example',
+  mailRecipients:'retired@freight.example'};
+ const shipment={reference:'REF1968',carrierEmail:'retired@freight.example',
+  speditionMail:'retired@freight.example',forwarderEmail:'retired@freight.example'};
+ const approved=['active-a@freight.example','active-b@freight.example'];
  assert.deepEqual(emailItems(emailRecipient('carrier',shipment,customer)),approved);
  assert.deepEqual(Array.from(carrierTo(customer,shipment)),approved);
 });
