@@ -57,7 +57,8 @@ function snapshotMatches(snapshot,expected){
 async function scanOfflineCandidate({
  envelope,expected,queueSecret,proofSecret,
  claimJob,readSnapshot,getDefinitionsUpdatedAt,
- runner=runClamscan,engineCheck=verifyClamAvEngine,now=Date.now()
+ runner=runClamscan,engineCheck=verifyClamAvEngine,
+ now=Date.now(),clock=Date.now
 }={}){
  if(!expected||expected.environment!=='testservice'||
     !Number.isSafeInteger(now)||now<=0)return blocked('invalid-context');
@@ -67,7 +68,7 @@ async function scanOfflineCandidate({
  if(queue.valid!==true)return blocked('invalid-queue-proof');
  if(typeof claimJob!=='function'||typeof readSnapshot!=='function'||
     typeof getDefinitionsUpdatedAt!=='function'||typeof runner!=='function'||
-    typeof engineCheck!=='function')
+    typeof engineCheck!=='function'||typeof clock!=='function')
   return blocked('worker-adapter-unavailable');
 
  let stageDir=null;
@@ -133,11 +134,21 @@ async function scanOfflineCandidate({
        // cannot attest the engine signatures that scanned these bytes.
        result=blocked('definitions-changed-during-scan');
       }else{
+       // RC1977: use completion time, never the original queue/claim time,
+       // for the signed scan proof. A scan that outlives the planned job
+       // budget, a reversed clock, or signatures stale at completion cannot
+       // issue even a non-releasing candidate receipt.
+       const finishedAt=clock();
+       if(!Number.isSafeInteger(finishedAt)||finishedAt<now||
+          finishedAt-now>TIME_BUDGET.jobMs||
+          finishedAt<definitionsBefore||
+          finishedAt-definitionsBefore>24*60*60*1000)
+        throw Error('RC1977_SCAN_TIME_UNVERIFIED');
        // Only candidate evidence. An authorized worker must additionally
        // prove this metadata belongs to the actual loaded scan engine.
        const receipt=createCandidateAttestation({
         candidate:scanned,context:expected,secret:proofSecret,
-        definitionsUpdatedAt:definitionsBefore,now
+        definitionsUpdatedAt:definitionsBefore,now:finishedAt
        });
        result={...DENIED,status:'candidate-only',receipt};
       }
