@@ -2702,5 +2702,16 @@
   "urgentOrderV2.wholeOrderNotChecked": "Not yet checked",
   "urgentOrderV2.wholeOrderReason": "Reason for a failed whole-order check",
   "urgentOrderV2.wholeOrderReasonRequired": "For a failed whole-order check, provide a reason of at least 8 characters.",
-  "urgentOrderV2.untrustedHostHelp": "You are on the official TESTSERVICE. The API rejected the secure environment verification. The order was not saved. Do not submit it again until logistics has checked the connection."
+  "urgentOrderV2.untrustedHostHelp": "You are on the official TESTSERVICE. The API rejected the secure environment verification. The order was not saved. Do not submit it again until logistics has checked the connection.",
+  "urgentOrderV2.minibagReviewPrompt": "Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag? Please check. OK = continue without Minibag; Cancel = correct the item.",
+  "urgentOrderV2.minibagReviewCancel": "Please check the Minibag option and quantity.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Manage item master securely",
+  "urgentOrderV2.packingCatalogHelp": "Import the tab-separated list with Item number, Net weight and Packing quantity. Pack sizes are stored only in private Azure storage.",
+  "urgentOrderV2.packingCatalogInput": "Item list (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Securely update item list",
+  "urgentOrderV2.packingCatalogAvailable": "{count} items with pack size available · {unknown} without a valid pack size.",
+  "urgentOrderV2.packingCatalogPickFile": "Please select the item list first.",
+  "urgentOrderV2.packingCatalogTooLarge": "File exceeds the 5 MB limit.",
+  "urgentOrderV2.packingCatalogSaving": "Validating and securely saving the item list …",
+  "urgentOrderV2.packingCatalogSaved": "{count} items saved · {unknown} without a valid pack size."
 }
