@@ -206,3 +206,47 @@ test('RC1968: selected recipient cannot overwrite manually entered invoice field
  assert.equal(invalidated,1);
  assert.match(status,/Adresse prüfen/);
 });
+
+test('RC1968: customer without a stored address clears stale recipient address only after confirmation',()=>{
+ const start=proformaUi.indexOf('/* RC1968: client-side recipient lookup');
+ const end=proformaUi.indexOf('function normalizeRows(){',start);
+ const customers=[
+  {account:'0077',name:'Customer Without Address'},
+  {account:'0088',name:'Disabled',address:'Should not show',disabled:true},
+  {account:'0089',name:'Deleted',address:'Should not show',deleted:true},
+  {account:'0090',name:'Inactive',address:'Should not show',active:false}
+ ];
+ const fields={recipient:{value:'Previous Customer'},recipientAddress:{value:'Previous Customer Address'}};
+ const results={replaceChildren(){this.nodes=[]},appendChild(node){(this.nodes??=[]).push(node)}};
+ const search={value:'0077'};
+ const panel={querySelector(selector){
+  if(selector==='[data-rc1549-recipient-search]')return search;
+  if(selector==='[data-rc1549-recipient-results]')return results;
+  const match=/^\\[data-rc1549-header="([^"]+)"\\]$/.exec(selector);
+  return match?fields[match[1]]||null:null
+ }};
+ let confirm=false,invalidated=0,status='';
+ const root={
+  __EXPORTHUB_GET_STATE__:()=>({customers}),
+  confirm:()=>confirm,
+  document:{createElement:()=>({children:[],setAttribute(){},appendChild(x){this.children.push(x)}})}
+ };
+ const headerDraft={recipient:'Previous Customer',recipientAddress:'Previous Customer Address',invoiceNumber:'KEEP-123'};
+ const ctx={root,headerDraft,q:v=>String(v??'').trim(),language:()=> 'de',manualPanel:()=>panel,invalidate:()=>{invalidated++},setStatus:s=>{status=s}};
+ const {rcmatches,rcrender,rcchoose}=vm.runInNewContext(proformaUi.slice(start,end)+'\\n({rcmatches,rcrender,rcchoose})',ctx);
+ assert.equal(rcmatches('0088').length,0);
+ assert.equal(rcmatches('0089').length,0);
+ assert.equal(rcmatches('0090').length,0);
+ rcrender('0077');
+ assert.equal(rcchoose(0),false,'missing address may not silently retain a different recipient address');
+ assert.equal(fields.recipient.value,'Previous Customer');
+ assert.equal(fields.recipientAddress.value,'Previous Customer Address');
+ confirm=true;
+ assert.equal(rcchoose(0),true);
+ assert.equal(fields.recipient.value,'Customer Without Address');
+ assert.equal(fields.recipientAddress.value,'');
+ assert.equal(headerDraft.recipientAddress,'');
+ assert.equal(headerDraft.invoiceNumber,'KEEP-123');
+ assert.equal(invalidated,1);
+ assert.match(status,/Adresse ergänzen/);
+});
