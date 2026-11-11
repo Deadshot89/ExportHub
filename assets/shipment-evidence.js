@@ -126,19 +126,20 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
  }
  search.addEventListener('input',()=>{state.search=search.value;state.searchRun++;updateRows()});updateRows();
 }
-async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){
+// DOK pagination must not invalidate an independent REF request.
+async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken,serial=state.serial;if(reset){
  state.records=[];state.continuation=null;
  state.legacyRecords=[];state.legacyContinuation=null;state.legacyError='';
  loadLegacyList(true);
 }if(state.view==='list')status(t('loading'),false);
  try{const result=await request('GET',{action:'list',...(reset?{}:state.continuation?{continuation:state.continuation}:{})});
-  if(serial!==state.serial)return false;
+  if(serial!==state.serial||listToken!==state.listToken)return false;
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
   state.continuation=result.continuation||null;
   if(state.view==='list'&&active())showList(true);
   return true;
- }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true);return false}
+ }catch(e){if(listToken===state.listToken&&serial===state.serial&&state.view==='list')status(e.message,true);return false}
  finally{if(listToken===state.listToken)state.loading=false}}
 async function loadLegacyList(reset){
  if((state.legacyLoading&&!reset)||state.view!=='list')return false;
