@@ -124,7 +124,7 @@ test('RC1171: idle UI with lagging Azure ACK triggers exactly one flush and requ
   const runtime={saving:false,pendingSave:false,dirty:false,saveTimer:null,
     changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1};
   let calls=0,clock=0;
-  const FakeDate=class extends Date{static now(){clock+=1000;return clock}};
+  const FakeDate=class extends Date{static now(){clock+=100;return clock}};
   const clean={runtime,flushSave:async(_reason,options)=>{
     calls++;
     assert.equal(options.force,true);
