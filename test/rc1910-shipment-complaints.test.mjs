@@ -241,3 +241,33 @@ test('Altfall: manipulierte oder zukünftige Prüfdaten verhindern einen unbest�
  complaints.changeStatus(legitimate,'abgeschlossen','QM');
  assert.equal(legitimate.state,'abgeschlossen');
 });
+
+test('DOK-Listen enthalten keine Beschwerdetexte, internen Maßnahmen oder Dateinamen',()=>{
+ const source=fs.readFileSync('api/shipment-evidence/index.js','utf8');
+ const from=source.indexOf('function listSummary(record){');
+ const to=source.indexOf('async function list(ctx,query){',from);
+ assert.ok(from>=0&&to>from,'List-specific privacy projection is required');
+ const fail=(code,message,status)=>{const e=new Error(message);e.code=code;e.status=status;throw e};
+ const project=new Function('fail',source.slice(from,to)+'return listSummary')(fail);
+ const record={id:'DOK-20261111-11111111',updatedAt:'2026-11-11',revision:4,
+  fields:{customer:'Beispielkunde',shipmentNumber:'SHP-25',dispatchDate:'2026-11-10',
+   colli:'2',weightKg:'35',exporthubRef:'ABC123',remarks:'interne vertrauliche Bemerkung'},
+  complaints:[{id:'secret-id',text:'Vertraulicher Beschwerdetext',state:'in_pruefung',
+   effectivenessEvidence:'QM-Pruefprotokoll vertraulich',rootCause:'Interne Ursache'}],
+  files:[{id:'file-id',name:'Privater_Nachweis.pdf'}],
+  history:[{action:'complaint-update',before:'private'}],
+  publicAccess:{hash:'secret'}};
+ const summary=project(record),wire=JSON.stringify(summary);
+ assert.equal(summary.id,record.id);
+ assert.equal(summary.fields.exporthubRef,'ABC123');
+ assert.equal(summary.fields.colli,'2');
+ assert.deepEqual(summary.complaints,[{state:'in_pruefung'}]);
+ assert.equal(summary.fileCount,1);
+ for(const secret of ['Vertraulicher Beschwerdetext','QM-Pruefprotokoll vertraulich',
+  'Interne Ursache','Privater_Nachweis.pdf','secret-id','interne vertrauliche Bemerkung',
+  'publicAccess','history'])assert.equal(wire.includes(secret),false,secret+' must never enter list response');
+ assert.throws(()=>project({id:'DOK-20261111-11111111',complaints:null}),
+  e=>e.code==='CORRUPT_COMPLAINTS'&&e.status===503);
+ assert.throws(()=>project({id:'DOK-20261111-11111111',complaints:[null]}),
+  e=>e.code==='CORRUPT_COMPLAINTS'&&e.status===503);
+});
