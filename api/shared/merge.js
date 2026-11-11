@@ -973,6 +973,9 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
     const tombstone = tombstones.get(`${name}:${lower(rawId)}`);
     const shipmentCollection = name === 'shipments' || name === 'savedShipments';
     const explicitShipmentDelete = shipmentCollection && tombstone && tombstone.explicitUserAction === true;
+    // A user-confirmed task deletion is final for this task ID. A stale browser
+    // updating its old copy afterwards must never re-create the removed task.
+    if (name === 'tasks' && tombstone && tombstone.explicitUserAction === true) continue;
     if (tombstone && (!shipmentCollection || explicitShipmentDelete) && Date.parse(tombstone.deletedAt || '') >= timestamp(item)) continue;
     out.push(item);
   }
