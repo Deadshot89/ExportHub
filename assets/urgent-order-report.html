@@ -388,10 +388,10 @@ async function createWithMinibagReview(p){
   if(!affected.length)throw e;
   const en=p.language==='en';
   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
-  const msg=en?'Minibag check: '+list+' does not match a full standard pack. Are you sure this is NOT a Minibag? Please check. OK = continue without Minibag; Cancel = correct the entry.':'Minibag überprüfen: '+list+' entspricht keiner vollen Standardverpackung. Bist du sicher, dass es kein Minibag ist? Bitte prüfen. OK = ohne Minibag melden; Abbrechen = Artikel korrigieren.';
+  const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
   if(!window.confirm(msg)){
    showWizardStep(2);
-   throw new Error(en?'Please check the Minibag option before sending.':'Bitte den Minibag-Haken und die Menge überprüfen.');
+   throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
   }
   affected.forEach(x=>{x.minibagReviewed=true;});
   return await api('create',p);
