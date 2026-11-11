@@ -217,3 +217,29 @@ test('RC1968: non-cooperative stream iterator cannot hang the caller',async()=>{
  assert.ok(destroyed>=1);
  assert.deepEqual(f.stats(),{props:1,downs:1});
 });
+
+test('RC1978: stream destroy throwing on timeout cannot crash the timer callback',async()=>{
+ let destroyCalls=0;
+ const stalled={
+  [Symbol.asyncIterator](){return{next:()=>new Promise(()=>{})}},
+  destroy(){destroyCalls++;throw Error('AccountKey=FAKE_TIMEOUT_SECRET');}
+ };
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1,'reader must attempt to close stalled stream');
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1978: throwing stream cleanup fails closed even after exact matching data',async()=>{
+ let destroyCalls=0;
+ const invalidCleanup={
+  async *[Symbol.asyncIterator](){yield Buffer.from(bytes);},
+  destroy(){destroyCalls++;throw Error('AccountKey=FAKE_CLEANUP_SECRET');}
+ };
+ const f=fixture({response:{readableStreamBody:invalidCleanup}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:250});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1);
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
