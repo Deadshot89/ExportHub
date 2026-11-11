@@ -269,7 +269,9 @@ module.exports=async function(context,req){
   const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
+  context.res=json(status,response);
  }
 };
 module.exports.execute=execute;
