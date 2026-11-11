@@ -2701,5 +2701,7 @@
   "urgentOrderV2.wholeOrderHolds": "Czy całe zamówienie nie ma blokad Don't Process ani Credit Hold?",
   "urgentOrderV2.wholeOrderNotChecked": "Jeszcze nie sprawdzono",
   "urgentOrderV2.wholeOrderReason": "Uzasadnienie negatywnej kontroli całego zamówienia",
-  "urgentOrderV2.wholeOrderReasonRequired": "W przypadku negatywnej kontroli podaj uzasadnienie liczące co najmniej 8 znaków."
+  "urgentOrderV2.wholeOrderReasonRequired": "W przypadku negatywnej kontroli podaj uzasadnienie liczące co najmniej 8 znaków.",
+  "urgentOrderV2.untrustedHostHelp": "Korzystaj wyłącznie z oficjalnej strony TESTSERVICE. Po zmianie strony niezapisane dane trzeba wprowadzić ponownie.",
+  "urgentOrderV2.openOfficialTestservice": "Otwórz oficjalny TESTSERVICE"
 }
