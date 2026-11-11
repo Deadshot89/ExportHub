@@ -739,3 +739,37 @@ test('P0 2026-11-06: three DNC Lieferscheine survive Pack to shipment to AVIS ha
   assert.equal(bridge.linkShipment(s,note,shipment,'2026-11-06T12:01:00Z'),true);
   assert.equal(shipment.deliveryFiles.length,3,'repeat link must never duplicate uploaded originals');
 });
+
+
+test('mixed type pack rows preserve their individual line weights in shipment handoff',()=>{
+  const api=load();
+  const prefill=api.shipmentPrefill({
+    id:'pn-mixed',reference:'PK-MIX',packageType:'Europalette',packageCount:3,totalWeight:39.5,
+    packages:[
+      {packageNo:1,packageType:'Europalette',length:120,width:80,height:100,weight:10},
+      {packageNo:2,packageType:'Europalette',length:120,width:80,height:100,weight:10},
+      {packageNo:3,packageType:'Einwegpalette',length:120,width:80,height:100,weight:19.5}
+    ]
+  });
+  assert.deepEqual(Array.from(prefill.rows,row=>row.weight),[10,10,19.5]);
+  const grouped=api.shipmentRows(prefill);
+  assert.equal(grouped.length,2);
+  assert.deepEqual(Array.from(grouped,g=>g.count),[2,1]);
+  assert.deepEqual(Array.from(grouped,g=>g.weight),[20,19.5]);
+  assert.equal(grouped.reduce((sum,g)=>sum+g.weight,0),39.5);
+});
+
+
+test('shipment transfer preserves exact multi-row LDM and two decimal weight totals',()=>{
+  const bridge=load();
+  const draft=bridge.shipmentPrefill({id:'N',reference:'PK-EXACT',packageType:'Euro Palette',packageCount:3,totalWeight:39.55,packages:[
+    {packageType:'Euro Palette',weight:10,ldm:.2,length:120,width:80,height:130},
+    {packageType:'Euro Palette',weight:10,ldm:.2,length:120,width:80,height:130},
+    {packageType:'Karton',weight:19.55,ldm:.1,length:40,width:30,height:20}
+  ]});
+  assert.deepEqual(Array.from(draft.rows,x=>x.ldm),[.2,.2,.1]);
+  const grouped=bridge.shipmentRows(draft);
+  assert.equal(grouped.length,2);
+  assert.deepEqual(Array.from(grouped,g=>g.weight),[20,19.55]);
+  assert.deepEqual(Array.from(grouped,g=>g.ldm),[.4,.1]);
+});

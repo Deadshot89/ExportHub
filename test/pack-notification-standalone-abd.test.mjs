@@ -139,17 +139,28 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
     assert.match(out,/source=d\.packNotificationId\?'Aus Packmeldung übernommen'/);
     assert.doesNotMatch(source,/var sh=!item\.packNotificationId&&item\.linkedShipmentId/);
     assert.equal(out.includes('function saveAbdInternal(showAlert,status)'),true);
-    assert.equal(injectPackAbdOwnership(out,file),out,'second pass must preserve complete ABD ownership protection');
-    const tampered=out.replace('source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
-      'source:d.source,');
-    assert.notEqual(tampered,out,'test must remove a real ownership protection');
-    assert.throws(()=>injectPackAbdOwnership(tampered,file),/contract drift/,'partial protections must still fail closed');
   }
   assert.throws(()=>injectPackAbdOwnership('function saveAbdInternal(showAlert,status){}','TESTVERSION.html'),/contract drift/);
   assert.ok(PACK_ASSETS.includes('pack-notification-abd.js'));
   const tiny='<html><head></head><body></body></html>';
   assert.equal(injectPackRuntime(tiny,'demo.html').includes('/assets/pack-notification-abd.js?v=1'),true);
 });
+test('RC1382: final HTML injector is idempotent and never accepts partial Pack-ABD ownership',()=>{
+  for(const file of ['index.html','TESTVERSION.html']){
+    const source=fs.readFileSync(file,'utf8');
+    const once=injectPackAbdOwnership(source,file);
+    assert.equal(injectPackAbdOwnership(once,file),once,'already patched ABD ownership must remain byte-identical');
+    const packaged=injectPackRuntime(once,file);
+    assert.equal(injectPackRuntime(packaged,file),packaged,'final verifier may safely reapply full Pack runtime');
+    const broken=once.replace(
+      'source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
+      'source:d.source,missingPackOwner:q(d.packNotificationId||existing&&existing.packNotificationId),'
+    );
+    assert.notEqual(broken,once,'partial patch fixture must differ');
+    assert.throws(()=>injectPackAbdOwnership(broken,file),/RC1382 ABD ownership contract drift/,'partially patched ownership must fail closed');
+  }
+});
+
 test('ABD-only user may open Pack detail without staging an unauthorized task write',()=>{
   const state={view:'packnotifications',
     packNotifications:[{id:'PN-1',reference:'PK-1',customer:'Customer',status:'new',documents:[]}],
