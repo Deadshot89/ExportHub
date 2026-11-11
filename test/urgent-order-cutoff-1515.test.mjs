@@ -80,7 +80,15 @@ test('late cutoff choices stay hidden until a late same-day submit and tomorrow 
   const html=fs.readFileSync(new URL('../assets/'+file,import.meta.url),'utf8');
   const snippetStart=html.indexOf(begin),snippetEnd=html.indexOf(end,snippetStart);
   assert.ok(snippetStart>=0&&snippetEnd>snippetStart,file+' cutoff helpers found');
-  const controls=Object.fromEntries(ids.map(id=>[id,{value:'',hidden:false,textContent:'',min:'',focus(){}}]));
+  // Lightweight DOM mock for the accessible, formatted cutoff warning.
+  // The real browser supports replaceChildren/append/createElement; this test
+  // must model those APIs instead of assuming a plain text-only paragraph.
+  const node=(tag='div')=>({
+   tag,textContent:'',children:[],
+   replaceChildren(){this.children=[];this.textContent='';},
+   append(child){this.children.push(child);this.textContent+=child.textContent||'';}
+  });
+  const controls=Object.fromEntries(ids.map(id=>[id,Object.assign(node(),{value:'',hidden:false,min:'',focus(){}})]));
   const isInternal=file==='urgent-orders.html';
   const dateId=isInternal?'internalRequestedDispatchDate':'requestedDispatchDate';
   const panelId=isInternal?'internalLateCutoffChoice':'lateCutoffChoice';
@@ -101,6 +109,7 @@ test('late cutoff choices stay hidden until a late same-day submit and tomorrow 
    $:id=>controls[id],
    localeV2:(_key,fallback)=>fallback,
    showWizardStep:()=>{},
+   document:{createElement:tag=>node(tag),createTextNode:text=>({textContent:text})},
   });
   vm.runInContext(html.slice(snippetStart,snippetEnd),context);
   assert.equal(context[sync](),false,file+' at 15:15:59');
@@ -113,6 +122,8 @@ test('late cutoff choices stay hidden until a late same-day submit and tomorrow 
   assert.equal(controls[panelId].hidden,false,'two actions are visible after attempted late submit');
   assert.equal(controls[buttonId].hidden,true,'ordinary submit hidden while decision needed');
   assert.match(controls[textId].textContent,/15:15/);
+  assert.ok(controls[textId].children.some(child=>child.tag==='ul'),'approved warning renders actual list elements');
+  assert.equal(controls[textId].children.filter(child=>child.tag==='ul').length,1,'one accessible bullet list');
   context[apply](true);
   assert.equal(controls[dateId].value,'2026-11-10');
   assert.equal(controls[panelId].hidden,true);
