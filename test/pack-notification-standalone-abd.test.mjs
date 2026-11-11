@@ -161,6 +161,12 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
       'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
       'function shipmentForAbd(a){return null;'
     ),file),/contract drift/,'unexpected ownership changes must fail closed');
+    assert.throws(()=>injectPackAbdOwnership(once+
+      'function shipmentForAbd(a){if(!a)return null;',file),/contract drift/,
+    'a patched hook plus an extra legacy hook must fail closed');
+    assert.throws(()=>injectPackAbdOwnership(once+
+      'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;',file),/contract drift/,
+    'duplicate legacy hooks must fail even when the patched signature retains that prefix');
   }
   assert.ok(PACK_ASSETS.includes('pack-notification-abd.js'));
   const tiny='<html><head></head><body></body></html>';
