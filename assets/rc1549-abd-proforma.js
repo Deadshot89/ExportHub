@@ -266,7 +266,7 @@ function rcmatches(term){
  term=q(term).toLocaleLowerCase('de-DE');if(!term)return[];
  var out=[];
  rcdirectory().forEach(function(c){
-  if(!c||typeof c!=='object')return;
+  if(!c||typeof c!=='object'||c.deleted===true||c.disabled===true||c.active===false)return;
   var account=rcv(c.account||c.customerNumber||c.kundennummer||c.customerAccount||c.customerNo||c.number),name=rcv(c.name||c.customerName||c.companyName);
   var id=account.toLocaleLowerCase('de-DE'),named=name.toLocaleLowerCase('de-DE');if(!name||(!id.includes(term)&&!named.includes(term)))return;
   var rank=id===term?0:id.startsWith(term)?1:named.startsWith(term)?2:3;
@@ -310,11 +310,14 @@ function rcchoose(index){
  if(!rcmatches(search.value).some(function(x){return x.account===c.account&&x.name===c.name&&x.address===c.address&&x.site===c.site})){rcrender(search.value);return false}
  var name=p.querySelector('[data-rc1549-header="recipient"]'),address=p.querySelector('[data-rc1549-header="recipientAddress"]');
  if(!name||!address)return false;
- if((q(name.value)&&q(name.value)!==c.name)||(c.address&&q(address.value)&&q(address.value)!==c.address)){
+ // Never retain an address from a previously selected recipient when the new
+ // customer has no stored address. Confirm even when a filled address is cleared.
+ var nextAddress=c.address||'';
+ if((q(name.value)&&q(name.value)!==c.name)||(q(address.value)&&q(address.value)!==nextAddress)){
   if(typeof root.confirm!=='function'||!root.confirm(rct(5)))return false
  }
  headerDraft.recipient=c.name;name.value=c.name;
- if(c.address){headerDraft.recipientAddress=c.address;address.value=c.address}
+ headerDraft.recipientAddress=nextAddress;address.value=nextAddress;
  invalidate();search.value='';rcrender('');
  setStatus(c.address?rct(6):rct(7),c.address?'ok':'warn');return true
 }
