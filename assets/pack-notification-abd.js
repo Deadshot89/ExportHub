@@ -94,7 +94,15 @@
       if(queued===false)throw new Error('ABD_SAVE_QUEUE_REJECTED');
       const runtime=clean.runtime||null,target=Number(runtime&&runtime.changeGeneration)||0;
       const flushed=await Promise.resolve(clean.flushSave(reason));
-      const acknowledged=flushed===true||(target>0&&Number(runtime&&runtime.lastSavedGeneration)>=target);
+      // RC2004 P0: a locally advanced lastSavedGeneration is not evidence of
+      // Azure persistence. When the runtime exposes the authoritative server
+      // acknowledgement, it must cover the exact queued generation even if
+      // flushSave returned true. Never send a mail on a stale acknowledgement.
+      const hasServerAck=!!runtime&&target>0&&typeof runtime.lastServerSaveAckGeneration==='number'&&
+        Number.isFinite(runtime.lastServerSaveAckGeneration);
+      const acknowledged=hasServerAck
+        ? runtime.lastServerSaveAckGeneration>=target
+        : flushed===true;
       if(!acknowledged)throw new Error('ABD_SAVE_UNCONFIRMED');
       const n=notification(item.packNotificationId);
       const matches=arr(state().abdRequests).filter(r=>owned(r,n));
@@ -257,7 +265,12 @@
   }
   function install(){
     if(!root.addEventListener||!root.document)return false;
-    root.addEventListener('exporthub:pack-create-abd',e=>begin(e&&e.detail&&e.detail.notificationId));
+    root.addEventListener('exporthub:pack-create-abd',e=>{
+      const detail=e&&e.detail;
+      if(detail&&typeof detail==='object')detail.handled=true;
+      const success=begin(detail&&detail.notificationId);
+      if(detail&&typeof detail==='object')detail.success=success===true;
+    });
     for(const name of ['exporthub:rendered','exporthub:viewchange','exporthub:state-updated'])
       root.addEventListener(name,decorate);
     root.document.addEventListener('click',onClick);

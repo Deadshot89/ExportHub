@@ -122,3 +122,38 @@ test('foreign Pack ownership and cancelled Pack records reject saves before modi
     assert.equal(ctx.state.shipments[0].abdRequestId,undefined);
   }
 });
+
+
+test('RC2004: stale server ACK never marks Pack ABD saved or opens Outlook',async()=>{
+  const ctx=setup();
+  ctx.root.ExportHUBClean.runtime={
+    changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1
+  };
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'','A stale server ACK must never trigger the mail application');
+  assert.ok(ctx.alerts.some(x=>x.includes('nicht bestätigt')));
+  assert.equal(ctx.state.abdRequests.length,1,'Unconfirmed drafts retain their ID for safe retry');
+});
+
+test('RC2004: matching server ACK confirms Pack ABD and only then opens Outlook',async()=>{
+  const ctx=setup();
+  ctx.root.ExportHUBClean.runtime={
+    changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:3
+  };
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaved'));
+  assert.match(ctx.location.href,/^mailto:/);
+});
+
+test('RC2004: locally saved generation never overrides a failed flush without server ACK',async()=>{
+  const ctx=setup({saveOk:false});
+  ctx.root.ExportHUBClean.runtime={changeGeneration:3,lastSavedGeneration:3};
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+});

@@ -2,6 +2,8 @@
 // This script is invoked after successful main TESTSERVICE deployment; never on production.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {requireGuestRuntimeRef} from './rc1903-guest-runtime-gate.mjs';
 
 const BASE='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
@@ -38,12 +40,21 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Updated guest runtime missing from verified TESTSERVICE HTML');
+const guestBytes=fs.readFileSync(new URL('../assets/shipment-evidence-guest.js',import.meta.url));
+const rootGuestRef=requireGuestRuntimeRef(html,guestBytes,{fingerprintRequired:true});
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
 assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
-assert.match(publicHtml,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Public evidence page still serves a stale upload runtime');
+const publicGuestRef=requireGuestRuntimeRef(publicHtml,guestBytes);
+// Verify both browser URLs return the exact deployed runtime, not only a matching version string.
+// Do this before the first anonymous write; no content hash or stale URL may bypass it.
+for(const ref of new Set([rootGuestRef,publicGuestRef])){
+ const asset=await fetch(new URL(ref,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
+ assert.equal(asset.status,200,'Public evidence page still serves a stale upload runtime: '+ref);
+ assert.deepEqual(Buffer.from(await asset.arrayBuffer()),guestBytes,
+   'TESTSERVICE runtime bytes do not match the verified main-SHA source: '+ref);
+}
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
 const unique=crypto.randomBytes(5).toString('hex');
