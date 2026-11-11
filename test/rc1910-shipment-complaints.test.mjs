@@ -80,3 +80,19 @@ test('Reklamation: Neu erfasster Nachweis darf bei erster Maßnahmenerfassung ni
  assert.equal(c.effectivenessEvidence,'Zehn archivierte Kontrollen');
  assert.equal(c.effectivenessResult,'offen');
 });
+
+test('Reklamationen: alle aktiven Fälle zählen, erledigte und entfernte nicht',()=>{
+ const a=make(),b=make(),done=make();
+ complaints.edit(done,{rootCause:'Ursache',correctiveAction:'Pflichtkontrolle',
+  checkMethod:'Kontrolle',checkDate:'2026-11-10',checkCriteria:'0 Fehler',
+  effectivenessEvidence:'Nachgewiesen'},'A');
+ complaints.edit(done,{effectivenessResult:'wirksam'},'B');
+ complaints.changeStatus(done,'abgeschlossen','B');
+ assert.equal(complaints.openCount([
+  {complaints:[a,b,done]},
+  {complaints:[{text:'Historisch',state:'in_pruefung'}]},
+  {deletedAt:'2026-11-11',complaints:[make()]}
+ ]),3);
+ assert.equal(complaints.openCount([{complaints:[done]}]),0);
+ assert.equal(complaints.openCount([]),0);
+});
