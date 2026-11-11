@@ -45,14 +45,14 @@ const rootGuestRef=requireGuestRuntimeRef(html,guestBytes,{fingerprintRequired:t
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
-assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
+assert.ok(/id="eh1903-guest-root"/.test(publicHtml),'Public submission page missing its root');
 const publicGuestRef=requireGuestRuntimeRef(publicHtml,guestBytes);
 // Verify both browser URLs return the exact deployed runtime, not only a matching version string.
 // Do this before the first anonymous write; no content hash or stale URL may bypass it.
 for(const ref of new Set([rootGuestRef,publicGuestRef])){
  const asset=await fetch(new URL(ref,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
  assert.equal(asset.status,200,'Public evidence page still serves a stale upload runtime: '+ref);
- assert.deepEqual(Buffer.from(await asset.arrayBuffer()),guestBytes,
+ assert.ok(Buffer.from(await asset.arrayBuffer()).equals(guestBytes),
    'TESTSERVICE runtime bytes do not match the verified main-SHA source: '+ref);
 }
 const noLogin=await request('GET','list');

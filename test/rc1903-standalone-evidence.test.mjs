@@ -633,7 +633,7 @@ test('RC1903: live TESTSERVICE smoke rejects outdated public upload scripts',()=
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  assert.ok(gate.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
  assert.match(live,/requireGuestRuntimeRef\(html,guestBytes,\{fingerprintRequired:true\}\)/);
- assert.match(live,/assert\.deepEqual\(Buffer\.from\(await asset\.arrayBuffer\(\)\),guestBytes/);
+ assert.match(live,/assert\.ok\(Buffer\.from\(await asset\.arrayBuffer\(\)\)\.equals\(guestBytes\)/);
  assert.match(live,/Public evidence page still serves a stale upload runtime/);
  assert.match(guest,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
@@ -676,4 +676,27 @@ test('RC1903: first photo upload creates own DOK; public and staff require persi
   for(const key of ['uploadAutoCreate','uploadBusy','verifyingUpload','uploadVerified','uploadUnverified'])
    assert.ok(strings[key],locale+' '+key);
  }
+});
+
+test('RC2008 P0: TESTSERVICE runtime readback compares bytes exactly without exposing asset contents',async()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ assert.doesNotMatch(live,/assert\.match\(publicHtml,/,'A failed form-root check must not print full public HTML');
+ assert.match(live,/assert\.ok\(\/id="eh1903-guest-root"\/\.test\(publicHtml\),/,'Form-root check must remain mandatory');
+ const source="assert.ok(Buffer.from(await asset.arrayBuffer()).equals(guestBytes),";
+ const start=live.indexOf(source);
+ const end=live.indexOf(");\n",start);
+ assert.ok(start>=0&&end>start,'Asset readback comparison missing');
+ const comparison=live.slice(start,end+2);
+ assert.doesNotMatch(comparison,/deepEqual|match\(/,'No raw asset buffer may be passed to an assertion failure');
+ const verify=vm.runInNewContext('(async(asset,guestBytes,ref)=>{'+comparison+'})',{Buffer,assert});
+ const good=Buffer.from('EXACT-GUEST-ASSET');
+ await verify({arrayBuffer:async()=>good},good,'/assets/shipment-evidence-guest.js?v=1907');
+ const payload=Buffer.from('SENSITIVE-SYNTHETIC-BUFFER-TEST');
+ await assert.rejects(
+  verify({arrayBuffer:async()=>payload},good,'/assets/shipment-evidence-guest.js?v=1907'),
+  error=>error.code==='ERR_ASSERTION'&&
+   /TESTSERVICE runtime bytes do not match/.test(error.message)&&
+   !String(error.stack).includes('SENSITIVE-SYNTHETIC-BUFFER-TEST'),
+  'Mismatch must fail closed without including received bytes'
+ );
 });
