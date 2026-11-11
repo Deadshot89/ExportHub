@@ -2701,5 +2701,7 @@
   "urgentOrderV2.wholeOrderHolds": "L’intero ordine è privo di blocchi Don't Process e Credit Hold?",
   "urgentOrderV2.wholeOrderNotChecked": "Non ancora verificato",
   "urgentOrderV2.wholeOrderReason": "Motivo di un controllo negativo sull’intero ordine",
-  "urgentOrderV2.wholeOrderReasonRequired": "Se un controllo è negativo, inserisci un motivo di almeno 8 caratteri."
+  "urgentOrderV2.wholeOrderReasonRequired": "Se un controllo è negativo, inserisci un motivo di almeno 8 caratteri.",
+  "urgentOrderV2.untrustedHostHelp": "Utilizza solo la pagina ufficiale TESTSERVICE. Se cambi pagina, dovrai reinserire i dati non salvati.",
+  "urgentOrderV2.openOfficialTestservice": "Apri il TESTSERVICE ufficiale"
 }
