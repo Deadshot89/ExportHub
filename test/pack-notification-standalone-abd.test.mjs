@@ -54,6 +54,14 @@ test('Pack -> manual ABD prefill keeps no shipment and does not save an ABD requ
     ['Europalette','2',''],['Karton','1','']
   ]);
 });
+test('denied ABD navigation cannot be bypassed by direct Pack handoff',()=>{
+  const {root,state,calls,api}=fixture();
+  root.setView=()=>false; // central navigation rejected this account
+  state.view='packnotifications';
+  assert.equal(api.begin('PN-1'),false);
+  assert.equal(calls.newAbd,0,'ABD editor must not be opened behind a rejected route');
+  assert.equal(state.abdRequests.length,0);
+});
 test('Pack ABD copies only explicit weight values on mixed package rows',()=>{
   const {api}=fixture();
   const rows=api.rowsFromPack({packageCount:2,totalWeight:30,packages:[
