@@ -59,8 +59,8 @@ function changeStatus(c,value,actor){
  if(previous==='abgeschlossen'){c.effectivenessResult='offen';c.verifiedOn='';c.verifiedBy='';c.effectivenessEvidence=''}
  return previous;
 }
-function proposal(c,fields){
- const shipment=fields||{},cause='Tatsaechliche Ursache noch offen – Ablauf anhand von Fotos, Dokumenten und Buchungen abgleichen.';
+function proposal(c,fields,actor){
+ const shipment=fields||{},signOff=str(actor||'[Bearbeiter]',120),cause='Tatsaechliche Ursache noch offen – Ablauf anhand von Fotos, Dokumenten und Buchungen abgleichen.';
  return{
   facts:['Reklamation vom '+(c.reportedDate||'unbekannt'),c.text].filter(Boolean),
   openQuestions:['Welcher Arbeitsschritt hat die Abweichung verursacht?','Was belegen die Fotos, Belege und Scan-/Versanddaten?','Sind andere Sendungen betroffen?'],
@@ -70,7 +70,7 @@ function proposal(c,fields){
   preventiveAction:'SOP und Einweisung anhand des bestaetigten Fehlers aktualisieren; Wiederholungen auswerten.',
   checkMethod:'Stichprobe vergleichbarer Sendungen nach Umsetzung der Abstellmassnahme kontrollieren.',
   checkCriteria:'Keine Wiederholung derselben nachgewiesenen Ursache in der dokumentierten Stichprobe.',
-  customerDraft:'Hallo,\n\ndanke fuer deine Nachricht. Wir pruefen die Reklamation und die vorhandenen Versandunterlagen. Sobald wir den Sachverhalt geklaert haben, melden wir uns mit dem Ergebnis und den naechsten Schritten.\n\nGruss\n[Bearbeiter]',
+  customerDraft:'Hallo,\n\ndanke fuer deine Nachricht. Wir pruefen die Reklamation und die vorhandenen Versandunterlagen. Sobald wir den Sachverhalt geklaert haben, melden wir uns mit dem Ergebnis und den naechsten Schritten.\n\nGruss\n'+signOff',
   carrierDraft:shipment.carrier?'Hallo,\n\nzu einer Sendung liegt uns eine Reklamation vor. Koennt ihr bitte den Transportablauf und die vorhandenen Abliefernachweise pruefen und uns eure Rueckmeldung schicken?\n\nGruss\n[Bearbeiter]':'',
   disclaimer:'Regelvorschlag (ohne KI) – vor Uebernahme fachlich pruefen. Keine Schuld- oder Haftungszusage.'
  };
