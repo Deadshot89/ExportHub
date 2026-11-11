@@ -21,6 +21,11 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
@@ -42,7 +47,8 @@ jobs:
       - name: Playwright installieren
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
+          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Vollständige Navigation lokal im echten Browser prüfen
         env:

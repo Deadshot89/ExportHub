@@ -104,6 +104,11 @@ jobs:
 
   integrated-browser:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -130,7 +135,8 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
+          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Protect ExportHUB core browser flows
         env:
           EXPORTHUB_E2E_STATIC: '1'
@@ -174,6 +180,11 @@ jobs:
 
   environment-package:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
@@ -200,7 +211,8 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
+          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Verify Production candidate package read-only
         env:
           EXPORTHUB_E2E_STATIC: '1'
