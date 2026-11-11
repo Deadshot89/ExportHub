@@ -57,3 +57,33 @@ test('RC1820: Nur das aktuell geöffnete Mega-Menü ist hervorgehoben',()=>{
  const result=renderWith('shipments');
  assert.deepEqual(result.tabs.filter(tab=>tab.highlighted).map(tab=>tab.key),['shipments']);
 });
+
+const selectStart=source.indexOf(' function findActive(n){');
+const selectEnd=source.indexOf('\\n function isActive(',selectStart);
+assert.ok(selectStart>=0&&selectEnd>selectStart,'Top navigation active selection function not found');
+const selectSource=source.slice(selectStart,selectEnd);
+
+function selectWith(view,activeView){
+ const item=(key,active=false)=>({
+  tagName:'BUTTON',view:key,hidden:false,style:{display:''},
+  classList:{contains:cls=>cls==='active'&&active},
+  getAttribute:key=>key==='aria-current'?null:null
+ });
+ const buttons=[item('dashboard'),item('shipment',activeView==='shipment'),item('customerfolder',activeView==='customerfolder')];
+ const nav={children:buttons,querySelector:()=>null};
+ const document={body:{getAttribute:name=>name==='data-exporthub-view'?view:null}};
+ const context={n:nav,d:document,clean:x=>String(x||'').trim(),viewOf:el=>el.view,allowed:el=>!el.hidden};
+ return vm.runInNewContext(selectSource+'\\nfindActive(n)',context,{timeout:1000}).view;
+}
+
+test('RC1820: Kundenordner wird trotz veralteter Sendung-Markierung ausgewählt',()=>{
+ assert.equal(selectWith('customerfolder','shipment'),'customerfolder');
+});
+
+test('RC1820: Die tatsächlich geöffnete Sendungsseite bleibt auswählbar',()=>{
+ assert.equal(selectWith('shipment','shipment'),'shipment');
+});
+
+test('RC1820: Bei unbekannter View gilt die normale Menümarkierung',()=>{
+ assert.equal(selectWith('','shipment'),'shipment');
+});
