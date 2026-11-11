@@ -680,6 +680,7 @@ test('RC1903 P0: live TESTSERVICE pins fingerprinted root and unmodified public 
    'Standalone public HTML is not fingerprinted by RC1112');
  assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1906"></script>',publicPattern,
    'Standalone public page must reject outdated runtime');
- assert.ok(live.includes('assert.match(html,ROOT_GUEST_ASSET,'),'Main TESTSERVICE root must validate fingerprinted script');
- assert.ok(live.includes('assert.match(publicHtml,PUBLIC_GUEST_ASSET,'),'Public page must keep separate guest asset check');
+ assert.ok(live.includes('assert.ok(ROOT_GUEST_ASSET.test(html),'),'Main TESTSERVICE root must validate fingerprinted script without leaking raw HTML');
+ assert.ok(live.includes('assert.ok(PUBLIC_GUEST_ASSET.test(publicHtml),'),'Public page must keep separate guest asset check without leaking raw HTML');
+ assert.doesNotMatch(live,/assert\.match\((?:html|publicHtml),/,'Failed live gate must not dump full HTML into GitHub logs');
 });
