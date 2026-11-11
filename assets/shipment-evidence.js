@@ -126,7 +126,11 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
  }
  search.addEventListener('input',()=>{state.search=search.value;state.searchRun++;updateRows()});updateRows();
 }
-async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){state.records=[];state.continuation=null}if(state.view==='list')status(t('loading'),false);
+async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken;const serial=++state.serial;if(reset){
+ state.records=[];state.continuation=null;
+ state.legacyRecords=[];state.legacyContinuation=null;state.legacyError='';
+ loadLegacyList(true);
+}if(state.view==='list')status(t('loading'),false);
  try{const result=await request('GET',{action:'list',...(reset?{}:state.continuation?{continuation:state.continuation}:{})});
   if(serial!==state.serial)return false;
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
@@ -136,18 +140,33 @@ async function loadList(reset){if(state.loading&&!reset)return false;state.loadi
   return true;
  }catch(e){if(serial===state.serial&&state.view==='list')status(e.message,true);return false}
  finally{if(listToken===state.listToken)state.loading=false}}
+async function loadLegacyList(reset){
+ if(state.legacyLoading||state.view!=='list')return false;
+ const serial=state.serial;state.legacyLoading=true;
+ try{
+  const result=await legacyRequest({action:'list',...(!reset&&state.legacyContinuation?{continuation:state.legacyContinuation}:{})});
+  if(serial!==state.serial||state.view!=='list')return false;
+  const merged=new Map([...(reset?[]:state.legacyRecords),...result.records].map(r=>[r.id,r]));
+  state.legacyRecords=[...merged.values()].sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+  state.legacyContinuation=result.continuation||null;state.legacyError='';
+  if(active())showList(true);return true
+ }catch(e){
+  if(serial===state.serial&&state.view==='list'){state.legacyError=e.message;if(active())showList(true)}
+  return false
+ }finally{state.legacyLoading=false}
+}
 async function scanAll(){
- if(state.scanning||state.loading||!state.continuation||!state.search.trim())return;
+ if(state.scanning||state.loading||!(state.continuation||state.legacyContinuation)||!state.search.trim())return;
  const run=++state.searchRun;state.scanning=true;
  try{
-  while(run===state.searchRun&&state.view==='list'&&active()&&state.continuation){
-   const ok=await loadList(false);
+  while(run===state.searchRun&&state.view==='list'&&active()&&(state.continuation||state.legacyContinuation)){
+   const ok=state.continuation?await loadList(false):await loadLegacyList(false);
    if(!ok)break;
-   if(run===state.searchRun&&state.continuation)status(t('searching'),false);
+   if(run===state.searchRun&&(state.continuation||state.legacyContinuation))status(t('searching'),false);
   }
  }finally{
   state.scanning=false;
-  if(run===state.searchRun&&state.view==='list'&&active()&&!state.continuation)status(t('searchFinished'),false);
+  if(run===state.searchRun&&state.view==='list'&&active()&&!state.continuation&&!state.legacyContinuation)status(t('searchFinished'),false);
  }
 }
 function labelField(grid,key,kind,value){const label=make('label',key==='remarks'?'eh1903-wide':'',t(key));
