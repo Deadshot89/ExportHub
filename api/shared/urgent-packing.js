@@ -49,4 +49,23 @@ function requireReview(items,catalog){
  }
  return checks;
 }
-module.exports={parseCatalog,evaluate,reviewItems,requireReview,problem};
+// Read-only wizard check: never expose private pack sizes or the catalog itself.
+// Indices refer to the exact order lines supplied by the caller.
+function preflight(items,catalog){
+ if(!Array.isArray(items)||items.length<1||items.length>100)
+  throw problem('URGENT_PACKING_CHECK_INVALID','Bitte 1 bis 100 Positionen prüfen.');
+ const quantities=catalog&&catalog.quantities&&typeof catalog.quantities==='object'&&!Array.isArray(catalog.quantities)?catalog.quantities:{};
+ const unknownIndices=[],reviewIndices=[];
+ let checkedCount=0;
+ for(let index=0;index<items.length;index++){
+  const item=items[index]||{},article=String(item.article||'').trim(),quantity=Number(item.quantity);
+  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>10_000_000)
+   throw problem('URGENT_PACKING_CHECK_INVALID','Bitte eine gültige Artikelmenge eingeben.');
+  const size=Object.hasOwn(quantities,article)?quantities[article]:null;
+  if(!Number.isSafeInteger(size)||size<=0){if(item.minibag!==true)unknownIndices.push(index);continue;}
+  checkedCount++;
+  if(item.minibag!==true&&quantity%size!==0&&item.minibagReviewed!==true)reviewIndices.push(index);
+ }
+ return{ready:Number(catalog&&catalog.count)>0||checkedCount>0,checkedCount,unknownIndices,reviewIndices};
+}
+module.exports={parseCatalog,evaluate,reviewItems,requireReview,preflight,problem};

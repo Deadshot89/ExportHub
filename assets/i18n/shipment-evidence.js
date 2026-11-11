@@ -202,4 +202,21 @@ const legacyRefListI18n={
 };
 for(const [lang,strings] of Object.entries(legacyRefListI18n))
  Object.assign(w.ExportHUBEvidenceI18n[lang],strings);
+const recoveryUi={
+ de:{directOpen:'Dokumentation direkt öffnen',directRequired:'Bitte vollständige DOK-Referenz eingeben.',restoreFound:'Dieser Nachweis ist ausgeblendet. Wiederherstellung mit Sicherheitskopie möglich:',restoreAction:'Nachweis wiederherstellen',restoreConfirm:'Diesen Nachweis nach Prüfung der Originaldateien wiederherstellen? Vorher wird eine unveränderliche Sicherheitskopie angelegt.',restoreMissingFiles:'Eine Originaldatei fehlt oder ist unprüfbar. Keine automatische Wiederherstellung.',restoreNotFound:'In dieser Umgebung wurde kein aktiver Nachweis gefunden.',restoreHistory:'Im Speicher bestehen mögliche ältere Versionen. Bitte nur gesichert prüfen.'},
+ en:{directOpen:'Open record by ID',directRequired:'Enter the full DOK reference.',restoreFound:'This record is hidden. Backup-protected recovery is available:',restoreAction:'Restore record',restoreConfirm:'Restore this record after verifying original files? An immutable backup will be created first.',restoreMissingFiles:'An original file is missing or cannot be verified. Automatic recovery is blocked.',restoreNotFound:'No active record was found in this environment.',restoreHistory:'Older storage versions may exist. Verify them safely.'},
+ pl:{directOpen:'Otwórz dokument po numerze',directRequired:'Wpisz pełny numer DOK.',restoreFound:'Dokument jest ukryty. Możliwe przywrócenie z kopią bezpieczeństwa:',restoreAction:'Przywróć dokument',restoreConfirm:'Przywrócić dokument po sprawdzeniu plików? Najpierw zostanie zapisana kopia bezpieczeństwa.',restoreMissingFiles:'Brakuje pliku oryginalnego lub nie można go sprawdzić. Przywrócenie zablokowane.',restoreNotFound:'W tym środowisku nie znaleziono aktywnego dokumentu.',restoreHistory:'Mogą istnieć starsze wersje w magazynie. Sprawdź je bezpiecznie.'},
+ es:{directOpen:'Abrir documento por ID',directRequired:'Introduce la referencia DOK completa.',restoreFound:'Este registro está oculto. Se puede restaurar con copia de seguridad:',restoreAction:'Restaurar registro',restoreConfirm:'¿Restaurar el registro tras verificar los archivos originales? Antes se creará una copia segura.',restoreMissingFiles:'Falta un archivo original o no se puede verificar. Restauración bloqueada.',restoreNotFound:'No se encontró ningún registro activo en este entorno.',restoreHistory:'Puede haber versiones anteriores en el almacenamiento. Verifícalas de forma segura.'},
+ fr:{directOpen:'Ouvrir le dossier par ID',directRequired:'Saisissez la référence DOK complète.',restoreFound:'Ce dossier est masqué. Une restauration avec sauvegarde est possible :',restoreAction:'Restaurer le dossier',restoreConfirm:'Restaurer après vérification des fichiers originaux ? Une sauvegarde sera créée au préalable.',restoreMissingFiles:'Un fichier original manque ou ne peut pas être vérifié. Restauration bloquée.',restoreNotFound:'Aucun dossier actif trouvé dans cet environnement.',restoreHistory:'Des versions précédentes peuvent exister. Vérifiez-les sans risque.'},
+ it:{directOpen:'Apri documento per ID',directRequired:'Inserisci il riferimento DOK completo.',restoreFound:'Il documento è nascosto. È possibile ripristinarlo con una copia di sicurezza:',restoreAction:'Ripristina documento',restoreConfirm:'Ripristinare dopo aver verificato i file originali? Prima sarà creata una copia di sicurezza.',restoreMissingFiles:'Un file originale manca o non è verificabile. Ripristino bloccato.',restoreNotFound:'Nessun documento attivo trovato in questo ambiente.',restoreHistory:'Potrebbero esserci versioni precedenti. Verificale in modo sicuro.'}
+};
+for(const [locale,strings] of Object.entries({
+ de:{storageLocation:'Tatsächlich verbundener Azure-Speicher'},
+ en:{storageLocation:'Connected Azure storage target'},
+ pl:{storageLocation:'Połączony magazyn Azure'},
+ es:{storageLocation:'Almacenamiento Azure conectado'},
+ fr:{storageLocation:'Stockage Azure connecté'},
+ it:{storageLocation:'Archivio Azure collegato'}
+}))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
+for(const [locale,strings] of Object.entries(recoveryUi))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 })(window);

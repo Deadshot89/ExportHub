@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
+const packing=require('../shared/urgent-packing');
 const apiI18n=require('../shared/i18n');
 const guard=new Map();
 const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
@@ -43,7 +44,8 @@ function ip(req){
 }
 function checkRate(req,action){
  const now=Date.now(),key=crypto.createHash('sha256').update(ip(req)+'|'+action).digest('hex');
- const span=action==='create'?3600000:60000,limit=action==='create'?12:90;
+ const sensitive=action==='create'||action==='packing-preflight';
+ const span=sensitive?3600000:60000,limit=sensitive?12:90;
  const r=guard.get(key);
  if(guard.size>10000){for(const [k,v] of guard)if(now-v.start>3600000)guard.delete(k);}
  if(!r||now-r.start>=span){guard.set(key,{start:now,count:1});return;}
@@ -74,6 +76,13 @@ async function publicAction(req,refs){
    return {deleted:!!order.deletedAt,deletion:{state:deletion.state,requestedAt:deletion.requestedAt},
      order:order.deletedAt?null:publicOrder(order)};
   });
+ }
+ if(action==='packing-preflight'){
+  // The anonymous browser sees only position indices, never private pack quantities.
+  // A separate per-IP hourly limit prevents unbounded catalog probing.
+  checkRate(req,'packing-preflight');
+  const catalog=await internal.readPackingCatalog(refs);
+  return {...packing.preflight(p.items,catalog),environment:refs.environment};
  }
  if(action==='create'){
   checkRate(req,'create');

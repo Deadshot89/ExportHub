@@ -594,7 +594,7 @@ test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, o
   assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
  }
  assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
- assert.match(build,/shipment-evidence\.js\?v=1911/,'Staff runtime must have cache-busted version');
+ assert.match(build,/shipment-evidence\.js\?v=2010/,'Staff runtime must have cache-busted version');
 });
 
 
@@ -617,8 +617,8 @@ test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cac
  assert.match(guest,/clipboard\.writeText\(record\.id\)/);
  assert.match(guest,/t\('referencePending'\)/);
  assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
- assert.match(build,/shipment-evidence\.js\?v=1911/);
- assert.match(build,/i18n\/shipment-evidence\.js\?v=1911/);
+ assert.match(build,/shipment-evidence\.js\?v=2010/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=2010/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
  assert.match(html,/shipment-evidence-guest\.js\?v=1907/);

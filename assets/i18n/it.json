@@ -2426,8 +2426,8 @@
   "urgentOrderV2.formTitle": "Crea una nuova richiesta",
   "urgentOrderV2.formIntro": "Inserisci ordine e flusso merci. Le richieste appaiono nella scheda corrispondente.",
   "urgentOrderV2.requestedDispatchDate": "Data di spedizione richiesta * (ora locale tedesca)",
-  "urgentOrderV2.cutoffLateWarning": "Un promemoria per oggi: segnala gli ordini per oggi entro le 15:15. Se è già più tardi, scegli preferibilmente domani come data di spedizione. Puoi comunque segnalare l'ordine per oggi. Se il sistema non lo rilascia automaticamente, ce ne occuperemo domani.",
-  "urgentOrderV2.cutoffHeading": "Un promemoria per oggi",
+  "urgentOrderV2.cutoffLateWarning": "Il termine ordinario per segnalare le spedizioni di oggi è alle **15:15** (inserimento degli ordini entro le 15:00).\n\n- **Segnali l'ordine dopo le 15:15?** Seleziona **domani** come data di spedizione.\n- **Vuoi comunque segnalarlo per oggi?** Puoi inviarlo. Se il sistema non lo approva automaticamente, lo gestiremo il giorno lavorativo successivo.",
+  "urgentOrderV2.cutoffHeading": "⚠️ ATTENZIONE: Termine per le spedizioni di oggi",
   "urgentOrderV2.cutoffSubmitToday": "Segnala comunque",
   "urgentOrderV2.cutoffMoveTomorrow": "Sposta a domani",
   "urgentOrderV2.priorityLabel": "Priorità / motivo della richiesta *",
@@ -2726,7 +2726,7 @@
   "urgentOrderV2.deletePublicPending": "In attesa di approvazione logistica.",
   "urgentOrderV2.deletePublicRejected": "La richiesta precedente è stata rifiutata.",
   "urgentOrderV2.deletePublicDisclaimer": "Viene eliminata solo la richiesta, non la spedizione.",
-  "urgentOrderV2.minibagReviewPrompt": "Verifica Minibag: {articles} non corrisponde a una confezione standard completa. Sei sicuro che non sia un Minibag? OK = continua senza Minibag; Annulla = correggi l'articolo.",
+  "urgentOrderV2.minibagReviewPrompt": "La quantità per {articles} non è una confezione standard completa. Sei sicuro che non sia un Minibag? OK = continua senza Minibag; Annulla = correggi l'articolo.",
   "urgentOrderV2.minibagReviewCancel": "Controlla la casella Minibag e la quantità.",
   "urgentOrderV2.packingCatalogTitle": "Minibag · Gestisci gli articoli in modo sicuro",
   "urgentOrderV2.packingCatalogHelp": "Importa l'elenco TSV con Item number, Net weight e Packing quantity. Le quantità per confezione sono conservate solo nell'archivio Azure privato.",
@@ -2736,5 +2736,12 @@
   "urgentOrderV2.packingCatalogPickFile": "Seleziona prima l'elenco degli articoli.",
   "urgentOrderV2.packingCatalogTooLarge": "Il file supera il limite di 5 MB.",
   "urgentOrderV2.packingCatalogSaving": "Verifica e salvataggio sicuro dell'elenco …",
-  "urgentOrderV2.packingCatalogSaved": "{count} articoli salvati · {unknown} senza quantità valida."
+  "urgentOrderV2.packingCatalogSaved": "{count} articoli salvati · {unknown} senza quantità valida.",
+  "urgentOrderV2.packingPreflightRunning": "Controllo delle quantità Minibag …",
+  "urgentOrderV2.packingPreflightOk": "Controllo Minibag: {count} articoli verificati rispetto alle quantità per confezione.",
+  "urgentOrderV2.packingPreflightMissing": "Nessun elenco articoli Minibag caricato. Impossibile controllare automaticamente le quantità.",
+  "urgentOrderV2.packingPreflightUnknown": "Manca una quantità per confezione valida per: {articles}. Queste righe non sono state verificate.",
+  "urgentOrderV2.packingPreflightUnknownConfirm": "Controlla i codici articolo. Continuare comunque?",
+  "urgentOrderV2.packingPreflightConfirmed": "Quantità Minibag verificate. La tua conferma è stata salvata per questi articoli e quantità.",
+  "urgentOrderV2.packingPreflightRetry": "Controlla la quantità o seleziona Minibag."
 }

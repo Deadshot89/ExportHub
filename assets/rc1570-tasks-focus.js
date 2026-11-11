@@ -88,6 +88,81 @@ function priorityRank(task){var p=priority(task);return p?Number(p.slice(1)):5}
 function isWeekly(task){return !!(task&&((q(task.managedBy)==='RC1152'&&q(task.managedKind)==='recurring')||task.masterTaskRC848||task.weeklySeriesId||task.seriesId||task.recurringSeriesId||/week|woch/i.test(q(task.recurrence))))}
 function ref(task){return q(task&&(task.linkedShipmentRef||task.shipmentRef||task.sourceRef||task.reference))}
 
+/* RC1985: Treat only one unambiguous, same-scope shipment as a source of missing display metadata.
+   Never write an inferred customer number back to a task or override an explicitly cleared number. */
+function linkedShipment(task){
+  var refKey=q(ref(task)).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(refKey))return null;
+  var s=state(),matches=[],seen={};
+  arr(s.shipments).concat(arr(s.savedShipments)).forEach(function(sh){
+    if(!sh||q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()!==refKey)return;
+    if(q(task.companyId)&&q(sh.companyId)&&q(task.companyId)!==q(sh.companyId))return;
+    if(q(task.environment)&&q(sh.environment)&&q(task.environment)!==q(sh.environment))return;
+    var key=q(sh.id||sh.shipmentId)||refKey;
+    if(seen[key])return;seen[key]=true;matches.push(sh);
+  });
+  return matches.length===1?matches[0]:null
+}
+function shipmentCustomerNo(task){
+  var refKey=q(ref(task)).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(refKey))return'';
+  var s=state(),linkedId=q(task&&(task.linkedShipmentId||task.shipmentId)),number='',conflict=false;
+  var companies=new Set(),environments=new Set();
+  arr(s.shipments).concat(arr(s.savedShipments)).forEach(function(sh){
+    if(!sh||q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()!==refKey)return;
+    var shId=q(sh.id||sh.shipmentId);
+    if(linkedId&&shId!==linkedId)return;
+    if(q(task.companyId)&&q(sh.companyId)&&q(task.companyId)!==q(sh.companyId))return;
+    if(q(task.environment)&&q(sh.environment)&&q(task.environment)!==q(sh.environment))return;
+    if(q(sh.companyId))companies.add(low(sh.companyId));
+    if(q(sh.environment))environments.add(low(sh.environment));
+    var direct=q(sh.customerAccount||sh.customerNumber||sh.customerNo||sh.kundennummer||sh.account||
+      sh.customer&&(sh.customer.account||sh.customer.customerNumber));
+    if(!direct&&q(sh.customerId)){
+      var customers=arr(s.customers).filter(function(c){return c&&low(c.id)===low(sh.customerId)});
+      if(customers.length===1)direct=q(customers[0].customerNumber||customers[0].account||customers[0].accountNumber)
+    }
+    if(direct){if(number&&low(number)!==low(direct))conflict=true;else number=direct}
+  });
+  // Matching the REF is not sufficient if copies disagree about the customer,
+  // environment or company. Never choose the first stored copy arbitrarily.
+  return conflict||companies.size>1||environments.size>1?'':number
+}
+/* Collapse only exact same-purpose, same-day, same-owner entries in the overview.
+   All originals remain in task management so duplicate records can be checked/deleted individually. */
+function taskDuplicateKey(task){
+  var r=q(ref(task)).toUpperCase(),d=taskDate(task),source=low(task&&task.sourceType),name=low(title(task));
+  // An AV-missing source represents one document obligation per shipment REF.
+  // Different titles, task areas or rescan dates must not generate new duties.
+  // A different activity (such as ABD creation), source, owner, status, company,
+  // environment or shipment/customer identity still remains distinct.
+  var avDuty=source==='av_missing'&&/^(?:av\s+(?:hochladen|fehlt)|ausgangsvermerk\s+(?:nicht\s+vorhanden|fehlt))(?:\b|[·:])/i.test(name);
+  if(!/^[A-Z0-9]{6}$/.test(r)||(!d&&!avDuty)||!source||!name)return'';
+  return [low(task.companyId),low(task.environment),r,avDuty?'missing-av':name,
+    avDuty?'ausgangsvermerk':low(area(task)),avDuty?'':low(processOf(task)),source,
+    avDuty?'one-av-per-ref':dayKey(d),
+    low(q(task&&((task.effectiveAssignee||task.assignedTo||task.owner||task.assignee||task.assignedToName)))),
+    low(q(task&&(task.seriesId||task.recurringSeriesId||task.weeklySeriesId||task.occurrenceKey||task.weekKey))),
+    statusKey(task)].join('|')
+}
+function sameShipmentEvidence(a,b){
+  var aId=q(a&&(a.linkedShipmentId||a.shipmentId)),bId=q(b&&(b.linkedShipmentId||b.shipmentId));
+  if(aId&&bId&&aId!==bId)return false;
+  var aNo=low(a&&(a.customerNumber||a.linkedAccount||a.customerAccount||a.account)).replace(/\s+/g,'');
+  var bNo=low(b&&(b.customerNumber||b.linkedAccount||b.customerAccount||b.account)).replace(/\s+/g,'');
+  return !(aNo&&bNo&&aNo!==bNo)
+}
+function collapseExactTaskDuplicates(items){
+  var selected=[],byKey={};
+  arr(items).forEach(function(task){
+    var key=taskDuplicateKey(task);if(!key){selected.push(task);return}
+    var indices=byKey[key]||[],index=indices.find(function(i){return sameShipmentEvidence(selected[i],task)});
+    if(index===undefined){indices.push(selected.length);byKey[key]=indices;selected.push(task);return}
+    var old=selected[index];
+    var score=function(x){return (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
+    if(score(task)>score(old))selected[index]=task
+  });
+  return selected
+}
+
 /* model */
 var ui={search:'',scope:'',expanded:{},filters:null};
 // filters (spec §13): customer, area, process, priority, status, owner and period combine with AND
@@ -101,7 +176,12 @@ function readFilters(){
 }
 function setFilter(key,value){var f=readFilters();if(FILTERS.indexOf(key)<0)return;if(q(value))f[key]=q(value);else delete f[key];try{w.localStorage.setItem(FILTER_KEY,JSON.stringify(f))}catch(_){}}
 function resetFilters(){ui.filters={};try{w.localStorage.removeItem(FILTER_KEY)}catch(_){}}
-function customer(task){return q(task&&(task.customerName||task.linkedCustomer||task.customer))}
+function customer(task){
+  var direct=q(task&&(task.customerName||task.linkedCustomer||task.customer));if(direct)return direct;
+  if(low(task&&task.sourceType)==='manual')return'';
+  var sh=linkedShipment(task);
+  return sh?q(sh.customerName||sh.customer||sh.deliveryName):''
+}
 function processOf(task){return q(task&&(task.processId||task.process))}
 function priorityKey(task){return priority(task)||'P2'}
 function statusKey(task){
@@ -131,7 +211,7 @@ function buildModel(now){
   now=now||new Date();
   var today=dayKey(now),weekEnd=new Date(mondayOf(now));weekEnd.setDate(weekEnd.getDate()+6);var weekEndKey=dayKey(weekEnd);
   var scope=readScope(),needle=low(ui.search),us=users();
-  var all=arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)});
+  var all=collapseExactTaskDuplicates(arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)}));
   var scoped=all.filter(function(x){return scope==='all'||isMine(x)});
   if(needle)scoped=scoped.filter(function(x){return low([title(x),area(x),q(x.group),ownerName(x,us),ref(x),q(x.note),customer(x)].join(' ')).indexOf(needle)>=0});
   var filters=readFilters(),options=filterOptions(scoped.filter(function(x){return !isDone(x)}),us);
@@ -308,7 +388,12 @@ function customers(){
   arr(state().customers).forEach(function(c){var name=q(c&&(c.name||c.company||c.companyName)),no=q(c&&(c.customerNumber||c.account||c.accountNumber));if(!name||seen[low(name)])return;seen[low(name)]=1;out.push({name:name,no:no})});
   return out.sort(function(a,b){return a.name.localeCompare(b.name)})
 }
-function customerNo(task){var x=task&&typeof task==='object'?task:{};return Object.prototype.hasOwnProperty.call(x,'customerNumber')?q(x.customerNumber):q(x.linkedAccount||x.customerAccount||x.account)}
+function customerNo(task){
+  var x=task&&typeof task==='object'?task:{};
+  if(Object.prototype.hasOwnProperty.call(x,'customerNumber'))return q(x.customerNumber);
+  var prior=q(x.linkedAccount||x.customerAccount||x.account);if(prior)return prior;
+  return low(x.sourceType)==='manual'?'':shipmentCustomerNo(x)
+}
 function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
 function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
 function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
@@ -494,6 +579,15 @@ async function saveForm(form){
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
+  // Do not create a second manual task for the same shipment, activity, owner and day.
+  // Never rely on the customer's name alone and never combine different task types.
+  if(isNew&&!v.weekly&&/^[A-Z0-9]{6}$/.test(v.ref.toUpperCase())){
+    var wanted=taskDuplicateKey({title:v.title,area:v.area||t('manualArea'),sourceType:'manual',
+      linkedShipmentRef:v.ref,dueDate:v.date,owner:v.owner||q(currentUser().name||currentUser().displayName||currentUser().user),status:v.status});
+    if(wanted&&arr(s.tasks).some(function(row){return low(row&&row.sourceType)==='manual'&&taskDuplicateKey(row)===wanted})){
+      showError(t('duplicateTask'));return false
+    }
+  }
   // Stage changes separately: failed server writes must not replace the live task list.
   var draft=Object.assign({},s,{
     tasks:arr(s.tasks).map(function(x){return x&&typeof x==='object'?Object.assign({},x):x}),
@@ -569,7 +663,9 @@ async function deleteManagedTask(id){
   if(savePending||!canWrite())return false;
   var s=state(),task=findTask(id);
   if(!task)return false;
-  if(isSystemManagedTask(task)){
+  // One genuine system obligation must always survive. Only a second, exactly
+  // matching system task with a different ID may be removed by the user.
+  if(!canDeleteTask(task)){
     if(typeof w.alert==='function')w.alert(t('managedByShipment'));
     return false;
   }
@@ -648,8 +744,8 @@ function detailHtml(task){
     '<footer class="rc1570-form-actions">'+(canWrite()&&!x.isVirtualTaskMaster?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
       ['open','in_progress','done'].filter(function(s){return s!==st}).map(function(s){return'<button type="button" class="ghost" data-rc1570-tv-status="'+s+'">'+esc(t({open:'markOpen',in_progress:'markInProgress',done:'markDone'}[s]))+'</button>'}).join(''):'')+
       (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+
-      (!isSystemManagedTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
-      (isSystemManagedTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
+      (canDeleteTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
+      (isSystemManagedTask(x)&&!canDeleteTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
 }
 function weeklyMasterTasks(){
   var runtime=w.ExportHUBRC1014TaskRuntime,u=currentUser(),s=state(),entries=[];
@@ -710,9 +806,44 @@ function isSystemManagedTask(x){
   if(source&&source!=='user'&&source!=='custom')return true;
   return ['Fehlende POD','Offene Sendungen','Offene ABDs'].indexOf(q(x&&x.group))>=0
 }
+function systemDuplicateKeeper(task){
+  if(!isSystemManagedTask(task)||isWeekly(task))return null;
+  var key=taskDuplicateKey(task);if(!key)return null;
+  var seen={},similar=[];
+  arr(state().tasks).forEach(function(row){
+    var id=taskId(row);if(!id||seen[id]||!isSystemManagedTask(row)||isWeekly(row)||taskDuplicateKey(row)!==key||!sameShipmentEvidence(task,row))return;
+    seen[id]=true;similar.push(row)
+  });
+  if(similar.length<2)return null;
+  // An unnumbered legacy item can match two different customers. Never use
+  // it as a bridge that makes conflicting records look deletable.
+  for(var i=0;i<similar.length;i++)for(var j=i+1;j<similar.length;j++)
+    if(!sameShipmentEvidence(similar[i],similar[j]))return null;
+  var canonical=low(task.sourceType)==='av_missing'?'task:av-missing:'+q(ref(task)).toUpperCase():'';
+  var score=function(x){return (canonical&&taskId(x)===canonical?100:0)+
+    (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
+  similar.sort(function(a,b){return score(b)-score(a)||taskId(a).localeCompare(taskId(b))});
+  return similar[0]
+}
+function canDeleteTask(task){
+  if(!isSystemManagedTask(task))return true;
+  var survivor=systemDuplicateKeeper(task);
+  return !!survivor&&taskId(survivor)!==taskId(task)
+}
 function listHtml(){
   var model=managedRows(),rows=model.rows,us=model.users,counts=model.counts,shown=rows.slice(0,tv.moreCount);
   var tabs=['all','overdue','weekly','once','done'],keys={all:'managerAll',overdue:'overdue',weekly:'managerWeekly',once:'managerOnce',done:'done'};
+  // A matching text key alone does not prove a duplicate: separate customer
+  // accounts or different shipment IDs must never be labelled as duplicates.
+  var duplicateIds={},groups=Object.create(null);
+  model.rows.forEach(function(x){var k=taskDuplicateKey(x);if(k)(groups[k]=groups[k]||[]).push(x)});
+  Object.keys(groups).forEach(function(k){
+    var rows=groups[k];
+    if(rows.length<2||new Set(rows.map(taskId).filter(Boolean)).size<2)return;
+    for(var i=0;i<rows.length;i++)for(var j=i+1;j<rows.length;j++)
+      if(!sameShipmentEvidence(rows[i],rows[j]))return;
+    rows.forEach(function(x){duplicateIds[taskId(x)]=true})
+  });
   return'<aside class="rc1570-tv-list">'+
     '<input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'">'+
     '<div class="rc1570-tv-scope rc1570-scope" role="group">'+['mine','all'].map(function(scope){return'<button type="button" data-rc1570-tv-scope="'+scope+'" aria-pressed="'+(tv.scope===scope)+'">'+esc(t(scope==='mine'?'scopeMine':'scopeAll'))+'</button>'}).join('')+'</div>'+
@@ -721,8 +852,8 @@ function listHtml(){
     '<ul>'+shown.map(function(x){
       var id=taskId(x),d=taskDate(x),weekly=isWeekly(x),done=isDone(x),late=!done&&d&&dayKey(d)<model.today,system=isSystemManagedTask(x);
       return'<li class="rc1570-tv-row"'+(late?' data-late="true"':'')+'><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'>'+
-        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x)].filter(Boolean).join(' · '))+'</span>'+
-        '</button>'+(canWrite()&&!system?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
+        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x),(duplicateIds[id]?t('duplicateLabel'):'')].filter(Boolean).join(' · '))+'</span>'+
+        '</button>'+(canWrite()&&canDeleteTask(x)?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
     }).join('')+'</ul>'+
     (rows.length>shown.length?'<button type="button" class="ghost rc1570-tv-more" data-rc1570-tv-more="1">'+esc(t('managerMore',{count:rows.length-shown.length}))+'</button>':'')+
     '</aside>'
