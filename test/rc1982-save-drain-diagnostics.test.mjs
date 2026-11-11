@@ -91,6 +91,32 @@ test('RC1982: missing flushSave can never look like an idle successful Azure sav
   await assert.rejects(settle({evaluate:cb=>Promise.resolve(cb())},{timeout:3000}),/ExportHUBClean-flushSave nicht verfügbar/);
 });
 
+test('RC1982: idle flags cannot mask a locally unsaved generation or missing Azure ACK',async()=>{
+  const start=source.indexOf('export async function settleStateSave(');
+  const end=source.indexOf('\n\n// RC1579:',start);
+  assert.ok(start>=0&&end>start);
+  const statement=source.slice(start,end).replace('export async function settleStateSave(','async function settleStateSave(');
+  for(const state of [
+    {changeGeneration:2,lastSavedGeneration:1,lastServerSaveAckGeneration:2},
+    {changeGeneration:2,lastSavedGeneration:2,lastServerSaveAckGeneration:1}
+  ]){
+    let clock=0;
+    const FakeDate=class extends Date{static now(){clock+=1000;return clock}};
+    const runtime={saving:false,pendingSave:false,dirty:false,saveTimer:null,...state};
+    const context={
+      process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
+      window:{ExportHUBClean:{runtime,flushSave:()=>true}},
+      Date:FakeDate,Number,Math,JSON,Promise,pause:async()=>{}
+    };
+    const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
+    await assert.rejects(
+      settle({evaluate:fn=>Promise.resolve(fn())},{timeout:3000,stableMs:200}),
+      /Azure-Speicherung blieb vor Browser-Navigation aktiv/,
+      'inconsistent generation counters must not report a successful save'
+    );
+  }
+});
+
 test('RC1982: diagnostic collection fails closed and never approves a save',async()=>{
   const fn=vm.runInNewContext(extracted+'\nrc1982DrainSnapshot;',{window:{}});
   const result=await fn({evaluate:()=>Promise.reject(Error('browser closed'))});

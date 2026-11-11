@@ -206,12 +206,17 @@ export async function settleStateSave(page,options={}){
         pending:runtime.pendingSave===true,
         dirty:runtime.dirty===true,
         hasTimer:!!runtime.saveTimer,
+        // A clean UI is not proof of a save if generation counters still disagree.
+        unconfirmedGeneration:Number.isFinite(runtime.changeGeneration)&&(
+          (Number.isFinite(runtime.lastSavedGeneration)&&runtime.changeGeneration>runtime.lastSavedGeneration)||
+          (Number.isFinite(runtime.lastServerSaveAckGeneration)&&runtime.changeGeneration>runtime.lastServerSaveAckGeneration)
+        ),
         lastErrorCode:runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
       };
     });
 
     if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: '+(snapshot.missingFlush?'ExportHUBClean-flushSave nicht verfügbar':'ExportHUBClean-Runtime nicht verfügbar'));
-    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer;
+    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer||snapshot.unconfirmedGeneration;
     if(!busy){
       if(!stableSince)stableSince=Date.now();
       if(Date.now()-stableSince>=stableMs)return snapshot;
