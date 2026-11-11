@@ -69,7 +69,7 @@ test('RC1934 P0: exact lookup, verified tombstone restore, ETag and unrelated-da
  t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
  t.mock.method(auth,'environmentFromRequest',()=> 'production');
  t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
- t.mock.method(BlobServiceClient,'fromConnectionString',()=>({getContainerClient:()=>db.container}));
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({url:'https://actualstorage.blob.core.windows.net/?sig=MUST_NOT_ECHO_SAS',getContainerClient:()=>db.container}));
  const hidden=await call('GET',{action:'get',id:ID});
  assert.equal(hidden.status,404,'Deleted record must stay unavailable via normal get');
  const inspect=await call('GET',{action:'inspect',id:ID});
@@ -78,9 +78,10 @@ test('RC1934 P0: exact lookup, verified tombstone restore, ETag and unrelated-da
    fileCount:responseBody(inspect).fileCount,canRestore:responseBody(inspect).canRestore},
   {found:true,deleted:true,fileCount:1,canRestore:true});
  assert.equal(responseBody(inspect).record,undefined,'Inspection must not disclose full contents');
- assert.deepEqual(responseBody(inspect).storageTarget,{environment:'production',accountName:'exporthubdata89',containerName:auth.TEAM_CONTAINER});
+ assert.deepEqual(responseBody(inspect).storageTarget,{environment:'production',accountName:'actualstorage',containerName:auth.TEAM_CONTAINER},'Report the real SDK-selected endpoint, not the AccountName connection-string hint');
  assert.ok(!inspect.body.includes('AccountKey'),'Connection-string secrets must not be serialized');
  assert.ok(!inspect.body.includes('DO_NOT_LOG_A_SECRET'),'Connection-string values must never appear in response');
+ assert.ok(!inspect.body.includes('MUST_NOT_ECHO_SAS'),'Never serialize the actual SDK endpoint SAS token');
  const stale=await call('POST',{action:'restore',id:ID,expectedRevision:1});
  assert.equal(stale.status,409);
  assert.ok(![...db.stored.keys()].some(k=>k.includes('recovery-backups')));
