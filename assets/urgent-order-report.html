@@ -83,7 +83,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div><div id="wholeOrderChecks" class="stack" hidden>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3 id="urgentStepTwoHeading">Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div><div id="wholeOrderChecks" class="stack" hidden>
 <h4 data-i18n="urgentOrderV2.wholeOrderChecksTitle">Prüfungen für den gesamten Auftrag</h4>
 <p class="muted" data-i18n="urgentOrderV2.wholeOrderChecksHelp">Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.</p>
 <div class="check" id="wholeOrderPickableRow"><label for="wholeOrderPickable" data-i18n="urgentOrderV2.wholeOrderStock">Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?</label><select id="wholeOrderPickable"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
@@ -95,7 +95,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
 <p id="lateCutoffText"></p>
 <div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
-</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="urgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Bitte ausschließlich die offizielle TESTSERVICE-Seite verwenden. Nicht gespeicherte Eingaben müssen nach einem Seitenwechsel erneut erfasst werden.</span> <a href="https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/urgent-order" data-i18n="urgentOrderV2.openOfficialTestservice">Offizielles TESTSERVICE öffnen</a></p>
 </form></section>
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
@@ -157,7 +157,7 @@ function accessFromHash(){
 }
 function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
 function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
-function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
+function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';const help=$('urgentHostHelp');if(help)help.hidden=!(kind==='error'&&String(message||'').includes('URGENT_HOST_UNTRUSTED')&&/-testservice\./i.test(location.hostname||''));}
 async function api(action,params){
  let response;
  try{response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});}
@@ -210,6 +210,7 @@ function syncType(){
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
 function syncScope(){
  const all=isAllLines(),direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('urgentStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'):localeV2('individualLinesOption','Einzelne Artikel / Lines erfassen');
  $('lines').hidden=all;$('addLine').hidden=all;
  $('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);
  $('wholeOrderChecks').hidden=!all;
