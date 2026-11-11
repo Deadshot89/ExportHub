@@ -572,6 +572,7 @@ test('RC1985: two different shipment IDs with the same REF cannot be merged or d
   const tasks=[{...base,id:'a',linkedShipmentId:'S1'},{...base,id:'b',linkedShipmentId:'S2'}];
   const {api,store}=editorHarness(tasks,()=>true);
   assert.equal(api.buildModel(new Date('2026-11-11T10:00:00')).total,2);
+  assert.doesNotMatch(api.taskViewHtml(),/Doppelter Eintrag/,'distinct shipment IDs must not be flagged');
   assert.equal(await api._deleteManagedTask('a'),false);
   assert.equal(await api._deleteManagedTask('b'),false);
   assert.strictEqual(store.tasks,tasks);
@@ -583,6 +584,7 @@ test('RC1985: an empty legacy customer cannot bridge conflicting customer accoun
   const tasks=[{...base,id:'empty'}, {...base,id:'first',customerNumber:'A100'},
     {...base,id:'second',customerNumber:'B200'}];
   const {api,store}=editorHarness(tasks,()=>true);
+  assert.doesNotMatch(api.taskViewHtml(),/Doppelter Eintrag/,'conflicting customer accounts must not be flagged');
   assert.equal(await api._deleteManagedTask('empty'),false);
   assert.equal(await api._deleteManagedTask('first'),false);
   assert.equal(await api._deleteManagedTask('second'),false);
