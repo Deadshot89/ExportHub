@@ -94,11 +94,16 @@ export function injectPackAbdOwnership(html,file='index.html'){
   const patchStates=[];
   function replaceOnce(needle,replacement){
     const patchedCount=out.split(replacement).length-1;
+    const originalCount=out.split(needle).length-1;
     if(patchedCount===1){
+      // Some hardened replacements deliberately retain the original prefix.
+      // Accept only that single embedded prefix, never an extra legacy hook.
+      if(originalCount!==(replacement.includes(needle)?1:0))
+        throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
       patchStates.push('patched');
       return;
     }
-    if(patchedCount!==0||out.split(needle).length!==2)
+    if(patchedCount!==0||originalCount!==1)
       throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
     patchStates.push('original');
     out=out.replace(needle,replacement);
