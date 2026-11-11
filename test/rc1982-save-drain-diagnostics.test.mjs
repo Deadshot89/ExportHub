@@ -47,6 +47,26 @@ test('RC1982: unknown, freeform and potentially sensitive error messages are not
   assert.doesNotMatch(JSON.stringify(result),/example.test|Password|shipment contents/);
 });
 
+test('RC1982: missing counters cannot be represented as a successful zero ACK',async()=>{
+  const result=await diagnostic({
+    saving:true,changeGeneration:null,lastSavedGeneration:undefined,
+    activeSaveGeneration:'',lastServerSaveAckGeneration:null,
+    network:{posts:null},lastSaveMs:false
+  });
+  for(const key of ['changedGeneration','savedGeneration','activeSaveGeneration','serverAckGeneration','networkSaveRequests','lastSaveMs']){
+    assert.equal(result[key],null,key+' must remain unknown');
+  }
+  const genuineZero=await diagnostic({lastServerSaveAckGeneration:0,network:{posts:0}});
+  assert.equal(genuineZero.serverAckGeneration,0);
+  assert.equal(genuineZero.networkSaveRequests,0);
+});
+
+test('RC1982: even well-formed unapproved error codes are redacted',async()=>{
+  const result=await diagnostic({lastSaveErrorCode:'CUSTOMER_PRIVATE_REFERENCE'});
+  assert.equal(result.lastErrorCode,'UNRECOGNIZED');
+  assert.doesNotMatch(JSON.stringify(result),/CUSTOMER_PRIVATE_REFERENCE/);
+});
+
 test('RC1982: diagnostic collection fails closed and never approves a save',async()=>{
   const fn=vm.runInNewContext(extracted+'\nrc1982DrainSnapshot;',{window:{}});
   const result=await fn({evaluate:()=>Promise.reject(Error('browser closed'))});
@@ -56,5 +76,7 @@ test('RC1982: diagnostic collection fails closed and never approves a save',asyn
   assert.match(source,/if\(result&&result\.ok!==true\)/);
   assert.ok(source.includes("throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden: '+JSON.stringify(snapshot));"),'Rejected saves must log only sanitized state without approving persistence');
   assert.ok(!source.includes("String(r.lastSaveErrorMessage||'')"),'Free-form backend error message must never enter CI failure diagnostics');
+  assert.ok(!source.includes('lastErrorMessage:String(runtime.lastSaveErrorMessage'),'No freeform error message may cross the browser boundary');
+  assert.ok(!source.includes('error:String(error&&error.message||error)'),'Save exceptions must not cross the browser boundary');
   assert.match(source,/const finalState=await rc1982DrainSnapshot\(page\)/);
 });

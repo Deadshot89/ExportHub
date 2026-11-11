@@ -167,7 +167,7 @@ function responsiveViewport(page){
 async function rc1982DrainSnapshot(page){
   return page.evaluate(()=>{
     const runtime=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
-    const finite=value=>Number.isFinite(Number(value))?Number(value):null;
+    const finite=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?value:null;
     return {
       saving:runtime.saving===true,
       pending:runtime.pendingSave===true,
@@ -181,7 +181,7 @@ async function rc1982DrainSnapshot(page){
       saveElapsedMs:runtime.saving===true&&Number.isFinite(Date.parse(runtime.lastSaveStartedAt||''))?
         Math.max(0,Math.min(300000,Date.now()-Date.parse(runtime.lastSaveStartedAt))):null,
       lastSaveMs:finite(runtime.lastSaveMs),
-      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':/^[A-Z][A-Z0-9_]{0,47}$/.test(String(runtime.lastSaveErrorCode))?String(runtime.lastSaveErrorCode):'UNRECOGNIZED'
+      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
     };
   }).catch(()=>({unavailable:true}));
 }
@@ -205,8 +205,7 @@ export async function settleStateSave(page,options={}){
         pending:runtime.pendingSave===true,
         dirty:runtime.dirty===true,
         hasTimer:!!runtime.saveTimer,
-        lastErrorCode:String(runtime.lastSaveErrorCode||''),
-        lastErrorMessage:String(runtime.lastSaveErrorMessage||'')
+        lastErrorCode:runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
       };
     });
 
@@ -225,16 +224,16 @@ export async function settleStateSave(page,options={}){
       const remaining=Math.max(1000,Math.min(18_000,deadline-Date.now()));
       const result=await page.evaluate(async timeoutMs=>{
         const clean=window.ExportHUBClean;
-        if(!clean||typeof clean.flushSave!=='function')return {ok:false,error:'ExportHUB flushSave fehlt'};
+        if(!clean||typeof clean.flushSave!=='function')return {ok:false};
         let timer=0;
         try{
           return await Promise.race([
             Promise.resolve(clean.flushSave('RC1155 Browser-Gate wartet auf Azure-Speicherung',{force:true,userInitiated:true}))
               .then(ok=>({ok:ok===true})),
-            new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,timeout:true,error:'Azure-Save Drain Timeout'}),timeoutMs)})
+            new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,timeout:true}),timeoutMs)})
           ]);
-        }catch(error){
-          return {ok:false,error:String(error&&error.message||error)};
+        }catch{
+          return {ok:false};
         }finally{
           if(timer)clearTimeout(timer);
         }
