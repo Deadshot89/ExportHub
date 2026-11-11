@@ -2694,5 +2694,12 @@
   "urgentOrderV2.requestScope": "Zakres zgłoszenia",
   "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Zgłaszający potwierdził zatwierdzenie kosztów transportu specjalnego",
   "urgentOrderV2.p1ApprovalDetailBy": "Potwierdzone przez",
-  "urgentOrderV2.p1ApprovalDetailMissing": "Dla tego zlecenia P1 nie zapisano potwierdzenia kosztów transportu."
+  "urgentOrderV2.p1ApprovalDetailMissing": "Dla tego zlecenia P1 nie zapisano potwierdzenia kosztów transportu.",
+  "urgentOrderV2.wholeOrderChecksTitle": "Kontrole całego zamówienia",
+  "urgentOrderV2.wholeOrderChecksHelp": "Te kontrole dotyczą całego zamówienia. Poszczególne artykuły i lokalizacje zapasów nie są uznawane za sprawdzone.",
+  "urgentOrderV2.wholeOrderStock": "Czy sprawdzono dostępne zapasy do kompletacji dla całego zamówienia?",
+  "urgentOrderV2.wholeOrderHolds": "Czy całe zamówienie nie ma blokad Don't Process ani Credit Hold?",
+  "urgentOrderV2.wholeOrderNotChecked": "Jeszcze nie sprawdzono",
+  "urgentOrderV2.wholeOrderReason": "Uzasadnienie negatywnej kontroli całego zamówienia",
+  "urgentOrderV2.wholeOrderReasonRequired": "W przypadku negatywnej kontroli podaj uzasadnienie liczące co najmniej 8 znaków."
 }
