@@ -268,9 +268,10 @@ async function getRecord(ctx,docId){
  try{
   const result=await blob.download(0),chunks=[];
   for await(const chunk of result.readableStreamBody)chunks.push(Buffer.from(chunk));
-  const record=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  const raw=Buffer.concat(chunks);
+  const record=JSON.parse(raw.toString('utf8'));
   if(record.id!==docId||!Number.isInteger(record.revision))fail('CORRUPT','Gespeicherter Datensatz ungueltig.',503);
-  return{blob,record,etag:result.etag};
+  return{blob,record,etag:result.etag,raw};
  }catch(e){if(e.statusCode===404)fail('NOT_FOUND','Versandnachweis nicht gefunden.',404);throw e}
 }
 async function saveRecord(blob,record,etag){
@@ -417,8 +418,10 @@ async function inspectDeletedEvidence(ctx,docId){
   canRestore:!!record.deletedAt&&missingFiles.length===0});
 }
 /** Preserve the exact pre-restore JSON under an immutable, read-back-verified key. */
-async function backupEvidenceBeforeRestore(ctx,docId,record){
- const before=Buffer.from(JSON.stringify(record),'utf8');
+async function backupEvidenceBeforeRestore(ctx,docId,record,raw){
+ // Preserve the actual original blob bytes, including whitespace and ordering.
+ if(!Buffer.isBuffer(raw)||!raw.length)fail('BACKUP_NOT_VERIFIED','Originaldaten fuer Sicherheitskopie fehlen.',503);
+ const before=raw;
  const hash=crypto.createHash('sha256').update(before).digest('hex');
  const key=ctx.prefix+'recovery-backups/'+docId+'/'+record.revision+'-'+hash.slice(0,24)+'.json';
  const backup=ctx.container.getBlockBlobClient(key);
@@ -430,7 +433,7 @@ async function backupEvidenceBeforeRestore(ctx,docId,record){
  if(!Buffer.concat(parts).equals(before))fail('BACKUP_NOT_VERIFIED','Wiederherstellung gesperrt: Sicherheitskopie nicht bestaetigt.',503);
  return hash;
 }
-async function restoreDeletedEvidence(ctx,docId,record,blob,etag){
+async function restoreDeletedEvidence(ctx,docId,record,blob,etag,raw){
  if(!record.deletedAt)fail('NOT_DELETED','Dieser Nachweis ist nicht geloescht.',409);
  for(const file of Array.isArray(record.files)?record.files:[]){
   if(!file||!/^[a-f0-9-]{36}$/i.test(String(file.id||'')))
@@ -438,7 +441,7 @@ async function restoreDeletedEvidence(ctx,docId,record,blob,etag){
   try{await fileBlob(ctx,docId,file.id).getProperties()}
   catch(error){if(error.statusCode===404)fail('MISSING_ORIGINAL_FILE','Wiederherstellung gesperrt: Originaldatei fehlt.',409);throw error}
  }
- await backupEvidenceBeforeRestore(ctx,docId,record);
+ await backupEvidenceBeforeRestore(ctx,docId,record,raw);
  const deletedAt=record.deletedAt,deletedBy=record.deletedBy||'';
  delete record.deletedAt;
  delete record.deletedBy;
@@ -467,7 +470,7 @@ async function processRequest(req){
   bump(record,ctx,'create');await saveRecord(docBlob(ctx,newId),record,null);return json(201,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  }
  const docId=id(payload.id);
- const{blob,record,etag}=await getRecord(ctx,docId);
+ const{blob,record,etag,raw}=await getRecord(ctx,docId);
  if(record.deletedAt&&action!=='restore')fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
  if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
@@ -499,7 +502,7 @@ async function processRequest(req){
   await saveRecord(blob,record,etag);
   return json(200,{ok:true,record:cleanRecord(record),canRegisterCustomer:true,canDelete:ctx.isAdmin===true});
  }
- if(action==='restore')return restoreDeletedEvidence(ctx,docId,record,blob,etag);
+ if(action==='restore')return restoreDeletedEvidence(ctx,docId,record,blob,etag,raw);
  if(action==='delete'){
   if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren dürfen Dokumentationen löschen.',403);
   record.deletedAt=new Date().toISOString();
