@@ -60,7 +60,7 @@ test('real legacy Pack ABD save stores ownership but does not attach to any ship
   assert.equal(result.packNotificationId,'PN-1');
   assert.equal(result.packNotificationRef,'PACK-01');
   assert.equal(result.linkedShipmentId,'');
-  assert.equal(ctx.state.packNotifications[0].abdRequestId,result.id);
+  assert.equal(ctx.state.packNotifications[0].abdRequestId,undefined,'only ABD collection is modified, Pack tasks stay unchanged');
   assert.equal(ctx.state.shipments[0].abdRequestId,undefined);
   assert.equal(ctx.alerts.length,0,'no success alert before Azure ack');
   await tick();
