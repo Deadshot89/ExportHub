@@ -58,11 +58,17 @@ function verifiedDeploymentEnvironment(){
  }catch(_){}
  return null;
 }
-// Only the public, non-secret storage-account name may enter admin diagnostics.
-// Never serialize a connection string, SAS token, shared key or full endpoint.
-function safeStorageAccountName(connectionString){
- const match=String(connectionString||'').match(/(?:^|;)AccountName=([^;]*)/i);
- return match&&/^[a-z0-9]{3,24}$/.test(match[1])?match[1]:null;
+// Identify only a standard Azure account from the actual SDK-selected Blob
+// endpoint. AccountName in a connection string may not be the endpoint used
+// when BlobEndpoint is overridden. Never echo URL, SAS, key or credentials.
+function safeStorageAccountName(blobServiceUrl){
+ try{
+  const url=new URL(String(blobServiceUrl||''));
+  if(url.protocol!=='https:'||url.username||url.password||
+     (url.port&&url.port!=='443'))return null;
+  const match=url.hostname.toLowerCase().match(/^([a-z0-9]{3,24})\.blob\.core\.windows\.net$/);
+  return match?match[1]:null;
+ }catch(_){return null}
 }
 function storageContext(req,user){
  const env=verifiedDeploymentEnvironment()||auth.environmentFromRequest(req),
@@ -71,8 +77,9 @@ function storageContext(req,user){
  if(!conn)fail('STORAGE_UNAVAILABLE','Azure-Speicher nicht konfiguriert.',503);
  const container=isolated?cfg.container:auth.TEAM_CONTAINER;
  const prefix=env==='testservice'?'testservice/shipment-evidence/v1/':'shipment-evidence/v1/';
- return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user,
-  storageTarget:{environment:env,accountName:safeStorageAccountName(conn),containerName:container}};
+ const blobService=BlobServiceClient.fromConnectionString(conn);
+ return{container:blobService.getContainerClient(container),prefix,user,
+  storageTarget:{environment:env,accountName:safeStorageAccountName(blobService.url),containerName:container}};
 }
 function guestOrigin(req){
  const h=req.headers||{},rawOrigin=txt(h.origin||h.Origin,300),referer=txt(h.referer||h.Referer,500),
