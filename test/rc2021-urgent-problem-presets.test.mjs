@@ -104,3 +104,16 @@ test('shipping action remains on one line and is disabled until every item is sh
   assert.ok(strings['urgentOrderV2.shippingNotReady'],lang+' missing unavailable-shipping reason');
  }
 });
+
+test('mail dialog heading and shipping preparation feedback follow DE/EN interface language',()=>{
+ assert.match(script,/\$\('mailTitle'\)\.textContent=\(kind==='problem'\?localeV2\('reportProblem'/);
+ assert.match(script,/localeV2\('shippingConfirmation','Versandbestätigung'\)/);
+ assert.match(script,/\$\('mailIssue'\)\.placeholder=localeV2\('problemPrompt'/);
+ assert.match(script,/localeV2\('mailShippingPreparing','Versandbestätigung wird vorbereitet\.'\)/);
+ for(const lang of ['de','en','pl','es','fr','it']){
+  assert.ok(i18n[lang]['urgentOrderV2.mailShippingPreparing'],lang+' shipping draft preparation is missing');
+  assert.ok(i18n[lang]['urgentOrderV2.reportProblem'],lang+' problem title is missing');
+  assert.ok(i18n[lang]['urgentOrderV2.shippingConfirmation'],lang+' shipping confirmation title is missing');
+ }
+ assert.equal(i18n.en['urgentOrderV2.mailShippingPreparing'],'Preparing shipping confirmation.');
+});
