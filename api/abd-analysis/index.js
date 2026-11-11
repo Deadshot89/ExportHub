@@ -11,7 +11,12 @@ const analysisModel=require('../shared/abd-analysis-model');
 const documentIntelligence=require('../shared/abd-document-intelligence');
 
 const CONTAINER=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
-const MAX_BYTES=Math.max(1024,Math.min(20*1024*1024,Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024)));
+// RC1980: malformed configuration must not turn MAX_BYTES into NaN.
+// NaN disables all > limit comparisons on uploads and quarantine downloads.
+const configuredMaxBytes=Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024);
+const MAX_BYTES=Number.isFinite(configuredMaxBytes)
+ ?Math.max(1024,Math.min(20*1024*1024,Math.floor(configuredMaxBytes)))
+ :12*1024*1024;
 const MAX_AGE_MS=2*60*60*1000;
 let containerPromise=null;
 
