@@ -2743,5 +2743,16 @@
   "urgentOrderV2.packingPreflightUnknown": "Falta un tamaño de embalaje válido para: {articles}. No se pudieron comprobar estas posiciones.",
   "urgentOrderV2.packingPreflightUnknownConfirm": "Comprueba los números de artículo. ¿Continuar de todos modos?",
   "urgentOrderV2.packingPreflightConfirmed": "Cantidades Minibag comprobadas. Tu confirmación se ha guardado para estos artículos y cantidades.",
-  "urgentOrderV2.packingPreflightRetry": "Comprueba la cantidad o marca Minibag."
+  "urgentOrderV2.packingPreflightRetry": "Comprueba la cantidad o marca Minibag.",
+  "urgentOrderV2.issueTemplatesTitle": "Seleccionar problemas",
+  "urgentOrderV2.issueTemplatesHint": "Puedes elegir varios motivos · añade tu propia descripción",
+  "urgentOrderV2.issueStock": "No hay existencias suficientes",
+  "urgentOrderV2.issuePick": "No se puede preparar la mercancía",
+  "urgentOrderV2.issueHold": "El pedido está bloqueado",
+  "urgentOrderV2.issueMismatch": "El artículo o la cantidad no coincide",
+  "urgentOrderV2.issueDocuments": "Faltan documentos de envío",
+  "urgentOrderV2.issueDamage": "Mercancía dañada o incompleta",
+  "urgentOrderV2.issueDelay": "No es posible enviar en la fecha solicitada",
+  "urgentOrderV2.issueRegenerate": "Vuelve a generar el borrador del correo.",
+  "urgentOrderV2.issueTooLong": "La descripción del problema y las plantillas seleccionadas no pueden superar los 2000 caracteres."
 }
