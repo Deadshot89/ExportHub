@@ -8,6 +8,7 @@ const require=createRequire(import.meta.url);
 const runtime=fs.readFileSync('assets/rc1558-dashboard-overview.js','utf8');
 const qualityApi=fs.readFileSync('api/quality-capa/index.js','utf8');
 const complaintApi=fs.readFileSync('api/shipment-evidence/index.js','utf8');
+const legacyComplaintApi=fs.readFileSync('api/shipment-documentation/index.js','utf8');
 function fn(name){
   const candidates=['\nfunction '+name+'(', '\nasync function '+name+'('];
   const found=candidates.map(needle=>runtime.indexOf(needle)).find(index=>index>=0);
@@ -61,7 +62,7 @@ test('Open-work API reads authenticated aggregate count only; rejects unauthoriz
       return {ok:true,redirected:false,type:'basic',headers:{get:()=> 'application/json; charset=utf-8'},json:async()=>({ok:true,open:5})};
     }
   },q:v=>String(v).trim(),JSON,Number,Error};
-  vm.createContext(ctx);vm.runInContext('var openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0,complaints:0},OPEN_WORK_AUTH_BACKOFF_MS=300000;\n'+fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
+  vm.createContext(ctx);vm.runInContext('var openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0},OPEN_WORK_AUTH_BACKOFF_MS=300000;\n'+fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
   assert.equal(await ctx.requestOpenWorkCount('/api/urgent-orders'),5);
   assert.equal(calls[0].path,'/api/urgent-orders');
   assert.equal(calls[0].options.method,'POST');
@@ -73,12 +74,16 @@ test('Open-work API reads authenticated aggregate count only; rejects unauthoriz
   assert.equal(calls[1].path,'/api/shipment-evidence?action=counts');
   assert.equal(calls[1].options.method,'GET','Complaint count uses a read-only endpoint');
   assert.equal(calls[1].options.body,undefined,'No write payload or case details');
+  assert.equal(await ctx.requestOpenWorkCount('/api/shipment-documentation'),5);
+  assert.equal(calls[2].path,'/api/shipment-documentation?action=counts');
+  assert.equal(calls[2].options.method,'GET','Legacy REF count also uses GET');
+  assert.equal(calls[2].options.body,undefined);
   ctx.w.fetch=async()=>({ok:false,status:403});
   await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_UNAVAILABLE/);
   // A denied session must respect its backoff; a new login then resets the gate.
   await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_AUTH_BACKOFF/);
   ctx.openWorkEpoch++;
-  ctx.openWorkAuthBackoff={urgent:0,quality:0,complaints:0};
+  ctx.openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};
   ctx.w.fetch=async()=>({ok:true,redirected:false,type:'basic',headers:{get:()=> 'application/json'},json:async()=>({ok:true,open:'0'})});
   await assert.rejects(ctx.requestOpenWorkCount('/api/quality-capa'),/COUNT_INVALID/);
 });
@@ -110,6 +115,9 @@ test('Complaint totals only include active cases, not shipments or deleted recor
   const listStart=complaintApi.indexOf('async function list(ctx,query)');
   assert.ok(countStart>=0&&listStart>countStart);
   assert.doesNotMatch(complaintApi.slice(countStart,listStart),/fields:|customer:|complaints:batch/);
+  assert.match(legacyComplaintApi,/if\(req.method==='GET'&&input.action==='counts'\)/);
+  assert.match(legacyComplaintApi,/rights.canReadAny\(user,\['shipment','shipmentoverview','documents'\]\)/);
+  assert.match(legacyComplaintApi,/async function countsForEnvironment\(env\)/);
 });
 function requireComplaintOps(){return require('../api/shipment-evidence/complaints.js')}
 test('Open-work does not navigate to new windows or to external apps',()=>{
@@ -133,34 +141,34 @@ test('Sessionwechsel startet Zähler sofort neu; alte Antworten dürfen weder Za
   };
   vm.createContext(ctx);
   vm.runInContext(
-    'var openWorkCounts={urgent:null,quality:null,complaints:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0,complaints:0};\n'+
+    'var openWorkCounts={urgent:null,quality:null,complaints:null},openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false,openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};\n'+
     fn('resetOpenWorkCounts')+'\n'+fn('loadOpenWorkCounts'),ctx
   );
   ctx.loadOpenWorkCounts();
-  assert.equal(queued.length,3,'first session starts three independent count calls');
+  assert.equal(queued.length,4,'first session starts four independent count calls');
   ctx.resetOpenWorkCounts(false);
-  assert.equal(queued.length,6,'new login immediately starts its own three calls despite old pending requests');
+  assert.equal(queued.length,8,'new login immediately starts its own four calls despite old pending requests');
 
-  queued[0](91);queued[1](92);queued[2](93);
+  queued[0](91);queued[1](92);queued[2](93);queued[3](94);
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(ctx.openWorkCounts.urgent,null,'old user count never appears');
   assert.equal(ctx.openWorkCounts.quality,null,'old QM count never appears');
   assert.equal(ctx.openWorkCounts.complaints,null,'old complaint count never appears');
   assert.equal(ctx.openWorkInFlight,true,'old finally must not release the new session lock');
   ctx.loadOpenWorkCounts();
-  assert.equal(queued.length,6,'no duplicate calls while the new request is pending');
+  assert.equal(queued.length,8,'no duplicate calls while the new request is pending');
 
-  queued[3](5);queued[4](6);queued[5](7);
+  queued[4](5);queued[5](6);queued[6](7);queued[7](2);
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(ctx.openWorkCounts.urgent,5);
   assert.equal(ctx.openWorkCounts.quality,6);
-  assert.equal(ctx.openWorkCounts.complaints,7);
+  assert.equal(ctx.openWorkCounts.complaints,9,'DOK + REF open cases are counted together');
   assert.equal(ctx.openWorkInFlight,false);
   ctx.resetOpenWorkCounts(true);
   assert.equal(ctx.openWorkCounts.urgent,null,'logout clears the dashboard');
   assert.equal(ctx.openWorkCounts.quality,null,'logout clears QM count');
   assert.equal(ctx.openWorkCounts.complaints,null,'logout clears complaint count');
-  assert.equal(queued.length,6,'logout never calls a protected API');
+  assert.equal(queued.length,8,'logout never calls a protected API');
 });
 
 test('401/403 counts: getrennte Fünf-Minuten-Sperren, keine Dauerabfragen und Login-Recovery',async()=>{
@@ -178,7 +186,7 @@ test('401/403 counts: getrennte Fünf-Minuten-Sperren, keine Dauerabfragen und L
         }},
       q:v=>String(v).trim(),JSON,Number,Error,Date:{now:()=>now},
       openWorkEpoch:0,openWorkLoggedOut:false,
-      openWorkAuthBackoff:{urgent:0,quality:0,complaints:0},OPEN_WORK_AUTH_BACKOFF_MS:300000
+      openWorkAuthBackoff:{urgent:0,quality:0,complaints:0,complaintsLegacy:0},OPEN_WORK_AUTH_BACKOFF_MS:300000
     };
     vm.createContext(ctx);
     vm.runInContext(fn('openWorkToken')+'\n'+fn('requestOpenWorkCount'),ctx);
