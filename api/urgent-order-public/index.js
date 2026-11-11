@@ -117,7 +117,9 @@ module.exports=async function(context,req){
   const message=serviceError
    ?safeMessages[publicCode]||apiI18n.t(req,'api.urgent.serverError')
    :e&&e.message||'Ungültige Anfrage.';
-  context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
+  const response={ok:false,code:publicCode,message,retryable:serviceError&&!['URGENT_WRITE_UNVERIFIED','URGENT_HOST_UNTRUSTED'].includes(publicCode)};
+   if(publicCode==='URGENT_HOST_UNTRUSTED')response.diagnostic=internal.safeHostDiagnostic(req);
+   context.res=json(responseStatus,response);
  }
 };
 module.exports.publicAction=publicAction;
