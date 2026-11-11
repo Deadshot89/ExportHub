@@ -654,8 +654,9 @@ function websiteProblemText(order){
 }
 function openDraft(o,kind){
  modalOrder=o.id;modalKind=kind;draftNeedsRegenerate=kind==='problem';selectedProblems.clear();$('mailLanguage').value=o.language||'de';$('mailIssue').value=kind==='problem'?websiteProblemText(o):'';$('mailTo').value=o.email||'';$('mailSubject').value='';$('mailBody').value='';$('issueField').hidden=kind!=='problem';$('issueTemplates').hidden=kind!=='problem';renderIssueTemplates();clearMailIssueError();
- $('mailTitle').textContent=kind==='problem'?'Problem melden · '+o.orderNumber:'Versandbestätigung · '+o.orderNumber;
- $('mailOverlay').hidden=false;setMessage('mailMessage',kind==='problem'?'Bitte das Problem beschreiben.':'Versandbestätigung wird vorbereitet.','');
+ $('mailTitle').textContent=(kind==='problem'?localeV2('reportProblem','Problem melden'):localeV2('shippingConfirmation','Versandbestätigung'))+' · '+o.orderNumber;
+ $('mailIssue').placeholder=localeV2('problemPrompt','Bitte das Problem beschreiben.');
+ $('mailOverlay').hidden=false;setMessage('mailMessage',kind==='problem'?localeV2('problemPrompt','Bitte das Problem beschreiben.'):localeV2('mailShippingPreparing','Versandbestätigung wird vorbereitet.'),'');
  if(kind==='shipping'||(kind==='problem'&&$('mailIssue').value.trim().length>=8))generateDraft();
  (kind==='problem'?$('mailIssue'):$('closeMail')).focus();
 }
