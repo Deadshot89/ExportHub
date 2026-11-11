@@ -241,11 +241,10 @@ export async function settleStateSave(page,options={}){
       },remaining);
       if(result&&result.timeout){const snapshot=await rc1982DrainSnapshot(page);throw new Error('Azure-Save Drain Timeout: '+JSON.stringify(snapshot));}
       if(result&&result.ok!==true){
-        const details=await page.evaluate(()=>{
-          const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
-          return String(r.lastSaveErrorCode||'')+' '+String(r.lastSaveErrorMessage||'');
-        }).catch(()=>'');
-        throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden.'+(details?' '+details:''));
+        // RC1982: A rejected save must remain a release failure. Do not print
+        // backend free-text errors: they might contain shipment or user data.
+        const snapshot=await rc1982DrainSnapshot(page);
+        throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden: '+JSON.stringify(snapshot));
       }
       continue;
     }
