@@ -70,8 +70,8 @@ function proposal(c,fields,actor){
   preventiveAction:'SOP und Einweisung anhand des bestaetigten Fehlers aktualisieren; Wiederholungen auswerten.',
   checkMethod:'Stichprobe vergleichbarer Sendungen nach Umsetzung der Abstellmassnahme kontrollieren.',
   checkCriteria:'Keine Wiederholung derselben nachgewiesenen Ursache in der dokumentierten Stichprobe.',
-  customerDraft:'Hallo,\n\ndanke fuer deine Nachricht. Wir pruefen die Reklamation und die vorhandenen Versandunterlagen. Sobald wir den Sachverhalt geklaert haben, melden wir uns mit dem Ergebnis und den naechsten Schritten.\n\nGruss\n'+signOff',
-  carrierDraft:shipment.carrier?'Hallo,\n\nzu einer Sendung liegt uns eine Reklamation vor. Koennt ihr bitte den Transportablauf und die vorhandenen Abliefernachweise pruefen und uns eure Rueckmeldung schicken?\n\nGruss\n[Bearbeiter]':'',
+  customerDraft:'Hallo,\n\ndanke fuer deine Nachricht. Wir pruefen die Reklamation und die vorhandenen Versandunterlagen. Sobald wir den Sachverhalt geklaert haben, melden wir uns mit dem Ergebnis und den naechsten Schritten.\n\nGruss\n'+signOff,
+  carrierDraft:shipment.carrier?'Hallo,\n\nzu einer Sendung liegt uns eine Reklamation vor. Koennt ihr bitte den Transportablauf und die vorhandenen Abliefernachweise pruefen und uns eure Rueckmeldung schicken?\n\nGruss\n'+signOff:'',
   disclaimer:'Regelvorschlag (ohne KI) – vor Uebernahme fachlich pruefen. Keine Schuld- oder Haftungszusage.'
  };
 }
