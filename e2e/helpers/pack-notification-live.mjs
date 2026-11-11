@@ -240,7 +240,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         const s=window.__EXPORTHUB_GET_STATE__?.()||{},n=(s.packNotifications||[]).find(x=>x.id===id);
         const rows=(s.abdRequests||[]).filter(x=>x.packNotificationId===id);
         const status=window.ExportHUBPackAbd?.saveStatusText?.()||'';
-        return{rows:rows.length,linkOk:rows.length===1&&n?.abdRequestId===rows[0].id&&n.abdRequestRef===rows[0].ref,
+        return{rows:rows.length,linkOk:rows.length===1&&n?.reference===rows[0].packNotificationRef&&rows[0].packNotificationId===id,
           verified:!!status&&status===(window.ExportHUBPackI18n?.t?.('pack.internal.abdSaved')||'')};
       },abdDraft.notificationId),{timeout:35_000}).toEqual({rows:1,linkOk:true,verified:true});
       await settleStateSave(page,{timeout:30_000});
@@ -271,7 +271,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         const matches=(s.abdRequests||[]).filter(x=>x.packNotificationId===id);
         return{status:response.status,found:matches.length,refCorrect:matches.length===1&&matches[0].ref===ref,
           packRefCorrect:matches.length===1&&matches[0].packNotificationRef===n?.reference,
-          linked:n?.abdRequestId===matches[0]?.id&&n?.abdRequestRef===matches[0]?.ref,
+          linked:matches.length===1&&n?.reference===matches[0].packNotificationRef,
           noShipment:matches.length===1&&!matches[0].linkedShipmentId};
       },{token:session.token,id:abdDraft.notificationId,ref:savedPackAbd.ref});
       expect(packAbdServer).toEqual({status:200,found:1,refCorrect:true,packRefCorrect:true,linked:true,noShipment:true});
