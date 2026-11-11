@@ -3,8 +3,8 @@
  * an authorization to re-add it to an outgoing mail after the customer-folder
  * shipping addresses have been edited.
  *
- * The generated RC1112 HTML has two separate mail composers (rc543 and the
- * later mail-status bridge). Patch BOTH and fail the build if either source
+ * The generated RC1112 HTML has three separate carrier-mail paths (rc543, overview reminder and the
+ * later mail-status bridge). Patch ALL THREE and fail the build if either source
  * anchor changes. Customer/own mail, CC and historical sent-mail evidence
  * remain untouched.
  */
@@ -13,6 +13,11 @@ const RC1968_REPLACEMENTS = [
     id: 'RC543_CARRIER_MAIL',
     before: "if(type==='carrier')return emailList(sh.carrierEmail||c.carrierEmail||c.speditionMail||c.carrierMail||c.forwarderEmail||c.palletCarrierEmail||c.packageCarrierEmail).join('; ');",
     after: "if(type==='carrier')return emailList(c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')?c.carrierEmail:c?(c.carrierMail||c.speditionMail||c.forwarderEmail||c.palletCarrierEmail||c.packageCarrierEmail):(sh&&sh.carrierEmail)).join('; ');"
+  },
+  {
+    id: 'OVERVIEW_REMINDER_RECIPIENT',
+    before: "var to=[];keys.forEach(function(k){to=to.concat(emailList(c[k])).concat(emailList(sh&&sh[k]))});",
+    after: "var to=[];if(target==='carrier'&&c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')){to=emailList(c.carrierEmail)}else if(target==='carrier'&&c&&Object.keys(c).length){keys.forEach(function(k){to=to.concat(emailList(c[k]))})}else{keys.forEach(function(k){to=to.concat(emailList(c[k])).concat(emailList(sh&&sh[k]))})};"
   },
   {
     id: 'MAIL_STATUS_CARRIER_TO',
