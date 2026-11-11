@@ -97,13 +97,18 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
  assert.ok(fs.existsSync(logo),'RC1549 logo fixture must exist in the branch');
  fs.copyFileSync(logo,path.join(root,logo));
  const fixture='<!doctype html><html><head><meta charset="utf-8"></head><body><script>function print(){var html=\'<!doctype html><html><head><title>Print</title></head><body>OK</body></html>\';return html}</script></body></html>';
- for(const file of ['index.html','TESTVERSION.html','demo.html'])fs.writeFileSync(path.join(out,file),fixture);
+ const legacyProforma='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1962"></script>';
+ for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const html=file==='TESTVERSION.html'?fixture.replace('</head>',legacyProforma+'</head>'):fixture;
+  fs.writeFileSync(path.join(out,file),html);
+ }
  try{
   integrateAbdProforma(root,out);
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
    const html=fs.readFileSync(path.join(out,file),'utf8');
-   const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1962"></script>';
+   const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1971"></script>';
    assert.equal((html.match(/exporthub-rc1549-abd-proforma/g)||[]).length,1);
+   assert.doesNotMatch(html,/assets\/rc1549-abd-proforma\.js\?v=1962/,'legacy Proforma cache URL must be upgraded');
    assert.ok(html.indexOf(tag)<html.indexOf('</head>'),'RC1549-Tag muss vor dem echten ersten </head> stehen');
    assert.equal((html.match(/id="exporthub-rc1790-delivery-note"/g)||[]).length,1);
    assert.equal((html.match(/id="exporthub-rc1790-delivery-note-i18n"/g)||[]).length,1);

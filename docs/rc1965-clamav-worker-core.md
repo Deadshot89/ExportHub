@@ -103,3 +103,311 @@ execution timeout remains mandatory.
 No Azure client, queue, Container Apps job or paid resource was created.
 The existing ABD API and its scan gate remain untouched; no deployment
 is authorized by this change.
+
+## RC1969 – bounded stream-chunk allocation
+
+Code review of RC1966/RC1968 uncovered a memory-pressure flaw:
+a single oversized or invalid `Uint8Array` transport chunk was first
+copied with `Buffer.from(part)`, **then** the maximum length was checked.
+This temporarily allocated memory proportional to an untrusted chunk.
+
+The updated offline adapter validates `part.byteLength` against both
+the remaining expected Blob length and the total 12 MiB budget **before**
+allocating a copy. Empty chunks and nonbinary chunks fail closed. Two
+additional synthetic regressions ensure that rejected transport chunks
+are never duplicated and that malformed chunks cannot produce a clean
+candidate. Exact-length, ETag and SHA-256 validation remain unchanged.
+
+No Azure storage read, ClamAV process, deployment or resource creation
+was performed. All scans and parser releases remain blocked until an
+authorized real trusted worker, malware verification and independently
+proven cost envelope are available.
+
+## RC1971 – Reject stale ClamAV signatures before scan
+
+A real performance/security gap remained in the offline worker core:
+previously, `getDefinitionsUpdatedAt()` was checked for validity only
+when creating the candidate receipt **after** running the scanner. A
+stale, future, absent or malformed signature timestamp could therefore
+consume ClamAV CPU and memory even though no candidate would be
+accepted. On a consumption-billed cloud job that is unnecessary work.
+
+The worker checks definition metadata after the signed queue and
+atomic claim but **before EICAR self-test, first Blob read, or clamscan**
+(RC1974). It requires a positive, safe integer timestamp that is not
+in the future and no more than 24 hours old. A second read immediately
+before scanning detects updates during the EICAR self-test; the final
+post-scan verification rejects updates during customer-file scanning.
+Stale or inconsistent signatures remain blocked with no proof or release.
+
+The additional RC1971 test uses synthetic timestamps and a mock runner
+whose invocation count must remain **zero** on every invalid value.
+This proves fail-fast control flow, not the authenticity of the
+signature database or a real ClamAV malware-detection result.
+
+No Azure job, resource, queue, scan or release was activated. The
+existing ABD API continues to block unverifiable uploads.
+
+## RC1972 – tatsächliche Scannerbereitschaft vor Kundendaten prüfen (offline)
+
+Die bisherige Integrations-Testkette RC1970 simulierte nur einen
+`clamscan`-Exitcode und war kein Beweis dafür, dass ein ClamAV-Prozess
+überhaupt funktioniert. Das neue, weiterhin **nicht angeschlossene**
+`tools/rc1972-clamav/engine-selftest.cjs` stellt deshalb eine
+fail-closed-Bereitschaftsprüfung für die spätere isolierte
+Container-Laufzeit bereit.
+
+- Im privaten temporären Verzeichnis werden nur zwei **harmlose**
+  Laufzeit-Prüfdateien mit eingeschränkten Dateirechten angelegt:
+  unkritischer Klartext und das offizielle, nicht schädliche
+  68-Byte-EICAR-Antivirus-Testmuster.
+- Der vorhandene `RC1956.runClamscan` muss bei der harmlosen Datei
+  Exitcode **0** (keine Bedrohung) und beim EICAR-Muster Exitcode **1**
+  (Testsignatur erkannt) zurückliefern. Fehler, Timeout, sonstiger
+  Exitcode, falsch-positive Klartexterkennung oder verpasste
+  EICAR-Erkennung liefern `verified:false`.
+- Ein selbsttest-positiver Befund ist **niemals ein Kunden-Dateiurteil**:
+  `authorizedForRelease:false` bleibt für alle Ergebnisse zwingend.
+  Die tatsächliche Scan-Engine muss in einer unabhängig authentisierten,
+  isolierten TESTSERVICE-Laufzeit gestartet und mit wirklich geladenen,
+  aktuellen Virensignaturen geprüft werden.
+- Alle Prüfdateien werden nach dem Test entfernt. Misslingt das
+  Aufräumen, gilt die Prüfung ebenfalls als fehlgeschlagen.
+  Öffentliche Rückgaben enthalten keine Dateinamen, Scanner-Stderr
+  oder Zugangsdaten.
+- Sieben synthetische Node-Regressionen prüfen die Kontrolllogik
+  mit einem **Mock-Runner**. Dies belegt noch keinen realen EICAR-Scan.
+  Ein echter Lauf ist erst mit einer autorisierten,
+  tatsächlich bereitgestellten ClamAV-Engine möglich.
+- Quelle: https://www.eicar.org/download-anti-malware-testfile/
+  und https://github.com/Cisco-Talos/clamav/blob/main/docs/man/clamscan.1.in
+
+**Grenze:** RC1973 bindet den Selbsttest inzwischen an den isolierten
+RC1965-Kern, aber noch nicht an Azure oder die produktive ABD-API. Vor einem
+vertrauenswürdigen Worker-Start wäre zusätzlich eine verifizierte,
+identitätsgebundene Engine-/Signatur-Attestation und echte EICAR-Abnahme
+notwendig. Es gibt weiterhin keinen garantierten Nullkosten-Cloudbetrieb,
+keinen Merge, kein Deployment und keine Parserfreigabe.
+
+## RC1973 – EICAR-Bereitschaft vor jedem Blob-Read erzwingen
+
+RC1972 konnte bislang nur separat aufgerufen werden. Ein späterer
+Aufrufer von `scanOfflineCandidate` konnte deshalb trotz fehlerhafter
+ClamAV-Bereitschaft anfangen, Kundendaten aus der Quarantäne zu lesen.
+
+Der isolierte RC1965-Worker verlangt jetzt im Standardpfad nach
+erfolgreicher signierter Queue-Prüfung **und** atomarem One-Time-Claim
+den tatsächlichen `verifyClamAvEngine()`-Selbsttest **vor dem ersten
+Blob-Lesevorgang**. Nur `verified:true` **bei zugleich**
+`authorizedForRelease:false` lässt den weiteren (ohnehin nur
+kandidatenfähigen) Prüfpfad zu. Fehlende/falsche/abbrechende
+Bereitschaft, Exception und ungültiger Adapter liefern fail-closed;
+ungültige Queue- oder Replay-Aufträge starten erst gar keinen
+teuren Selbsttest.
+
+Im synthetischen CI-Test wird die Bereitschaft über einen expliziten
+Mock-Adapter simuliert; der Standardpfad verwendet
+`verifyClamAvEngine` mit dem tatsächlichen `clamscan`-Prozess. Diese
+Testinjektion darf später **nicht** aus untrusted API-/Queue-Daten
+übernommen werden; ein autorisierter Azure-Worker muss die
+Runner-/Identity-/Signature-Bindung unabhängig prüfen. Der
+Selbsttest wird bei einem späteren Job mit zwei Scannerläufen Aufwand
+verursachen und benötigt deshalb eine harte Job-Ausführungsgrenze
+und eine belastbare Kostenschätzung.
+
+**Keine Produktionsfreigabe:** Weder das funktionierende Scanmodul
+noch RC1973 ändern `api/abd-analysis`; es werden keine Azure-Ressourcen,
+Echt-Scans oder Cloud-Bereitstellungen durch diesen PR ausgeführt.
+`ABD_SCAN_PENDING` bleibt gesperrt.
+
+## RC1974 – frühzeitige Signaturprüfung vor EICAR und Blob-Download
+
+RC1973 erforderte zwar einen EICAR-Selbsttest vor dem ersten
+Kundendaten-Download, hatte den Status der Virensignaturen aber
+erst **danach** abgefragt. Bei bereits erkennbar veralteten
+Definitionen entstanden dadurch EICAR-Scanner-Rechenzeit und
+Quarantäne-Downloadkosten ohne Aussicht auf einen gültigen Nachweis.
+
+Der Offline-Kern prüft nun die vertraulichen Signaturmetadaten
+unmittelbar nach dem gültigen Queue-Claim, bevor er den EICAR-Selbsttest
+oder eine Blob-Leseoperation ausführt. Unbrauchbare Metadaten
+blockieren ohne Scannerstart oder Datenlesevorgang.
+
+Eine zweite Signaturmetadatenprüfung vor dem Kundendatei-Scan
+erkennt ein Update während des Selbsttests; die bisherige
+Post-Scan-Prüfung wird beibehalten. Die beiden neuen RC1974-
+Regressionstests prüfen die Reihenfolge und die Sperren mit
+synthetischen Metadaten sowie einem simulierten Engine-Check.
+
+**Keine echte Erkennung oder Scan-Freigabe:** Auch jetzt bleiben
+`authorizedForRelease:false`, fehlende Azure-Containerlaufzeit,
+Cloudkostenprüfung und EICAR-/XLSX-Livetests zwingende Stop-Bedingungen.
+
+## RC1975 – Zeitbudget für den vorgeschlagenen 240-s-Cloudjob
+
+**Nachgewiesener Planungswiderspruch:** Der bisherige Worker erlaubte für
+die zwei ClamAV-Engine-Probes je 120 Sekunden, einen Kundendatei-Scan
+bis zu 120 Sekunden und zwei bedingte Blob-Lesevorgänge von je
+35 Sekunden. Das sind theoretisch **430 Sekunden ohne Overhead**,
+obwohl der vorgeschlagene Azure Container Apps Consumption Job in
+`RC1964.JOB_SHAPE.maxSeconds` auf **240 Sekunden** geplant ist.
+Auch die Aufnahme eines einzigen Kandidaten wäre unter ungünstigen
+Bedingungen somit zeitlich unmöglich und könnte unnötigen
+Cloud-Rechenverbrauch verursachen.
+
+**Im inerten RC1965-Worker jetzt ausdrücklich begrenzt:**
+
+| Phase | Geplante maximale Dauer |
+| --- | ---: |
+| EICAR-Klartext-Test | 25 s |
+| EICAR-Erkennungstest | 25 s |
+| Bedingter Blob-Read vor Scan | 35 s |
+| Kundendatei-Scan | 90 s |
+| Bedingter Blob-Read nach Scan | 35 s |
+| Reserviertes Zeitbudget für Metadata/Claim/Staging/Cleanup | 30 s |
+| **Gesamte geplante Obergrenze** | **240 s** |
+
+Die beiden EICAR-Probes erhalten über `engineCheck({timeoutMs:25000})`
+jeweils 25 s; der Aufruf von `scanLocalQuarantine` erhält
+`timeoutMs:90000`. Der bestehende RC1966-Reader hat weiterhin 35 s
+pro Blob-Lesevorgang. Das `TIME_BUDGET` wird aus dem
+`JOB_SHAPE.maxSeconds`-Wert überprüft und durch zwei synthetische
+Regressionen gegen unbeabsichtigte Erhöhung geschützt.
+
+**Grenzen:** Die Timeout-Summen sind lediglich *Softwareziele*, keine
+belegte reale ClamAV-Laufzeit und keine garantierte gesamte
+Wall-Clock-Ausführungsdauer. Signaturabfragen, ein sich sperrender
+Kindprozess und sonstige I/O müssen in einem späteren echten
+Containerjob durch eine **unabhängige harte 240-s-Prozess-/Job-Frist**
+begrenzt werden. Verfehlt der Scanner unter dem restriktiven
+Zeitbudget den Abschluss, bleibt der Auftrag fail-closed; Limits
+dürfen nicht durch Umgehen der Malwareprüfung gelockert werden.
+Eine Änderung des Zeitprofils erfordert eine neue Kostenrechnung
+und Sicherheitsabnahme.
+
+**Unverändert:** Keine Azure-Ressourcenanlage, kein Defender-Abonnement,
+kein echter EICAR-Scan, keine wirkliche XLSX-Analyse durch diesen PR.
+`authorizedForRelease:false` und `ABD_SCAN_PENDING` bleiben aktiv.
+
+## RC1976 – Scanner-Identität zwischen EICAR und Kundendatei binden
+
+**Gefundener Fehler:** Der RC1973-EICAR-Selbsttest verwendete bisher im
+Standardfall `runClamscan`, während `scanLocalQuarantine` einen separat
+injektierbaren `runner` verwendete. Damit hätte der Selbsttest eine
+funktionierende Engine nachweisen können, obwohl die Kundendatei durch
+eine **andere** Scannerfunktion verarbeitet wird. Eine positive
+Bescheinigung über die erste Engine beweist nicht, dass die zweite
+die Kundendatei tatsächlich geprüft hat.
+
+Der RC1965-Worker gibt deshalb nun **denselben `runner`** an
+`engineCheck({runner,timeoutMs})` und den Kundendatei-Scan weiter.
+Die Standardimplementierung `verifyClamAvEngine` führt ihre beiden
+Probes mit genau diesem Runner aus. Drei neue synthetische Tests prüfen:
+(1) identischer Scanner für harmlose Probe, EICAR und Kandidat,
+(2) ein Runner mit immer `exitCode:0` wird am EICAR-Test vor jedem
+Blob-Lesezugriff erkannt und
+(3) ein Runner mit immer `exitCode:1` wird bereits an der harmlosen
+Probe blockiert.
+
+**Vertrauensgrenze:** Der injizierte Runner und ein
+`engineCheck`-Adapter sind ausschließlich interne
+Test-/Laufzeit-Abhängigkeiten, **keine** vom Browser oder der Queue
+übernehmbaren Eingaben. Vor der echten Azure-Anbindung muss ein
+vertrauenswürdiger Worker den Scannerprozess und die tatsächlich
+geladenen Signaturen zusätzlich attestieren. Dieser Baustein
+erzeugt weiter nur `authorizedForRelease:false`-Kandidaten.
+Weder ein echter ClamAV-Test noch Azure-Datenzugriff ist mit den
+synthetischen Regressionen nachgewiesen.
+
+## RC1977 – tatsächlichen Abschlusszeitpunkt signieren
+
+**Nachweisfehler:** `scanOfflineCandidate` erhielt einen `now`-Zeitstempel
+bei der Queue-/Einmal-Claim-Verifizierung und reichte diesen erst nach
+den EICAR-Probes, Blob-Downloads und dem Kundendateiscan als
+`scannedAt` an die kurzlebige RC1963-HMAC-Kandidatenbescheinigung
+weiter. Damit konnte die Bescheinigung einen *früheren* statt des
+tatsächlichen Abschlusszeitpunktes enthalten. Zudem wurde die
+24-Stunden-Aktualität der Signaturen am Startzeitpunkt und nicht
+nochmals zur Zeit der finalen Bescheinigung beurteilt.
+
+Der Offline-Worker verwendet nun eine gesonderte
+`clock`-Abhängigkeit (in der späteren vertrauenswürdigen Laufzeit
+standardmäßig `Date.now`) **nach** der abschließenden Blob- und
+Signaturprüfung. Nur ein sicherer, nicht rückwärts laufender
+Integer-Zeitstempel mit einer Differenz von höchstens
+`TIME_BUDGET.jobMs` zum Startzeitpunkt wird akzeptiert. Die
+Signaturen müssen auch am Abschlusszeitpunkt höchstens 24 Stunden alt
+sein. Die RC1963-Kandidatenbescheinigung verwendet **diesen**
+`finishedAt`-Wert als `scannedAt` und berechnet ihren Ablauf
+relativ zum tatsächlichen Abschluss, nicht zum initialen Queue-Auftrag.
+
+Drei synthetische Regressionen prüfen (1) korrekt signierte
+`scannedAt`-/`expiresAt`-Felder, (2) fehlende/ungültige/rückwärts
+laufende oder über der geplanten 240-s-Grenze liegende Zeitstempel
+sowie (3) eine während des Scans ablaufende Signaturgültigkeit.
+Keiner dieser Fehler liefert eine Kandidatenbescheinigung oder
+Parserfreigabe. Die Injected-`clock`-Funktion ist ein interner
+Test-/Job-Adapter, niemals ein Feld aus Browser-/Queue-Daten.
+
+**Grenze:** Die Abschlusszeitkontrolle stoppt keinen hängenden
+Scannerprozess; dafür ist weiterhin ein *unabhängiger* harter
+Container-Laufzeitabbruch nötig. Sie erlaubt weiterhin
+`authorizedForRelease:false` allein und stellt weder einen realen
+ClamAV-Scan noch einen kostenfreien Cloudbetrieb oder einen
+erfolgreichen Excel-Upload nach.
+
+## RC1978 – Ausnahmebehandlung beim Blob-Stream-Aufräumen
+
+Die RC1968/69-Blob-Leser-Funktion rief `stream.destroy()` auch direkt
+im Timer-Callback auf. Wirft ein ungewöhnlicher oder fehlerhafter
+Azure-SDK-Stream bei `destroy()` selbst eine Ausnahme, liegt diese
+außerhalb der normalen `Promise.race`-/`try/catch`-Behandlung.
+Sie kann als unbehandelte Node-Ausnahme den isolierten Worker beenden,
+anstatt die angefragte Datei kontrolliert zu sperren.
+
+RC1978 kapselt das Schließen des aktiven Streams in einen
+ausnahmesicheren `safeDestroy`-Adapter. Ein fehlgeschlagenes Schließen
+im Stream-Iterator setzt außerdem `cleanupFailed`, sodass auch bei
+ansonsten korrekt gelesener Länge und SHA-256 **kein Kandidat** aus
+dem betroffenen Read zurückgegeben wird. Fehler werden wie bisher
+auf `RC1966_BLOB_UNVERIFIED` reduziert. Das ist ein
+Availability-/Fail-Closed-Fix, keine neue Scanfreigabe.
+
+Die beiden neuen synthetischen RC1978-Regressionen prüfen
+(1) einen hängenden Async-Iterator, dessen `destroy()` im
+35-s-Deadline-Callback eine Ausnahme wirft (mit kurzem Testtimeout),
+und (2) exakte korrekte Bytes, deren Stream sich nicht sauber
+schließen lässt. Beide Fälle müssen sicher und ohne SDK-
+Geheimnisse abgewiesen werden. Ein realer Azure SDK-/Container-Livetest
+ist damit **nicht** ersetzt.
+
+Keine Azure-Ressource, keine neue laufende Gebühr, keine
+Cloudscanner-Bereitstellung oder ABD-Parserfreigabe; der
+sichere `ABD_SCAN_PENDING`-Block bleibt bestehen.
+
+## RC1979 – verspätete asynchrone Blob-Stream-Fehler nach Abbruch
+
+RC1978 kapselt synchrone `destroy()`-Ausnahmen; eine davon
+unabhängige Node-Stream-Gefahr blieb bestehen: Ein bereits
+abgebrochener Azure-SDK-Stream kann *später* noch ein asynchrones
+`error`-Event auslösen. Ohne registrierten EventEmitter-Handler
+würde Node das Ereignis als ungefangenen Fehler melden, obwohl
+der ursprüngliche `Promise.race`-Read bereits korrekt abgebrochen
+wurde.
+
+Der RC1966-Reader installiert jetzt beim Übernehmen des SDK-Streams
+einen `error`-Listener, der bis zur Freigabe des Streamobjekts
+bestehen bleibt. Fehler während der laufenden Async-Iteration werden
+weiterhin als ungültiger Download behandelt; das Ignorieren eines
+*späten* Events ist niemals ein `clean`-Verdikt. Scheitert schon
+die Listener-Registrierung, wird der Stream aufgeräumt und der
+Read fail-closed verworfen.
+
+Zwei synthetische RC1979-Regressionen prüfen:
+(1) ein SDK-Stream mit nicht kooperierendem Iterator, der nach
+einem Timeout noch ein `error`-Event emittiert, darf den Node-Worker
+nicht zum Absturz bringen;
+(2) eine fehlerhafte `on('error')`-Implementierung darf keine
+Blob-Bytes zurückgeben. Kein echter Azure-/ClamAV-Livetest.
+`ABD_SCAN_PENDING` und `authorizedForRelease:false` bleiben
+bestehen. Keine Cloud-Ressourcen, Kosten, Merge oder Bereitstellung.
