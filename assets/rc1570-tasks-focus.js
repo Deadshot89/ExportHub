@@ -103,11 +103,28 @@ function linkedShipment(task){
   return matches.length===1?matches[0]:null
 }
 function shipmentCustomerNo(task){
-  var sh=linkedShipment(task);if(!sh)return'';
-  var direct=q(sh.customerAccount||sh.customerNumber||sh.customerNo||sh.kundennummer||sh.account);if(direct)return direct;
-  var id=q(sh.customerId);if(!id)return'';
-  var customers=arr(state().customers).filter(function(c){return c&&low(c.id)===low(id)});
-  return customers.length===1?q(customers[0].customerNumber||customers[0].account||customers[0].accountNumber):''
+  var refKey=q(ref(task)).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(refKey))return'';
+  var s=state(),linkedId=q(task&&(task.linkedShipmentId||task.shipmentId)),number='',conflict=false;
+  var companies=new Set(),environments=new Set();
+  arr(s.shipments).concat(arr(s.savedShipments)).forEach(function(sh){
+    if(!sh||q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()!==refKey)return;
+    var shId=q(sh.id||sh.shipmentId);
+    if(linkedId&&shId!==linkedId)return;
+    if(q(task.companyId)&&q(sh.companyId)&&q(task.companyId)!==q(sh.companyId))return;
+    if(q(task.environment)&&q(sh.environment)&&q(task.environment)!==q(sh.environment))return;
+    if(q(sh.companyId))companies.add(low(sh.companyId));
+    if(q(sh.environment))environments.add(low(sh.environment));
+    var direct=q(sh.customerAccount||sh.customerNumber||sh.customerNo||sh.kundennummer||sh.account||
+      sh.customer&&(sh.customer.account||sh.customer.customerNumber));
+    if(!direct&&q(sh.customerId)){
+      var customers=arr(s.customers).filter(function(c){return c&&low(c.id)===low(sh.customerId)});
+      if(customers.length===1)direct=q(customers[0].customerNumber||customers[0].account||customers[0].accountNumber)
+    }
+    if(direct){if(number&&low(number)!==low(direct))conflict=true;else number=direct}
+  });
+  // Matching the REF is not sufficient if copies disagree about the customer,
+  // environment or company. Never choose the first stored copy arbitrarily.
+  return conflict||companies.size>1||environments.size>1?'':number
 }
 /* Collapse only exact same-purpose, same-day, same-owner entries in the overview.
    All originals remain in task management so duplicate records can be checked/deleted individually. */
