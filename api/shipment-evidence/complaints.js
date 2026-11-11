@@ -33,7 +33,7 @@ function edit(c,input,actor){
  const revised=['rootCause','correctiveAction','preventiveAction'].some(k=>changed.includes(k));
  if(revised&&input.effectivenessResult==='wirksam')fail('RECHECK_REQUIRED','Massnahmen zuerst speichern, Wirksamkeit anschliessend getrennt bestaetigen.',422);
  if(revised){
-  c.effectivenessResult='offen';c.effectivenessEvidence='';c.verifiedOn='';c.verifiedBy='';
+  c.effectivenessResult='offen';if(!Object.prototype.hasOwnProperty.call(input,'effectivenessEvidence'))c.effectivenessEvidence='';c.verifiedOn='';c.verifiedBy='';
   c.state='in_pruefung';
  }
  if(changed.includes('effectivenessResult')){
