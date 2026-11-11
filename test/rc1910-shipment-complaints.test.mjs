@@ -139,3 +139,21 @@ test('Altfall: Wirksamkeit ohne dokumentierten Prüfer verhindert Erledigt',()=>
  complaints.changeStatus(c,'abgeschlossen','Mitarbeiter');
  assert.equal(c.state,'abgeschlossen');
 });
+
+test('Historische REF-Dokumentationen erscheinen ohne Dateikopie in Alle Dokumentationen',()=>{
+ const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const legacy=fs.readFileSync('api/shipment-documentation/index.js','utf8');
+ assert.match(ui,/legacyRequest\(\{action:'list'/);
+ assert.match(ui,/\.\.\.state\.records,\.\.\.state\.legacyRecords/);
+ assert.match(ui,/r\.source==='ref'/);
+ assert.match(ui,/ExportHUBShipmentView\.open\(r\.reference,'documentation'\)/);
+ assert.match(ui,/legacyUnavailable/);
+ assert.match(ui,/legacyRequestToken/);
+ assert.match(legacy,/async function listForEnvironment\(env,allowedRefs,query\)/);
+ assert.match(legacy,/knownRefs\(team\)/);
+ const start=legacy.indexOf('async function listForEnvironment(');
+ const end=legacy.indexOf('async function handle(req)',start);
+ assert.ok(start>=0&&end>start);
+ const exposed=legacy.slice(start,end);
+ assert.doesNotMatch(exposed,/text:c\.text|description:|evidence:|id:c\.id/);
+});
