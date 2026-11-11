@@ -12,10 +12,10 @@ test('RC1189: PR-Änderungen an E2E-Navigation erhalten vor Merge einen echten l
   assert.match(workflow,/test\/rc1189-/);
   assert.match(workflow,/node \.github\/rc1112\/build-three-env\.mjs/);
   assert.match(workflow,/@playwright\/test@1\.63\.0/);
-  assert.match(workflow,/image: mcr\\.microsoft\\.com\\/playwright:v1\\.63\\.0-noble/,'official pinned Playwright browser image required');
-  assert.match(workflow,/chromium\\.executablePath\\(\\)/,'bundled Chromium executable must be validated');
-  assert.match(workflow,/chromium\\.launch\\(\\)/,'actual Chromium startup must be checked before tests');
-  assert.match(workflow,/shell: bash/,'browser job must retain bash compatibility');
+  assert.ok(workflow.includes('image: mcr.microsoft.com/playwright:v1.63.0-noble'),'official pinned Playwright browser image required');
+  assert.ok(workflow.includes('chromium.executablePath()'),'bundled Chromium executable must be validated');
+  assert.ok(workflow.includes('chromium.launch()'),'actual Chromium startup must be checked before tests');
+  assert.ok(workflow.includes('shell: bash'),'browser job must retain bash compatibility');
   assert.match(workflow,/npx playwright test e2e\/specs\/navigation\.spec\.mjs/);
   assert.match(workflow,/navigation\.spec\.mjs e2e\/specs\/notifications\.spec\.mjs e2e\/specs\/public-smoke\.spec\.mjs/);
   assert.doesNotMatch(workflow,/Azure\/static-web-apps-deploy|deployment_token|Deploy ExportHUB/i);
