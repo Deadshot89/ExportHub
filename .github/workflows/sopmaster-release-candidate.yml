@@ -105,7 +105,7 @@ jobs:
           retention-days: 14
 
   integrated-browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
     defaults:
@@ -140,7 +140,8 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.63.0
           node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
-          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
+          # A successful real Chromium launch is mandatory before any browser gate.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Protect ExportHUB core browser flows
         env:
           EXPORTHUB_E2E_STATIC: '1'
@@ -183,7 +184,7 @@ jobs:
           retention-days: 14
 
   environment-package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
     defaults:
@@ -218,7 +219,8 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.63.0
           node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
-          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
+          # A successful real Chromium launch is mandatory before any browser gate.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
       - name: Verify Production candidate package read-only
         env:
           EXPORTHUB_E2E_STATIC: '1'

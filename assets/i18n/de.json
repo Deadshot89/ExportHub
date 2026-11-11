@@ -2426,8 +2426,8 @@
   "urgentOrderV2.formTitle": "Neue Anfrage erfassen",
   "urgentOrderV2.formIntro": "Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.",
   "urgentOrderV2.requestedDispatchDate": "Gewünschter Versandtag * (deutsche Ortszeit)",
-  "urgentOrderV2.cutoffLateWarning": "Hinweis zur heutigen Meldefrist: Bitte melde Aufträge für heute bis 15:15 Uhr. Ist es später, wähle am besten morgen als Versandtag. Du kannst den Auftrag trotzdem für heute melden. Wenn das System ihn nicht automatisch freigibt, kümmern wir uns morgen darum.",
-  "urgentOrderV2.cutoffHeading": "Kurzer Hinweis zur Meldefrist",
+  "urgentOrderV2.cutoffLateWarning": "Die reguläre Meldefrist für den heutigen Versand endet um **15:15 Uhr** (Erfassung bis 15:00 Uhr).\n\n- **Sie melden nach 15:15 Uhr?** Bitte wählen Sie **morgen** als Versandtag.\n- **Trotzdem für heute melden?** Eine Übermittlung ist weiterhin möglich. Falls das System den Auftrag nicht mehr automatisch freigibt, wird er von uns am nächsten Arbeitstag bearbeitet.",
+  "urgentOrderV2.cutoffHeading": "⚠️ ACHTUNG: Meldefrist für heutigen Versand beachten",
   "urgentOrderV2.cutoffSubmitToday": "Trotzdem melden",
   "urgentOrderV2.cutoffMoveTomorrow": "Auf morgen verschieben",
   "urgentOrderV2.priorityLabel": "Priorität / Anfragegrund *",
@@ -2726,7 +2726,7 @@
   "urgentOrderV2.deletePublicPending": "Löschung angefragt – wartet auf Freigabe durch die Logistik.",
   "urgentOrderV2.deletePublicRejected": "Die letzte Löschanfrage wurde abgelehnt.",
   "urgentOrderV2.deletePublicDisclaimer": "Löschung betrifft nur die Urgent-Order-Anfrage, nicht die tatsächliche Sendung.",
-  "urgentOrderV2.minibagReviewPrompt": "Minibag überprüfen: {articles} entspricht keiner vollen Standardverpackung. Bist du sicher, dass es kein Minibag ist? Bitte prüfen. OK = ohne Minibag melden; Abbrechen = Artikel korrigieren.",
+  "urgentOrderV2.minibagReviewPrompt": "Bei {articles} passt die Menge nicht zur normalen Verpackung. Ist das wirklich kein Minibag? OK = ohne Minibag weitermachen, Abbrechen = Artikel korrigieren.",
   "urgentOrderV2.minibagReviewCancel": "Bitte den Minibag-Haken und die Menge überprüfen.",
   "urgentOrderV2.packingCatalogTitle": "Minibag · Artikelstamm sicher verwalten",
   "urgentOrderV2.packingCatalogHelp": "TSV-Liste mit „Item number“, „Net weight“ und „Packing quantity“ importieren. Verpackungsgrößen werden nur im geschützten Azure-Datenspeicher gespeichert.",
@@ -2736,5 +2736,12 @@
   "urgentOrderV2.packingCatalogPickFile": "Bitte zuerst die Artikelliste auswählen.",
   "urgentOrderV2.packingCatalogTooLarge": "Die Datei ist zu groß (maximal 5 MB).",
   "urgentOrderV2.packingCatalogSaving": "Artikelliste wird geprüft und geschützt gespeichert …",
-  "urgentOrderV2.packingCatalogSaved": "{count} Artikel gespeichert · {unknown} ohne gültige Verpackungsgröße."
+  "urgentOrderV2.packingCatalogSaved": "{count} Artikel gespeichert · {unknown} ohne gültige Verpackungsgröße.",
+  "urgentOrderV2.packingPreflightRunning": "Minibag-Mengen werden geprüft …",
+  "urgentOrderV2.packingPreflightOk": "Minibag-Prüfung: {count} Artikel anhand ihrer Verpackungsgröße geprüft.",
+  "urgentOrderV2.packingPreflightMissing": "Es ist noch keine Minibag-Artikelliste geladen. Die Mengen können nicht automatisch geprüft werden.",
+  "urgentOrderV2.packingPreflightUnknown": "Für folgende Artikel fehlt eine gültige Verpackungsgröße: {articles}. Diese Positionen konnten nicht geprüft werden.",
+  "urgentOrderV2.packingPreflightUnknownConfirm": "Bitte prüfe die Artikelnummern. Möchtest du trotzdem weitermachen?",
+  "urgentOrderV2.packingPreflightConfirmed": "Minibag-Mengen geprüft. Deine Bestätigung wurde für diese Artikel und Mengen übernommen.",
+  "urgentOrderV2.packingPreflightRetry": "Bitte überprüfe die Menge oder setze den Minibag-Haken."
 }
