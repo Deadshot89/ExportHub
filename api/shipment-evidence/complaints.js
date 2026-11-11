@@ -18,11 +18,11 @@ function created(input,actor){
 }
 const EDIT_FIELDS={owner:120,dueDate:10,rootCause:2000,immediateAction:2000,correctiveAction:2000,
  preventiveAction:2000,checkDate:10,checkMethod:1500,checkSample:400,checkCriteria:1000,
- effectivenessEvidence:2000,effectivenessResult:20,analysisText:8000,analysisSource:50,
+ effectivenessEvidence:2000,effectivenessResult:20,analysisText:8000,
  customerDraft:2000,carrierDraft:2000,category:30};
 function edit(c,input,actor){
  if(c.state==='abgeschlossen')fail('COMPLAINT_CLOSED','Abgeschlossene Reklamation erst wieder oeffnen.',409);
- const changed=[];
+ const changed=[],previousApproval=String(c.effectivenessResult||'offen');
  for(const [k,max] of Object.entries(EDIT_FIELDS)){
   if(!Object.prototype.hasOwnProperty.call(input,k))continue;
   const value=k.endsWith('Date')?date(input[k]):str(input[k],max);
@@ -30,13 +30,20 @@ function edit(c,input,actor){
   if(k==='category'&&!TYPES.includes(value))fail('BAD_CATEGORY','Reklamationsart ungueltig.');
   if(value!==String(c[k]||'')){c[k]=value;changed.push(k)}
  }
- const revised=['rootCause','correctiveAction','preventiveAction'].some(k=>changed.includes(k));
- if(revised&&input.effectivenessResult==='wirksam')fail('RECHECK_REQUIRED','Massnahmen zuerst speichern, Wirksamkeit anschliessend getrennt bestaetigen.',422);
+ const revised=['rootCause','correctiveAction','preventiveAction','checkDate','checkMethod','checkSample','checkCriteria','effectivenessEvidence']
+  .some(k=>changed.includes(k));
+ const oldResult=previousApproval;
+ // An approval cannot be issued together with an altered verification plan.
+ // If the UI sends an already approved value back while the plan changes,
+ // revoke that approval automatically instead of preserving a stale proof.
+ if(revised&&input.effectivenessResult==='wirksam'&&oldResult!=='wirksam')
+  fail('RECHECK_REQUIRED','Massnahmen und Pruefplan zuerst speichern, Wirksamkeit anschliessend getrennt bestaetigen.',422);
  if(revised){
-  c.effectivenessResult='offen';if(!Object.prototype.hasOwnProperty.call(input,'effectivenessEvidence'))c.effectivenessEvidence='';c.verifiedOn='';c.verifiedBy='';
+  c.effectivenessResult='offen';c.verifiedOn='';c.verifiedBy='';
   c.state='in_pruefung';
+  if(!changed.includes('effectivenessResult'))changed.push('effectivenessResult');
  }
- if(changed.includes('effectivenessResult')){
+ if(!revised&&changed.includes('effectivenessResult')){
   if(c.effectivenessResult==='wirksam'){
    if(!c.rootCause||!c.correctiveAction||!c.checkDate||!c.checkCriteria||
        !c.checkMethod||!c.effectivenessEvidence||
