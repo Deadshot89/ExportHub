@@ -45,11 +45,11 @@
     }
     return state;
   }
-  function detailFromNotification(notification,task){
+  function detailFromNotification(notification,task,sourceState){
     const n=notification||{};
     // ABD-only users need no tasks write right: derive the reverse link from
     // the authoritative ABD request instead of mutating packNotifications.
-    const ownAbds=arr(sharedState().abdRequests).filter(a=>a&&q(a.packNotificationId)===q(n.id)&&q(a.packNotificationRef)===q(n.reference));
+    const ownAbds=arr((sourceState||sharedState()).abdRequests).filter(a=>a&&q(a.packNotificationId)===q(n.id)&&q(a.packNotificationRef)===q(n.reference));
     const ownAbd=ownAbds.length===1?ownAbds[0]:null;
     return{
       taskId:q(task&&task.id),notificationId:q(n.id),reference:q(n.reference||task&&task.sourceRef),
@@ -60,10 +60,10 @@
       deliveryNoteReference:q(n.deliveryNoteReference),cancelledAt:q(n.cancelledAt),editedAt:q(n.editedAt)
     };
   }
-  function detailModel(state,task){return detailFromNotification(findNotification(state,task)||{},task);}
+  function detailModel(state,task){return detailFromNotification(findNotification(state,task)||{},task,state);}
   function inboxItems(state){
     return packNotifications(state).map(notification=>{
-      const model=detailFromNotification(notification,null);
+      const model=detailFromNotification(notification,null,state);
       return Object.assign({},model,{unread:q(notification.status).toLowerCase()==='new'});
     }).sort((a,b)=>inboxRank(a)-inboxRank(b)||String(b.createdAt).localeCompare(String(a.createdAt)));
   }
