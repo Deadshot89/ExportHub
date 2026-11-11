@@ -31,7 +31,9 @@ concurrency:
 
 jobs:
   guest_browser:
-    runs-on: ubuntu-latest
+    # Pin to the supported 24.04 image so Chromium deps resolve from a stable Ubuntu archive.
+    # Keep the full --with-deps installation and all browser/security gates enabled.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
