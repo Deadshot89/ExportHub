@@ -480,13 +480,13 @@ test('Aufgaben: POD wird nach expliziter Systemgruppe klassifiziert, auch wenn B
 
 test('RC1985: identical shipment tasks count once in dashboard but remain reviewable in management',()=>{
   const tasks=[
-    {id:'legacy',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+    {id:'legacy',title:'Sendungsdokumentation',group:'Ausgangsvermerk',sourceType:'shipment',
       linkedShipmentRef:'ABC123',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
-    {id:'complete',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+    {id:'complete',title:'Sendungsdokumentation',group:'Ausgangsvermerk',sourceType:'shipment',
       linkedShipmentRef:'ABC123',customerNumber:'100200',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
-    {id:'different-action',title:'ABD erstellen',group:'Ausgangsvermerk',sourceType:'av_missing',
+    {id:'different-action',title:'ABD erstellen',group:'Ausgangsvermerk',sourceType:'shipment',
       linkedShipmentRef:'ABC123',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
-    {id:'different-day',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+    {id:'different-day',title:'Sendungsdokumentation',group:'Ausgangsvermerk',sourceType:'shipment',
       linkedShipmentRef:'ABC123',dueDate:'2026-11-12',status:'offen',owner:'Tobias'}
   ];
   const {api}=editorHarness(tasks,()=>true);
@@ -536,10 +536,10 @@ test('RC1985: distinct process, date or reference is not treated as duplicate',a
 
 test('RC1985: redundant system-generated task may be deleted while canonical AV duty survives',async()=>{
   const source=[
-    {id:'task:av-missing:ABC123',title:'AV hochladen',sourceType:'av_missing',
+    {id:'task:av-missing:ABC123',title:'Ausgangsvermerk nicht vorhanden · ABC123',sourceType:'av_missing',
       group:'Ausgangsvermerk',linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'},
     {id:'legacy-av-ABC123',title:'AV hochladen',sourceType:'av_missing',
-      group:'Ausgangsvermerk',linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'}
+      group:'Versand',linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-09',status:'offen'}
   ];
   const {api,store,calls}=editorHarness(source,()=>true);
   const before=api.taskViewHtml();
