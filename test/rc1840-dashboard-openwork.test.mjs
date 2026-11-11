@@ -112,12 +112,16 @@ test('Complaint totals only include active cases, not shipments or deleted recor
   assert.match(complaintApi,/if\(method==='GET'&&action==='counts'\)return complaintCounts\(ctx\)/);
   assert.match(complaintApi,/async function complaintCounts\(ctx\)/);
   const countStart=complaintApi.indexOf('async function complaintCounts(ctx)');
+  const summaryStart=complaintApi.indexOf('function listSummary(record)');
   const listStart=complaintApi.indexOf('async function list(ctx,query)');
-  assert.ok(countStart>=0&&listStart>countStart);
-  assert.doesNotMatch(complaintApi.slice(countStart,listStart),/fields:|customer:|complaints:batch/);
+  assert.ok(countStart>=0&&summaryStart>countStart&&listStart>summaryStart);
+  assert.doesNotMatch(complaintApi.slice(countStart,summaryStart),/fields:|customer:|complaints:batch/,
+   'The counts endpoint must return only the number, not complaint or shipment details');
+  assert.match(complaintApi.slice(summaryStart,listStart),/complaints:record\.complaints\.map\(c=>\(\{state:/,
+   'The separate list projection may include complaint statuses but no private case detail');
   assert.match(legacyComplaintApi,/if\(req.method==='GET'&&input.action==='counts'\)/);
   assert.match(legacyComplaintApi,/rights.canReadAny\(user,\['shipment','shipmentoverview','documents'\]\)/);
-  assert.match(legacyComplaintApi,/async function countsForEnvironment\(env\)/);
+  assert.match(legacyComplaintApi,/async function countsForEnvironment\(env,allowedRefs\)/);
 });
 function requireComplaintOps(){return require('../api/shipment-evidence/complaints.js')}
 test('Open-work does not navigate to new windows or to external apps',()=>{
