@@ -184,7 +184,7 @@ var ICONS={
   week:'<rect x="2.5" y="4.5" width="19" height="17" rx="2"/><path d="M2.5 9h19M7 2v5M17 2v5M6.5 13h3M12 13h3M17.5 13h1M7 17h3M12 17h3"/>',
   quick:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 21h7v-7M14 14l7 7"/>',
   pallet:'<path d="M3 19h18M4 22v-3M10 22v-3M15 22v-3M20 22v-3M4 11h7v8H4zM13 11h7v8h-7zM8 3h8v8H8zM8 7h8M11 11V7"/>',
-  check:'<circle cx="12" cy="12" r="9"/>'<path d="M8 12.5l2.5 2.5L16 9.5"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
   chevron:'<path d="M9 6l6 6-6 6"/>'
 };
 function icon(name,cls){return'<svg class="'+(cls||'rc1558-icon rc1558-kpi-icon')+'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(ICONS[name]||'')+'</svg>'}
