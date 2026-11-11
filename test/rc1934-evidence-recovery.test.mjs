@@ -146,6 +146,54 @@ test('RC1934 P0: non-admin cannot inspect or restore hidden records',async t=>{
  assert.deepEqual(db.stored.get(RECORD).bytes,db.initial);
 });
 
+test('RC1934 P0: failed safety-copy readback never changes the original',async t=>{
+ const old=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ t.after(()=>{if(old===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old});
+ const db=createStore();
+ const originalGet=db.container.getBlockBlobClient.bind(db.container);
+ db.container.getBlockBlobClient=key=>{
+  const blob=originalGet(key);
+  if(key.includes('/recovery-backups/'))return{...blob,async download(){
+   return{etag:'"fake"',readableStreamBody:Readable.from([Buffer.from('tampered')])};
+  }};
+  return blob;
+ };
+ const user={role:'Administrator',rights:{documents:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({getContainerClient:()=>db.container}));
+ const r=await call('POST',{action:'restore',id:ID,expectedRevision:2});
+ assert.equal(r.status,503);
+ assert.equal(responseBody(r).code,'BACKUP_NOT_VERIFIED');
+ assert.deepEqual(db.stored.get(RECORD).bytes,db.initial);
+ assert.deepEqual(db.stored.get(FILE).bytes,db.originalPhoto);
+});
+
+test('RC1934 P0: TESTSERVICE lookup cannot restore a production DOK',async t=>{
+ const old={storage:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,isolation:process.env.EXPORTHUB_TEST_AUTH_ISOLATION};
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ t.after(()=>{
+  if(old.storage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old.storage;
+  if(old.isolation===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=old.isolation;
+ });
+ const db=createStore();
+ const user={role:'Administrator',rights:{documents:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'testservice'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'testservice');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'testservice');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({getContainerClient:()=>db.container}));
+ const probe=await call('GET',{action:'inspect',id:ID});
+ assert.equal(probe.status,200,probe.body);
+ assert.equal(responseBody(probe).found,false);
+ const restore=await call('POST',{action:'restore',id:ID,expectedRevision:2});
+ assert.equal(restore.status,404);
+ assert.deepEqual(db.stored.get(RECORD).bytes,db.initial);
+ assert.ok(![...db.stored.keys()].some(k=>k.includes('recovery-backups')));
+});
+
 test('RC1934 P0: exact DOK lookup UI, translations and backup protection remain parsable',()=>{
  const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
  const i18n=fs.readFileSync('assets/i18n/shipment-evidence.js','utf8');
