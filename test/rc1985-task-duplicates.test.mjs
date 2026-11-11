@@ -93,3 +93,20 @@ test('RC1985: stale task deletion does not block other new tasks or change shipm
   assert.deepEqual(next.tasks.map(t=>t.id),['new-independent-task']);
   assert.equal(next.shipments[0].status,'Bereit zur Abholung');
 });
+
+test('RC1985: confirmed task deletion outlives normal tombstone retention',()=>{
+  const old='2020-01-01T00:00:00Z';
+  const state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[
+    {collection:'tasks',id:'deleted-manual-task',deletedAt:old,explicitUserAction:true},
+    {collection:'tasks',id:'old-temporary-task',deletedAt:old},
+    {collection:'shipments',id:'old-shipment',deletedAt:old,explicitUserAction:true}
+  ]}};
+  merge.pruneTombstones(state,1);
+  assert.deepEqual(state._teamSyncMeta.tombstones.map(t=>t.id),['deleted-manual-task'],
+    'confirmed task deletion is permanent; other collection retention rules remain unchanged');
+  const stale=merge.mergeState(state,{tasks:[
+    {id:'deleted-manual-task',title:'Offline legacy copy',updatedAt:new Date().toISOString()},
+    {id:'new-task',title:'Fresh work',updatedAt:new Date().toISOString()}
+  ],_teamSyncMeta:{fields:{},tombstones:[]}});
+  assert.deepEqual(stale.tasks.map(task=>task.id),['new-task']);
+});
