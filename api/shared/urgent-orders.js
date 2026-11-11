@@ -97,14 +97,14 @@ function validateWholeOrderChecks(raw,now,orderType){
  const input=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
  const check=(value,label)=>{
   if(value===undefined||value===null)return null;
-  if(typeof value!=='boolean')throw problem('URGENT_ORDER_CHECK_INVALID','Ungültige Gesamtprüfung: '+label);
+  if(typeof value!=='boolean')throw problem('URGENT_ORDER_CHECK_INVALID','Invalid whole-order check: '+label);
   return value;
  };
- const pickableStock=orderType==='DIRECT_OUTBOUND'?null:check(input.pickableStock,'Bestand');
- const holdsClear=check(input.holdsClear,'Sperren');
+ const pickableStock=orderType==='DIRECT_OUTBOUND'?null:check(input.pickableStock,'stock');
+ const holdsClear=check(input.holdsClear,'holds');
  const failed=pickableStock===false||holdsClear===false;
  const reason=text(input.exceptionReason,1000);
- if(failed&&reason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','Bei negativer Gesamtauftragsprüfung mindestens 8 Zeichen Begründung angeben.');
+ if(failed&&reason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','For a failed whole-order check, provide a reason of at least 8 characters.');
  const complete=holdsClear===true&&(orderType==='DIRECT_OUTBOUND'||pickableStock===true);
  const checked=pickableStock!==null||holdsClear!==null;
  return {pickableStock,holdsClear,exceptionReason:failed?reason:'',checkResult:failed?'exception':complete?'passed':'not_checked',checkedAt:checked?now:null};
