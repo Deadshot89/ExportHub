@@ -141,6 +141,33 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
     assert.equal(out.includes('function saveAbdInternal(showAlert,status)'),true);
   }
   assert.throws(()=>injectPackAbdOwnership('function saveAbdInternal(showAlert,status){}','TESTVERSION.html'),/contract drift/);
+  // The release pipeline builds Pack once and verifies/injects the HTML
+  // again. The second pass must be byte-for-byte stable.
+  for(const file of ['index.html','TESTVERSION.html']){
+    const source=fs.readFileSync(file,'utf8');
+    const once=injectPackAbdOwnership(source,file);
+    assert.equal(injectPackAbdOwnership(once,file),once,'already patched ownership must be idempotent');
+    const twiceRuntime=injectPackRuntime(injectPackRuntime(source,file),file);
+    assert.equal(twiceRuntime,injectPackRuntime(source,file),'final HTML verification must not repeat or corrupt Pack runtime');
+
+    // A mixture of original and patched hooks is NOT a valid retry state.
+    const partial=once.replace(
+      'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
+      'function shipmentForAbd(a){if(!a)return null;'
+    );
+    assert.notEqual(partial,once,'partial regression fixture must change the source');
+    assert.throws(()=>injectPackAbdOwnership(partial,file),/partial patch/);
+    assert.throws(()=>injectPackAbdOwnership(once.replace(
+      'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
+      'function shipmentForAbd(a){return null;'
+    ),file),/contract drift/,'unexpected ownership changes must fail closed');
+    assert.throws(()=>injectPackAbdOwnership(once+
+      'function shipmentForAbd(a){if(!a)return null;',file),/contract drift/,
+    'a patched hook plus an extra legacy hook must fail closed');
+    assert.throws(()=>injectPackAbdOwnership(once+
+      'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;',file),/contract drift/,
+    'duplicate legacy hooks must fail even when the patched signature retains that prefix');
+  }
   assert.ok(PACK_ASSETS.includes('pack-notification-abd.js'));
   const tiny='<html><head></head><body></body></html>';
   assert.equal(injectPackRuntime(tiny,'demo.html').includes('/assets/pack-notification-abd.js?v=1'),true);
