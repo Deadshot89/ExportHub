@@ -306,7 +306,10 @@ module.exports=async function(context,req){
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
   const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
-  if(code==='URGENT_MINIBAG_CONFIRM_REQUIRED')response.minibagArticles=e.minibagArticles||[];
+  if(code==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
+   response.minibagArticles=e.minibagArticles||[];
+   response.minibagIndices=e.minibagIndices||[];
+  }
   if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
   context.res=json(status,response);
  }
