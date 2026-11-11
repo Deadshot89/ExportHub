@@ -101,7 +101,7 @@ test('RC1981: the local importer accepts the selected File but keeps ZIP/worker 
 
 test('RC1981: local-only route is explained in six supported UI languages',()=>{
  for(const lng of ['de','en','pl','es','fr','it']){
-  assert.match(workspace,new RegExp('\\\\b'+lng+':\\\\{hint:'));
+  assert.ok(workspace.includes(lng+':{hint:'),'missing D365 UI message: '+lng);
  }
  assert.match(workspace,/localD365Text\('hint'\)/);
  assert.match(workspace,/lastMode==='invoice'/);
