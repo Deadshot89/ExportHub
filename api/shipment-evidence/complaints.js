@@ -39,6 +39,11 @@ function edit(c,input,actor){
  if(revised&&input.effectivenessResult==='wirksam'&&oldResult!=='wirksam')
   fail('RECHECK_REQUIRED','Massnahmen und Pruefplan zuerst speichern, Wirksamkeit anschliessend getrennt bestaetigen.',422);
  if(revised){
+  // Existing proof describes the old cause/criteria; remove it unless a new
+  // evidence text was explicitly supplied in this edit.
+  if(previousApproval==='wirksam'&&!changed.includes('effectivenessEvidence')){
+   c.effectivenessEvidence='';changed.push('effectivenessEvidence');
+  }
   c.effectivenessResult='offen';c.verifiedOn='';c.verifiedBy='';
   c.state='in_pruefung';
   if(!changed.includes('effectivenessResult'))changed.push('effectivenessResult');
