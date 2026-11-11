@@ -2743,5 +2743,16 @@
   "urgentOrderV2.packingPreflightUnknown": "Für folgende Artikel fehlt eine gültige Verpackungsgröße: {articles}. Diese Positionen konnten nicht geprüft werden.",
   "urgentOrderV2.packingPreflightUnknownConfirm": "Bitte prüfe die Artikelnummern. Möchtest du trotzdem weitermachen?",
   "urgentOrderV2.packingPreflightConfirmed": "Minibag-Mengen geprüft. Deine Bestätigung wurde für diese Artikel und Mengen übernommen.",
-  "urgentOrderV2.packingPreflightRetry": "Bitte überprüfe die Menge oder setze den Minibag-Haken."
+  "urgentOrderV2.packingPreflightRetry": "Bitte überprüfe die Menge oder setze den Minibag-Haken.",
+  "urgentOrderV2.issueTemplatesTitle": "Probleme auswählen",
+  "urgentOrderV2.issueTemplatesHint": "Mehrere Gründe möglich · zusätzlich eigene Beschreibung eingeben",
+  "urgentOrderV2.issueStock": "Nicht genügend Bestand verfügbar",
+  "urgentOrderV2.issuePick": "Ware kann nicht gepickt werden",
+  "urgentOrderV2.issueHold": "Auftrag ist gesperrt",
+  "urgentOrderV2.issueMismatch": "Artikel oder Menge stimmt nicht",
+  "urgentOrderV2.issueDocuments": "Versanddokumente fehlen",
+  "urgentOrderV2.issueDamage": "Ware beschädigt oder unvollständig",
+  "urgentOrderV2.issueDelay": "Versand zum gewünschten Termin nicht möglich",
+  "urgentOrderV2.issueRegenerate": "Bitte E-Mail-Vorlage neu erzeugen.",
+  "urgentOrderV2.issueTooLong": "Problembeschreibung mit ausgewählten Vorlagen darf maximal 2000 Zeichen enthalten."
 }
