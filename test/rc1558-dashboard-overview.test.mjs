@@ -46,9 +46,9 @@ const tasks=[
 ];
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
-  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1965/);
-  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1965/);
-  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1965/);
+  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1969/);
+  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1969/);
+  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
   const a=build.indexOf('html=patchRc1371Dashboard(html,file);');
   const b=build.indexOf('html=patchRc1558DashboardOverview(html,file);');
@@ -238,4 +238,24 @@ test('RC1563 Listen scrollen im Panel; Tabelle füllt die Höhe der rechten Spal
 test('RC1565 Dashboard scrollt auch mit langen ABD- und Palettenlisten nicht',()=>{
   assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid \.rc205-widget > \.rc205-list\{display:none!important\}/);
   assert.match(css,/\.rc1558-stack \.rc1558-list\{overflow-x:hidden\}/);
+});
+
+test('RC1969: jede Dashboard-KPI hat ein eigenes sichtbares, barrierefrei dekoratives SVG-Icon',()=>{
+  const w=load('de');
+  w.ExportHUBPackNotificationNav={};
+  w.__EXPORTHUB_GET_STATE__=()=>({packNotifications:[],tasks:[]});
+  const api=w.ExportHUBDashboardOverview1558;
+  const model=api.buildModel(fakeApi(shipments,tasks),shipments,NOW);
+  assert.equal(model.kpis.length,8,'Packtisch + sieben reguläre KPI-Kacheln');
+  const html=api.renderHtml(model);
+  const upper=html.split('<div class="rc1558-grid">')[0];
+  assert.equal((upper.match(/class="rc1558-icon rc1558-kpi-icon"/g)||[]).length,10,'jede der zehn Kacheln bekommt ein eigenes SVG');
+  assert.equal((upper.match(/<svg class="rc1558-icon rc1558-kpi-icon"[^>]*aria-hidden="true"/g)||[]).length,10,'dekorative SVGs sind für Screenreader verborgen');
+  assert.match(upper,/data-rc1558-route="packnotifications"/);
+  assert.match(upper,/data-rc1558-open-module="urgentorders"/);
+  assert.match(upper,/data-rc1558-open-module="quality"/);
+  assert.match(runtime,/kind:'urgent',route:'urgentorders'[^\n]*icon:'urgent'/,'Urgent Orders nutzt das Blitzsymbol');
+  assert.match(runtime,/kind:'quality',route:'quality'[^\n]*icon:'quality'/,'Fehler & Verbesserungen nutzt das Werkzeug-/Verbesserungssymbol');
+  assert.match(css,/\.rc1558-kpi-top \.rc1558-kpi-icon\{/,'Icon-Glasfläche fehlt');
+  assert.match(css,/@media\(max-width:480px\)/,'responsive Icon-Größe fehlt');
 });
