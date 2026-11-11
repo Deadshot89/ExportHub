@@ -2702,6 +2702,5 @@
   "urgentOrderV2.wholeOrderNotChecked": "Pas encore vérifié",
   "urgentOrderV2.wholeOrderReason": "Motif d’un contrôle négatif de la commande entière",
   "urgentOrderV2.wholeOrderReasonRequired": "En cas de contrôle négatif, indiquez un motif d’au moins 8 caractères.",
-  "urgentOrderV2.untrustedHostHelp": "Utilisez uniquement la page officielle TESTSERVICE. Après un changement de page, les données non enregistrées devront être saisies à nouveau.",
-  "urgentOrderV2.openOfficialTestservice": "Ouvrir le TESTSERVICE officiel"
+  "urgentOrderV2.untrustedHostHelp": "Vous êtes sur le TESTSERVICE officiel. L'API a refusé la vérification sécurisée de l'environnement. La commande n'a pas été enregistrée. Ne la renvoyez pas avant la vérification par la logistique."
 }
