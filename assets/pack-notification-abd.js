@@ -6,6 +6,7 @@
   const tr=key=>{try{const api=root.ExportHUBPackI18n;return api&&typeof api.t==='function'?api.t(key):key;}catch(_){return key;}};
   const number=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?n:0;};
   let activeId='';
+  let saveBusy=false,lastSave=null;
 
   function state(){
     try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{};}catch(_){}
@@ -58,6 +59,69 @@
     }));
   }
 
+  function canSave(d){
+    const n=notification(d&&d.packNotificationId);
+    return !saveBusy&&!!n&&owned(d,n)&&q(n.status).toLowerCase()!=='cancelled';
+  }
+  function saveStatusText(){
+    if(!lastSave)return '';
+    return lastSave.status==='saving'?tr('pack.internal.abdSaving')
+      :lastSave.status==='saved'?tr('pack.internal.abdSaved')
+      :tr('pack.internal.abdSaveUnconfirmed');
+  }
+  function updateSaveStatus(){
+    const d=root.document,el=d&&d.querySelector&&d.querySelector('[data-pack-abd-save-status]');
+    const draft=state().abdDraft;
+    if(!el)return false;
+    const visible=lastSave&&q(lastSave.id)===q(draft&&draft.id);
+    el.textContent=visible?saveStatusText():'';
+    el.hidden=!visible;
+    el.setAttribute('data-status',visible?lastSave.status:'');
+    return true;
+  }
+  async function confirmSave(item,prior,options){
+    if(saveBusy)return false;
+    saveBusy=true;lastSave={id:q(item&&item.id),status:'saving'};
+    const opts=options||{};
+    const reason='Packmeldung ABD-Anfrage speichern';
+    try{
+      const clean=root.ExportHUBClean;
+      if(!item||!q(item.id)||!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')
+        throw new Error('ABD_SAVE_ACK_UNAVAILABLE');
+      const queued=await Promise.resolve(clean.queueSave(reason));
+      if(queued===false)throw new Error('ABD_SAVE_QUEUE_REJECTED');
+      const runtime=clean.runtime||null,target=Number(runtime&&runtime.changeGeneration)||0;
+      const flushed=await Promise.resolve(clean.flushSave(reason));
+      const acknowledged=flushed===true||(target>0&&Number(runtime&&runtime.lastSavedGeneration)>=target);
+      if(!acknowledged)throw new Error('ABD_SAVE_UNCONFIRMED');
+      const n=notification(item.packNotificationId);
+      const current=arr(state().abdRequests).find(r=>q(r.id)===q(item.id));
+      if(!n||!owned(current,n)||q(n.abdRequestId)!==q(item.id)||q(n.abdRequestRef)!==q(item.ref))
+        throw new Error('ABD_SAVE_LINK_MISMATCH');
+      lastSave={id:q(item.id),status:'saved'};
+      if(opts.showAlert&&typeof root.alert==='function')root.alert(tr('pack.internal.abdSaved'));
+      if(opts.openMail&&!root.__EXPORTHUB_TEST_NO_MAILTO__&&root.location){
+        try{
+          root.location.href='mailto:'+encodeURIComponent(q(item.mailTo))+
+            '?subject='+encodeURIComponent(q(item.mailSubject))+
+            '&body='+encodeURIComponent(q(item.mailBody));
+        }catch(_){report(new Error(tr('pack.internal.abdMailUnavailable')));}
+      }
+      return true;
+    }catch(_){
+      // A timeout can mean the server accepted the write but the response was
+      // lost. Keep the same ID/ownership in the current state for a safe retry.
+      // Never claim success or open Outlook without a verified acknowledgement.
+      lastSave={id:q(item&&item.id),status:'unconfirmed'};
+      report(new Error(tr('pack.internal.abdSaveUnconfirmed')));
+      return false;
+    }finally{
+      saveBusy=false;
+      decorate();
+      updateSaveStatus();
+    }
+  }
+
   function report(error){
     const message=q(error&&error.message)||tr('pack.internal.abdOpenError');
     try{if(typeof root.alert==='function')root.alert(message);}catch(_){}
@@ -89,6 +153,7 @@
       const legacy=root.ExportHUBRC626;
       if(!legacy||typeof legacy.renderAbd!=='function'||typeof legacy.newAbd!=='function'||typeof legacy.editAbd!=='function')
         throw new Error('Der ABD-Editor ist aktuell nicht verfügbar.');
+      if(activeId!==q(n.id))lastSave=null;
       activeId=q(n.id);
       if(existing){
         legacy.editAbd(existing.id);
@@ -128,7 +193,7 @@
     if(!host||!draft||!q(draft.packNotificationId)||!q(draft.packNotificationRef))return false;
     const n=notification(draft.packNotificationId);
     if(!n||q(n.reference)!==q(draft.packNotificationRef))return false;
-    if(host.querySelector('[data-pack-abd-source]'))return true;
+    if(host.querySelector('[data-pack-abd-source]')){updateSaveStatus();return true;}
     activeId=q(n.id);
     const panel=d.createElement('section');
     panel.setAttribute('data-pack-abd-source','');
@@ -141,6 +206,13 @@
     help.className='muted';
     help.textContent=tr('pack.internal.abdHelp');
     panel.appendChild(help);
+    const status=d.createElement('p');
+    status.setAttribute('data-pack-abd-save-status','');
+    status.setAttribute('role','status');
+    status.setAttribute('aria-live','polite');
+    status.className='muted';
+    status.hidden=true;
+    panel.appendChild(status);
     const tools=d.createElement('div');
     tools.className='toolbar';
     const back=d.createElement('button');
@@ -159,6 +231,7 @@
     const head=host.querySelector('.rc626-head');
     if(head&&head.parentNode)head.parentNode.insertBefore(panel,head.nextSibling);
     else host.insertBefore(panel,host.firstChild);
+    updateSaveStatus();
     return true;
   }
   function onClick(event){
@@ -195,6 +268,6 @@
     }
     return true;
   }
-  root.ExportHUBPackAbd=Object.freeze({begin,resolve,owned,rowsFromPack,decorate,install});
+  root.ExportHUBPackAbd=Object.freeze({begin,resolve,owned,rowsFromPack,decorate,canSave,confirmSave,saveStatusText,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);
