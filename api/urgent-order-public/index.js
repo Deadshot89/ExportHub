@@ -23,6 +23,7 @@ function groupByToken(doc,v){
 function publicOrder(order){
  return{
   id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,allLines:order.allLines===true,
+   orderChecks:order.allLines&&order.orderChecks?{pickableStock:order.orderChecks.pickableStock===true?true:order.orderChecks.pickableStock===false?false:null,holdsClear:order.orderChecks.holdsClear===true?true:order.orderChecks.holdsClear===false?false:null,checkResult:order.orderChecks.checkResult||'not_checked',exceptionReason:txt(order.orderChecks.exceptionReason,1000)}:null,
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
