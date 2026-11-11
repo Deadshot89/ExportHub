@@ -7,6 +7,8 @@ const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const rights=require('../shared/state-write-guard');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
+const complaintOps=require('./complaints');
+const qmAi=require('../shared/qm-ai');
 const MAX_FILE=15*1024*1024;
 const TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'};
 const FIELDS={shipmentNumber:100,customer:200,customerNumber:40,customerId:120,customerMode:16,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
@@ -295,7 +297,7 @@ function rawFile(input,recordId){
  const name=txt(input.fileName,240).split(/[\\/]/).pop();
  const ext=(name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase();
  const kind=input.kind;
- if(kind!=='foto'&&kind!=='lieferschein')fail('BAD_KIND','Dateityp nicht erlaubt.');
+ if(!['foto','lieferschein','reklamation'].includes(kind))fail('BAD_KIND','Dateityp nicht erlaubt.');
  if(!ext||!TYPES[ext]||(kind==='foto'&&!['jpg','jpeg','png'].includes(ext)))fail('BAD_EXTENSION','Erlaubt: PDF, JPG, PNG.');
  const encoded=input.base64;
  // Reject oversized uploads before running a full base64 validation or allocating bytes.
@@ -311,20 +313,24 @@ function rawFile(input,recordId){
  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace('T','-').slice(0,15);
  const base=name.slice(0,-(ext.length+1)).replace(/[^\p{L}\p{N}._ -]/gu,'_').slice(0,80)||'Datei';
  const fileId=crypto.randomUUID();
- const storedName=(kind==='foto'?'Versandfoto_':'Lieferschein_')+recordId+'_'+stamp+'_'+base+'_'+fileId.slice(0,8)+'.'+ext;
+ const storedName=(kind==='foto'?'Versandfoto_':kind==='reklamation'?'Reklamation_':'Lieferschein_')+recordId+'_'+stamp+'_'+base+'_'+fileId.slice(0,8)+'.'+ext;
  return{bytes,fileId,storedName,mime:TYPES[ext],kind};
 }
 async function upload(ctx,record,blob,etag,input){
  if(!record.fields)fail('SAVE_FIRST','Bitte zuerst einen Versandnachweis speichern.');
  if(record.files.length>=100)fail('FILE_LIMIT','Maximal 100 Dateien pro Dokumentation.',413);
+ const complaint=input.kind==='reklamation'&&Array.isArray(record.complaints)?record.complaints.find(c=>c.id===input.complaintId):null;
+ if(input.kind==='reklamation'&&!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+ if(complaint&&complaint.state==='abgeschlossen')fail('COMPLAINT_CLOSED','Die Reklamation ist abgeschlossen.',409);
+ if(complaint&&record.files.filter(f=>f.complaintId===complaint.id).length>=20)fail('COMPLAINT_FILE_LIMIT','Maximal 20 Anlagen pro Reklamation.',413);
  const f=rawFile(input,record.id),target=fileBlob(ctx,record.id,f.fileId);
  await target.uploadData(f.bytes,{blobHTTPHeaders:{blobContentType:f.mime},conditions:{ifNoneMatch:'*'}});
  try{
   const res=await target.download(0),parts=[];
   for await(const part of res.readableStreamBody)parts.push(Buffer.from(part));
   if(!Buffer.concat(parts).equals(f.bytes))fail('FILE_READBACK','Foto/Lieferschein konnte nach Speichern nicht bestaetigt werden.',503);
-  record.files.push({id:f.fileId,name:f.storedName,kind:f.kind,mime:f.mime,size:f.bytes.length,uploadedAt:new Date().toISOString(),uploadedBy:ctx.user});
-  bump(record,ctx,'file-upload',{fileId:f.fileId,kind:f.kind});
+  record.files.push({id:f.fileId,name:f.storedName,kind:f.kind,mime:f.mime,size:f.bytes.length,uploadedAt:new Date().toISOString(),uploadedBy:ctx.user,...(complaint?{complaintId:complaint.id}:{})});
+  bump(record,ctx,'file-upload',{fileId:f.fileId,kind:f.kind,...(complaint?{complaintId:complaint.id}:{})});
   await saveRecord(blob,record,etag);
  }catch(e){
   // A failed response can follow a successful metadata write (for example,
@@ -365,16 +371,18 @@ async function recordsForReference(ctx,query){
   }));
   for(const record of records){
    if(!record||record.deletedAt||txt(record.fields&&record.fields.exporthubRef,20).toUpperCase()!==ref)continue;
-   linked.push({id:record.id,files:(record.files||[]).map(f=>({id:f.id,name:f.name,kind:f.kind,mime:f.mime,size:f.size,uploadedAt:f.uploadedAt}))});
+   linked.push({id:record.id,files:(record.files||[]).filter(f=>f.kind!=='reklamation').map(f=>({id:f.id,name:f.name,kind:f.kind,mime:f.mime,size:f.size,uploadedAt:f.uploadedAt}))});
   }
   continuation=page.continuationToken||null;
   scanned++;
  }while(continuation&&scanned<40);
  return json(200,{ok:true,reference:ref,records:linked,incomplete:!!continuation});
 }
-async function downloadFile(ctx,docId,record,fileId){
+async function downloadFile(ctx,docId,record,fileId,complaintId){
   const entry=record.files.find(x=>x.id===fileId);
   if(!entry)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
+  if(entry.kind==='reklamation'&&(!complaintId||complaintId!==entry.complaintId||
+      !(record.complaints||[]).some(c=>c.id===entry.complaintId)))fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
   const source=await fileBlob(ctx,docId,entry.id).download(0),chunks=[];
   for await(const p of source.readableStreamBody)chunks.push(Buffer.from(p));
   const bytes=Buffer.concat(chunks);
@@ -399,7 +407,7 @@ async function processRequest(req){
  const{blob,record,etag}=await getRecord(ctx,docId);
  if(record.deletedAt)fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
  if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
- if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
+ if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId,payload.complaintId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
  if(action==='register-customer'){
@@ -446,14 +454,51 @@ async function processRequest(req){
   if(record.complaints.length>=200)fail('COMPLAINT_LIMIT','Zu viele Kundenbeschwerden.',413);
   const reportedDate=txt(payload.reportedDate,10)||new Date().toISOString().slice(0,10);
   if(!validDate(reportedDate))fail('BAD_DATE','Beschwerdedatum ungueltig.');
-  record.complaints.push({id:crypto.randomUUID(),text:comment,reportedDate,state:'offen',createdAt:new Date().toISOString(),createdBy:ctx.user});
-  bump(record,ctx,'complaint');await saveRecord(blob,record,etag);
+  const created=complaintOps.created({...payload,text:comment,reportedDate},ctx.user);
+  record.complaints.push(created);
+  bump(record,ctx,'complaint',{complaintId:created.id});await saveRecord(blob,record,etag);
  }else if(action==='complaint-status'){
   const complaint=record.complaints.find(x=>x.id===payload.complaintId);
   if(!complaint||!STATES.has(payload.state))fail('BAD_STATUS','Beschwerde oder Status ungueltig.');
-  const from=complaint.state;complaint.state=payload.state;
-  complaint.changedAt=new Date().toISOString();complaint.changedBy=ctx.user;
+  const from=complaintOps.changeStatus(complaint,payload.state,ctx.user);
   bump(record,ctx,'complaint-status',{complaintId:complaint.id,from,to:complaint.state});await saveRecord(blob,record,etag);
+ }else if(action==='complaint-update'){
+  const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
+  if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  const changed=complaintOps.edit(complaint,payload,ctx.user);
+  if(changed.length){bump(record,ctx,'complaint-update',{complaintId:complaint.id,changed});await saveRecord(blob,record,etag)}
+ }else if(action==='complaint-analysis'){
+  const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
+  if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  const suggestions=complaintOps.proposal(complaint,record.fields);
+  const fallback=(reason)=>json(200,{ok:true,mode:'regelbasiert',reason,suggestions,
+   notice:'Regelvorschlag (ohne KI) – keine Dateien oder Sendungsdaten extern uebertragen.'});
+  if(payload.consent!==true)return fallback('no_consent');
+  const cfg=qmAi.resolveConfig(process.env);
+  if(!cfg.enabled)return fallback('not_configured');
+  // Shared QM quota: never reset the count when AI is used from shipment documentation.
+  const usage=ctx.container.getBlockBlobClient((ctx.prefix.startsWith('testservice/')?'testservice/':'')+'quality/ai-usage.json');
+  const store={read:()=>auth.readJson(usage,null,{missingBlobOnly:true}),
+   write:(value,version)=>auth.writeJson(usage,value,version)};
+  let quota;
+  try{quota=await qmAi.consumeQuota(store,cfg,ctx.user,complaint.id)}
+  catch(_){return fallback('quota_unavailable')}
+  if(!quota.allowed)return fallback(quota.reason);
+  const item={category:'versand',severity:'mittel',description:complaint.text,
+   impact:'Reklamation eines Kunden',rootCause:complaint.rootCause||'',
+   immediateAction:complaint.immediateAction||'',correctiveAction:complaint.correctiveAction||'',
+   preventiveAction:complaint.preventiveAction||''};
+  let answer;
+  try{answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase()})}
+  catch(_){answer={ok:false,reason:'server'}}
+  try{const settled=await qmAi.finishQuota(store,quota,!!answer.ok);
+    if(!settled.settled)return fallback('quota_unavailable')}
+  catch(_){return fallback('quota_unavailable')}
+  if(!answer.ok)return fallback(answer.reason||'provider');
+  // The configured text assistant receives only redacted complaint text.
+  // Neither photos/PDFs nor customer/shipment identifiers are transferred.
+  return json(200,{ok:true,mode:'ki',text:answer.text,suggestions,
+   notice:'KI-Vorschlag – fachlich pruefen. Anhaenge wurden nicht durch die KI ausgewertet.'});
  }else if(action==='upload')await upload(ctx,record,blob,etag,payload);
  else fail('INVALID_ACTION','Unbekannte Aktion.');
  return json(200,{ok:true,record:cleanRecord(record)});
