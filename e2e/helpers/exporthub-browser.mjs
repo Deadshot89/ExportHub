@@ -175,7 +175,7 @@ async function rc1982DrainSnapshot(page){
       hasTimer:!!runtime.saveTimer,
       changedGeneration:finite(runtime.changeGeneration),
       savedGeneration:finite(runtime.lastSavedGeneration),
-      lastErrorCode:String(runtime.lastSaveErrorCode||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,48)
+      lastErrorCode:/^[A-Z][A-Z0-9_]{0,47}$/.test(String(runtime.lastSaveErrorCode||''))?String(runtime.lastSaveErrorCode):'UNRECOGNIZED'
     };
   }).catch(()=>({unavailable:true}));
 }
