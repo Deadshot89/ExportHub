@@ -225,7 +225,9 @@ export async function settleStateSave(page,options={}){
     }
     stableSince=0;
 
-    if(!snapshot.saving&&(snapshot.pending||snapshot.dirty)&&!forced){
+    // A clean-looking UI is not server-confirmed when the ACK generation trails.
+    // Attempt one explicit flush, then keep requiring a matching Azure ACK.
+    if(!snapshot.saving&&(snapshot.pending||snapshot.dirty||snapshot.unconfirmedGeneration)&&!forced){
       forced=true;
       const remaining=Math.max(1000,Math.min(65_000,deadline-Date.now()));
       const result=await page.evaluate(async timeoutMs=>{
