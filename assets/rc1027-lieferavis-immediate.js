@@ -245,19 +245,29 @@ function stripOwnAvisLink(text){
  text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice|Awizo|Aviso|Avis|Avviso)[^:\n]*:[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
  return text.replace(/\n{3,}/g,'\n\n').trim()
 }
+function hasAvisPlaceholder(text){return /\{\{\s*LIEFERAVIS\s*\}\}/i.test(String(text||''))}
+function avisSubject(text,lang){
+ var names={de:'Lieferavis',en:'Collection notice',pl:'Awizo',es:'Aviso',fr:'Avis',it:'Avviso'};
+ return String(text==null?'':text).replace(/\{\{\s*LIEFERAVIS\s*\}\}/gi,names[rc1267NormalizeLanguage(lang)]||names.de)
+}
 function ownAvisMail(body,url,lang){
- lang=rc1267NormalizeLanguage(lang);var source=stripOwnAvisLink(body),u=localizedUrl(url,lang),labels={de:'Lieferavis',en:'Collection notice',pl:'Awizo',es:'Aviso',fr:'Avis',it:'Avviso'},line=labels[lang]+': '+u;
- if(!u)return source;
- var closings={
-  de:/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße)[\s\S]*$/i,
-  en:/(?:Kind regards|Best regards|Yours sincerely|Yours faithfully)[\s\S]*$/i,
-  pl:/(?:Z poważaniem|Pozdrawiam)[\s\S]*$/i,
-  es:/(?:Atentamente|Saludos cordiales)[\s\S]*$/i,
-  fr:/(?:Cordialement|Bien cordialement)[\s\S]*$/i,
-  it:/(?:Cordiali saluti|Distinti saluti)[\s\S]*$/i
- },match=source.match(closings[lang]);
- if(match&&typeof match.index==='number'){var before=source.slice(0,match.index).trim(),closing=source.slice(match.index).trim();return[before,line,closing].filter(Boolean).join('\n\n')}
- return[source,line].filter(Boolean).join('\n\n')
+ lang=rc1267NormalizeLanguage(lang);
+ var source=stripOwnAvisLink(body);
+ // No placeholder means no AVIS link. Old auto-inserted lines are removed above.
+ if(!hasAvisPlaceholder(source))return source;
+ if(!url||!rc1333IsSafeAvisUrl(url))return source; // caller must block unresolved mail
+ var labels={
+  de:'Hier zur Avisierung klicken: ',
+  en:'Click here to arrange collection: ',
+  pl:'Kliknij tutaj, aby zgłosić odbiór: ',
+  es:'Haga clic aquí para programar la recogida: ',
+  fr:'Cliquez ici pour organiser l’enlèvement : ',
+  it:'Clicca qui per prenotare il ritiro: '
+ };
+ var line=labels[lang]+localizedUrl(url,lang),used=false;
+ return source.replace(/\{\{\s*LIEFERAVIS\s*\}\}/gi,function(){
+  if(used)return'';used=true;return line
+ }).replace(/\n{3,}/g,'\n\n')
 }
 function avisBlock(url,reference,lang,target){
  lang=rc1267NormalizeLanguage(lang);var carrier=target==='carrier',u=localizedUrl(url,lang),ref=q(reference);
@@ -301,23 +311,13 @@ function stripExcludedAvis(sh,target,source,lang){
 function injectMailBody(sh,target,body,langOverride){
  var type=q(target).toLowerCase()||'customer',source=String(body==null?'':body),lang=rc1267NormalizeLanguage(langOverride);
  if(type!=='customer'&&type!=='carrier'&&type!=='own')return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
- if(mailExcluded(sh)||recipientExcluded(sh,type))return stripExcludedAvis(sh,type,source,lang);
- if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
- var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
- if(type==='own')return ownAvisMail(source,url,lang);
- return standaloneAvis(sh,type,lang,url)
+ // Keep the existing customer/recipient exclusions and never leak an AVIS link.
+ if(mailExcluded(sh)||recipientExcluded(sh,type)||exception(sh)||manualDisabled(sh))return stripOwnAvisLink(source);
+ return ownAvisMail(source,avisUrl(sh),lang)
 }
 function syncVisibleMail(){
- if(visibleSyncing||typeof document==='undefined')return false;
- var area=document.getElementById('rc543MailArea');if(!area||!area.querySelector)return false;
- var body=area.querySelector('textarea'),active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';
- if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
- var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
- if(mailExcluded(sh)||recipientExcluded(sh,type)){var cleaned=stripExcludedAvis(sh,type,String(body.value==null?'':body.value),rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
- var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
- if(String(body.value==null?'':body.value)===next)return false;
- visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
- return true
+ // The editor must not be rewritten by background AVIS updates or target switches.
+ return false
 }
 function isCustomerField(el){
  if(!el)return false;var label=el.closest&&el.closest('label,.field'),text=(el.id||'')+' '+(el.name||'')+' '+(el.getAttribute&&el.getAttribute('aria-label')||'')+' '+(label&&label.textContent||'');
@@ -352,6 +352,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();if((name==='exporthub:viewchange'||name==='exporthub:rendered')&&!shipmentViewActive())return false;return scheduleDraftRefresh(name,100)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),rc1267NormalizeLanguage(opt.lang))},renderSubject:avisSubject,hasPlaceholder:hasAvisPlaceholder,syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
