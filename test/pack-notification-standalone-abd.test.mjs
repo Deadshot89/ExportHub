@@ -177,6 +177,60 @@ test('RC1382: fully patched ABD authorization body must never be accepted when w
   }
 });
 
+function openPackAbdButtonFixture(options={}){
+  const state={
+    packNotifications:[{id:'PN-1',reference:'PACK-01',status:'in_review',customer:'Acme',documents:[]}],
+    tasks:[],abdRequests:[]
+  };
+  const calls=[],alerts=[],events=[];
+  let click=null;
+  const section={innerHTML:'',addEventListener(type,fn){if(type==='click')click=fn;}};
+  const host={innerHTML:'',appendChild(){}};
+  const doc={
+    body:{setAttribute(){}},readyState:'loading',
+    getElementById(id){return id==='content'?host:null},
+    querySelector(){return null},
+    addEventListener(){},createElement(){return section}
+  };
+  const root={
+    document:doc,__EXPORTHUB_GET_STATE__:()=>state,addEventListener(){},
+    CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},
+    dispatchEvent(event){events.push(event);if(options.receiver)event.detail.handled=true;return true;},
+    alert(value){alerts.push(String(value));}
+  };
+  if(options.installed)root.ExportHUBPackAbd={begin(id){calls.push(id);return true;}};
+  vm.runInNewContext(fs.readFileSync('assets/pack-notification-internal.js','utf8'),
+    {window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout},
+    {filename:'pack-notification-internal.js'});
+  assert.equal(root.ExportHUBPackNotifications.openNotificationDetail(state.packNotifications[0]),true);
+  const target={closest(){return this},hasAttribute(){return false},getAttribute(name){return name==='data-pack-action'?'abd':null}};
+  return {async press(){assert.ok(click);await click({target});},calls,alerts,events};
+}
+
+test('RC2005: Pack ABD opens directly through registered ownership handler, not blind event delivery',async()=>{
+  const fixture=openPackAbdButtonFixture({installed:true});
+  await fixture.press();
+  assert.deepEqual(fixture.calls,['PN-1']);
+  assert.equal(fixture.events.length,0,'Avoid duplicate calls through the old event listener');
+  assert.equal(fixture.alerts.length,0);
+});
+
+test('RC2005: missing Pack ABD handler visibly reports failure instead of claiming a successful event',async()=>{
+  const fixture=openPackAbdButtonFixture();
+  await fixture.press();
+  assert.equal(fixture.events.length,1,'Keep legacy event fallback for delayed module loading');
+  assert.equal(fixture.events[0].detail.handled,false,'A dispatched event without a receiver is not success');
+  assert.equal(fixture.alerts.length,1,'Users must see that the ABD area was not opened');
+});
+
+test('RC2005: acknowledged event fallback opens without a misleading error',async()=>{
+  const fixture=openPackAbdButtonFixture({receiver:true});
+  await fixture.press();
+  assert.equal(fixture.events.length,1);
+  assert.equal(fixture.events[0].detail.handled,true);
+  assert.equal(fixture.alerts.length,0);
+});
+
 test('ABD-only user may open Pack detail without staging an unauthorized task write',()=>{
   const state={view:'packnotifications',
     packNotifications:[{id:'PN-1',reference:'PK-1',customer:'Customer',status:'new',documents:[]}],
