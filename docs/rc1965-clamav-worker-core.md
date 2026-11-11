@@ -288,3 +288,33 @@ und Sicherheitsabnahme.
 **Unverändert:** Keine Azure-Ressourcenanlage, kein Defender-Abonnement,
 kein echter EICAR-Scan, keine wirkliche XLSX-Analyse durch diesen PR.
 `authorizedForRelease:false` und `ABD_SCAN_PENDING` bleiben aktiv.
+
+## RC1976 – Scanner-Identität zwischen EICAR und Kundendatei binden
+
+**Gefundener Fehler:** Der RC1973-EICAR-Selbsttest verwendete bisher im
+Standardfall `runClamscan`, während `scanLocalQuarantine` einen separat
+injektierbaren `runner` verwendete. Damit hätte der Selbsttest eine
+funktionierende Engine nachweisen können, obwohl die Kundendatei durch
+eine **andere** Scannerfunktion verarbeitet wird. Eine positive
+Bescheinigung über die erste Engine beweist nicht, dass die zweite
+die Kundendatei tatsächlich geprüft hat.
+
+Der RC1965-Worker gibt deshalb nun **denselben `runner`** an
+`engineCheck({runner,timeoutMs})` und den Kundendatei-Scan weiter.
+Die Standardimplementierung `verifyClamAvEngine` führt ihre beiden
+Probes mit genau diesem Runner aus. Drei neue synthetische Tests prüfen:
+(1) identischer Scanner für harmlose Probe, EICAR und Kandidat,
+(2) ein Runner mit immer `exitCode:0` wird am EICAR-Test vor jedem
+Blob-Lesezugriff erkannt und
+(3) ein Runner mit immer `exitCode:1` wird bereits an der harmlosen
+Probe blockiert.
+
+**Vertrauensgrenze:** Der injizierte Runner und ein
+`engineCheck`-Adapter sind ausschließlich interne
+Test-/Laufzeit-Abhängigkeiten, **keine** vom Browser oder der Queue
+übernehmbaren Eingaben. Vor der echten Azure-Anbindung muss ein
+vertrauenswürdiger Worker den Scannerprozess und die tatsächlich
+geladenen Signaturen zusätzlich attestieren. Dieser Baustein
+erzeugt weiter nur `authorizedForRelease:false`-Kandidaten.
+Weder ein echter ClamAV-Test noch Azure-Datenzugriff ist mit den
+synthetischen Regressionen nachgewiesen.
