@@ -10,6 +10,13 @@ const HEX32=/^[0-9a-f]{32}$/;
 const ETAG=/^"[A-Za-z0-9!#$%&'*+.^_|~-]{1,128}"$/;
 const KINDS=new Set(['pdf','xlsx','csv','txt','tsv','jpg','png']);
 const fail=()=>{throw Error('RC1966_BLOB_UNVERIFIED')};
+// RC1978: Azure SDK and injected test streams may throw from destroy().
+// A throw inside the timeout callback would otherwise become an uncaught
+// exception outside the async read's catch/finally path.
+const safeDestroy=stream=>{
+ try{if(stream&&typeof stream.destroy==='function')stream.destroy();}
+ catch(_){/* fail closed; no path, SDK error or secret is reported */}
+};
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 function deriveBlobName(expected,kind){
  if(!expected||expected.environment!=='testservice'||!KINDS.has(kind)||
@@ -40,7 +47,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
   const deadline=new Promise((_,reject)=>{
    watchdog=setTimeout(()=>{
     controller.abort();
-    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+    safeDestroy(activeStream);
     reject(Error('RC1966_BLOB_TIMEOUT'));
    },timeoutMs);
   });
@@ -65,7 +72,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    if(!response||response.etag!==scope.blobEtag||
       response.contentLength!==scope.bytes||
       !stream||typeof stream[Symbol.asyncIterator]!=='function'){
-    if(stream&&typeof stream.destroy==='function')stream.destroy();
+    safeDestroy(stream);
     return fail();
    }
    const parts=[];let total=0;
@@ -83,14 +90,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
      total+=size;
      parts.push(chunk);
     }
-   }finally{if(typeof stream.destroy==='function')stream.destroy();}
+   }finally{safeDestroy(stream);}
    if(controller.signal.aborted||total!==scope.bytes)return fail();
    const bytes=Buffer.concat(parts,total);
    if(hash(bytes)!==scope.uploadSha256){bytes.fill(0);return fail();}
    return{bytes,etag:scope.blobEtag};
    }catch(_){return fail();}
    finally{
-    if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+    safeDestroy(activeStream);
    }
   };
   try{
@@ -98,7 +105,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
   }catch(_){return fail();}
   finally{
    clearTimeout(watchdog);
-   if(activeStream&&typeof activeStream.destroy==='function')activeStream.destroy();
+   safeDestroy(activeStream);
   }
  };
 }
