@@ -85,7 +85,7 @@ export function injectDocumentUploadRuntime(html,file='customer-avis.html'){
 export function injectPackAbdOwnership(html,file='index.html'){
   let out=String(html||'');
   if(!out.includes('function saveAbdInternal(showAlert,status)')){
-    if(file==='demo.html')return out;
+    if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
     throw new Error(file+': RC1382 legacy ABD storage hook missing');
   }
   function replaceOnce(needle,replacement){
