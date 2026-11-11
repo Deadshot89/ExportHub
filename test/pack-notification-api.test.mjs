@@ -87,7 +87,7 @@ test('submit rejects missing fields and non-positive dimensions or weight',async
   assert.equal(res.status,400);assert.equal(res.body.code,'PACK_CUSTOMER_REQUIRED');
   res=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{totalWeight:0})));
   assert.equal(res.status,400);assert.equal(res.body.code,'PACK_WEIGHT_INVALID');
-  res=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{packages:[{packageNo:1,length:120,width:0,height:140,unit:'cm'}]})));
+  res=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{packages:[{packageNo:1,length:120,width:-1,height:140,unit:'cm'}]})));
   assert.equal(res.status,400);assert.equal(res.body.code,'PACK_DIMENSIONS_INVALID');
 });
 
@@ -190,4 +190,44 @@ test('same idempotency key submitted twice returns one notification and one task
   assert.equal(second.body.notificationId,first.body.notificationId);
   assert.equal(f.state().packNotifications.length,1);
   assert.equal(f.state().tasks.filter(t=>t.sourceType==='pack_notification').length,1);
+});
+
+
+test('pack rows retain their own weights and reject a total differing from the sum',()=>{
+  const api=require('../api/pack-notification/index.js');
+  const input=validSubmit('PT','SESSION',{
+    packageCount:3,totalWeight:39.5,
+    packages:[
+      {packageNo:1,packageType:'Europalette',weight:10,length:120,width:80,height:100},
+      {packageNo:2,packageType:'Europalette',weight:10,length:120,width:80,height:110},
+      {packageNo:3,packageType:'Einwegpalette',weight:19.5,length:120,width:80,height:90}
+    ]
+  });
+  const valid=api.validateSubmitPayload(input);
+  assert.equal(valid.packageCount,3);
+  assert.deepEqual(valid.packages.map(x=>x.weight),[10,10,19.5]);
+  const draft=api.validateDraftPayload(input);
+  assert.deepEqual(draft.packages.map(x=>x.weight),[10,10,19.5]);
+  assert.throws(()=>api.validateSubmitPayload({...input,totalWeight:40}),e=>e&&e.code==='PACK_PACKAGE_WEIGHT_MISMATCH');
+  assert.throws(()=>api.validateSubmitPayload({...input,packages:input.packages.map((p,i)=>i===1?{...p,weight:0}:p)}),e=>e&&e.code==='PACK_PACKAGE_WEIGHT_INVALID');
+  // Previously saved pack notifications have no per-package weights and stay readable.
+  assert.equal(api.validateSubmitPayload(validSubmit('PT','SESSION')).packages[0].weight,undefined);
+});
+
+
+test('same as shipment creation: packaging + quantity + weight required, optional LDM and dimensions kept',()=>{
+  const api=require('../api/pack-notification/index.js');
+  const payload=validSubmit('PT','SESSION',{
+    packageCount:2,totalWeight:12.34,
+    packages:[
+      {packageNo:1,packageType:'Euro Palette',weight:5,ldm:0.6,length:120,width:80,height:0},
+      {packageNo:2,packageType:'Karton',weight:7.34,ldm:0,length:0,width:0,height:0}
+    ]
+  });
+  const result=api.validateSubmitPayload(payload);
+  assert.equal(result.packages.length,2);
+  assert.deepEqual(result.packages.map(x=>x.ldm),[0.6,0]);
+  assert.deepEqual(result.packages.map(x=>x.weight),[5,7.34]);
+  assert.equal(result.packages[1].height,0);
+  assert.throws(()=>api.validateSubmitPayload({...payload,packages:[{...payload.packages[0],ldm:-1},payload.packages[1]]}),err=>err.code==='PACK_DIMENSIONS_INVALID');
 });
