@@ -103,3 +103,47 @@ test('RC1968: Server blockiert entfernte Carrier-Adresse vor Vorschau und Graph-
  assert.match(server,/MAIL_CUSTOMER_FOLDER_NOT_FOUND/);
  assert.match(server,/permitted\.includes\(lower\(to\)\)/);
 });
+
+
+test('RC1968: Backend rejects removed recipients in both preview and real-send paths before Graph',async()=>{
+ let graphCalls=0;
+ const currentCustomer={id:'C-1968',carrierEmail:'active-a@freight.example; active-b@freight.example'};
+ const team={state:{shipments:[{id:'S1',reference:'REF1968',customerId:'C-1968',carrierEmail:'retired@freight.example'}],customers:[currentCustomer]}};
+ const auth={
+  async validateSession(){return{user:{rights:{shipmentoverview:{edit:true}}},team}},
+  isAdmin(){return true},
+  body(req){return req.body},
+  error(code,message,status){return Object.assign(new Error(message),{code,status})},
+  environmentFromRequest(){return'testservice'}
+ };
+ const sandbox={
+  module:{exports:{}},process:{env:{}},URL,Date,console:{error(){}},
+  require(id){
+   if(id==='crypto')return{randomBytes(){throw new Error('Must not create mail history')}}
+   if(id==='../shared/auth-store')return auth;
+   if(id==='../shared/graph-mail')return{async sendHtmlMail(){graphCalls++;throw new Error('Must not deliver mail')}};
+   if(id==='../shared/avis-mail-html')return{
+    renderAvisMailHtml(){throw new Error('Must not render HTML')},
+    activeClosureNotices(){return[]},closureNoticeHtml(){return''}
+   };
+   throw new Error('Unexpected dependency: '+id);
+  }
+ };
+ vm.runInNewContext(server,sandbox,{filename:'api/avis-reminder-mail/index.js'});
+ const handler=sandbox.module.exports;
+ async function check(action,customers,recipient,code) {
+  team.state.customers=customers;
+  const context={res:null,log:{error(){}}};
+  await handler(context,{method:'POST',body:{action,shipmentId:'S1',reference:'REF1968',target:'carrier',mode:'initial',recipient}});
+  assert.equal(context.res.status,409);
+  const body=JSON.parse(context.res.body);
+  assert.equal(body.ok,false);
+  assert.equal(body.code,code);
+ }
+ for(const action of ['preview','']){
+  await check(action,[currentCustomer],'retired@freight.example','MAIL_RECIPIENT_NOT_IN_CUSTOMER_FOLDER');
+  await check(action,[{...currentCustomer,carrierEmail:''}],'active-a@freight.example','MAIL_RECIPIENT_NOT_IN_CUSTOMER_FOLDER');
+  await check(action,[],'retired@freight.example','MAIL_CUSTOMER_FOLDER_NOT_FOUND');
+ }
+ assert.equal(graphCalls,0,'No Graph call is allowed for an unapproved carrier');
+});
