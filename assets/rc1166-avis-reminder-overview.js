@@ -72,8 +72,8 @@ function shipmentContacts(sh,target){
    addContact(out,seen,q(c.carrierName||c.speditionName),c.carrierEmail,'Kundenordner');
   else if(c)
    directoryContacts(c,target).forEach(function(x){addContact(out,seen,x.name,x.email,x.source)});
-  else
-   addContact(out,seen,q(sh&& (sh.carrierName||sh.speditionName||sh.carrier)),[sh&&sh.carrierEmail,sh&&sh.carrierMail,sh&&sh.speditionEmail,sh&&sh.speditionMail,sh&&sh.forwarderEmail,sh&&sh.forwarderMail],'Sendung');
+  // Without an authoritative current customer folder no carrier recipient
+  // is safe to propose. Loading the customer folder is required first.
  }else{
   directoryContacts(c,target).forEach(function(x){addContact(out,seen,x.name,x.email,x.source)});
   addContact(out,seen,q(sh&& (sh.recipientName||sh.customerName)),[sh&&sh.customerEmail,sh&&sh.customerMail,sh&&sh.recipientEmail],'Sendung');
