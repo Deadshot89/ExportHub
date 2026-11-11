@@ -3,6 +3,7 @@
   if(!root||root.ExportHUBPackAbd)return;
   const q=value=>String(value==null?'':value).trim();
   const arr=value=>Array.isArray(value)?value:[];
+  const tr=key=>{try{const api=root.ExportHUBPackI18n;return api&&typeof api.t==='function'?api.t(key):key;}catch(_){return key;}};
   const number=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?n:0;};
   let activeId='';
 
@@ -54,7 +55,7 @@
     return groups.map((g,i)=>({id:'PACK-COLLI-'+(i+1),type:g.type,count:String(g.count),weight:g.weight}));
   }
   function report(error){
-    const message=q(error&&error.message)||'ABD-Anfrage konnte nicht geöffnet werden.';
+    const message=q(error&&error.message)||tr('pack.internal.abdOpenError');
     try{if(typeof root.alert==='function')root.alert(message);}catch(_){}
     return false;
   }
@@ -130,24 +131,24 @@
     panel.className='card';
     panel.style.cssText='margin:10px 0 16px;padding:12px 16px;border-left:4px solid #2563eb';
     const title=d.createElement('strong');
-    title.textContent='ABD aus Packmeldung '+q(n.reference);
+    title.textContent=tr('pack.internal.abdSourceLabel')+' '+q(n.reference);
     panel.appendChild(title);
     const help=d.createElement('p');
     help.className='muted';
-    help.textContent='Die Packdaten sind übernommen. Fehlende Zoll- und Kundendaten bitte prüfen. Es wird keine Sendung erstellt.';
+    help.textContent=tr('pack.internal.abdHelp');
     panel.appendChild(help);
     const tools=d.createElement('div');
     tools.className='toolbar';
     const back=d.createElement('button');
     back.type='button';back.className='ghost';back.setAttribute('data-pack-abd-back','');
-    back.textContent='Zur Packmeldung';tools.appendChild(back);
+    back.textContent=tr('pack.internal.abdBack');tools.appendChild(back);
     const viewer=root.ExportHUBDocumentBlob1059,packUI=root.ExportHUBPackNotifications;
     arr(n.documents).forEach((file,i)=>{
       const verified=packUI&&typeof packUI.documentForViewer==='function'&&packUI.documentForViewer(file);
       if(!verified||!viewer||typeof viewer.open!=='function')return;
       const b=d.createElement('button');
       b.type='button';b.className='ghost';b.setAttribute('data-pack-abd-document',String(i));
-      b.textContent='Lieferschein: '+q(file.name||file.fileName||('Dokument '+(i+1)));
+      b.textContent=tr('pack.internal.abdDeliveryNote')+' '+q(file.name||file.fileName||('Dokument '+(i+1)));
       tools.appendChild(b);
     });
     panel.appendChild(tools);
