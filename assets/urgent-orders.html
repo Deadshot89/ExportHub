@@ -95,7 +95,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <datalist id="internalUrgentEmailHistory"></datalist>
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
-</div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
+</div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3 id="internalStepTwoHeading">Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <fieldset class="field" style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="inline-check"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="inline-check"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lineFields"></div><div id="internalWholeOrderChecks" class="form-grid" hidden>
 <h4 data-i18n="urgentOrderV2.wholeOrderChecksTitle">Prüfungen für den gesamten Auftrag</h4>
 <p class="help" data-i18n="urgentOrderV2.wholeOrderChecksHelp">Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.</p>
@@ -108,7 +108,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <h3 id="internalLateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
 <p id="internalLateCutoffText"></p>
 <div class="btn-row"><button class="btn alt" id="internalLateSubmitToday" type="button" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button class="btn" id="internalLateMoveTomorrow" type="button" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
-</section></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="internalUrgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Bitte ausschließlich die offizielle TESTSERVICE-Seite verwenden. Nicht gespeicherte Eingaben müssen nach einem Seitenwechsel erneut erfasst werden.</span> <a href="https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/TESTVERSION.html" data-i18n="urgentOrderV2.openOfficialTestservice">Offizielles TESTSERVICE öffnen</a></p>
 </form></section>
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
@@ -176,7 +176,7 @@ async function api(action,payload){
  }
  return result;
 }
-function setMessage(id,message,kind){const e=$(id);e.textContent=message||'';e.dataset.kind=kind||'';}
+function setMessage(id,message,kind){const e=$(id);e.textContent=message||'';e.dataset.kind=kind||'';if(id==='createMessage'){const help=$('internalUrgentHostHelp');if(help)help.hidden=!(kind==='error'&&String(message||'').includes('URGENT_HOST_UNTRUSTED')&&/-testservice\./i.test(location.hostname||''));}}
 function escapeHtml(v){return txt(v).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
 function priority(n){return STATUS.indexOf(n)>=0?n:'Open';}
 function isClosedOrder(o){return !!((o.items||[]).length&&(o.items||[]).every(x=>x.status==='Invoiced'));}
@@ -207,6 +207,7 @@ function lineField(){
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
 function syncScope(){
  const all=isAllLines();$('lineFields').hidden=all;$('addLine').hidden=all;
+ $('internalStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'):localeV2('individualLinesOption','Einzelne Artikel / Lines erfassen');
  for(const el of $('lineFields').querySelectorAll('input,select,textarea'))el.disabled=all;
  $('internalWholeOrderChecks').hidden=!all;
  $('internalWholeOrderChecks').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!all);
