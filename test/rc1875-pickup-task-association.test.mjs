@@ -100,7 +100,7 @@ test('RC1875: clearing all Pick accounts never restores legacy FIX account',()=>
 });
 
 test('RC1875: task editor does not restore an explicitly cleared customerNumber',()=>{
- const functionText=tasksSource.match(/function customerNo\(task\)\{[^\n]+\}/);
+ const functionText=tasksSource.match(/function customerNo\(task\)\{[\s\S]*?\n\}/);
  assert.ok(functionText,'task editor customer number helper exists');
  const read=vm.runInNewContext('('+functionText[0]+')',{Object,q:v=>String(v==null?'':v).replace(/\s+/g,' ').trim()});
  assert.equal(read({customerNumber:'',linkedAccount:'00045',customerAccount:'123'}),'',
