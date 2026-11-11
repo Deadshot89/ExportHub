@@ -106,7 +106,22 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   const carrier=api.shipmentContacts(sh,'carrier').map(x=>x.email);
   for(const e of ['kunde@example.com','einkauf@example.com','kontakt@example.com','sendung@example.com'])assert.ok(customer.includes(e),e+' fehlt bei Kunde');
   assert.equal(customer.includes('sales@example.com'),false);
-  for(const e of ['sped@example.com','dispo@example.com','fracht@example.com','sendung-sped@example.com'])assert.ok(carrier.includes(e),e+' fehlt bei Spedition');
+  assert.deepEqual(carrier,['sped@example.com'],'Alte Sendungs- und Kontaktverzeichnis-Adressen dürfen nicht in die aktuelle Speditionsmail zurückkehren');
+});
+
+test('RC1968 / #904: Essentra Schweden GPJQC7 nutzt nur die aktuelle Speditionsmail-Zuordnung',()=>{
+  const state={customers:[{
+    id:'SW-3014',account:'9000003014',name:'Essentra Components AB - SE',
+    carrierEmail:'imp.hel.se@freja.com; pbe@freja.com',
+    carrierMail:'imp.hel.se@freja.com; pbe@freja.com; charter@gate41.com',
+    speditionMail:'charter@gate41.com',
+    mailRecipients:'charter@gate41.com',
+    carrierContacts:[{email:'charter@gate41.com'}]
+  }]};
+  const sh={id:'GPJQC7',reference:'GPJQC7',customerId:'SW-3014',
+    carrierEmail:'charter@gate41.com',speditionMail:'charter@gate41.com'};
+  const actual=load(state).shipmentContacts(sh,'carrier').map(x=>x.email);
+  assert.deepEqual(actual,['imp.hel.se@freja.com','pbe@freja.com']);
 });
 
 test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
@@ -152,7 +167,7 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
 
 test('RC1292: Holenstein wird aus der Avis-Erinnerungs-Empfängerliste entfernt',()=>{
   const state={customers:[{
-    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de',
+    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de; other@example.com',
     carrierContacts:[{name:'Disposition | Holenstein GmbH',email:'dispo@holenstein.de'},{name:'Andere Spedition',email:'other@example.com'}]
   }]};
   const api=load(state),sh={customerId:'P1',customerName:'Plica',carrierMail:'dispo@holenstein.de'};
