@@ -210,7 +210,7 @@ function syncType(){
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
 function syncScope(){
  const all=isAllLines(),direct=$('orderType').value==='DIRECT_OUTBOUND';
- $('urgentStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'):localeV2('individualLinesOption','Einzelne Artikel / Lines erfassen');
+ $('urgentStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Checks for the entire order'):localeV2('individualLinesOption','Enter individual items / lines');
  $('lines').hidden=all;$('addLine').hidden=all;
  $('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);
  $('wholeOrderChecks').hidden=!all;
@@ -224,10 +224,10 @@ function wholeOrderChecks(){
 function wholeChecksMarkup(order){
  if(!order.allLines)return'';
  const c=order.orderChecks||{};
- const label=v=>v===true?localeV2('yes','Ja'):v===false?localeV2('no','Nein'):localeV2('wholeOrderNotChecked','Noch nicht geprüft');
- return '<div class="muted" data-whole-order-checks="true"><strong>'+esc(localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'))+'</strong> · '+
-  esc(localeV2('wholeOrderStock','Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?'))+' '+esc(label(c.pickableStock))+' · '+
-  esc(localeV2('wholeOrderHolds',"Weder Don't Process noch Credit Hold für den gesamten Auftrag?"))+' '+esc(label(c.holdsClear))+
+ const label=v=>v===true?localeV2('yes','Yes'):v===false?localeV2('no','No'):localeV2('wholeOrderNotChecked','Not yet checked');
+ return '<div class="muted" data-whole-order-checks="true"><strong>'+esc(localeV2('wholeOrderChecksTitle','Checks for the entire order'))+'</strong> · '+
+  esc(localeV2('wholeOrderStock','Has pickable stock been checked for the entire order?'))+' '+esc(label(c.pickableStock))+' · '+
+  esc(localeV2('wholeOrderHolds',"Is the entire order clear of Don't Process and Credit Hold?"))+' '+esc(label(c.holdsClear))+
   (c.exceptionReason?'<div>'+esc(c.exceptionReason)+'</div>':'')+'</div>';
 }
 function syncP1Approval(){
@@ -322,7 +322,7 @@ function nextWizardStep(){
  const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
  for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
  if(wizardStep===2&&isAllLines()){
-  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showMessage(localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
  }
  if(wizardStep===2&&!isAllLines()){
   const p=buildPayload();
@@ -386,7 +386,7 @@ async function submit(ev){
  const lateToday=syncCutoff();
  if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
- if(p.allLines&&(p.orderChecks.pickableStock===false||p.orderChecks.holdsClear===false)&&p.orderChecks.exceptionReason.length<8){showWizardStep(2);showMessage(localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+ if(p.allLines&&(p.orderChecks.pickableStock===false||p.orderChecks.holdsClear===false)&&p.orderChecks.exceptionReason.length<8){showWizardStep(2);showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
  if(invalid){showMessage('Fehlgeschlagene Artikelprüfungen benötigen eine Begründung.','error');return;}
