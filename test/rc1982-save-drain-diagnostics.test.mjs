@@ -54,5 +54,7 @@ test('RC1982: diagnostic collection fails closed and never approves a save',asyn
   assert.match(source,/if\(result&&result\.timeout\)\{const snapshot=await rc1982DrainSnapshot\(page\);throw new Error\('Azure-Save Drain Timeout: '\+JSON\.stringify\(snapshot\)\);\}/);
   assert.match(source,/Promise\.resolve\(clean\.flushSave\(/);
   assert.match(source,/if\(result&&result\.ok!==true\)/);
+  assert.ok(source.includes("throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden: '+JSON.stringify(snapshot));"),'Rejected saves must log only sanitized state without approving persistence');
+  assert.ok(!source.includes("String(r.lastSaveErrorMessage||'')"),'Free-form backend error message must never enter CI failure diagnostics');
   assert.match(source,/const finalState=await rc1982DrainSnapshot\(page\)/);
 });
