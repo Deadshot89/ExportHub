@@ -89,7 +89,10 @@ async function scanOfflineCandidate({
    // RC1973: prevent any customer-blob read unless the actual engine has
    // completed a clean-control + EICAR-detection self-test. The default
    // invokes real clamscan; only synthetic tests inject a fake check.
-   const engine=await engineCheck({timeoutMs:TIME_BUDGET.eicarProbeMs});
+   // RC1976: self-test the EXACT runner subsequently used for customer
+   // bytes. Probing the default clamscan while injecting a separate scanner
+   // would falsely attest an engine that never scanned the uploaded file.
+   const engine=await engineCheck({runner,timeoutMs:TIME_BUDGET.eicarProbeMs});
    if(!engine||engine.verified!==true||engine.authorizedForRelease!==false)
     return blocked('engine-self-test-failed');
    const locator=Object.freeze({jobId,environment:'testservice',
