@@ -230,7 +230,7 @@ test('Stalled count request times out and releases the refresh path without leak
 
 test('Open-work counters are three equal top KPI cards with no separate lower widget',()=>{
   const css=fs.readFileSync('assets/rc1558-dashboard-overview.css','utf8');
-  const desktop=css.slice(css.lastIndexOf('/* RC1965: all top KPI cards are equal-width siblings:'));
+  const desktop=css.slice(css.lastIndexOf('/* RC1965/RC1911: top KPI cards are equal-width siblings'));
   assert.match(runtime,/kpis\+openWorkTopKpi\(\)/,'the three cards are inside the original status grid');
   assert.doesNotMatch(fn('tileHtml'),/id==='openwork'/,'no lower duplicate card');
   assert.match(runtime,/var TILE_IDS=\['quick','lager','abd','pallet','week'\]/,'the lower tile editor has no open-work option');
