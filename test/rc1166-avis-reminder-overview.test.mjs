@@ -106,7 +106,7 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   const carrier=api.shipmentContacts(sh,'carrier').map(x=>x.email);
   for(const e of ['kunde@example.com','einkauf@example.com','kontakt@example.com','sendung@example.com'])assert.ok(customer.includes(e),e+' fehlt bei Kunde');
   assert.equal(customer.includes('sales@example.com'),false);
-  assert.deepEqual(carrier,['sped@example.com'],'Alte Sendungs- und Kontaktverzeichnis-Adressen dürfen nicht in die aktuelle Speditionsmail zurückkehren');
+  assert.deepEqual(Array.from(carrier),['sped@example.com'],'Alte Sendungs- und Kontaktverzeichnis-Adressen dürfen nicht in die aktuelle Speditionsmail zurückkehren');
 });
 
 test('RC1968 / #904: Essentra Schweden REF1968 nutzt nur die aktuelle Speditionsmail-Zuordnung',()=>{
@@ -121,7 +121,7 @@ test('RC1968 / #904: Essentra Schweden REF1968 nutzt nur die aktuelle Speditions
   const sh={id:'REF1968',reference:'REF1968',customerId:'C-1968',
     carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'};
   const actual=load(state).shipmentContacts(sh,'carrier').map(x=>x.email);
-  assert.deepEqual(actual,['active-a@freight.example','active-b@freight.example']);
+  assert.deepEqual(Array.from(actual),['active-a@freight.example','active-b@freight.example']);
 });
 
 test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
