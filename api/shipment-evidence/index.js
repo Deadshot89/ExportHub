@@ -474,6 +474,20 @@ async function processRequest(req){
   const fallback=(reason)=>json(200,{ok:true,mode:'regelbasiert',reason,suggestions,
    notice:'Regelvorschlag (ohne KI) – keine Dateien oder Sendungsdaten extern uebertragen.'});
   if(payload.consent!==true)return fallback('no_consent');
+  const ids=payload.fileIds==null?[]:payload.fileIds;
+  if(!Array.isArray(ids)||ids.length>2||new Set(ids).size!==ids.length)
+   fail('BAD_AI_EVIDENCE','Fuer die KI-Analyse maximal zwei unterschiedliche Anlagen auswaehlen.',400);
+  if(ids.length&&payload.shareFiles!==true)fail('FILE_CONSENT_REQUIRED','Datei-Transfer an die KI muss gesondert bestaetigt werden.',403);
+  const selected=ids.map(fileId=>{
+   if(typeof fileId!=='string'||fileId.length>80)fail('BAD_AI_EVIDENCE','Ungueltige Dateiauswahl.',400);
+   const file=(record.files||[]).find(f=>f.id===fileId&&f.complaintId===complaint.id&&f.kind==='reklamation');
+   if(!file)fail('COMPLAINT_FILE_NOT_FOUND','Anlage ist dieser Reklamation nicht zugeordnet.',404);
+   if(!['image/jpeg','image/png','application/pdf'].includes(file.mime)||file.size>4*1024*1024||file.size<1)
+    fail('AI_FILE_LIMIT','KI-Analyse: nur PDF/JPG/PNG mit maximal 4 MB je Datei.',413);
+   return file;
+  });
+  if(selected.reduce((n,f)=>n+f.size,0)>6*1024*1024)
+   fail('AI_FILE_LIMIT','Maximal 6 MB an KI-Anlagen pro Auswertung.',413);
   const cfg=qmAi.resolveConfig(process.env);
   if(!cfg.enabled)return fallback('not_configured');
   // Shared QM quota: never reset the count when AI is used from shipment documentation.
@@ -488,17 +502,39 @@ async function processRequest(req){
    impact:'Reklamation eines Kunden',rootCause:complaint.rootCause||'',
    immediateAction:complaint.immediateAction||'',correctiveAction:complaint.correctiveAction||'',
    preventiveAction:complaint.preventiveAction||''};
-  let answer;
-  try{answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase()})}
-  catch(_){answer={ok:false,reason:'server'}}
+  let answer,evidenceParts=[],providerCalled=false;
+  try{
+   for(const file of selected){
+    const response=await fileBlob(ctx,docId,file.id).download(0),chunks=[];
+    for await(const chunk of response.readableStreamBody)chunks.push(Buffer.from(chunk));
+    const bytes=Buffer.concat(chunks);
+    if(bytes.length!==file.size||bytes.length>4*1024*1024)
+      fail('AI_EVIDENCE_INVALID','Anlage unvollstaendig oder zu gross.',409);
+    const valid=file.mime==='application/pdf'&&bytes.subarray(0,5).toString('ascii')==='%PDF-'||
+      file.mime==='image/jpeg'&&bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255||
+      file.mime==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    if(!valid)fail('AI_EVIDENCE_INVALID','Dateiinhalt stimmt nicht mit dem Format ueberein.',409);
+    evidenceParts.push({inlineData:{mimeType:file.mime,data:bytes.toString('base64')}});
+   }
+   providerCalled=true;
+   answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase(),evidenceParts});
+  }catch(e){answer={ok:false,reason:'server',validationError:e&&e.code}}
+  // Never keep the decoded attachments longer than this invocation.
+  evidenceParts=[];
   try{const settled=await qmAi.finishQuota(store,quota,!!answer.ok);
     if(!settled.settled)return fallback('quota_unavailable')}
   catch(_){return fallback('quota_unavailable')}
-  if(!answer.ok)return fallback(answer.reason||'provider');
-  // The configured text assistant receives only redacted complaint text.
-  // Neither photos/PDFs nor customer/shipment identifiers are transferred.
-  return json(200,{ok:true,mode:'ki',text:answer.text,suggestions,
-   notice:'KI-Vorschlag – fachlich pruefen. Anhaenge wurden nicht durch die KI ausgewertet.'});
+  if(!answer.ok){
+   if(answer.validationError)fail(answer.validationError,'Ausgewaehlte Anlage konnte nicht sicher gelesen werden.',409);
+   return json(200,{ok:true,mode:'regelbasiert',reason:answer.reason||'provider',suggestions,
+    notice:providerCalled&&selected.length?
+      'KI-Anfrage fehlgeschlagen. Die ausgewaehlten Dateien wurden moeglicherweise an den KI-Dienst uebertragen; keine erfolgreiche Auswertung. Regelvorschlag (ohne KI).':
+      'KI-Anfrage fehlgeschlagen. Regelvorschlag (ohne KI).'});
+  }
+  return json(200,{ok:true,mode:'ki',text:answer.text,suggestions,fileCount:selected.length,
+   notice:selected.length?
+    'KI-Vorschlag – fachlich pruefen. '+selected.length+' ausdruecklich ausgewaehlte Anlage(n) wurden mit der KI analysiert.':
+    'KI-Vorschlag – fachlich pruefen. Nur anonymisierte Textfelder wurden uebertragen.'});
  }else if(action==='upload')await upload(ctx,record,blob,etag,payload);
  else fail('INVALID_ACTION','Unbekannte Aktion.');
  return json(200,{ok:true,record:cleanRecord(record)});
