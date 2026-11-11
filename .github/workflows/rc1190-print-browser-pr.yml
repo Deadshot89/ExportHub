@@ -48,7 +48,7 @@ jobs:
       - name: Playwright installieren
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          bash .github/scripts/rc2015-playwright-browser-ready.sh
 
       - name: Gesamtdruck lokal im echten Browser prüfen
         env:
