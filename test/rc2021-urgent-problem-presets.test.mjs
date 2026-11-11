@@ -89,3 +89,18 @@ test('mail actions are clickable in the request summary and shipping text stays 
  assert.match(script, /window\.location\.href=uri/);
  assert.match(page, /id="issueTemplateChoices"/);
 });
+
+test('shipping action remains on one line and is disabled until every item is shipped',()=>{
+ const match=page.match(/const readyToConfirm=([^;]+);/);
+ assert.ok(match,'shipping-confirmation state must be calculated from every item');
+ const canShip=statuses=>vm.runInNewContext(match[1],{order:{items:statuses.map(status=>({status}))}});
+ assert.equal(canShip(['Shipped','Invoiced']),true);
+ assert.equal(canShip(['Shipped','Open']),false);
+ assert.equal(canShip(['Invoiced','Problem']),false);
+ assert.equal(canShip([]),false);
+ assert.match(page,/disabled aria-disabled="true" title="/);
+ assert.match(page,/\.order-buttons \.btn\{flex:none;white-space:nowrap\}/);
+ for(const [lang,strings] of Object.entries(i18n)){
+  assert.ok(strings['urgentOrderV2.shippingNotReady'],lang+' missing unavailable-shipping reason');
+ }
+});
