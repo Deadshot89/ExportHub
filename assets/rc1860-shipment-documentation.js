@@ -49,6 +49,7 @@ function styles(){
  '.eh1860-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:12px}.eh1860 button{cursor:pointer;padding:9px 14px;border-radius:9px;border:1px solid #9baec6;background:#f4f7fa;color:#123254;font-weight:700}.eh1860 button.primary{background:#1564ac;color:#fff;border-color:#1564ac}.eh1860 button:disabled{opacity:.5;cursor:not-allowed}'+
  '.eh1860-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,190px));gap:13px;margin:12px 0}.eh1860-preview-card{min-width:0;padding:9px;border:1px solid #cad6e5;border-radius:12px;background:var(--card,#fff);display:flex;flex-direction:column;gap:8px}.eh1860-preview-open{padding:0!important;width:100%;border:0!important;background:transparent!important;text-align:left}.eh1860-preview-frame{display:flex;height:126px;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;background:#eae7d1;color:#334155;font-size:13px}.eh1860-preview-frame img{width:100%;height:100%;object-fit:cover;display:block}.eh1860-preview-name{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.eh1860-preview-card>.eh1860-download{width:100%;margin-top:auto}.eh1860-preview-group{margin:15px 0}.eh1860-preview-group>h5{font-size:14px;margin:4px 0 8px}.eh1860-preview-dialog{position:fixed;inset:0;z-index:2147482000;background:rgba(10,22,37,.76);display:flex;align-items:center;justify-content:center;padding:18px}.eh1860-preview-dialog-inner{background:var(--card,#fff);color:var(--text,#152b44);width:min(960px,96vw);max-height:96vh;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 24px 70px #0005}.eh1860-preview-dialog-inner h3{overflow-wrap:anywhere;font-size:15px}.eh1860-preview-media{width:100%;height:min(72vh,740px);object-fit:contain;border:0}.eh1860-preview-dialog-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.eh1860 button:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}'+
  '.eh1860-status{margin:8px 0 0;font-size:13px;overflow-wrap:anywhere}.eh1860-status[data-kind=error]{color:#b42318}.eh1860-status[data-kind=ok]{color:#027a48}.eh1860-block{margin-top:16px;border-top:1px solid #dce3ec;padding-top:14px}.eh1860-upload-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.eh1860-file{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0;font-size:12px}.eh1860-file span{flex:1;overflow-wrap:anywhere}.eh1860-file button{padding:6px 10px}.eh1860-list{list-style:none;padding:0;margin:8px 0;display:grid;gap:8px}.eh1860-complaint{padding:10px;border:1px solid #d6dfe8;border-radius:9px;font-size:13px;display:grid;gap:5px}.eh1860-complaint small{opacity:.75}.eh1860-complaint p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.eh1860-complaint select{max-width:190px}'+
+ '.eh1860-review{margin-top:7px;border-top:1px solid var(--border,#d6dfe8);padding-top:8px}.eh1860-review summary{font-weight:700;cursor:pointer;padding:5px 0}.eh1860-review-grid{margin-top:10px}.eh1860-review-grid textarea{min-height:74px}.eh1860-review .eh1860-actions{margin-top:8px}.eh1860-review .eh1860-verified{font-size:12px;opacity:.8}'+
  '@media(max-width:900px){.eh1860-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.eh1860-grid,.eh1860-upload-grid{grid-template-columns:1fr}.eh1860{padding:12px!important}}@media print{.eh1860{break-inside:avoid}.eh1860-actions,.eh1860 input[type=file]{display:none!important}}';
  (d.head||d.documentElement).appendChild(s);
 }
@@ -158,6 +159,10 @@ async function saveRecord(box,ref){
   activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('saved'),'ok');
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
 }
+var openedReviewId='';
+function complaintSavedEvent(){
+ try{w.dispatchEvent(new Event('exporthub:complaint-updated'))}catch(_){}
+}
 function renderComplaints(box,ref){
  var list=box.querySelector('[data-proof-complaints]');if(!list)return;list.textContent='';
  var complaints=activeRecord&&Array.isArray(activeRecord.complaints)?activeRecord.complaints:[];
@@ -165,19 +170,84 @@ function renderComplaints(box,ref){
  complaints.slice().reverse().forEach(function(c){
   var item=el('div','eh1860-complaint'),header=el('strong',null,tr('complaintItem')+q(c.reportedDate||c.date).slice(0,10));
   item.appendChild(header);item.appendChild(el('p',null,q(c.text)));
-  item.appendChild(el('small',null,tr('createdBy')+q(c.createdBy)+' · '+new Date(c.date).toLocaleString(locale())));
+  item.appendChild(el('small',null,tr('createdBy')+q(c.createdBy)+' · '+(c.date?new Date(c.date).toLocaleString(locale()):'')));
   var states=el('select');
-  [['offen',tr('open')],['in_pruefung',tr('inReview')],['abgeschlossen',tr('closed')]].forEach(function(k){var o=el('option');o.value=k[0];o.textContent=k[1];o.selected=k[0]===c.state;states.appendChild(o)});
+  var statesAllowed=c.state==='abgeschlossen'?['abgeschlossen','in_pruefung']:['offen','in_pruefung'];
+  statesAllowed.forEach(function(value){
+   var option=el('option',null,value==='abgeschlossen'?tr('complaintDone'):value==='in_pruefung'?tr('inReview'):tr('open'));
+   option.value=value;option.selected=c.state===value;states.appendChild(option);
+  });
   states.setAttribute('aria-label',tr('statusAria'));
   states.addEventListener('change',async function(){
    if(busy)return;setBusy(box,true);
    try{
-    var d=await api('POST',ref,{action:'complaint-status',expectedRevision:activeRecord.revision,complaintId:c.id,state:states.value});
+    var data=await api('POST',ref,{action:'complaint-status',expectedRevision:activeRecord.revision,complaintId:c.id,state:states.value});
     if(!isCurrent(box,ref))return;
-    activeRecord=d.record;annotate(box);renderComplaints(box,ref);status(box,tr('statusSaved'),'ok');
-   }catch(e){status(box,q(e.message),'error');states.value=c.state}finally{setBusy(box,false)}
+    activeRecord=data.record;annotate(box);renderComplaints(box,ref);
+    status(box,tr('statusSaved'),'ok');complaintSavedEvent()
+   }catch(e){status(box,q(e.message),'error');states.value=c.state}
+   finally{setBusy(box,false)}
   });
-  item.appendChild(states);list.appendChild(item);
+  item.appendChild(states);
+  var review=el('details','eh1860-review'),title=el('summary',null,tr('effectivenessReview'));
+  review.appendChild(title);review.open=openedReviewId===c.id;
+  review.addEventListener('toggle',function(){
+   if(review.open)openedReviewId=c.id;
+   else if(openedReviewId===c.id)openedReviewId='';
+  });
+  var fields=el('div','eh1860-grid eh1860-review-grid'),controls={};
+  function field(key,kind){
+   var label=el('label',null,tr(key)),input=el(kind==='textarea'?'textarea':'input');
+   if(kind!=='textarea')input.type=kind||'text';
+   input.value=q(c[key]);input.disabled=c.state==='abgeschlossen';
+   label.appendChild(input);fields.appendChild(label);controls[key]=input;
+  }
+  field('owner','text');field('dueDate','date');field('rootCause','textarea');
+  field('immediateAction','textarea');field('correctiveAction','textarea');field('preventiveAction','textarea');
+  field('checkDate','date');field('checkMethod','textarea');field('checkSample','text');
+  field('checkCriteria','textarea');field('effectivenessEvidence','textarea');
+  var resultLabel=el('label',null,tr('effectivenessResult')),result=el('select');
+  ['offen','wirksam','unwirksam'].forEach(function(value){var o=el('option',null,value==='wirksam'?tr('effective'):value==='unwirksam'?tr('ineffective'):tr('open'));o.value=value;o.selected=(c.effectivenessResult||'offen')===value;result.appendChild(o)});
+  result.disabled=c.state==='abgeschlossen';resultLabel.appendChild(result);fields.appendChild(resultLabel);controls.effectivenessResult=result;
+  if(c.verifiedBy)fields.appendChild(el('p','eh1860-verified',tr('verifiedBy')+': '+c.verifiedBy+' · '+q(c.verifiedOn)));
+  review.appendChild(fields);
+  var actions=el('div','eh1860-actions');
+  if(c.state!=='abgeschlossen'){
+   var save=el('button','primary',tr('saveReview'));save.type='button';
+   save.addEventListener('click',async function(){
+    if(busy)return;
+    var payload={action:'complaint-update',complaintId:c.id,expectedRevision:activeRecord.revision};
+    Object.keys(controls).forEach(function(key){payload[key]=controls[key].value});
+    setBusy(box,true);
+    try{
+     var data=await api('POST',ref,payload);
+     if(!isCurrent(box,ref))return;
+     activeRecord=data.record;openedReviewId=c.id;annotate(box);renderComplaints(box,ref);
+     status(box,tr('reviewSaved'),'ok');complaintSavedEvent()
+    }catch(e){status(box,q(e.message),'error')}
+    finally{setBusy(box,false)}
+   });
+   actions.appendChild(save);
+   var complete=el('button',null,tr('markDone'));complete.type='button';
+   complete.disabled=c.effectivenessResult!=='wirksam'||!c.verifiedOn||!c.verifiedBy;
+   complete.title=tr(complete.disabled?'verifyBeforeDone':'markDone');
+   complete.addEventListener('click',async function(){
+    if(busy||complete.disabled)return;
+    var unsaved=Object.keys(controls).some(function(key){return q(controls[key].value)!==q(c[key]||'')});
+    if(unsaved){status(box,tr('saveReviewFirst'),'error');return}
+    if(!w.confirm(tr('confirmDone')))return;
+    setBusy(box,true);
+    try{
+     var data=await api('POST',ref,{action:'complaint-status',expectedRevision:activeRecord.revision,complaintId:c.id,state:'abgeschlossen'});
+     if(!isCurrent(box,ref))return;
+     activeRecord=data.record;openedReviewId=c.id;annotate(box);renderComplaints(box,ref);
+     status(box,tr('statusSaved'),'ok');complaintSavedEvent()
+    }catch(e){status(box,q(e.message),'error')}
+    finally{setBusy(box,false)}
+   });
+   actions.appendChild(complete);
+  }
+  review.appendChild(actions);item.appendChild(review);list.appendChild(item);
  });
 }
 async function addComplaint(box,ref){
@@ -191,6 +261,7 @@ async function addComplaint(box,ref){
   if(!isCurrent(box,ref))return;
   activeRecord=d.record;textInput.value='';annotate(box);renderComplaints(box,ref);
   status(box,tr('complaintSaved'),'ok');
+  complaintSavedEvent();
  }catch(e){status(box,q(e.message),'error')}finally{setBusy(box,false)}
 }
 async function uploadFiles(box,ref,input,type){
