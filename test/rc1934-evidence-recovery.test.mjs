@@ -240,6 +240,30 @@ test('RC1934 P0: deleted Azure blob with retained versions is reported without r
  assert.equal([...db.stored.keys()].some(k=>k.includes('recovery-backups')),false);
 });
 
+test('RC1934 P0: inaccessible Azure version history is explicitly unverified, not empty',async t=>{
+ const old=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ t.after(()=>{if(old===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old});
+ const db=createStore();db.stored.delete(RECORD);
+ const denied=Object.assign(new Error('Version inventory unavailable'),{statusCode:403});
+ db.container.listBlobsFlat=()=>({async *[Symbol.asyncIterator](){throw denied;}});
+ const user={role:'Administrator',rights:{documents:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({url:'https://actualstorage.blob.core.windows.net/',getContainerClient:()=>db.container}));
+ const probe=await call('GET',{action:'inspect',id:ID});
+ assert.equal(probe.status,200);
+ const result=responseBody(probe);
+ assert.equal(result.found,false);
+ assert.equal(result.versionsKnown,false,'Do not claim there are no versions when Azure refused listing them');
+ assert.equal(result.storageHistoryCandidate,false);
+ assert.equal(result.versionEntries,0);
+ assert.equal(result.canRestore,undefined);
+ assert.deepEqual(db.stored.get(FILE).bytes,db.originalPhoto);
+ assert.deepEqual(db.stored.get(OTHER).bytes,db.unrelated);
+});
+
 test('RC1934 P0: exact DOK lookup UI, translations and backup protection remain parsable',()=>{
  const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
  const i18n=fs.readFileSync('assets/i18n/shipment-evidence.js','utf8');
@@ -255,4 +279,6 @@ test('RC1934 P0: exact DOK lookup UI, translations and backup protection remain 
  assert.match(api,/ifNoneMatch:'\*'/);
  assert.match(api,/BACKUP_NOT_VERIFIED/);
  assert.match(i18n,/restoreConfirm/);
+ assert.match(ui,/probe\.versionsKnown===false/);
+ assert.match(i18n,/restoreHistoryUnavailable/);
 });
