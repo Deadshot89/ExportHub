@@ -22,8 +22,8 @@
   function shipmentPrefill(notification){
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
-      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
-      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&(p.packageType||p.packagingType))||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
+      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),preciseWeights:arr(n.packages).length>0&&arr(n.packages).every(p=>Number(p&&p.weight)>0),
+      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&(p.packageType||p.packagingType))||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,ldm:Number(p&&p.ldm)||0,weight:Number(p&&p.weight)>0?Number(p.weight):perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).filter(hasDocumentContent).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
   }
@@ -31,14 +31,14 @@
     const groups=[];
     for(const row of arr(prefill&&prefill.rows)){
       const last=groups[groups.length-1];
-      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;continue;}
-      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,weight:0});
+      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;last.weight+=Number(row.weight)||0;if(Number(row.ldm)>0)last.ldm=(last.ldm||0)+Number(row.ldm);continue;}
+      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,...(Number(row.ldm)>0?{ldm:Number(row.ldm)}:{}),weight:Number(row.weight)||0});
     }
-    const total=Number(prefill&&prefill.totalWeight)||0,pieces=groups.reduce((sum,g)=>sum+g.count,0);
+    const total=Number(prefill&&prefill.totalWeight)||0,scale=prefill&&prefill.preciseWeights?100:10;
     let assigned=0;
     groups.forEach((g,index)=>{
-      if(index===groups.length-1){g.weight=Math.round((total-assigned)*10)/10;return;}
-      g.weight=pieces?Math.round(total*g.count/pieces*10)/10:0;assigned+=g.weight;
+      if(index===groups.length-1){g.weight=Math.round((total-assigned)*scale)/scale;return;}
+      g.weight=Math.round(g.weight*scale)/scale;assigned+=g.weight;
     });
     return groups;
   }
@@ -288,7 +288,7 @@
       const select=node.querySelector('[data-rc363-field="type"] select'),type=matchPackaging(select,row.type);
       if(type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==type){api.updateRow(index,'type',type,select||node);node=nodes()[index]||node;}
       const set=(field,value)=>nativeSet(node.querySelector(`[data-rc363-field="${field}"] input`),value);
-      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');
+      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');if(row.ldm>0)set('ldm',row.ldm);
       const weight=node.querySelector('[data-rc363-field="weight"] input');
       if(api&&typeof api.updateRow==='function'){api.updateRow(index,'weight',row.weight||'',weight||node);nativeValue(weight,row.weight||'');}
       else set('weight',row.weight||'');
