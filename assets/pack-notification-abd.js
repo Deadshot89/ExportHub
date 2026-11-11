@@ -265,7 +265,12 @@
   }
   function install(){
     if(!root.addEventListener||!root.document)return false;
-    root.addEventListener('exporthub:pack-create-abd',e=>begin(e&&e.detail&&e.detail.notificationId));
+    root.addEventListener('exporthub:pack-create-abd',e=>{
+      const detail=e&&e.detail;
+      if(detail&&typeof detail==='object')detail.handled=true;
+      const success=begin(detail&&detail.notificationId);
+      if(detail&&typeof detail==='object')detail.success=success===true;
+    });
     for(const name of ['exporthub:rendered','exporthub:viewchange','exporthub:state-updated'])
       root.addEventListener(name,decorate);
     root.document.addEventListener('click',onClick);
