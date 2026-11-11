@@ -92,7 +92,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 </div></div>
 </div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
 <section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
-<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
+<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Auftrag für heute melden?</h3>
 <p id="lateCutoffText"></p>
 <div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
 </section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="urgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Du bist auf dem offiziellen TESTSERVICE. Die API hat den sicheren Umgebungsnachweis abgelehnt. Der Auftrag wurde nicht gespeichert. Bitte nicht erneut senden; die Logistik prüft die Verbindung.</span> </p>
@@ -279,7 +279,7 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- const fallback=$('reportForm').elements.language.value==='en'?"Shipping today? Please report your order by 3:15 pm. Running late? Choose tomorrow as the shipping date. If it really has to go today, you can still report it. If it isn't approved automatically, we'll handle it tomorrow.":"Heute noch versenden? Bitte melde deinen Auftrag bis 15:15 Uhr an. Du bist später dran? Dann wähle bitte morgen als Versandtag. Wenn es unbedingt heute sein muss, kannst du den Auftrag trotzdem melden. Wird er nicht automatisch freigegeben, bearbeiten wir ihn morgen.";
+ const fallback=$('reportForm').elements.language.value==='en'?"Orders shipping today must be entered by 3:00 pm. The reporting deadline is 3:15 pm. After 3:15 pm, please select tomorrow as the shipping date. You can still report an order for today. If it is not approved automatically, we will process it tomorrow.":"Aufträge für den heutigen Versand müssen bis 15:00 Uhr erfasst sein. Die Meldefrist endet um 15:15 Uhr. Nach 15:15 Uhr bitte morgen als Versandtag auswählen. Du kannst den Auftrag trotzdem für heute melden. Wird er nicht automatisch freigegeben, bearbeiten wir ihn erst morgen.";
  return localeV2('cutoffLateWarning',fallback);
 }
 let cutoffApproved=false;

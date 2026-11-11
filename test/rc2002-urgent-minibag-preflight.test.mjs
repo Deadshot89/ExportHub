@@ -83,9 +83,21 @@ test('RC2002 both entry pages check on Weiter, keep confirmations tied to the or
 test('RC2002 all six languages provide a human cutoff text and preflight feedback',()=>{
  for(const lang of ['de','en','pl','fr','es','it']){
   const dict=JSON.parse(fs.readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
-  assert.match(dict['urgentOrderV2.cutoffLateWarning'],/15:15|3:15|15 h 15/);
+  const warning=dict['urgentOrderV2.cutoffLateWarning'];
+  assert.match(warning,/15:00|3:00|15 h 00/,'15:00 is the same-day order-entry cutoff');
+  assert.match(warning,/15:15|3:15|15 h 15/,'15:15 is the reporting cutoff');
+  assert.ok(warning.indexOf('15:00')<warning.indexOf('15:15')||/3:00.*3:15|15 h 00.*15 h 15/.test(warning),'order-entry cutoff must be named before reporting cutoff');
   for(const key of ['packingPreflightRunning','packingPreflightOk','packingPreflightMissing','packingPreflightUnknown','packingPreflightUnknownConfirm','packingPreflightConfirmed','packingPreflightRetry'])
    assert.equal(typeof dict['urgentOrderV2.'+key],'string');
  }
- assert.equal(JSON.parse(fs.readFileSync(new URL('../assets/i18n/de.json',import.meta.url)))['urgentOrderV2.cutoffHeading'],'Heute noch versenden?');
+ assert.equal(JSON.parse(fs.readFileSync(new URL('../assets/i18n/de.json',import.meta.url)))['urgentOrderV2.cutoffHeading'],'Auftrag für heute melden?');
+});
+
+test('RC2002 both entry pages keep the separate 15:00 and 15:15 deadlines in fallback text',()=>{
+ for(const page of ['urgent-orders.html','urgent-order-report.html']){
+  const html=fs.readFileSync(new URL('../assets/'+page,import.meta.url),'utf8');
+  assert.match(html,/Aufträge für den heutigen Versand müssen bis 15:00 Uhr erfasst sein/);
+  assert.match(html,/Die Meldefrist endet um 15:15 Uhr/);
+  assert.match(html,/data-i18n="urgentOrderV2.cutoffHeading">Auftrag für heute melden\?/);
+ }
 });
