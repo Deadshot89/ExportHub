@@ -2754,5 +2754,6 @@
   "urgentOrderV2.issueDamage": "Towar uszkodzony lub niekompletny",
   "urgentOrderV2.issueDelay": "Wysyłka w wymaganym terminie nie jest możliwa",
   "urgentOrderV2.issueRegenerate": "Wygeneruj ponownie projekt wiadomości e-mail.",
-  "urgentOrderV2.issueTooLong": "Opis problemu wraz z wybranymi szablonami nie może przekraczać 2000 znaków."
+  "urgentOrderV2.issueTooLong": "Opis problemu wraz z wybranymi szablonami nie może przekraczać 2000 znaków.",
+  "urgentOrderV2.shippingNotReady": "Dostępne dopiero po wysłaniu wszystkich pozycji."
 }
