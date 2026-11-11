@@ -591,3 +591,19 @@ test('RC1985: an empty legacy customer cannot bridge conflicting customer accoun
   assert.equal(await api._deleteManagedTask('second'),false);
   assert.strictEqual(store.tasks,tasks);
 });
+
+test('RC1985: production always revalidates task focus script and translations after release',()=>{
+  const prod=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+  const names=['/assets/rc1570-tasks-focus.js','/assets/i18n/rc1570-tasks-focus.js'];
+  for(const route of names){
+    const exact=prod.routes.find(item=>item.route===route);
+    assert.ok(exact,route+' must not rely on long-lived production browser cache');
+    assert.match(String(exact.headers?.['Cache-Control']||''),/no-store/);
+    const service=testservice.routes.find(item=>item.route==='/assets/*'||item.route===route);
+    assert.ok(service,route+' must be covered by testservice cache rules');
+    assert.match(String(service.headers?.['Cache-Control']||''),/no-store/);
+  }
+  assert.match(build,/rc1570-tasks-focus\\.js\\?v=1985/);
+  assert.match(build,/i18n\\/rc1570-tasks-focus\\.js\\?v=1985/);
+});
