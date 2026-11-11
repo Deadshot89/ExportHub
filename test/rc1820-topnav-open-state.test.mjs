@@ -32,8 +32,8 @@ function renderWith(openKey){
   iconVars:()=>'',esc:value=>String(value),tx:key=>key
  };
  vm.runInNewContext(renderSource+'\nrender(true);',ctx,{timeout:1000});
- const tabs=[...pills.innerHTML.matchAll(/<button\\b[^>]*class="([^"]*)"[^>]*data-rc1820-section="([^"]*)"/g)]
-  .map(match=>({key:match[2],highlighted:match[1].split(/\\s+/).includes('is-active'),opened:match[1].split(/\\s+/).includes('is-open')}));
+ const tabs=[...pills.innerHTML.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-rc1820-section="([^"]*)"/g)]
+  .map(match=>({key:match[2],highlighted:match[1].split(/\s+/).includes('is-active'),opened:match[1].split(/\s+/).includes('is-open')}));
  return {tabs,html:pills.innerHTML,mega,brand};
 }
 
