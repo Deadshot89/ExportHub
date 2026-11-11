@@ -184,7 +184,7 @@ test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; 
   assert.match(api.renderHtml(model,{now:new Date(2026,9,17,19,0),userName:''}),/>Guten Abend</,'ohne Namen kein hängendes Komma');
   assert.equal(api.isoWeek(new Date(2026,0,1)),1);
   assert.equal(api.isoWeek(new Date(2027,0,1)),53);
-  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,9,'sieben bisherige Kennzahlen plus zwei gleich gestaltete Status-Kacheln oben');
+  assert.equal((morning.match(/<svg class="rc1558-icon rc1558-kpi-icon"/g)||[]).length,9,'sieben bisherige Kennzahlen plus zwei gleich gestaltete Status-Kacheln oben');
   const empty=api.renderHtml(api.buildModel(fakeApi([],[]),[],NOW),{now:NOW,userName:'A'});
   assert.equal((empty.match(/data-zero="1"/g)||[]).length,7);
   assert.match(empty,/rc1558-empty-icon/);
