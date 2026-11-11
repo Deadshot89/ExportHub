@@ -318,3 +318,40 @@ geladenen Signaturen zusätzlich attestieren. Dieser Baustein
 erzeugt weiter nur `authorizedForRelease:false`-Kandidaten.
 Weder ein echter ClamAV-Test noch Azure-Datenzugriff ist mit den
 synthetischen Regressionen nachgewiesen.
+
+## RC1977 – tatsächlichen Abschlusszeitpunkt signieren
+
+**Nachweisfehler:** `scanOfflineCandidate` erhielt einen `now`-Zeitstempel
+bei der Queue-/Einmal-Claim-Verifizierung und reichte diesen erst nach
+den EICAR-Probes, Blob-Downloads und dem Kundendateiscan als
+`scannedAt` an die kurzlebige RC1963-HMAC-Kandidatenbescheinigung
+weiter. Damit konnte die Bescheinigung einen *früheren* statt des
+tatsächlichen Abschlusszeitpunktes enthalten. Zudem wurde die
+24-Stunden-Aktualität der Signaturen am Startzeitpunkt und nicht
+nochmals zur Zeit der finalen Bescheinigung beurteilt.
+
+Der Offline-Worker verwendet nun eine gesonderte
+`clock`-Abhängigkeit (in der späteren vertrauenswürdigen Laufzeit
+standardmäßig `Date.now`) **nach** der abschließenden Blob- und
+Signaturprüfung. Nur ein sicherer, nicht rückwärts laufender
+Integer-Zeitstempel mit einer Differenz von höchstens
+`TIME_BUDGET.jobMs` zum Startzeitpunkt wird akzeptiert. Die
+Signaturen müssen auch am Abschlusszeitpunkt höchstens 24 Stunden alt
+sein. Die RC1963-Kandidatenbescheinigung verwendet **diesen**
+`finishedAt`-Wert als `scannedAt` und berechnet ihren Ablauf
+relativ zum tatsächlichen Abschluss, nicht zum initialen Queue-Auftrag.
+
+Drei synthetische Regressionen prüfen (1) korrekt signierte
+`scannedAt`-/`expiresAt`-Felder, (2) fehlende/ungültige/rückwärts
+laufende oder über der geplanten 240-s-Grenze liegende Zeitstempel
+sowie (3) eine während des Scans ablaufende Signaturgültigkeit.
+Keiner dieser Fehler liefert eine Kandidatenbescheinigung oder
+Parserfreigabe. Die Injected-`clock`-Funktion ist ein interner
+Test-/Job-Adapter, niemals ein Feld aus Browser-/Queue-Daten.
+
+**Grenze:** Die Abschlusszeitkontrolle stoppt keinen hängenden
+Scannerprozess; dafür ist weiterhin ein *unabhängiger* harter
+Container-Laufzeitabbruch nötig. Sie erlaubt weiterhin
+`authorizedForRelease:false` allein und stellt weder einen realen
+ClamAV-Scan noch einen kostenfreien Cloudbetrieb oder einen
+erfolgreichen Excel-Upload nach.
