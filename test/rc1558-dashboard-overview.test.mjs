@@ -46,7 +46,7 @@ const tasks=[
 ];
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
-  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1969/);
+  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1970/);
   assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
@@ -259,6 +259,9 @@ test('RC1969: jede Dashboard-KPI hat ein eigenes sichtbares, barrierefrei dekora
   assert.match(css,/\.rc1558-kpi-top \.rc1558-kpi-icon\{/,'Icon-Glasfläche fehlt');
   assert.match(css,/@media\(max-width:480px\)/,'responsive Icon-Größe fehlt');
   assert.match(css,/var\(--pc-icon-bg,#e8f1ff\)/,'Iconfläche muss den Design-Modus statt hartem Weiß verwenden');
+  assert.match(css,/width:30px;\s*height:30px;\s*min-width:30px;\s*padding:6px;\s*flex:0 0 30px/,'obere KPI-Icons müssen 30px breit und hoch sein');
+  assert.match(css,/width:28px;height:28px;min-width:28px;flex-basis:28px;padding:5px/,'Smartphone-Icons müssen 28px breit und hoch sein');
+  assert.match(css,/flex:0 0 22px;width:22px;height:22px;padding:4px/,'untere Dashboard-Icons müssen 22px breit und hoch sein');
   assert.doesNotMatch(css,/background:linear-gradient\(145deg,rgba\(255,255,255,\.78\)/,'Neon-Night-Icons dürfen keine fast weiße Fläche bekommen');
   assert.equal((html.match(/class="rc1558-icon rc1558-panel-icon"/g)||[]).length,3,'Abholungen, Aufmerksamkeit und Aufgaben haben eigene Titelicons');
   assert.match(runtime,/function ensureLegacyTileIcon\(el,id\)/,'Icons der vorhandenen unteren Karten fehlen');
