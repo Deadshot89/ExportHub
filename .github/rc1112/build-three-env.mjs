@@ -10,6 +10,7 @@ import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
+import {patchRc1968CarrierMailHtml} from '../../scripts/rc1968-authoritative-carrier-mail.mjs';
 import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-shipment-delta.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
@@ -2175,9 +2176,10 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
   const paginated=patchRc1716PodBatchHtml(patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened)),file);
   const rc1718Printed=patchRc1718PrintIframeHtml(paginated,file);
+  const rc1968Carrier=patchRc1968CarrierMailHtml(rc1718Printed,file);
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
-  if(!rc1718Printed.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
-  fs.writeFileSync(target,rc1718Printed.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
+  if(!rc1968Carrier.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
+  fs.writeFileSync(target,rc1968Carrier.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
 }
 // RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
 for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
