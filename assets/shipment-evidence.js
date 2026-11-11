@@ -117,7 +117,7 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
     row.appendChild(button(r.source==='ref'?t('openShipment'):t('edit'),()=>{
      if(r.source==='ref'){
       let opened=false;
-      try{opened=!!(w.ExportHUBShipmentView&&w.ExportHUBShipmentView.open&&w.ExportHUBShipmentView.open(r.reference,'documentation'))}catch(_){}
+      try{if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.open==='function')opened=w.ExportHUBShipmentView.open(r.reference,'documentation')!==false}catch(_){}
       if(!opened)status(t('openShipmentUnavailable'),true)
      }else openRecord(r.id)
     }));
