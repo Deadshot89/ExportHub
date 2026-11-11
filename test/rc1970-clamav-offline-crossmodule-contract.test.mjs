@@ -72,7 +72,7 @@ function simulatedWork({
    scans++;
    return (runner|| (async()=>({exitCode:0,timedOut:false})))(...args);
   },
-  now:NOW
+  now:NOW,clock:()=>NOW
  };
  return {settings,signing,stats:()=>({gets,properties,downloads,scans})};
 }
