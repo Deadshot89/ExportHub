@@ -248,10 +248,15 @@ module.exports=async function(context,req){
   // Legacy shipment snapshots must not re-authorize a removed carrier address.
   if(target==='carrier'){
    const customer=customerFor(current.team,shipment);
-   if(customer&&Object.prototype.hasOwnProperty.call(customer,'carrierEmail')){
-    const permitted=emailItems(customer.carrierEmail).map(lower);
-    if(!permitted.includes(lower(to)))throw auth.error('MAIL_RECIPIENT_NOT_IN_CUSTOMER_FOLDER','Diese Speditionsadresse ist nicht mehr im aktuellen Kundenordner hinterlegt. Bitte die Empfänger neu laden.',409);
-   }
+   if(!customer)throw auth.error('MAIL_CUSTOMER_FOLDER_NOT_FOUND','Kundenordner nicht gefunden. Bitte Kundenstammdaten neu laden, bevor die Speditionsmail geöffnet wird.',409);
+   const values=Object.prototype.hasOwnProperty.call(customer,'carrierEmail')
+    ? customer.carrierEmail
+    : [customer.carrierMail,customer.speditionMail,customer.forwarderEmail,customer.anmeldungMail,
+       customer.mailRecipients,customer.palletCarrierEmail,customer.packageCarrierEmail,
+       customer.carrierContacts,customer.speditionContacts,customer.forwarderContacts,
+       ...(Array.isArray(customer.contactDirectory)?customer.contactDirectory.filter(x=>/carrier|spedition|forwarder|fracht/i.test([].concat(x&&x.roles||[],x&&x.role||[]).join(' '))):[])];
+   const permitted=emailItems(values).map(lower);
+   if(!permitted.includes(lower(to)))throw auth.error('MAIL_RECIPIENT_NOT_IN_CUSTOMER_FOLDER','Diese Speditionsadresse ist nicht mehr im aktuellen Kundenordner hinterlegt. Bitte die Empfänger neu laden.',409);
   }
   if(!customerAvisAllowed(current.team,shipment))throw auth.error('AVIS_CUSTOMER_DISABLED','AVIS-Link ist für diesen Kunden im Kundenordner deaktiviert.',409);
   if(mode==='initial'&&initialMailSentAt(shipment))throw auth.error('AVIS_INITIAL_ALREADY_SENT','Das erste Lieferavis wurde bereits versendet.',409);
