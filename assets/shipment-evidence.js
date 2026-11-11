@@ -67,7 +67,7 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
  fullSearch.hidden=!state.continuation||!state.search.trim();
  const message=make('p','eh1903-status');message.setAttribute('data-eh1903-status','');message.setAttribute('aria-live','polite');app.appendChild(message);
  function updateRows(){list.replaceChildren();more.hidden=!state.continuation;fullSearch.hidden=!state.continuation||!state.search.trim();const term=state.search.toLowerCase().trim();
-  const matches=state.records.filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber].some(x=>String(x||'').toLowerCase().includes(term)));
+  const matches=state.records.filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber,r.fields&&r.fields.exporthubRef].some(x=>String(x||'').toLowerCase().includes(term)));
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{
     const row=make('div','eh1903-row eh1903-record-row'),data=make('div','eh1903-record-grid'),fields=r.fields||{};
@@ -77,8 +77,8 @@ function showList(){syncGallery('');state.serial++;state.view='list';state.recor
       section.appendChild(make('strong','eh1903-record-value',value==null||value===''?'–':value));
       data.appendChild(section);return section
     };
-    const ref=cell(t('refShort'),fields.exporthubRef||'–','eh1903-record-ref');
-    ref.appendChild(make('span','eh1903-record-sub',t('documentationRefShort')+': '+r.id));
+    const ref=cell(t(fields.exporthubRef?'refShort':'documentationRefShort'),fields.exporthubRef||r.id,'eh1903-record-ref');
+    if(fields.exporthubRef)ref.appendChild(make('span','eh1903-record-sub',t('documentationRefShort')+': '+r.id));
     const customer=cell(t('customer'),fields.customer||'–','eh1903-record-customer');
     if(fields.shipmentNumber)customer.appendChild(make('span','eh1903-record-sub',t('shipmentNumber')+': '+fields.shipmentNumber));
     cell(t('dispatchDate'),dateText(fields.dispatchDate));
