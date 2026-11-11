@@ -59,7 +59,7 @@ test('RC1820: Nur das aktuell geöffnete Mega-Menü ist hervorgehoben',()=>{
 });
 
 const selectStart=source.indexOf(' function findActive(n){');
-const selectEnd=source.indexOf('\\n function isActive(',selectStart);
+const selectEnd=source.indexOf('\n function isActive(',selectStart);
 assert.ok(selectStart>=0&&selectEnd>selectStart,'Top navigation active selection function not found');
 const selectSource=source.slice(selectStart,selectEnd);
 
@@ -73,7 +73,7 @@ function selectWith(view,activeView){
  const nav={children:buttons,querySelector:()=>null};
  const document={body:{getAttribute:name=>name==='data-exporthub-view'?view:null}};
  const context={n:nav,d:document,clean:x=>String(x||'').trim(),viewOf:el=>el.view,allowed:el=>!el.hidden};
- return vm.runInNewContext(selectSource+'\\nfindActive(n)',context,{timeout:1000}).view;
+ return vm.runInNewContext(selectSource+'\nfindActive(n)',context,{timeout:1000}).view;
 }
 
 test('RC1820: Kundenordner wird trotz veralteter Sendung-Markierung ausgewählt',()=>{
