@@ -105,7 +105,10 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/expectedId&&expectedId!==originalId/);
  assert.match(ui,/node\.classList\.add\('active'\)/);
  assert.match(ui,/async function scanAll\(\)/);
- assert.match(ui,/const ok=await loadList\(false\)/);
+ // Full search must walk DOK first, then the authenticated historical REF archive.
+ assert.match(ui,/const ok=state\.continuation\?await loadList\(false\):await loadLegacyList\(false\)/);
+ assert.match(ui,/while\(run===state\.searchRun&&state\.view==='list'&&active\(\)&&\(state\.continuation\|\|state\.legacyContinuation\)\)/);
+ assert.match(ui,/if\(token!==state\.legacyRequestToken\|\|serial!==state\.serial\|\|state\.view!=='list'\)return false/);
  assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
 });
@@ -262,7 +265,34 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  assert.equal(complaint.status,200,complaint.body);
  const complaintRecord=JSON.parse(complaint.body).record;
  assert.equal(complaintRecord.complaints[0].state,'offen');
- const closed=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId:complaintRecord.complaints[0].id,state:'abgeschlossen'});
+ const complaintId=complaintRecord.complaints[0].id;
+ const premature=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId,state:'abgeschlossen'});
+ assert.equal(premature.status,422,'No closure without effectiveness evidence');
+ const newFile=await call('POST',{action:'upload',id:record.id,expectedRevision:complaintRecord.revision,
+  complaintId,kind:'reklamation',fileName:'Schaden.jpg',base64:jpeg()});
+ assert.equal(newFile.status,200,newFile.body);
+ const withFile=JSON.parse(newFile.body).record;
+ const complaintFile=withFile.files.find(f=>f.complaintId===complaintId);
+ assert.ok(complaintFile);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId:'other'})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId})).status,200);
+ const planned=await call('POST',{action:'complaint-update',id:record.id,expectedRevision:withFile.revision,complaintId,
+  rootCause:'Versandkontrolle fehlte',correctiveAction:'Pflichtscan vor Versand',checkDate:'2026-11-07',
+  checkMethod:'Zehn Sendungen kontrolliert',checkCriteria:'Keine falschen Packstücke',
+  effectivenessEvidence:'Kontrollliste mit zehn Nachweisen'});
+ assert.equal(planned.status,200,planned.body);
+ const verified=await call('POST',{action:'complaint-update',id:record.id,
+  expectedRevision:JSON.parse(planned.body).record.revision,complaintId,effectivenessResult:'wirksam'});
+ assert.equal(verified.status,200,verified.body);
+ const verifiedRecord=JSON.parse(verified.body).record;
+ const lastAudit=verifiedRecord.history.filter(x=>x.action==='complaint-update').at(-1)?.effectivenessAudit;
+ assert.equal(lastAudit?.before.result,'offen');
+ assert.equal(lastAudit?.after.result,'wirksam');
+ assert.equal(lastAudit?.after.verifiedBy,'Mitarbeiter');
+ assert.equal(lastAudit?.after.evidence,'Kontrollliste mit zehn Nachweisen');
+ const closed=await call('POST',{action:'complaint-status',id:record.id,
+  expectedRevision:JSON.parse(verified.body).record.revision,complaintId,state:'abgeschlossen'});
  assert.equal(closed.status,200,closed.body);
  assert.equal(JSON.parse(closed.body).record.complaints[0].state,'abgeschlossen');
  const stale=await call('POST',{action:'save',id:record.id,expectedRevision:0,fields:valid});
@@ -427,6 +457,11 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.ok(!('publicAccess' in returned));
  const deniedPublicEdit=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'Anders'}},first.publicToken);
  assert.equal(deniedPublicEdit.status,401,'Öffentliche Feldänderung wird nicht mehr angeboten');
+ const deniedGuestComplaintFile=await call('POST',{action:'public-upload',id:docId,
+  expectedRevision:returned.revision,kind:'reklamation',complaintId:'fake',
+  fileName:'not-public.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(deniedGuestComplaintFile.status,403,deniedGuestComplaintFile.body);
+ assert.equal(JSON.parse(deniedGuestComplaintFile.body).code,'PUBLIC_BAD_KIND');
  const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:returned.revision,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
  assert.equal(uploaded.status,200,uploaded.body);
  const uploadedRecord=JSON.parse(uploaded.body).record;
@@ -559,7 +594,7 @@ test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, o
   assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
  }
  assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
- assert.match(build,/shipment-evidence\.js\?v=1934/,'Staff runtime must have cache-busted version');
+ assert.match(build,/shipment-evidence\.js\?v=2010/,'Staff runtime must have cache-busted version');
 });
 
 
@@ -582,8 +617,8 @@ test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cac
  assert.match(guest,/clipboard\.writeText\(record\.id\)/);
  assert.match(guest,/t\('referencePending'\)/);
  assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
- assert.match(build,/shipment-evidence\.js\?v=1934/);
- assert.match(build,/i18n\/shipment-evidence\.js\?v=1934/);
+ assert.match(build,/shipment-evidence\.js\?v=2010/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=2010/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
  assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
  assert.match(html,/shipment-evidence-guest\.js\?v=1907/);

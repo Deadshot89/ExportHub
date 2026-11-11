@@ -34,18 +34,20 @@ test('RC1371: dashboard mounts once, preserves live cards and exposes editor con
   await openDashboard(page);
   // RC1573 replaces the visible RC1371 toolbar with the new tile editor in
   // the overview band. Verify the public UI rather than requiring a hidden legacy button.
-  // RC1965: the two new counts are siblings of the original KPI cards, never nested mini-widgets.
+  // RC1914: all three live counts (Urgent, QM, Reklamationen) are siblings of the existing KPIs.
   const urgent=page.locator('#rc1558Overview .rc1558-kpis > .rc1558-kpi[data-rc1558-open-module="urgentorders"]');
   const quality=page.locator('#rc1558Overview .rc1558-kpis > .rc1558-kpi[data-rc1558-open-module="quality"]');
+  const complaints=page.locator('#rc1558Overview .rc1558-kpis > .rc1558-kpi[data-rc1558-open-module="shipmentevidence"]');
   await expect(urgent).toBeVisible();
   await expect(quality).toBeVisible();
+  await expect(complaints).toBeVisible();
   await expect(page.locator('#rc1558Overview .rc1558-kpi-openwork, #rc1558Overview .rc1558-openwork-action')).toHaveCount(0);
   await expect(page.locator('[data-rc1573-own="openwork"]')).toHaveCount(0);
   const visual=await page.evaluate(()=>{
     const root=document.querySelector('#rc1558Overview .rc1558-kpis');
     const original=root&&root.querySelector('.rc1558-kpi[data-rc1558-kpi="open"]');
     const news=root&&[...root.querySelectorAll('.rc1558-kpi[data-rc1558-open-module]')];
-    if(!original||!news||news.length!==2)return null;
+    if(!original||!news||news.length!==3)return null;
     function style(card){
       const number=card.querySelector('.rc1558-kpi-value');
       const label=card.querySelector('.rc1558-kpi-label');

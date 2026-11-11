@@ -17,4 +17,57 @@ const partialFileTranslations={
  it:'Elenco REF incompleto: almeno una fonte di archiviazione non è disponibile. I file già salvati restano conservati. Ricarica più tardi.'
 };
 for(const [locale,description] of Object.entries(partialFileTranslations))root.ExportHUBShipmentDocumentationI18n.packs[locale].refPartial=description;
+// RC1912 – Verification and explicit closure for historical REF complaints.
+const reviewTranslations={
+ de:{effectivenessReview:'Wirksamkeitsprüfung & Maßnahmen',owner:'Verantwortlich',dueDate:'Frist',
+  rootCause:'Nachgewiesene Ursache',immediateAction:'Sofortmaßnahme',correctiveAction:'Abstellmaßnahme',
+  preventiveAction:'Vorbeugende Maßnahme',checkDate:'Prüftermin',checkMethod:'Prüfmethode',
+  checkSample:'Stichprobe',checkCriteria:'Erfolgskriterium',effectivenessEvidence:'Prüfnachweis',
+  effectivenessResult:'Wirksamkeit',effective:'Wirksam',ineffective:'Nicht wirksam',
+  verifiedBy:'Bestätigt von',saveReview:'Maßnahmen / Prüfung speichern',reviewSaved:'Prüfung gespeichert',
+  complaintDone:'Erledigt',markDone:'Als erledigt markieren',verifyBeforeDone:'Zuerst Wirksamkeit bestätigen.',
+  saveReviewFirst:'Änderungen zuerst speichern.',confirmDone:'Wirksamkeit bestätigt – Reklamation erledigen?'},
+ en:{effectivenessReview:'Effectiveness review and actions',owner:'Owner',dueDate:'Due',
+  rootCause:'Confirmed root cause',immediateAction:'Immediate action',correctiveAction:'Corrective action',
+  preventiveAction:'Preventive action',checkDate:'Review date',checkMethod:'Review method',
+  checkSample:'Sample',checkCriteria:'Acceptance criteria',effectivenessEvidence:'Review evidence',
+  effectivenessResult:'Effectiveness',effective:'Effective',ineffective:'Not effective',
+  verifiedBy:'Verified by',saveReview:'Save actions / review',reviewSaved:'Review saved',
+  complaintDone:'Completed',markDone:'Mark completed',verifyBeforeDone:'Confirm effectiveness first.',
+  saveReviewFirst:'Save changes first.',confirmDone:'Effectiveness confirmed – complete complaint?'},
+ pl:{effectivenessReview:'Ocena skuteczności i działania',owner:'Odpowiedzialny',dueDate:'Termin',
+  rootCause:'Potwierdzona przyczyna',immediateAction:'Działanie natychmiastowe',correctiveAction:'Działanie korygujące',
+  preventiveAction:'Działanie zapobiegawcze',checkDate:'Data kontroli',checkMethod:'Metoda kontroli',
+  checkSample:'Próba',checkCriteria:'Kryterium sukcesu',effectivenessEvidence:'Dowód kontroli',
+  effectivenessResult:'Skuteczność',effective:'Skuteczne',ineffective:'Nieskuteczne',
+  verifiedBy:'Zatwierdzone przez',saveReview:'Zapisz działania / kontrolę',reviewSaved:'Kontrola zapisana',
+  complaintDone:'Zakończona',markDone:'Oznacz jako zakończoną',verifyBeforeDone:'Najpierw zatwierdź skuteczność.',
+  saveReviewFirst:'Najpierw zapisz zmiany.',confirmDone:'Potwierdzono skuteczność – zakończyć reklamację?'},
+ es:{effectivenessReview:'Verificación de eficacia y acciones',owner:'Responsable',dueDate:'Plazo',
+  rootCause:'Causa confirmada',immediateAction:'Acción inmediata',correctiveAction:'Acción correctiva',
+  preventiveAction:'Acción preventiva',checkDate:'Fecha de revisión',checkMethod:'Método de revisión',
+  checkSample:'Muestra',checkCriteria:'Criterio de éxito',effectivenessEvidence:'Evidencia de revisión',
+  effectivenessResult:'Eficacia',effective:'Eficaz',ineffective:'No eficaz',
+  verifiedBy:'Verificado por',saveReview:'Guardar acciones / revisión',reviewSaved:'Revisión guardada',
+  complaintDone:'Resuelta',markDone:'Marcar como resuelta',verifyBeforeDone:'Confirma primero la eficacia.',
+  saveReviewFirst:'Guarda los cambios primero.',confirmDone:'Eficacia confirmada: ¿cerrar reclamación?'},
+ fr:{effectivenessReview:'Vérification de l’efficacité et actions',owner:'Responsable',dueDate:'Échéance',
+  rootCause:'Cause confirmée',immediateAction:'Action immédiate',correctiveAction:'Action corrective',
+  preventiveAction:'Action préventive',checkDate:'Date du contrôle',checkMethod:'Méthode du contrôle',
+  checkSample:'Échantillon',checkCriteria:'Critère de réussite',effectivenessEvidence:'Preuve du contrôle',
+  effectivenessResult:'Efficacité',effective:'Efficace',ineffective:'Inefficace',
+  verifiedBy:'Vérifié par',saveReview:'Enregistrer actions / contrôle',reviewSaved:'Contrôle enregistré',
+  complaintDone:'Terminée',markDone:'Marquer comme terminée',verifyBeforeDone:'Confirmer d’abord l’efficacité.',
+  saveReviewFirst:'Enregistrer les modifications.',confirmDone:'Efficacité confirmée : terminer la réclamation ?'},
+ it:{effectivenessReview:'Verifica efficacia e azioni',owner:'Responsabile',dueDate:'Scadenza',
+  rootCause:'Causa confermata',immediateAction:'Azione immediata',correctiveAction:'Azione correttiva',
+  preventiveAction:'Azione preventiva',checkDate:'Data verifica',checkMethod:'Metodo verifica',
+  checkSample:'Campione',checkCriteria:'Criterio di successo',effectivenessEvidence:'Prove verifica',
+  effectivenessResult:'Efficacia',effective:'Efficace',ineffective:'Non efficace',
+  verifiedBy:'Verificato da',saveReview:'Salva azioni / verifica',reviewSaved:'Verifica salvata',
+  complaintDone:'Completato',markDone:'Segna come completato',verifyBeforeDone:'Conferma prima l’efficacia.',
+  saveReviewFirst:'Salva prima le modifiche.',confirmDone:'Efficacia confermata: completare il reclamo?'}
+};
+for(const [lang,strings] of Object.entries(reviewTranslations))
+ Object.assign(root.ExportHUBShipmentDocumentationI18n.packs[lang],strings);
 })(window);
