@@ -51,8 +51,20 @@ test('Pack -> manual ABD prefill keeps no shipment and does not save an ABD requ
   assert.equal(state.shipments.length,1,'no shipment created');
   assert.equal(calls.mode[0],'manual');
   assert.deepEqual(Array.from(state.abdDraft.rows,r=>[r.type,r.count,r.weight]),[
-    ['Europalette','2','50'],['Karton','1','25']
+    ['Europalette','2',''],['Karton','1','']
   ]);
+});
+test('Pack ABD copies only explicit weight values on mixed package rows',()=>{
+  const {api}=fixture();
+  const rows=api.rowsFromPack({packageCount:2,totalWeight:30,packages:[
+    {packagingType:'Europalette',weight:12},{packagingType:'Karton',weight:18}
+  ]});
+  assert.deepEqual(Array.from(rows,r=>[r.type,r.weight]),[['Europalette','12'],['Karton','18']]);
+  const impossible=api.rowsFromPack({packageCount:2,totalWeight:20,packages:[
+    {packagingType:'Europalette',weight:19},{packagingType:'Karton',weight:18}
+  ]});
+  assert.equal(impossible[0].weight,'');
+  assert.equal(impossible[1].weight,'');
 });
 test('repeated Pack ABD click resumes the same draft and does not generate a second reference',()=>{
   const {state,calls,api}=fixture();
