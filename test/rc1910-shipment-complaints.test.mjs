@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const complaints=require('../api/shipment-evidence/complaints.js');
@@ -95,4 +96,30 @@ test('Reklamationen: alle aktiven Fälle zählen, erledigte und entfernte nicht'
  ]),3);
  assert.equal(complaints.openCount([{complaints:[done]}]),0);
  assert.equal(complaints.openCount([]),0);
+});
+
+test('Alle Dokumentationen: REF, Kunde, Versanddatum, Colli, Gewicht und Reklamationsstatus stehen in dieser Folge',()=>{
+ const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const start=ui.indexOf('matches.forEach(r=>'),end=ui.indexOf("search.addEventListener('input'",start);
+ assert.ok(start>=0&&end>start);
+ const list=ui.slice(start,end);
+ const markers=["t(fields.exporthubRef?'refShort':'documentationRefShort')",
+  "t('customer')","t('dispatchDate')","t('colli')","t('weightKg')","t('complaintStatus')"];
+ let before=-1;
+ for(const marker of markers){
+  const at=list.indexOf(marker);
+  assert.ok(at>before,`Listing order missing or changed: ${marker}`);
+  before=at;
+ }
+ assert.match(list,/t\('complaintCompleted'\)/);
+ assert.match(list,/counts\[c\.state==='abgeschlossen'/);
+ assert.match(list,/fields\.exporthubRef\|\|r\.id/);
+});
+test('Als erledigt nur nach bestätigter Wirksamkeitsprüfung und ohne ungespeicherte Änderungen',()=>{
+ const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ assert.match(ui,/markComplaintDone/);
+ assert.match(ui,/c\.effectivenessResult!=='wirksam'\|\|!c\.verifiedBy\|\|!c\.verifiedOn/);
+ assert.match(ui,/const dirty=fields\.some/);
+ assert.match(ui,/state:'abgeschlossen'/);
+ assert.match(ui,/c\.state==='abgeschlossen'\?\['abgeschlossen','in_pruefung'\]:\['offen','in_pruefung'\]/);
 });
