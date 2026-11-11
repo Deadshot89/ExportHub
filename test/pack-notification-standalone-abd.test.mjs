@@ -46,7 +46,7 @@ test('Pack -> manual ABD prefill keeps no shipment and does not save an ABD requ
   assert.equal(state.abdDraft.customerName,'Acme Export');
   assert.equal(state.abdDraft.deliveryNotes,'SIDE250075003');
   assert.equal(state.abdDraft.country,undefined,'no inferred country');
-  assert.deepEqual(state.abdDraft.invoiceFiles,[],'private Pack documents are viewed by reference, not copied into invoice files');
+  assert.deepEqual(Array.from(state.abdDraft.invoiceFiles),[],'private Pack documents are viewed by reference, not copied into invoice files');
   assert.equal(state.abdRequests.length,0,'opening must not claim an ABD was saved');
   assert.equal(state.shipments.length,1,'no shipment created');
   assert.equal(calls.mode[0],'manual');
