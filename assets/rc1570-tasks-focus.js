@@ -112,9 +112,16 @@ function shipmentCustomerNo(task){
 /* Collapse only exact same-purpose, same-day, same-owner entries in the overview.
    All originals remain in task management so duplicate records can be checked/deleted individually. */
 function taskDuplicateKey(task){
-  var r=q(ref(task)).toUpperCase(),d=taskDate(task),source=low(task&&task.sourceType);
-  if(!/^[A-Z0-9]{6}$/.test(r)||!d||!source||!title(task))return'';
-  return [low(task.companyId),low(task.environment),r,low(title(task)),low(area(task)),low(processOf(task)),source,dayKey(d),
+  var r=q(ref(task)).toUpperCase(),d=taskDate(task),source=low(task&&task.sourceType),name=low(title(task));
+  // An AV-missing source represents one document obligation per shipment REF.
+  // Different titles, task areas or rescan dates must not generate new duties.
+  // A different activity (such as ABD creation), source, owner, status, company,
+  // environment or shipment/customer identity still remains distinct.
+  var avDuty=source==='av_missing'&&/^(?:av\s+(?:hochladen|fehlt)|ausgangsvermerk\s+(?:nicht\s+vorhanden|fehlt))(?:\b|[·:])/i.test(name);
+  if(!/^[A-Z0-9]{6}$/.test(r)||(!d&&!avDuty)||!source||!name)return'';
+  return [low(task.companyId),low(task.environment),r,avDuty?'missing-av':name,
+    avDuty?'ausgangsvermerk':low(area(task)),avDuty?'':low(processOf(task)),source,
+    avDuty?'one-av-per-ref':dayKey(d),
     low(q(task&&((task.effectiveAssignee||task.assignedTo||task.owner||task.assignee||task.assignedToName)))),
     low(q(task&&(task.seriesId||task.recurringSeriesId||task.weeklySeriesId||task.occurrenceKey||task.weekKey))),
     statusKey(task)].join('|')
