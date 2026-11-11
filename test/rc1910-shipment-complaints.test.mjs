@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const complaints=require('../api/shipment-evidence/complaints.js');
@@ -156,4 +157,37 @@ test('Historische REF-Dokumentationen erscheinen ohne Dateikopie in Alle Dokumen
  assert.ok(start>=0&&end>start);
  const exposed=legacy.slice(start,end);
  assert.doesNotMatch(exposed,/text:c\.text|description:|evidence:|id:c\.id/);
+});
+
+test('DOK- und REF-Seiten laden parallel ohne gegenseitige Ungültigmachung',async()=>{
+ const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const begin=ui.indexOf('async function loadList(reset){');
+ const end=ui.indexOf('async function scanAll(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ let finishDok,finishRef;
+ const state={view:'list',serial:7,records:[],continuation:'DOK-next',
+  loading:false,listToken:0,legacyRecords:[],legacyContinuation:'REF-next',
+  legacyLoading:false,legacyError:'',legacyRequestToken:0};
+ let redraws=0;
+ const ctx={
+  state,request:()=>new Promise(resolve=>{finishDok=resolve}),
+  legacyRequest:()=>new Promise(resolve=>{finishRef=resolve}),
+  active:()=>true,showList:(keep)=>{assert.equal(keep,true);redraws++},
+  status:()=>{},t:key=>key,Promise,Map,String
+ };
+ vm.createContext(ctx);
+ vm.runInContext(ui.slice(begin,end),ctx);
+ // The historical REF call begins first. Starting the DOK call must not
+ // advance the shared view epoch and silently invalidate the REF response.
+ const legacy=ctx.loadLegacyList(false);
+ const dok=ctx.loadList(false);
+ assert.equal(state.serial,7,'pagination cannot change the current view epoch');
+ finishDok({records:[{id:'DOK-1',updatedAt:'2026-11-11'}],continuation:null});
+ finishRef({records:[{id:'REF-ABC123',reference:'ABC123',updatedAt:'2026-11-10'}],continuation:null});
+ const outcomes=await Promise.all([legacy,dok]);
+ assert.deepEqual(outcomes,[true,true]);
+ assert.equal(state.records.length,1,'DOK record retained');
+ assert.equal(state.legacyRecords.length,1,'REF record retained');
+ assert.equal(state.legacyError,'');
+ assert.equal(redraws,2);
 });
