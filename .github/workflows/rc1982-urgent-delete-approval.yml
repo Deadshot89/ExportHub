@@ -1,0 +1,44 @@
+name: RC1982 Urgent Order Deletion Approval
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/urgent-orders.js'
+      - 'api/urgent-orders/**'
+      - 'api/urgent-order-public/**'
+      - 'assets/urgent-orders.html'
+      - 'assets/urgent-order-report.html'
+      - 'assets/i18n/**'
+      - 'test/rc1982-urgent-delete-approval.test.mjs'
+      - '.github/workflows/rc1982-urgent-delete-approval.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/urgent-orders.js'
+      - 'api/urgent-orders/**'
+      - 'api/urgent-order-public/**'
+      - 'assets/urgent-orders.html'
+      - 'assets/urgent-order-report.html'
+      - 'assets/i18n/**'
+      - 'test/rc1982-urgent-delete-approval.test.mjs'
+      - '.github/workflows/rc1982-urgent-delete-approval.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Install API runtime test dependencies
+        run: npm run pretest
+      - name: RC1982 Deletion, approvals and existing Urgent Order contracts
+        run: node --test --test-concurrency=1 test/rc1982-urgent-delete-approval.test.mjs test/rc1802-urgent-public-behavior.test.mjs test/urgent-order-scope-1352.test.mjs
+      - name: Strict six-language release audit
+        run: npm run i18n:audit:strict

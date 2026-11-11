@@ -79,7 +79,8 @@ test('Anonymous reporter front-end and API provide scoped tracking, not public g
  assert.equal(apiCfg.bindings[0].route,'urgent-order-public');
  assert.match(pub,/crypto\.randomBytes\(32\)/);
  assert.match(pub,/groupByToken/);
- assert.match(pub,/\.filter\(o=>o\.reporterId===group\.id\)/);
+ // Scope by reporter AND exclude soft-deleted requests; the API's capability isolation remains unchanged.
+ assert.match(pub,/\.filter\(o=>!o\.deletedAt&&o\.reporterId===group\.id\)/);
  assert.doesNotMatch(pub,/update-status|sendTextMail|sendMail\(/);
  for(const id of ['tabOpen','tabClosed','orderType','trackingUrl','deliveryNotePresent','asnWorking'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/location\.hash/);

@@ -11,7 +11,12 @@ const analysisModel=require('../shared/abd-analysis-model');
 const documentIntelligence=require('../shared/abd-document-intelligence');
 
 const CONTAINER=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
-const MAX_BYTES=Math.max(1024,Math.min(20*1024*1024,Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024)));
+// RC1980: malformed configuration must not turn MAX_BYTES into NaN.
+// NaN disables all > limit comparisons on uploads and quarantine downloads.
+const configuredMaxBytes=Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024);
+const MAX_BYTES=Number.isFinite(configuredMaxBytes)
+ ?Math.max(1024,Math.min(20*1024*1024,Math.floor(configuredMaxBytes)))
+ :12*1024*1024;
 const MAX_AGE_MS=2*60*60*1000;
 let containerPromise=null;
 
@@ -85,12 +90,23 @@ function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+(id.nonce?'-'+id.nonce:'')+'.'+id.kind}
 async function readBuffer(blob){
  const r=await blob.download(0),chunks=[];let total=0;
- for await(const part of r.readableStreamBody){
-  const chunk=Buffer.from(part);total+=chunk.length;
-  // Defender tags describe uploaded content, not arbitrarily replaced blob data.
-  // Fail closed before an oversized or replaced blob can reach a parser.
-  if(total>MAX_BYTES)throw error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
-  chunks.push(chunk);
+ const stream=r&&r.readableStreamBody;
+ const mismatch=()=>error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+ if(!stream||typeof stream[Symbol.asyncIterator]!=='function')throw mismatch();
+ try{
+  for await(const part of stream){
+   // RC1980: a broken or malicious transport must not force a second large
+   // allocation before its bytes are checked against the remaining limit.
+   if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))throw mismatch();
+   const bytes=part.byteLength;
+   if(!Number.isSafeInteger(bytes)||bytes<1||bytes>MAX_BYTES-total)throw mismatch();
+   chunks.push(Buffer.from(part));
+   total+=bytes;
+  }
+ }finally{
+  // An early limit rejection must also stop further SDK/network streaming.
+  // Never let a broken SDK destroy() replace the fail-closed verdict.
+  try{if(typeof stream.destroy==='function')stream.destroy()}catch(_){}
  }
  return Buffer.concat(chunks,total)
 }

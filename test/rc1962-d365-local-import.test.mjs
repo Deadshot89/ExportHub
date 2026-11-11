@@ -79,6 +79,34 @@ test('RC1962 reads genuinely compressed DEFLATE XLSX and shared-string cells',as
  assert.equal(parsed.ok,true);
  assert.equal(parsed.docs[0].positions[0].itemNumber,'ART-S')
 });
+test('RC1970 accepts the final applied-filter note in real compressed D365 exports',async()=>{
+ for(const footerText of [
+  'Angewendete Filter: \\nCUSTOMERACCOUNT ist FAKE-CUSTOMER\\nPACKINGSLIPCREATEDDATE ab 10.11.2026',
+  'Applied filters: CUSTOMERACCOUNT is FAKE-CUSTOMER'
+ ]){
+  const footer=[footerText,...Array(headers.length-1).fill('')];
+  const result=await run(xlsx([record('SLIP-1','PART-1',3,'24,15'),footer],{method:8}));
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.docs.length,1);
+  assert.equal(result.docs[0].positions.length,1);
+  assert.equal(result.docs[0].positions[0].quantity,3);
+  assert.equal(result.docs[0].positions[0].value,24.15);
+ }
+});
+test('RC1970 continues to reject invalid item quantities or non-final filter notes',async()=>{
+ const bad=record('SLIP-2','PART-BAD',2,12);bad[headers.indexOf('QTY')]='not-a-number';
+ const invalid=await run(xlsx([record('SLIP-1','PART-1',1,5),bad]));
+ assert.equal(invalid.ok,false);
+ assert.equal(invalid.code,'D365_QUANTITY_INVALID');
+ const footer=['Angewendete Filter: CUSTOMERACCOUNT is TEST',...Array(headers.length-1).fill('')];
+ const nonFinal=await run(xlsx([record('SLIP-1','PART-1',1,5),footer,record('SLIP-2','PART-2',2,8)]));
+ assert.equal(nonFinal.ok,false);
+ assert.equal(nonFinal.code,'D365_QUANTITY_INVALID');
+ const fake=footer.slice();fake[headers.indexOf('ITEMNUMBER')]='SUSPICIOUS-ROW';
+ const notEmpty=await run(xlsx([record('SLIP-1','PART-1',1,5),fake]));
+ assert.equal(notEmpty.ok,false);
+ assert.equal(notEmpty.code,'D365_QUANTITY_INVALID');
+});
 test('RC1962 never substitutes ordered backorder value when shipped amount is missing',async()=>{
  const output=await run(xlsx([record('SLIP-A','BACKORDER',3,null,{backorder:true})]));
  assert.equal(output.ok,true);
@@ -118,7 +146,7 @@ test('RC1962 never silently discards shipped positions beyond 500',async()=>{
  const output=await run(xlsx(rows));assert.equal(output.ok,false);assert.equal(output.code,'D365_POSITION_LIMIT')
 });
 test('RC1962 local import transfers only allowlisted position keys; Excel bytes never reach API',()=>{
- assert.match(ui,/new w\.Worker\('\/assets\/rc1962-d365-xlsx-worker\.js\?v=1962'\)/);
+ assert.match(ui,/new w\.Worker\('\/assets\/rc1962-d365-xlsx-worker\.js\?v=1970'\)/);
  assert.match(ui,/worker\.postMessage\(\{file:file\}\)/);
  assert.match(ui,/if\(f\)f\.disabled=busy/);
  assert.match(proforma,/edited&&\(typeof root\.confirm!=='function'/);
@@ -136,6 +164,8 @@ test('RC1962 release build copies and registers browser worker and local import 
  assert.match(builder,/assets\/rc1962-d365-local-import\.js/);
  assert.match(builder,/assets\/rc1962-d365-xlsx-worker\.js/);
  assert.match(builder,/D365_LOCAL_TAG/);
+ assert.match(builder,/assets\/rc1962-d365-local-import\.js\?v=1970/);
+ assert.match(ui,/D365_READ_FAILED/);
  assert.match(workspace,/local\.mount\(lastMode\)/);
  assert.match(ui,/data-rc1962-file/);
  assert.match(ui,/role="status"/);

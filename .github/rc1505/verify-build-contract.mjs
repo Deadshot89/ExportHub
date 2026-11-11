@@ -31,7 +31,8 @@ includes('dist-rc1112/production-version.js',"__EXPORTHUB_PRODUCTION_VERSION_PRO
 // Build-Einstiegspunkten die Datei-Auswahl samt Analyse- und Import-Runtime enthalten.
 for(const file of pages){
   includes(file,'assets/rc1940-documents-workspace.js?v=1962');
-  includes(file,'assets/rc1549-abd-proforma.js?v=1962');
+  includes(file,'assets/rc1549-abd-proforma.js?v=1971');
+  excludes(file,'assets/rc1549-abd-proforma.js?v=1962');
   includes(file,'assets/rc1790-delivery-note.js?v=1790');
 }
 exists('dist-rc1112/assets/rc1940-documents-workspace.js');

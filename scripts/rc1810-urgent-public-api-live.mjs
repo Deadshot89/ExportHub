@@ -18,11 +18,23 @@ for(const id of ['tabNew','tabOpen','tabClosed','wizardNext','wizardBack','creat
  if(!html.includes('id="'+id+'"'))throw new Error('URGENT_PUBLIC_LAYOUT_STALE: '+id+' missing');
 const payload={action:'list'}; // no token: API must reject with safe 403 after loading its storage
 const r=await request('/api/urgent-order-public?rc1810='+encodeURIComponent(expectedBuild),{
- method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)
+ method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Origin':base,'Referer':base+'/urgent-order'},body:JSON.stringify(payload)
 });
 let data={};try{data=await r.json();}catch{throw new Error('URGENT_API_ROUTING_INVALID: non-JSON HTTP '+r.status);}
 const code=String(data.code||'').replace(/[^A-Z0-9_]/g,'').slice(0,80);
 if(r.status!==403||data.ok!==false||code!=='URGENT_REPORTER_ACCESS_DENIED'){
  throw new Error('URGENT_API_LIVE_GATE_FAILED: HTTP '+r.status+' code '+(code||'UNKNOWN')+' (expect 403 URGENT_REPORTER_ACCESS_DENIED)');
+}
+// Browser also enters the Urgent workflow from /test and an embedded iframe.
+// Read-only capability rejection must still work with those legitimate referrers.
+for(const referer of ['/test?v=1112','/assets/urgent-orders.html?embedded=1']){
+ const result=await request('/api/urgent-order-public?rc1810='+encodeURIComponent(expectedBuild),{
+  method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Origin':base,'Referer':base+referer},
+  body:JSON.stringify({action:'list'})
+ });
+ let body={};try{body=await result.json();}catch{throw new Error('URGENT_API_ROUTING_INVALID: non-JSON HTTP '+result.status);}
+ const code=String(body.code||'').replace(/[^A-Z0-9_]/g,'').slice(0,80);
+ if(result.status!==403||body.ok!==false||code!=='URGENT_REPORTER_ACCESS_DENIED')
+  throw new Error('URGENT_EMBEDDED_HOST_LIVE_GATE_FAILED: HTTP '+result.status+' code '+(code||'UNKNOWN')+' (expect 403 URGENT_REPORTER_ACCESS_DENIED)');
 }
 console.log('RC1810 Urgent Order '+target+' verified: 3 workspaces, guided steps and capability-scoped API 403');

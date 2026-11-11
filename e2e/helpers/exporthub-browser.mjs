@@ -198,7 +198,7 @@ export async function settleStateSave(page,options={}){
 
     if(!snapshot.saving&&(snapshot.pending||snapshot.dirty)&&!forced){
       forced=true;
-      const remaining=Math.max(1000,Math.min(18_000,deadline-Date.now()));
+      const remaining=Math.max(1000,Math.min(65_000,deadline-Date.now()));
       const result=await page.evaluate(async timeoutMs=>{
         const clean=window.ExportHUBClean;
         if(!clean||typeof clean.flushSave!=='function')return {ok:false,error:'ExportHUB flushSave fehlt'};
@@ -215,7 +215,19 @@ export async function settleStateSave(page,options={}){
           if(timer)clearTimeout(timer);
         }
       },remaining);
-      if(result&&result.timeout)throw new Error(result.error);
+      if(result&&result.timeout){
+        // Do not log snapshots, customer fields, tokens or URL. A timeout
+        // means durability remains UNVERIFIED even if the UI opened Outlook.
+        const diag=await page.evaluate(()=>{
+          const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+          const code=String(r.lastSaveErrorCode||'').replace(/[^A-Z0-9_]/g,'').slice(0,64);
+          return {saving:r.saving===true,pending:r.pendingSave===true,
+            dirty:r.dirty===true,hasTimer:!!r.saveTimer,
+            changeUnconfirmed:Number(r.changeGeneration||0)>Number(r.lastSavedGeneration||0),
+            lastErrorCode:code||'NONE'};
+        }).catch(()=>({diagnostic:'unavailable'}));
+        throw new Error(result.error+'; Azure-Dauerhaftigkeit nicht bestaetigt; '+JSON.stringify(diag));
+      }
       if(result&&result.ok!==true){
         const details=await page.evaluate(()=>{
           const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};

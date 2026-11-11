@@ -20,7 +20,7 @@ function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},rep
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
 function publicSiteEnvironment(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
@@ -62,7 +62,7 @@ function serverDeploymentEnvironment(){
 }
 function isAzureInternalWorkerHost(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurewebsites.net');
@@ -72,7 +72,7 @@ function isAzureInternalWorkerHost(value){
 // even when forwarding headers or Origin imitate the official site.
 function unknownStaticWebAppHost(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
@@ -83,7 +83,7 @@ function unknownStaticWebAppHost(url){
 // The verified release identity remains mandatory for internal Azure worker requests.
 function safeHostClass(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return'absent';
   const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   if(host==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'canonical-production';
@@ -171,8 +171,8 @@ function failureDetails(e){
 }
 function identity(user){return{id:model.text(user&&user.id,150),name:model.text(user&&(user.name||user.user||user.login),150)};}
 function requestBody(req){return auth.body(req);}
-function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
-function visibleOrders(doc,user){return doc.orders.filter(x=>model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
+function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id&&!x.deletedAt);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
+function visibleOrders(doc,user){return doc.orders.filter(x=>model.activeOrder(x)&&model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 function accessibleOrder(doc,id,user){const order=findOrder(doc,id);if(!model.canRead(order,user))throw model.problem('URGENT_FORBIDDEN','Kein Zugriff auf diesen Auftrag.',403);return order;}
 async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
@@ -180,7 +180,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   // Account-linked email profiles are deprecated; only the local browser's
   // non-authenticated address history supplies autocomplete suggestions.
-  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
+  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),currentUserId:model.text(user&&user.id,150),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
@@ -188,7 +188,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   let open=0,closed=0;
   for(const order of doc.orders){
-   if(!model.canRead(order,user))continue;
+   if(!model.activeOrder(order)||!model.canRead(order,user))continue;
    if(model.isClosed(order))closed++;else open++;
   }
   return{open,closed,total:open+closed,environment:refs.environment};
@@ -196,11 +196,43 @@ async function execute(req,user,refs){
  if(action==='create'){
   const created=model.createOrder(p,identity(user),now);
   return write(refs,doc=>{
-   const previous=doc.orders.find(x=>x.orderNumber===created.orderNumber);
+   const previous=doc.orders.find(x=>!x.deletedAt&&x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
    doc.orders.push(created);
    // Email history is browser-local; do not link the email to the login profile.
    return{order:created,environment:refs.environment};
+  });
+ }
+ if(action==='request-delete'){
+  const id=model.text(p.id,90);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,id,user);
+   const deletion=model.requestDeletion(order,user,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
+  });
+ }
+ if(action==='start-processing'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf die Bearbeitung übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const processing=model.startProcessing(order,user,now);
+   return {processing,order};
+  });
+ }
+ if(action==='claim-delete-handler'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf Löschanfragen übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.claimDeletionHandler(order,user,now);
+   return {order,deletion};
+  });
+ }
+ if(action==='respond-delete'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur der zuständige Bearbeiter darf die Löschung bestätigen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.resolveDeletion(order,user,p.approve,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
   });
  }
  if(action==='save-profile'){
@@ -269,7 +301,9 @@ module.exports=async function(context,req){
   const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
+  context.res=json(status,response);
  }
 };
 module.exports.execute=execute;
