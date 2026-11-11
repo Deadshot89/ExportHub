@@ -122,6 +122,46 @@ test('RC1553: deployed release-metadata file wins over complete but stale runtim
   }
 });
 
+test('P0 Urgent Order: conflicting TESTSERVICE/production metadata cannot pass health verification',async()=>{
+  const metadataPath=path.join(os.tmpdir(),`exporthub-urgent-health-conflict-${process.pid}-${Date.now()}.json`);
+  fs.writeFileSync(metadataPath,JSON.stringify({
+    buildId:'fedcba9876543210fedcba9876543210fedcba98',
+    visibleRelease:'RC1112',
+    technicalBuild:'RC1112',
+    builtAt:'2026-11-11T09:00:00.000Z',
+    environment:'testservice'
+  }));
+  try{
+    await withEnv({
+      EXPORTHUB_DEPLOY_BUILD_ID:'0123456789abcdef0123456789abcdef01234567',
+      EXPORTHUB_DEPLOY_VISIBLE_RELEASE:'RC1112',
+      EXPORTHUB_DEPLOY_TECHNICAL_BUILD:'RC1112',
+      EXPORTHUB_DEPLOY_BUILT_AT:'2026-11-11T09:10:00.000Z',
+      EXPORTHUB_DEPLOY_ENVIRONMENT:'production',
+      EXPORTHUB_RELEASE_METADATA_PATH:metadataPath
+    },async()=>{
+      const response=await invoke();
+      assert.equal(response.status,200);
+      assert.equal(response.body.deployment.buildId,'fedcba9876543210fedcba9876543210fedcba98');
+      assert.equal(response.body.deployment.environment,'testservice');
+      assert.equal(response.body.deployment.verified,false,'the live RC1553 gate must reject a conflicting backend identity');
+      assert.equal(response.body.deployment.status,'conflict');
+      assert.equal(response.body.deployment.source,'conflict');
+      const internal=require('../api/urgent-orders/index.js');
+      assert.throws(
+        ()=>internal.resolveStorageEnvironment({headers:{
+          host:'worker.azurewebsites.net',
+          origin:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+        }}),
+        e=>e.code==='URGENT_HOST_UNTRUSTED',
+        'the internal API must retain its fail-closed environment isolation'
+      );
+    });
+  }finally{
+    fs.rmSync(metadataPath,{force:true});
+  }
+});
+
 test('RC1553: Missing deployment metadata fails closed instead of claiming a verified version',async()=>{
   await withEnv({
     EXPORTHUB_DEPLOY_BUILD_ID:null,
