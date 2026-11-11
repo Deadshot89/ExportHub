@@ -104,6 +104,8 @@ jobs:
 
   integrated-browser:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -130,7 +132,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'); const {chromium}=require('@playwright/test'); if(!fs.existsSync(chromium.executablePath())) { console.error('Pinned Chromium unavailable'); process.exit(1) }"
       - name: Protect ExportHUB core browser flows
         env:
           EXPORTHUB_E2E_STATIC: '1'
@@ -174,6 +176,8 @@ jobs:
 
   environment-package:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
@@ -200,7 +204,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'); const {chromium}=require('@playwright/test'); if(!fs.existsSync(chromium.executablePath())) { console.error('Pinned Chromium unavailable'); process.exit(1) }"
       - name: Verify Production candidate package read-only
         env:
           EXPORTHUB_E2E_STATIC: '1'
