@@ -141,7 +141,7 @@ async function listForEnvironment(env,allowedRefs,query){
   return{source:'ref',reference:ref,id:'REF-'+ref,updatedAt:entry.record.updatedAt||'',
    fields:{exporthubRef:ref,shipmentNumber:fields.shipmentNumber||'',customer:fields.customer||'',
     dispatchDate:fields.dispatchDate||'',colli:fields.colli||'',weightKg:fields.weightKg||''},
-   complaints:(entry.record.complaints||[]).filter(Boolean).map(c=>({id:c.id,state:c.state||'offen'}))};
+   complaints:(entry.record.complaints||[]).filter(Boolean).map(c=>({state:c.state||'offen'}))};
  }));
  return json(200,{ok:true,records:records.filter(Boolean),continuation:page.continuationToken||null});
 }
