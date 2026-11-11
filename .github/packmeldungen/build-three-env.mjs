@@ -17,6 +17,7 @@ export const PACK_ASSETS=Object.freeze([
   'pack-notification.js',
   'pack-notification-internal.css',
   'pack-notification-internal.js',
+  'pack-notification-abd.js',
   'pack-notification-nav.js',
   'pack-station-admin.js',
   'packaging-admin.js',
@@ -38,6 +39,7 @@ const PACK_SCRIPT_TAGS=[
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
   '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=4"></script>',
+  '<script id="exporthub-pack-notification-abd" defer src="/assets/pack-notification-abd.js?v=1"></script>',
   '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>',
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
 ];
@@ -76,8 +78,53 @@ export function injectDocumentUploadRuntime(html,file='customer-avis.html'){
   return injectTags(html,DOCUMENT_SCRIPT_TAGS,file,'Dokument-Runtime');
 }
 
+
+/* RC1382: the legacy ABD module lives in the large HTML source. These
+   narrowly-scoped signature-checked changes preserve its existing editor,
+   while ensuring a standalone Pack ABD never attaches to a shipment. */
+export function injectPackAbdOwnership(html,file='index.html'){
+  let out=String(html||'');
+  if(!out.includes('function saveAbdInternal(showAlert,status)')){
+    if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
+    throw new Error(file+': RC1382 legacy ABD storage hook missing');
+  }
+  function replaceOnce(needle,replacement){
+    if(out.split(needle).length!==2)throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
+    out=out.replace(needle,replacement);
+  }
+  replaceOnce(
+    'function shipmentForAbd(a){if(!a)return null;',
+    'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;'
+  );
+  replaceOnce(
+    'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;',
+    "function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;if(q(d.packNotificationId)){if(!window.ExportHUBPackAbd||typeof window.ExportHUBPackAbd.canSave!=='function'||!window.ExportHUBPackAbd.canSave(d)){if(showAlert)alert('ABD-Speicherung läuft oder Packmodul fehlt.');return null}var pn=arr(state().packNotifications).find(function(n){return q(n.id)===q(d.packNotificationId)&&q(n.reference)===q(d.packNotificationRef)}),other=arr(state().abdRequests).find(function(a){return q(a.id)===q(d.id)||cleanRef(a.ref||a.reference)===cleanRef(d.ref)}),duplicated=arr(state().abdRequests).some(function(a){return q(a.packNotificationId)===q(d.packNotificationId)&&q(a.id)!==q(d.id)}),shipRefUsed=shipments().some(function(sh){return cleanRef(sh.ref||sh.reference||sh.shipmentRef)===cleanRef(d.ref)});if(!pn||low(pn.status)==='cancelled'||!q(d.packNotificationRef)||(other&&(q(other.packNotificationId)!==q(d.packNotificationId)||q(other.packNotificationRef)!==q(d.packNotificationRef)))||duplicated||shipRefUsed||q(d.linkedShipmentId)){if(showAlert)alert('ABD-Zuordnung nicht eindeutig. Keine Anfrage gespeichert.');return null}}"
+  );
+  replaceOnce(
+    'source:d.source,linkedShipmentId:q(d.linkedShipmentId||existing&&existing.linkedShipmentId),',
+    "source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),packNotificationRef:q(d.packNotificationRef||existing&&existing.packNotificationRef),linkedShipmentId:q(d.packNotificationId||existing&&existing.packNotificationId)?'':q(d.linkedShipmentId||existing&&existing.linkedShipmentId),"
+  );
+  replaceOnce(
+    "s.abdDraft=clone(item);var sh=item.linkedShipmentId&&findShipment(item.linkedShipmentId);if(!sh&&item.ref)sh=findShipment(item.ref);if(sh){",
+    "s.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);if(!item.packNotificationId&&!sh&&item.ref)sh=findShipment(item.ref);if(sh){"
+  );
+  replaceOnce(
+    "source=d.source==='shipment'?'Aus Sendung übernommen':'Manuelle Erstellung'",
+    "source=d.packNotificationId?'Aus Packmeldung übernommen':d.source==='shipment'?'Aus Sendung übernommen':'Manuelle Erstellung'"
+  );
+  replaceOnce(
+    "persist('ABD-Anfrage gespeichert');if(showAlert)alert('ABD-Anfrage gespeichert: '+item.ref);return item}",
+    "if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item,{showAlert:!!showAlert,openMail:status==='Angefragt'});}else{persist('ABD-Anfrage gespeichert');if(showAlert)alert('ABD-Anfrage gespeichert: '+item.ref);}return item}"
+  );
+  replaceOnce(
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(!window.__EXPORTHUB_TEST_NO_MAILTO__)",
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(item.packNotificationId){renderAbd();return false;}if(!window.__EXPORTHUB_TEST_NO_MAILTO__)"
+  );
+  return out;
+}
+
 export function injectPackRuntime(html,file='index.html'){
-  let out=injectDocumentUploadRuntime(html,file);
+  let out=injectPackAbdOwnership(injectDocumentUploadRuntime(html,file),file);
   out=injectTags(out,STYLE_TAGS,file,'Pack-Runtime');
   out=injectTags(out,PACK_SCRIPT_TAGS,file,'Pack-Runtime');
   return out;
