@@ -86,7 +86,7 @@ test('RC1507: Pack-Live-Gate prüft den Ablauf ohne lokalisierte Anzeige-Texte',
   assert.doesNotMatch(helper,/locator\('#packFormMode'\)\)\.toContainText\(/,'Entwurfsmodus darf nicht über übersetzten Modustext erkannt werden');
   assert.doesNotMatch(helper,/expect\(card\)\.toContainText\(['"]Anzahl Paletten['"]\)/,'Entwurfskarte darf nicht über deutsches Label geprüft werden');
   assert.match(helper,/locator\('#packCustomer'\)\)\.toHaveValue/,'Entwurf muss semantisch über gespeicherte Kundendaten verifiziert werden');
-  assert.match(helper,/locator\('#packPackageCount'\)\)\.toHaveValue/,'Entwurf muss semantisch über gespeicherte Packstückzahl verifiziert werden');
+  assert.match(helper,/locator\('\[data-pack-entry\] \[data-entry-count\]'\)\.first\(\)\)\.toHaveValue/,'Entwurf muss semantisch über gespeicherte Packstückzahl verifiziert werden');
 });
 
 test('RC1505/RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
