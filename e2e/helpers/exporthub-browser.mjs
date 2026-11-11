@@ -209,7 +209,7 @@ export async function settleStateSave(page,options={}){
       };
     });
 
-    if(!snapshot.available)return snapshot;
+    if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: ExportHUBClean-Runtime nicht verfügbar');
     const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer;
     if(!busy){
       if(!stableSince)stableSince=Date.now();

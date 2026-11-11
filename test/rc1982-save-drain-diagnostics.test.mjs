@@ -67,6 +67,17 @@ test('RC1982: even well-formed unapproved error codes are redacted',async()=>{
   assert.doesNotMatch(JSON.stringify(result),/CUSTOMER_PRIVATE_REFERENCE/);
 });
 
+test('RC1982: missing live runtime is an error, never a successful save',async()=>{
+  const start=source.indexOf('export async function settleStateSave(');
+  const end=source.indexOf('\n\n// RC1579:',start);
+  assert.ok(start>=0&&end>start,'live-save helper must be present');
+  const statement=source.slice(start,end).replace('export async function settleStateSave(', 'async function settleStateSave(');
+  const settle=vm.runInNewContext(statement+'\nsettleStateSave',{
+    process:{env:{EXPORTHUB_E2E_LIVE:'1'}},window:{},Date,Promise
+  });
+  await assert.rejects(settle({evaluate:cb=>Promise.resolve(cb())},{timeout:3000}),/ExportHUBClean-Runtime nicht verfügbar/);
+});
+
 test('RC1982: diagnostic collection fails closed and never approves a save',async()=>{
   const fn=vm.runInNewContext(extracted+'\nrc1982DrainSnapshot;',{window:{}});
   const result=await fn({evaluate:()=>Promise.reject(Error('browser closed'))});
