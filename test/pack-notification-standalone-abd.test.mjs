@@ -120,7 +120,7 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
     assert.match(out,/function shipmentForAbd\(a\)\{if\(!a\|\|q\(a\.packNotificationId\)\)return null/);
     assert.match(out,/packNotificationId:q\(d\.packNotificationId\|\|existing&&existing\.packNotificationId\)/);
     assert.match(out,/var sh=!item\.packNotificationId&&item\.linkedShipmentId/);
-    assert.match(out,/pnSaved\.abdRequestId=item\.id/);
+    assert.doesNotMatch(out,/pnSaved\.abdRequestId=item\.id/,'ABD-only save must not write protected Pack tasks');
     assert.match(out,/shipRefUsed=shipments\(\)\.some/);
     assert.match(out,/source=d\.packNotificationId\?'Aus Packmeldung übernommen'/);
     assert.doesNotMatch(source,/var sh=!item\.packNotificationId&&item\.linkedShipmentId/);
@@ -135,6 +135,7 @@ test('internal detail has two independent actions and locale labels exist in six
   const internal=fs.readFileSync('assets/pack-notification-internal.js','utf8');
   assert.match(internal,/data-pack-action="abd"/);
   assert.match(internal,/exporthub:pack-create-abd/);
+  assert.match(internal,/const ownAbds=arr\(sharedState\(\)\.abdRequests\)/);
   assert.match(internal,/else if\(action==='abd'\)dispatchAbd\(model\)/);
   const root={};
   vm.runInNewContext(fs.readFileSync('assets/i18n/pack-notification.js','utf8'),{window:root,globalThis:root,console,Intl},{filename:'pack-notification.js'});
