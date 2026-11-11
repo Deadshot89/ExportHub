@@ -18,7 +18,7 @@ const api=new URL('/api/shipment-evidence',BASE);
 const noStore={'Accept':'application/json','Cache-Control':'no-store'};
 // Root HTML is fingerprinted by RC1112 with ?v=...&h=<10 hex chars>.
 // The independent /sendungsdokumentation page is not in the fingerprinted HTML list.
-const ROOT_GUEST_ASSET=/\/assets\/shipment-evidence-guest\.js\?v=1907&h=[a-f0-9]{10}["']/;
+const ROOT_GUEST_ASSET=/\/assets\/shipment-evidence-guest\.js\?v=1907&h=([a-f0-9]{10})["']/;
 const PUBLIC_GUEST_ASSET=/\/assets\/shipment-evidence-guest\.js\?v=1907["']/;
 const safeError=(body)=>String(body?.code||body?.message||'NO_RESPONSE').slice(0,140);
 async function request(method,action,data={},token=''){
@@ -43,6 +43,17 @@ const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'
 assert.equal(root.status,200);
 const html=await root.text();
 assert.ok(ROOT_GUEST_ASSET.test(html),'Verified TESTSERVICE HTML must pin guest v1907 plus a content fingerprint');
+// RC2007: validate actual bytes, not merely the shape of the ?h= parameter.
+// Fetch only the fixed same-origin guest asset, never an HTML-controlled URL.
+const expectedGuestHash=ROOT_GUEST_ASSET.exec(html)[1];
+const guestAsset=await fetch(new URL('/assets/shipment-evidence-guest.js?v=1907&h='+expectedGuestHash,BASE),{
+ headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)
+});
+assert.equal(guestAsset.status,200,'TESTSERVICE guest runtime asset unavailable');
+const guestBytes=Buffer.from(await guestAsset.arrayBuffer());
+assert.ok(guestBytes.length>0&&guestBytes.length<=2*1024*1024,'TESTSERVICE guest asset size invalid');
+const servedGuestHash=crypto.createHash('sha256').update(guestBytes).digest('hex').slice(0,10);
+assert.equal(servedGuestHash,expectedGuestHash,'TESTSERVICE guest runtime content fingerprint mismatch');
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
