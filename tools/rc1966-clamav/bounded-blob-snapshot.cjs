@@ -14,8 +14,8 @@ const fail=()=>{throw Error('RC1966_BLOB_UNVERIFIED')};
 // A throw inside the timeout callback would otherwise become an uncaught
 // exception outside the async read's catch/finally path.
 const safeDestroy=stream=>{
- try{if(stream&&typeof stream.destroy==='function')stream.destroy();}
- catch(_){/* fail closed; no path, SDK error or secret is reported */}
+ try{if(stream&&typeof stream.destroy==='function')stream.destroy();return true;}
+ catch(_){return false;/* SDK details never leave the worker */}
 };
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 function deriveBlobName(expected,kind){
@@ -41,13 +41,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
      locator.scopeHash!==scope.scopeHash||locator.blobKeyHash!==scope.blobKeyHash||
      !HEX32.test(locator.jobId||''))return fail();
   const controller=new AbortController();
-  let activeStream=null,watchdog;
+  let activeStream=null,watchdog,cleanupFailed=false;
+  const destroyStream=stream=>{if(!safeDestroy(stream))cleanupFailed=true;};
   // RC1968: SDK transports may ignore AbortSignal. A separate deadline
   // rejects even if getProperties, download, or an async iterator never ends.
   const deadline=new Promise((_,reject)=>{
    watchdog=setTimeout(()=>{
     controller.abort();
-    safeDestroy(activeStream);
+    destroyStream(activeStream);
     reject(Error('RC1966_BLOB_TIMEOUT'));
    },timeoutMs);
   });
@@ -72,7 +73,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    if(!response||response.etag!==scope.blobEtag||
       response.contentLength!==scope.bytes||
       !stream||typeof stream[Symbol.asyncIterator]!=='function'){
-    safeDestroy(stream);
+    destroyStream(stream);
     return fail();
    }
    const parts=[];let total=0;
@@ -90,14 +91,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
      total+=size;
      parts.push(chunk);
     }
-   }finally{safeDestroy(stream);}
-   if(controller.signal.aborted||total!==scope.bytes)return fail();
+   }finally{destroyStream(stream);}
+   if(controller.signal.aborted||cleanupFailed||total!==scope.bytes)return fail();
    const bytes=Buffer.concat(parts,total);
    if(hash(bytes)!==scope.uploadSha256){bytes.fill(0);return fail();}
    return{bytes,etag:scope.blobEtag};
    }catch(_){return fail();}
    finally{
-    safeDestroy(activeStream);
+    destroyStream(activeStream);
    }
   };
   try{
@@ -105,7 +106,7 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
   }catch(_){return fail();}
   finally{
    clearTimeout(watchdog);
-   safeDestroy(activeStream);
+   destroyStream(activeStream);
   }
  };
 }
