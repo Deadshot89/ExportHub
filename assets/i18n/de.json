@@ -2702,6 +2702,5 @@
   "urgentOrderV2.wholeOrderNotChecked": "Noch nicht geprüft",
   "urgentOrderV2.wholeOrderReason": "Begründung bei negativer Gesamtprüfung",
   "urgentOrderV2.wholeOrderReasonRequired": "Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.",
-  "urgentOrderV2.untrustedHostHelp": "Bitte ausschließlich die offizielle TESTSERVICE-Seite verwenden. Nicht gespeicherte Eingaben müssen nach einem Seitenwechsel erneut erfasst werden.",
-  "urgentOrderV2.openOfficialTestservice": "Offizielles TESTSERVICE öffnen"
+  "urgentOrderV2.untrustedHostHelp": "Du bist auf dem offiziellen TESTSERVICE. Die API hat den sicheren Umgebungsnachweis abgelehnt. Der Auftrag wurde nicht gespeichert. Bitte nicht erneut senden; die Logistik prüft die Verbindung."
 }
