@@ -62,6 +62,12 @@ test('denied ABD navigation cannot be bypassed by direct Pack handoff',()=>{
   assert.equal(calls.newAbd,0,'ABD editor must not be opened behind a rejected route');
   assert.equal(state.abdRequests.length,0);
 });
+test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
+  const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
+  assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);
+  assert.match(source,/if\(el\.hidden===visible\)el\.hidden=!visible/);
+  assert.match(source,/if\(el\.getAttribute\('data-status'\)!==nextStatus\)el\.setAttribute/);
+});
 test('Pack ABD copies only explicit weight values on mixed package rows',()=>{
   const {api}=fixture();
   const rows=api.rowsFromPack({packageCount:2,totalWeight:30,packages:[
