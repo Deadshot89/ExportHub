@@ -332,6 +332,23 @@ function approvalDetailMarkup(order){
  if(!person||!date)return '<p class="help" data-p1-approval="missing">'+escapeHtml(localeV2('p1ApprovalDetailMissing','No transport-cost acknowledgement is recorded for this P1 order.'))+'</p>';
  return '<p class="help" data-p1-approval="recorded"><strong>'+escapeHtml(localeV2('p1ApprovalDetailLabel','P1 · Approval of special transport costs acknowledged by the requester'))+'</strong> · '+escapeHtml(localeV2('p1ApprovalDetailBy','Confirmed by'))+' '+escapeHtml(person)+' · '+escapeHtml(date)+'</p>';
 }
+function deleteActionsMarkup(order){
+ const record=order.deletion||{},pending=record.state==='pending';
+ const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
+ const handler=order.processingBy||[...(order.history||[])].reverse().find(x=>x&&
+  ['status','mail_open_requested','mail_sent_manually_confirmed','processing_claimed'].includes(x.event)&&x.actorId);
+ const owner=handler?txt(handler.name||handler.actorName||handler.id||handler.actorId):'';
+ const info=pending?'<p role="status">'+escapeHtml(mailUi('Löschung angefragt – wartet auf Bestätigung durch ','Deletion requested – waiting for '))+escapeHtml(owner||mailUi('zuständigen Bearbeiter','assigned processor'))+'</p>':
+   record.state==='rejected'?'<p role="status">'+escapeHtml(mailUi('Letzte Löschanfrage abgelehnt.','Previous deletion request was declined.'))+'</p>':'';
+ const ask=!pending&&!complete?'<button type="button" class="btn alt small" data-delete-action="request">'+escapeHtml(mailUi('Anfrage löschen','Delete request'))+'</button>':'';
+ const claim=pending&&canManage&&!owner?'<button type="button" class="btn alt small" data-delete-action="claim">'+escapeHtml(mailUi('Bearbeitung übernehmen','Claim processing'))+'</button>':'';
+ const decisions=pending&&canManage&&owner?
+  '<button type="button" class="btn danger small" data-delete-action="approve">'+escapeHtml(mailUi('Löschung bestätigen','Approve deletion'))+'</button>'+
+  '<button type="button" class="btn alt small" data-delete-action="reject">'+escapeHtml(mailUi('Ablehnen','Reject'))+'</button>':'';
+ return '<div class="mail-history" data-urgent-deletion><strong>'+escapeHtml(mailUi('Löschung der Urgent-Order-Anfrage','Delete Urgent Order request'))+'</strong>'+
+  '<p class="help">'+escapeHtml(mailUi('Nur die Urgent-Order-Anfrage wird entfernt. Sendungen und Versanddokumente bleiben erhalten.','Only the Urgent Order request is removed. Shipments and documents are preserved.'))+'</p>'+
+  info+'<div class="btn-row">'+ask+claim+decisions+'</div></div>';
+}
 function render(){
  showView(activeView);
  renderStats();const n=orders.filter(isClosedOrder).length;$('internalOpenCount').textContent=orders.length-n;$('internalClosedCount').textContent=n;$('internalOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+(orders.length-n));$('internalClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+n);$('internalOpen').dataset.hasOpen=orders.length>n?'true':'false';$('internalOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');$('internalClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');const selected=filtered();$('listHint').textContent=selected.length+' / '+orders.length+' · '+localeV2('listHint','Aufträge – Positionen öffnen für Details');
@@ -358,7 +375,7 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+'</div>';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+deleteActionsMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();
@@ -370,6 +387,23 @@ function render(){
    history.scrollIntoView({block:'nearest',behavior:'smooth'});
   }));
 
+  details.querySelectorAll('[data-delete-action]').forEach(button=>button.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   const action=button.dataset.deleteAction;
+   if(action==='request'&&!window.confirm(mailUi('Diese Urgent-Order-Anfrage löschen? Wenn sie bereits bearbeitet wird, muss der Bearbeiter zustimmen.','Delete this Urgent Order? If processing has started, approval is required.')))return;
+   if(action==='approve'&&!window.confirm(mailUi('Löschanfrage bestätigen? Die Anfrage wird danach ausgeblendet.','Approve deletion? The request will then be hidden.')))return;
+   button.disabled=true;
+   try{
+    if(action==='request')await api('request-delete',{id:order.id});
+    else if(action==='claim')await api('claim-delete-handler',{id:order.id});
+    else await api('respond-delete',{id:order.id,approve:action==='approve'});
+    await refresh();
+    setMessage('listMessage',action==='reject'?mailUi('Löschanfrage abgelehnt.','Deletion declined.'):
+     action==='claim'?mailUi('Bearbeitung übernommen.','Processing assigned.'):
+     action==='request'?mailUi('Löschung verarbeitet oder zur Bestätigung angefragt.','Deletion completed or awaiting approval.'):
+     mailUi('Löschung bestätigt.','Deletion approved.'),'ok');
+   }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
+  }));
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
    const previous=(order.items||[]).find(x=>x.id===select.dataset.item)?.status;
    const note=select.value==='Problem'?(window.prompt(localeV2('problemPrompt','Bitte das Problem beschreiben.'))||'').trim():'';
