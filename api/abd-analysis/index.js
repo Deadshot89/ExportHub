@@ -85,12 +85,23 @@ function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+(id.nonce?'-'+id.nonce:'')+'.'+id.kind}
 async function readBuffer(blob){
  const r=await blob.download(0),chunks=[];let total=0;
- for await(const part of r.readableStreamBody){
-  const chunk=Buffer.from(part);total+=chunk.length;
-  // Defender tags describe uploaded content, not arbitrarily replaced blob data.
-  // Fail closed before an oversized or replaced blob can reach a parser.
-  if(total>MAX_BYTES)throw error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
-  chunks.push(chunk);
+ const stream=r&&r.readableStreamBody;
+ const mismatch=()=>error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+ if(!stream||typeof stream[Symbol.asyncIterator]!=='function')throw mismatch();
+ try{
+  for await(const part of stream){
+   // RC1980: a broken or malicious transport must not force a second large
+   // allocation before its bytes are checked against the remaining limit.
+   if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))throw mismatch();
+   const bytes=part.byteLength;
+   if(!Number.isSafeInteger(bytes)||bytes<1||bytes>MAX_BYTES-total)throw mismatch();
+   chunks.push(Buffer.from(part));
+   total+=bytes;
+  }
+ }finally{
+  // An early limit rejection must also stop further SDK/network streaming.
+  // Never let a broken SDK destroy() replace the fail-closed verdict.
+  try{if(typeof stream.destroy==='function')stream.destroy()}catch(_){}
  }
  return Buffer.concat(chunks,total)
 }
