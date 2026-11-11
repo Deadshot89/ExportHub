@@ -533,3 +533,35 @@ test('RC1985: distinct process, date or reference is not treated as duplicate',a
   assert.equal(await api._saveForm(editorForm({ref:'ABC123'})),true,'different day is a separate task');
   assert.equal(store.tasks.length,2);
 });
+
+test('RC1985: redundant system-generated task may be deleted while canonical AV duty survives',async()=>{
+  const source=[
+    {id:'task:av-missing:ABC123',title:'AV hochladen',sourceType:'av_missing',
+      group:'Ausgangsvermerk',linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'},
+    {id:'legacy-av-ABC123',title:'AV hochladen',sourceType:'av_missing',
+      group:'Ausgangsvermerk',linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'}
+  ];
+  const {api,store,calls}=editorHarness(source,()=>true);
+  const before=api.taskViewHtml();
+  assert.match(before,/data-rc1570-tv-delete="legacy-av-ABC123"/);
+  assert.doesNotMatch(before,/data-rc1570-tv-delete="task:av-missing:ABC123"/);
+  assert.equal(await api._deleteManagedTask('task:av-missing:ABC123'),false,'cannot remove canonical obligation');
+  assert.equal(await api._deleteManagedTask('legacy-av-ABC123'),true,'redundant system entry can be removed');
+  assert.deepEqual(store.tasks.map(x=>x.id),['task:av-missing:ABC123']);
+  assert.equal(store._teamSyncMeta.tombstones[0].id,'legacy-av-ABC123');
+  assert.deepEqual(calls.map(x=>x[0]),['queue','flush']);
+  assert.equal(await api._deleteManagedTask('task:av-missing:ABC123'),false,'last duty stays protected');
+});
+
+test('RC1985: different system activity cannot be deleted as a supposed duplicate',async()=>{
+  const tasks=[
+    {id:'av',title:'AV hochladen',sourceType:'av_missing',group:'Ausgangsvermerk',
+      linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'},
+    {id:'abd',title:'ABD erstellen',sourceType:'abd',group:'Ausgangsvermerk',
+      linkedShipmentRef:'ABC123',owner:'Tobias',dueDate:'2026-11-11',status:'offen'}
+  ];
+  const {api,store}=editorHarness(tasks,()=>true);
+  assert.equal(await api._deleteManagedTask('av'),false);
+  assert.equal(await api._deleteManagedTask('abd'),false);
+  assert.strictEqual(store.tasks,tasks);
+});
