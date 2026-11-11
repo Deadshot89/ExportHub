@@ -2702,6 +2702,5 @@
   "urgentOrderV2.wholeOrderNotChecked": "Jeszcze nie sprawdzono",
   "urgentOrderV2.wholeOrderReason": "Uzasadnienie negatywnej kontroli całego zamówienia",
   "urgentOrderV2.wholeOrderReasonRequired": "W przypadku negatywnej kontroli podaj uzasadnienie liczące co najmniej 8 znaków.",
-  "urgentOrderV2.untrustedHostHelp": "Korzystaj wyłącznie z oficjalnej strony TESTSERVICE. Po zmianie strony niezapisane dane trzeba wprowadzić ponownie.",
-  "urgentOrderV2.openOfficialTestservice": "Otwórz oficjalny TESTSERVICE"
+  "urgentOrderV2.untrustedHostHelp": "Korzystasz z oficjalnego TESTSERVICE. API odrzuciło weryfikację środowiska. Zamówienie nie zostało zapisane. Nie wysyłaj go ponownie, dopóki dział logistyki nie sprawdzi połączenia."
 }
