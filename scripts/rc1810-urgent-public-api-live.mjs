@@ -25,4 +25,16 @@ const code=String(data.code||'').replace(/[^A-Z0-9_]/g,'').slice(0,80);
 if(r.status!==403||data.ok!==false||code!=='URGENT_REPORTER_ACCESS_DENIED'){
  throw new Error('URGENT_API_LIVE_GATE_FAILED: HTTP '+r.status+' code '+(code||'UNKNOWN')+' (expect 403 URGENT_REPORTER_ACCESS_DENIED)');
 }
+// Browser also enters the Urgent workflow from /test and an embedded iframe.
+// Read-only capability rejection must still work with those legitimate referrers.
+for(const referer of ['/test?v=1112','/assets/urgent-orders.html?embedded=1']){
+ const result=await request('/api/urgent-order-public?rc1810='+encodeURIComponent(expectedBuild),{
+  method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Origin':base,'Referer':base+referer},
+  body:JSON.stringify({action:'list'})
+ });
+ let body={};try{body=await result.json();}catch{throw new Error('URGENT_API_ROUTING_INVALID: non-JSON HTTP '+result.status);}
+ const code=String(body.code||'').replace(/[^A-Z0-9_]/g,'').slice(0,80);
+ if(result.status!==403||body.ok!==false||code!=='URGENT_REPORTER_ACCESS_DENIED')
+  throw new Error('URGENT_EMBEDDED_HOST_LIVE_GATE_FAILED: HTTP '+result.status+' code '+(code||'UNKNOWN')+' (expect 403 URGENT_REPORTER_ACCESS_DENIED)');
+}
 console.log('RC1810 Urgent Order '+target+' verified: 3 workspaces, guided steps and capability-scoped API 403');
