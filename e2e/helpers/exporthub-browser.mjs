@@ -175,7 +175,13 @@ async function rc1982DrainSnapshot(page){
       hasTimer:!!runtime.saveTimer,
       changedGeneration:finite(runtime.changeGeneration),
       savedGeneration:finite(runtime.lastSavedGeneration),
-      lastErrorCode:/^[A-Z][A-Z0-9_]{0,47}$/.test(String(runtime.lastSaveErrorCode||''))?String(runtime.lastSaveErrorCode):'UNRECOGNIZED'
+      activeSaveGeneration:finite(runtime.activeSaveGeneration),
+      serverAckGeneration:finite(runtime.lastServerSaveAckGeneration),
+      networkSaveRequests:finite(runtime.network&&runtime.network.posts),
+      saveElapsedMs:runtime.saving===true&&Number.isFinite(Date.parse(runtime.lastSaveStartedAt||''))?
+        Math.max(0,Math.min(300000,Date.now()-Date.parse(runtime.lastSaveStartedAt))):null,
+      lastSaveMs:finite(runtime.lastSaveMs),
+      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':/^[A-Z][A-Z0-9_]{0,47}$/.test(String(runtime.lastSaveErrorCode))?String(runtime.lastSaveErrorCode):'UNRECOGNIZED'
     };
   }).catch(()=>({unavailable:true}));
 }
@@ -247,10 +253,7 @@ export async function settleStateSave(page,options={}){
     await pause(150);
   }
 
-  const finalState=await page.evaluate(()=>{
-    const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
-    return {saving:!!r.saving,pending:!!r.pendingSave,dirty:!!r.dirty,hasTimer:!!r.saveTimer,lastErrorCode:String(r.lastSaveErrorCode||''),lastErrorMessage:String(r.lastSaveErrorMessage||'')};
-  }).catch(()=>({}));
+  const finalState=await rc1982DrainSnapshot(page);
   throw new Error('Azure-Speicherung blieb vor Browser-Navigation aktiv: '+JSON.stringify(finalState));
 }
 
