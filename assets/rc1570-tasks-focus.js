@@ -631,7 +631,9 @@ async function deleteManagedTask(id){
   if(savePending||!canWrite())return false;
   var s=state(),task=findTask(id);
   if(!task)return false;
-  if(isSystemManagedTask(task)){
+  // One genuine system obligation must always survive. Only a second, exactly
+  // matching system task with a different ID may be removed by the user.
+  if(!canDeleteTask(task)){
     if(typeof w.alert==='function')w.alert(t('managedByShipment'));
     return false;
   }
@@ -710,8 +712,8 @@ function detailHtml(task){
     '<footer class="rc1570-form-actions">'+(canWrite()&&!x.isVirtualTaskMaster?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
       ['open','in_progress','done'].filter(function(s){return s!==st}).map(function(s){return'<button type="button" class="ghost" data-rc1570-tv-status="'+s+'">'+esc(t({open:'markOpen',in_progress:'markInProgress',done:'markDone'}[s]))+'</button>'}).join(''):'')+
       (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+
-      (!isSystemManagedTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
-      (isSystemManagedTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
+      (canDeleteTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
+      (isSystemManagedTask(x)&&!canDeleteTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
 }
 function weeklyMasterTasks(){
   var runtime=w.ExportHUBRC1014TaskRuntime,u=currentUser(),s=state(),entries=[];
@@ -772,6 +774,26 @@ function isSystemManagedTask(x){
   if(source&&source!=='user'&&source!=='custom')return true;
   return ['Fehlende POD','Offene Sendungen','Offene ABDs'].indexOf(q(x&&x.group))>=0
 }
+function systemDuplicateKeeper(task){
+  if(!isSystemManagedTask(task)||isWeekly(task))return null;
+  var key=taskDuplicateKey(task);if(!key)return null;
+  var seen={},similar=[];
+  arr(state().tasks).forEach(function(row){
+    var id=taskId(row);if(!id||seen[id]||!isSystemManagedTask(row)||isWeekly(row)||taskDuplicateKey(row)!==key)return;
+    seen[id]=true;similar.push(row)
+  });
+  if(similar.length<2)return null;
+  var canonical=low(task.sourceType)==='av_missing'?'task:av-missing:'+q(ref(task)).toUpperCase():'';
+  var score=function(x){return (canonical&&taskId(x)===canonical?100:0)+
+    (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
+  similar.sort(function(a,b){return score(b)-score(a)||taskId(a).localeCompare(taskId(b))});
+  return similar[0]
+}
+function canDeleteTask(task){
+  if(!isSystemManagedTask(task))return true;
+  var survivor=systemDuplicateKeeper(task);
+  return !!survivor&&taskId(survivor)!==taskId(task)
+}
 function listHtml(){
   var model=managedRows(),rows=model.rows,us=model.users,counts=model.counts,shown=rows.slice(0,tv.moreCount);
   var tabs=['all','overdue','weekly','once','done'],keys={all:'managerAll',overdue:'overdue',weekly:'managerWeekly',once:'managerOnce',done:'done'};
@@ -786,7 +808,7 @@ function listHtml(){
       var id=taskId(x),d=taskDate(x),weekly=isWeekly(x),done=isDone(x),late=!done&&d&&dayKey(d)<model.today,system=isSystemManagedTask(x);
       return'<li class="rc1570-tv-row"'+(late?' data-late="true"':'')+'><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'>'+
         '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x),(taskDuplicateKey(x)&&duplicateCounts[taskDuplicateKey(x)]>1?t('duplicateLabel'):'')].filter(Boolean).join(' · '))+'</span>'+
-        '</button>'+(canWrite()&&!system?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
+        '</button>'+(canWrite()&&canDeleteTask(x)?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
     }).join('')+'</ul>'+
     (rows.length>shown.length?'<button type="button" class="ghost rc1570-tv-more" data-rc1570-tv-more="1">'+esc(t('managerMore',{count:rows.length-shown.length}))+'</button>':'')+
     '</aside>'
