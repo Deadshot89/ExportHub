@@ -60,12 +60,23 @@ function edit(c,input,actor){
  c.changedAt=new Date().toISOString();c.changedBy=actor;
  return changed;
 }
+// Legacy records may contain old or malformed approval dates. They must
+// never be treated as a valid current verification merely because "wirksam"
+// and a reviewer string are present.
+function approvedDate(value){
+ const s=String(value||'').trim();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
+ const d=new Date(s+'T12:00:00Z');
+ return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s;
+}
 function changeStatus(c,value,actor){
  const state=str(value,30);
  if(!['offen','in_pruefung','abgeschlossen'].includes(state))fail('BAD_STATUS','Status ungueltig.');
+ const today=new Date().toISOString().slice(0,10);
  if(state==='abgeschlossen'&&(!c.rootCause||!c.correctiveAction||c.effectivenessResult!=='wirksam'||
-     !c.effectivenessEvidence||!c.checkCriteria||!c.checkMethod||!c.checkDate||
-     !c.verifiedOn||!c.verifiedBy))
+     !c.effectivenessEvidence||!c.checkCriteria||!c.checkMethod||
+     !c.verifiedBy||!approvedDate(c.checkDate)||!approvedDate(c.verifiedOn)||
+     c.checkDate>c.verifiedOn||c.verifiedOn>today))
   fail('EFFECTIVENESS_REQUIRED','Abschluss erst nach dokumentierter, wirksamer Pruefung moeglich.',422);
  if(c.state==='abgeschlossen'&&state!=='in_pruefung')fail('REOPEN_REQUIRED','Bitte abgeschlossene Reklamation zur Pruefung wieder oeffnen.',409);
  const previous=c.state;c.state=state;c.changedAt=new Date().toISOString();c.changedBy=actor;
