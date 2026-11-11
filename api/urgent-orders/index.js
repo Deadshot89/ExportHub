@@ -211,6 +211,14 @@ async function execute(req,user,refs){
    return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
   });
  }
+ if(action==='start-processing'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf die Bearbeitung übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const processing=model.startProcessing(order,user,now);
+   return {processing,order};
+  });
+ }
  if(action==='claim-delete-handler'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf Löschanfragen übernehmen.',403);
   return write(refs,doc=>{
