@@ -366,13 +366,28 @@ async function complaintCounts(ctx){
  }while(continuation);
  return json(200,{ok:true,open});
 }
+// The list view must not transfer customer complaint texts, measures,
+// analysis, history or file names. Full records stay behind the protected GET
+// detail endpoint; this summary is sufficient for the REF-first table.
+function listSummary(record){
+ if(!Array.isArray(record.complaints)||record.complaints.some(c=>!c||typeof c!=='object'||Array.isArray(c)))
+  fail('CORRUPT_COMPLAINTS','Reklamationsbestand unvollstaendig.',503);
+ const source=record.fields&&typeof record.fields==='object'&&!Array.isArray(record.fields)?record.fields:{};
+ const fields={};
+ for(const key of ['exporthubRef','customer','shipmentNumber','dispatchDate','colli','weightKg','trackingNumber'])
+  fields[key]=source[key]||'';
+ return{id:record.id,updatedAt:record.updatedAt||'',fields,
+  complaints:record.complaints.map(c=>({state:c.state==='abgeschlossen'?'abgeschlossen':
+   c.state==='in_pruefung'?'in_pruefung':'offen'})),
+  fileCount:Array.isArray(record.files)?record.files.length:0};
+}
 async function list(ctx,query){
  const continuationToken=txt(query.continuation,1200)||undefined;
  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'}).byPage({continuationToken,maxPageSize:50});
  const page=(await pager.next()).value||{};
  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
  const records=await Promise.all(names.map(async name=>{
-  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:{...cleanRecord(rec.record),history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:listSummary(rec.record)}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
