@@ -188,18 +188,22 @@ function missingTask(sh,nowIso,copies){
     s.customer&&(s.customer.account||s.customer.customerNumber)));
   const numbers=Array.from(new Set((Array.isArray(copies)&&copies.length?copies:[sh]).map(numberOf).filter(Boolean)));
   const customerNumber=numbers.length===1?numbers[0]:'';
-  return{
+  const task={
     id:taskId(ref),sourceType:SOURCE_TYPE,sourceId:ref,sourceRef:ref,
     title:'Ausgangsvermerk nicht vorhanden · '+ref+(customer?' · '+customer:''),
     area:AREA,group:AREA,status:'offen',priority:'high',manual:false,unread:true,
     owner:text(sh.customer&&sh.customer.owner)||'Tobias',
     dueDate:todayOf(nowIso),day:'',time:'',
     linkedShipmentId:text(sh.id||sh.shipmentId),linkedShipmentRef:ref,linkedCustomer:customer,
-    customerNumber:customerNumber,linkedAccount:customerNumber,
+    linkedAccount:customerNumber,
     actualPickupDate:day,
     note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
     createdAt:nowIso,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'
   };
+  // Absent is unknown; an explicit empty customerNumber can mean a user
+  // intentionally cleared it and must never be silently restored.
+  if(customerNumber)task.customerNumber=customerNumber;
+  return task;
 }
 
 // Der Status wird ausschließlich nach erfolgreichem, signiertem REF-Ordner-Readback geändert.
