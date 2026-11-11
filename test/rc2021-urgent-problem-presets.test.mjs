@@ -73,7 +73,7 @@ test('the actual selected note is validated and transmitted to the draft API', (
  assert.match(script, /preparedNote\.length>2000/);
  assert.match(script, /note:preparedNote,noteLanguage:websiteLanguage/);
  assert.match(script, /draftNeedsRegenerate=false/);
- assert.match(script, /if\(modalKind==='problem'&&draftNeedsRegenerate\)/);
+ assert.match(script, /if\(draftNeedsRegenerate\)/);
  assert.match(script, /selectedProblems\.clear\(\)/);
  assert.match(script, /renderIssueTemplates\(\)/);
  assert.match(script, /\$\('issueTemplates'\)\.hidden=kind!=='problem'/);
@@ -116,4 +116,11 @@ test('mail dialog heading and shipping preparation feedback follow DE/EN interfa
   assert.ok(i18n[lang]['urgentOrderV2.shippingConfirmation'],lang+' shipping confirmation title is missing');
  }
  assert.equal(i18n.en['urgentOrderV2.mailShippingPreparing'],'Preparing shipping confirmation.');
+});
+
+test('all pending mail drafts block handoff, including changed shipping language',()=>{
+ assert.match(script,/const button=\$\('generateMail'\);if\(button\.disabled\)return;\s*draftNeedsRegenerate=true;/);
+ assert.match(script,/if\(draftNeedsRegenerate\)\{setMessage\('mailMessage'/);
+ assert.match(script,/\$\('mailLanguage'\)\.addEventListener\('change',\(\)=>\{\s*draftNeedsRegenerate=true;/);
+ assert.match(script,/if\(modalKind==='shipping'&&!\$\('generateMail'\)\.disabled\)\{generateDraft\(\);return;\}/);
 });
