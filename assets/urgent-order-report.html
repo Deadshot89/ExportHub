@@ -166,7 +166,7 @@ async function api(action,params){
  if(!response.ok||data.ok===false){
   const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
   const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
-  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];
+  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];e.minibagIndices=Array.isArray(data.minibagIndices)?data.minibagIndices:[];
   if(action==='create'&&code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&Array.isArray(params&&params.items)){
    const articles=new Set(e.minibagArticles);
    const affected=params.items.filter(x=>!x.minibag&&articles.has(x.article)&&x.minibagReviewed!==true);
