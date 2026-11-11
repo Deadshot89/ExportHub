@@ -74,9 +74,11 @@
     const draft=state().abdDraft;
     if(!el)return false;
     const visible=lastSave&&q(lastSave.id)===q(draft&&draft.id);
-    el.textContent=visible?saveStatusText():'';
-    el.hidden=!visible;
-    el.setAttribute('data-status',visible?lastSave.status:'');
+    const message=visible?saveStatusText():'';
+    if(el.textContent!==message)el.textContent=message;
+    if(el.hidden===visible)el.hidden=!visible;
+    const nextStatus=visible?lastSave.status:'';
+    if(el.getAttribute('data-status')!==nextStatus)el.setAttribute('data-status',nextStatus);
     return true;
   }
   async function confirmSave(item,options){
