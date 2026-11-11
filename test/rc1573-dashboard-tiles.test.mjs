@@ -20,13 +20,14 @@ function sandbox(store={}){
 test('RC1573 Kacheln: Standard, Speichern pro Benutzer, unbekannte Einträge werden ignoriert',()=>{
   const {ctx,store}=sandbox();
   const def=ctx.readTiles();
-  assert.deepEqual(Array.from(def.order),['quick','lager','abd','pallet','openwork','week']);
-  assert.equal(def.on.week,false);assert.equal(def.on.lager,true);assert.equal(def.on.openwork,true);
-  ctx.writeTiles({order:['week','quick','evil','lager','abd','pallet'],on:{week:true,quick:false}});
+  assert.deepEqual(Array.from(def.order),['quick','lager','abd','pallet','week']);
+  assert.equal(def.on.week,false);assert.equal(def.on.lager,true);
+  assert.equal('openwork' in def.on,false,'open work now belongs in upper KPI group');
+  ctx.writeTiles({order:['week','quick','evil','lager','abd','pallet','openwork'],on:{week:true,quick:false,openwork:false}});
   assert.ok(store['exporthub.rc1573.tiles.u-1'],'pro Benutzer gespeichert');
   const back=ctx.readTiles();
-  assert.deepEqual(Array.from(back.order),['week','quick','lager','abd','pallet','openwork']);
-  assert.equal(back.on.week,true);assert.equal(back.on.quick,false);assert.equal(back.on.abd,true,'fehlende Werte → Standard');assert.equal(back.on.openwork,true,'neues Dashboard-Element in bestehender Konfiguration aktiv');
+  assert.deepEqual(Array.from(back.order),['week','quick','lager','abd','pallet']);
+  assert.equal(back.on.week,true);assert.equal(back.on.quick,false);assert.equal(back.on.abd,true,'fehlende Werte → Standard');assert.equal('openwork' in back.on,false,'alte untere Einstellung wird ignoriert');
 });
 
 test('RC1573 Lagerbelegung zählt nicht abgeholte Sendungen je Location, Abholwoche Mo–Fr',()=>{
