@@ -436,3 +436,44 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   expect(readNavigationAborts,'RC1255: unerwartet viele abgebrochene State-Reads').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
 });
+
+test('RC2013 P0: authentifizierte Urgent-Order-API auf TESTSERVICE erreichbar',async({page},testInfo)=>{
+  // Read-only; no synthetic or real Urgent Orders are created or modified.
+  test.setTimeout(70_000);
+  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1',
+    'Authentifizierte Urgent-Liveprüfung läuft nur im sicheren TESTSERVICE-Gate.');
+  test.skip(testInfo.project.name!=='laptop','Ein einziger authentifizierter TESTSERVICE-Check genügt.');
+
+  const session=await installE2ESession(page);
+  // Match the Origin/Referer used by the embedded staff module.
+  await page.goto('/assets/urgent-orders.html?embedded=1',{waitUntil:'domcontentloaded'});
+  const result=await page.evaluate(async({token})=>{
+    const response=await fetch('/api/urgent-orders',{
+      method:'POST',credentials:'same-origin',cache:'no-store',
+      headers:{
+        'Content-Type':'application/json','Accept':'application/json',
+        'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,
+        'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'
+      },
+      body:JSON.stringify({action:'list'})
+    });
+    const payload=await response.json().catch(()=>({}));
+    // Return only status and fixed metadata: never transfer order lines,
+    // credentials, tracking links, customer identifiers, or raw errors to CI.
+    const rawCode=String(payload&&payload.code||'UNKNOWN');
+    return{
+      status:response.status,
+      code:/^[A-Z][A-Z0-9_]{0,63}$/.test(rawCode)?rawCode:'UNKNOWN',
+      ok:payload&&payload.ok===true,
+      environment:payload&&payload.environment,
+      orderList:Array.isArray(payload&&payload.orders),
+      canManage:payload&&payload.canManage===true
+    };
+  },{token:session.token});
+
+  expect(result.status,'Authenticated Urgent API HTTP '+result.status+' / '+result.code).toBe(200);
+  expect(result.ok).toBe(true);
+  expect(result.environment).toBe('testservice');
+  expect(result.orderList).toBe(true);
+  expect(result.canManage).toBe(true);
+});
