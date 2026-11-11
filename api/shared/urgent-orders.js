@@ -137,6 +137,7 @@ function createOrder(raw,actor,now=new Date().toISOString()){
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
 function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),note=''){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
  if(!STATUSES.includes(status))throw problem('URGENT_STATUS_INVALID','Ungültiger Status.');
  const item=(order.items||[]).find(x=>x.id===itemId);
@@ -268,6 +269,7 @@ function draftMail(order,kind,lang,note,actor){
 // The browser cannot observe Outlook's Send action. Preserve the exact editor
 // content before opening the mail program; confirmation is explicitly manual.
 function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails dokumentieren.',403);
  const p=raw&&typeof raw==='object'?raw:{};
  const kind=text(p.kind,30);
@@ -296,6 +298,7 @@ function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
  return mail;
 }
 function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Versandbestätigungen erfassen.',403);
  const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
  if(!mail)throw problem('URGENT_MAIL_NOT_FOUND','Gespeicherter E-Mail-Entwurf nicht gefunden.',404);
