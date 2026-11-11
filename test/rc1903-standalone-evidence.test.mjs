@@ -448,6 +448,11 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.ok(!('publicAccess' in returned));
  const deniedPublicEdit=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'Anders'}},first.publicToken);
  assert.equal(deniedPublicEdit.status,401,'Öffentliche Feldänderung wird nicht mehr angeboten');
+ const deniedGuestComplaintFile=await call('POST',{action:'public-upload',id:docId,
+  expectedRevision:returned.revision,kind:'reklamation',complaintId:'fake',
+  fileName:'not-public.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(deniedGuestComplaintFile.status,403,deniedGuestComplaintFile.body);
+ assert.equal(JSON.parse(deniedGuestComplaintFile.body).code,'PUBLIC_BAD_KIND');
  const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:returned.revision,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
  assert.equal(uploaded.status,200,uploaded.body);
  const uploadedRecord=JSON.parse(uploaded.body).record;
