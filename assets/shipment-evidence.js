@@ -19,7 +19,7 @@ function active(){return d.body&&d.body.getAttribute('data-exporthub-view')==='s
 function status(message,error){const el=root()&&root().querySelector('[data-eh1903-status]');if(el){el.textContent=message||'';el.setAttribute('data-error',error?'true':'false')}}
 function headers(){const r=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},token=r.authToken||r.token||r.sessionToken||'';const h={'Accept':'application/json','Content-Type':'application/json'};if(token)h['X-ExportHUB-Token']=String(token);return h}
 async function request(method,params){let url='/api/shipment-evidence',options={method,headers:headers(),credentials:'same-origin',cache:'no-store'};if(method==='GET')url+='?'+new URLSearchParams(params);else options.body=JSON.stringify(params);const response=await fetch(url,options);let value;try{value=await response.json()}catch(_){value={}}if(!response.ok||value.ok!==true)throw new Error(value.message||'HTTP '+response.status);return value}
-async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLSearchParams({action:'file',id,fileId:file.id});const response=await fetch(url,{headers:headers(),credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);return response.blob()}
+async function fileRequest(id,file){const url='/api/shipment-evidence?'+new URLSearchParams({action:'file',id,fileId:file.id,...(file.complaintId?{complaintId:file.complaintId}:{})});const response=await fetch(url,{headers:headers(),credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);return response.blob()}
 const isPhoto=file=>/^image\/(jpeg|png)$/.test(String(file&&file.mime||'').toLowerCase());
 function syncGallery(recordId){
  const scope=recordId||'';if(scope===galleryRecord)return;
@@ -246,7 +246,7 @@ function uploadsPanel(record){const panel=make('section','eh1903-panel');panel.a
  if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadAutoCreate')));return panel}
  syncGallery(record.id);
  const gallery=make('div','eh1903-photo-grid');
- (record.files||[]).forEach(file=>{
+ (record.files||[]).filter(file=>file.kind!=='reklamation').forEach(file=>{
   if(isPhoto(file)){
    const card=make('div','eh1903-photo-card'),trigger=button(t('preview'),()=>preview(record.id,file));
    trigger.classList.add('eh1903-photo-trigger');trigger.setAttribute('aria-label',t('preview')+': '+file.name);
@@ -300,19 +300,143 @@ async function preview(id,file){
   closeButton.focus();status('',false);
  }catch(e){status(e.message,true)}
 }
-function complaintsPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('complaints')));
+function complaintsPanel(record){
+ const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('complaints')));
  if(!record){panel.appendChild(make('p','eh1903-muted',t('uploadFirst')));return panel}
  const complaints=record.complaints||[];
  if(!complaints.length)panel.appendChild(make('p','eh1903-muted',t('noComplaints')));
- complaints.slice().reverse().forEach(c=>{const card=make('div','eh1903-complaint');card.appendChild(make('b',null,dateText(c.reportedDate)+' · '+(c.createdBy||'')));
- card.appendChild(make('p',null,c.text));const select=make('select');select.setAttribute('aria-label',t('state'));
- for(const s of ['offen','in_pruefung','abgeschlossen']){const option=make('option',null,t(s));option.value=s;option.selected=c.state===s;select.appendChild(option)}
- select.addEventListener('change',async()=>{await write('complaint-status',{complaintId:c.id,state:select.value})});card.appendChild(select);panel.appendChild(card)});
+ const categories=['schaden','fehlmenge','falscher_artikel','verspaetung','dokumentenfehler','sonstiges'];
+ function choice(field,options,value){
+  const el=make('select');el.setAttribute('data-complaint-field',field);
+  options.forEach(key=>{const o=make('option',null,t(key));o.value=key;o.selected=key===value;el.appendChild(o)});
+  return el;
+ }
+ complaints.slice().reverse().forEach(c=>{
+  const details=make('details','eh1903-complaint'),summary=make('summary',null,dateText(c.reportedDate)+' · '+(c.createdBy||'')+' · '+t(c.category||'sonstiges')+' · '+t(c.state));
+  details.appendChild(summary);details.appendChild(make('p',null,c.text));
+  const statusSelect=make('select');statusSelect.setAttribute('aria-label',t('state'));
+  ['offen','in_pruefung','abgeschlossen'].forEach(st=>{const o=make('option',null,t(st));o.value=st;o.selected=c.state===st;statusSelect.appendChild(o)});
+  statusSelect.addEventListener('change',async()=>{
+   const changed=await write('complaint-status',{complaintId:c.id,state:statusSelect.value});
+   if(!changed)statusSelect.value=c.state;
+  });
+  const statusRow=make('div','eh1903-complaint-toolbar');statusRow.appendChild(make('span',null,t('state')+': '));statusRow.appendChild(statusSelect);
+  details.appendChild(statusRow);
+  const files=(record.files||[]).filter(f=>f.complaintId===c.id&&f.kind==='reklamation');
+  const attachments=make('div','eh1903-complaint-attachments');attachments.appendChild(make('h3',null,t('complaintAttachments')));
+  const upload=make('input');upload.type='file';upload.multiple=true;upload.accept='application/pdf,image/jpeg,image/png';
+  upload.setAttribute('aria-label',t('complaintAttachments'));upload.disabled=c.state==='abgeschlossen';
+  upload.addEventListener('change',async()=>{
+   const selected=[...upload.files];upload.value='';
+   if(!selected.length)return;
+   if(state.uploading||state.busy){status(t('uploadBusy'),true);return}
+   state.uploading=true;
+   try{
+    for(const file of selected){
+     if(!state.record||state.record.id!==record.id||state.view!=='form')break;
+     if(file.size>15*1024*1024||file.size===0){status(file.name+' · '+t('complaintFileLimit'),true);continue}
+     const ids=new Set((state.record.files||[]).map(f=>f.id));
+     const uploaded=await write('upload',{kind:'reklamation',complaintId:c.id,fileName:file.name,base64:await asBase64(file)},record.id);
+     if(!uploaded)break;
+     const entry=(uploaded.record.files||[]).find(f=>f.complaintId===c.id&&!ids.has(f.id)&&f.size===file.size);
+     const check=await request('GET',{action:'get',id:record.id});
+     if(!entry||!(check.record.files||[]).some(f=>f.id===entry.id&&f.complaintId===c.id)){
+      status(t('uploadUnverified'),true);break
+     }
+     state.record=check.record;showForm(check.record);status(file.name+' · '+t('uploadVerified'),false);
+    }
+   }catch(e){status(e.message,true)}finally{state.uploading=false}
+  });
+  attachments.appendChild(upload);
+  const gallery=make('div','eh1903-complaint-files');
+  files.forEach(file=>{
+   const row=make('div','eh1903-file');
+   row.appendChild(make('span',null,file.name));
+   row.appendChild(button(t('preview'),()=>preview(record.id,file)));
+   row.appendChild(button(t('download'),()=>downloadEvidence(record.id,file)));
+   gallery.appendChild(row);
+  });attachments.appendChild(gallery);details.appendChild(attachments);
+  const fieldGrid=make('div','eh1903-complaint-fields');
+  function field(key,kind='textarea'){
+   const label=make('label',null,t(key)),el=make(kind==='textarea'?'textarea':'input');
+   if(kind!=='textarea')el.type=kind;
+   el.value=c[key]||'';el.setAttribute('data-complaint-field',key);
+   if(c.state==='abgeschlossen')el.disabled=true;
+   label.appendChild(el);fieldGrid.appendChild(label);
+  }
+  function heading(key){fieldGrid.appendChild(make('h3','eh1903-section-heading',t(key)))}
+  heading('complaintPlan');
+  const categoryLabel=make('label',null,t('complaintCategory'));
+  const category=choice('category',categories,c.category||'sonstiges');
+  category.disabled=c.state==='abgeschlossen';categoryLabel.appendChild(category);fieldGrid.appendChild(categoryLabel);
+  field('owner','text');field('dueDate','date');
+  field('rootCause');field('immediateAction');field('correctiveAction');field('preventiveAction');
+  heading('effectivenessReview');
+  field('checkDate','date');field('checkMethod');field('checkSample');field('checkCriteria');
+  field('effectivenessEvidence');
+  const resultLabel=make('label',null,t('effectivenessResult'));
+  const resultSelect=choice('effectivenessResult',['offen','wirksam','unwirksam'],c.effectivenessResult||'offen');
+  resultSelect.disabled=c.state==='abgeschlossen';resultLabel.appendChild(resultSelect);fieldGrid.appendChild(resultLabel);
+  if(c.verifiedBy)fieldGrid.appendChild(make('p','eh1903-muted',t('verifiedBy')+': '+c.verifiedBy+' · '+(c.verifiedOn||'')));
+  heading('complaintReplies');field('customerDraft');field('carrierDraft');
+  heading('complaintAnalysis');field('analysisText');
+  details.appendChild(fieldGrid);
+  const toolbar=make('div','eh1903-actions');
+  if(c.state!=='abgeschlossen')toolbar.appendChild(button(t('saveComplaintPlan'),async()=>{
+   const data={complaintId:c.id};
+   details.querySelectorAll('[data-complaint-field]').forEach(el=>data[el.getAttribute('data-complaint-field')]=el.value);
+   // Data and verification are saved with a single optimistic-concurrency revision.
+   const result=await write('complaint-update',data,record.id);
+   if(!result)details.open=true;
+  },true));
+  const consentLabel=make('label','eh1903-consent'),consent=make('input');
+  consent.type='checkbox';consentLabel.appendChild(consent);consentLabel.appendChild(make('span',null,t('complaintAiConsent')));
+  toolbar.appendChild(consentLabel);
+  const answer=make('div','eh1903-complaint-advice');
+  toolbar.appendChild(button(t('analyzeComplaint'),async()=>{
+   if(state.busy||!state.record||state.record.id!==record.id)return;
+   status(t('loading'),false);
+   try{
+    const result=await request('POST',{action:'complaint-analysis',id:record.id,expectedRevision:state.record.revision,
+     complaintId:c.id,consent:consent.checked,language:language()});
+    if(!answer.isConnected||!state.record||state.record.id!==record.id)return;
+    answer.replaceChildren(make('h4',null,result.mode==='ki'?t('aiDraft'):t('ruleDraft')));
+    const proposal=result.suggestions||{};
+    answer.appendChild(make('p','eh1903-muted',result.notice||''));
+    if(result.text){
+     const aiText=make('textarea');aiText.value=result.text;aiText.readOnly=false;
+     aiText.setAttribute('aria-label',t('complaintAnalysis'));answer.appendChild(aiText);
+     const analysisField=details.querySelector('[data-complaint-field="analysisText"]');
+     if(analysisField)analysisField.value=aiText.value;
+     aiText.addEventListener('input',()=>{if(analysisField)analysisField.value=aiText.value});
+    }
+    for(const key of ['possibleCause','immediateAction','correctiveAction','preventiveAction','checkMethod','checkCriteria','customerDraft','carrierDraft']){
+     if(!proposal[key])continue;
+     const row=make('div','eh1903-complaint-suggestion');
+     row.appendChild(make('strong',null,t(key)));
+     const value=make('p',null,proposal[key]);row.appendChild(value);
+     if(key!=='possibleCause')row.appendChild(button(t('useSuggestion'),()=>{
+      const field=details.querySelector('[data-complaint-field="'+key+'"]');
+      if(field&&!field.disabled){field.value=proposal[key];status(t('suggestionNotSaved'),false)}
+     }));
+     answer.appendChild(row);
+    }
+    status(t('suggestionNotSaved'),false);
+   }catch(e){status(e.message,true)}
+  }));
+  details.appendChild(toolbar);details.appendChild(answer);panel.appendChild(details);
+ });
  const form=make('div','eh1903-complaint-new');form.appendChild(make('h3',null,t('complaintText')));
  const date=make('input');date.type='date';date.value=new Date().toISOString().slice(0,10);date.setAttribute('aria-label',t('complaintDate'));form.appendChild(date);
+ const category=choice('category',['schaden','fehlmenge','falscher_artikel','verspaetung','dokumentenfehler','sonstiges'],'sonstiges');
+ category.removeAttribute('data-complaint-field');category.setAttribute('aria-label',t('complaintCategory'));form.appendChild(category);
  const text=make('textarea');text.placeholder=t('complaintText');text.setAttribute('aria-label',t('complaintText'));form.appendChild(text);
- const acts=make('div','eh1903-actions');acts.appendChild(button(t('addComplaint'),()=>{if(!text.value.trim()){status(t('complaintText'),true);return}write('complaint',{text:text.value,reportedDate:date.value})},true));form.appendChild(acts);
- panel.appendChild(form);return panel}
+ const acts=make('div','eh1903-actions');acts.appendChild(button(t('addComplaint'),()=>{
+  if(!text.value.trim()){status(t('complaintText'),true);return}
+  write('complaint',{text:text.value,reportedDate:date.value,category:category.value});
+ },true));form.appendChild(acts);
+ panel.appendChild(form);return panel
+}
 function historyPanel(record){const panel=make('section','eh1903-panel');panel.appendChild(make('h2',null,t('history')));
  if(record)(record.history||[]).slice(-25).reverse().forEach(x=>panel.appendChild(make('p','eh1903-muted',dateText(x.at)+' · '+x.by+' · '+x.action)));
  return panel}
