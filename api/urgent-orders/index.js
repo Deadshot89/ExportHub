@@ -180,7 +180,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   // Account-linked email profiles are deprecated; only the local browser's
   // non-authenticated address history supplies autocomplete suggestions.
-  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
+  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),currentUserId:model.text(user&&user.id,150),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
