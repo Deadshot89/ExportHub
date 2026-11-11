@@ -41,7 +41,7 @@ concurrency:
 
 jobs:
   verify_and_deploy_testservice:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
       GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
