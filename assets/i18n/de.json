@@ -2755,5 +2755,6 @@
   "urgentOrderV2.issueDelay": "Versand zum gewünschten Termin nicht möglich",
   "urgentOrderV2.issueRegenerate": "Bitte E-Mail-Vorlage neu erzeugen.",
   "urgentOrderV2.issueTooLong": "Problembeschreibung mit ausgewählten Vorlagen darf maximal 2000 Zeichen enthalten.",
-  "urgentOrderV2.shippingNotReady": "Erst möglich, wenn alle Positionen versendet sind."
+  "urgentOrderV2.shippingNotReady": "Erst möglich, wenn alle Positionen versendet sind.",
+  "urgentOrderV2.mailShippingPreparing": "Versandbestätigung wird vorbereitet."
 }
