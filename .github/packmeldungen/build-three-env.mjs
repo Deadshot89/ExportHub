@@ -34,10 +34,10 @@ const DOCUMENT_SCRIPT_TAGS=[
   '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=1"></script>'
 ];
 const PACK_SCRIPT_TAGS=[
-  '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=3"></script>',
+  '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=4"></script>',
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
-  '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=3"></script>',
+  '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=4"></script>',
   '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>',
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
 ];
