@@ -262,7 +262,28 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  assert.equal(complaint.status,200,complaint.body);
  const complaintRecord=JSON.parse(complaint.body).record;
  assert.equal(complaintRecord.complaints[0].state,'offen');
- const closed=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId:complaintRecord.complaints[0].id,state:'abgeschlossen'});
+ const complaintId=complaintRecord.complaints[0].id;
+ const premature=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId,state:'abgeschlossen'});
+ assert.equal(premature.status,422,'No closure without effectiveness evidence');
+ const newFile=await call('POST',{action:'upload',id:record.id,expectedRevision:complaintRecord.revision,
+  complaintId,kind:'reklamation',fileName:'Schaden.jpg',base64:jpeg()});
+ assert.equal(newFile.status,200,newFile.body);
+ const withFile=JSON.parse(newFile.body).record;
+ const complaintFile=withFile.files.find(f=>f.complaintId===complaintId);
+ assert.ok(complaintFile);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId:'other'})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId})).status,200);
+ const planned=await call('POST',{action:'complaint-update',id:record.id,expectedRevision:withFile.revision,complaintId,
+  rootCause:'Versandkontrolle fehlte',correctiveAction:'Pflichtscan vor Versand',checkDate:'2026-11-07',
+  checkMethod:'Zehn Sendungen kontrolliert',checkCriteria:'Keine falschen Packstücke',
+  effectivenessEvidence:'Kontrollliste mit zehn Nachweisen'});
+ assert.equal(planned.status,200,planned.body);
+ const verified=await call('POST',{action:'complaint-update',id:record.id,
+  expectedRevision:JSON.parse(planned.body).record.revision,complaintId,effectivenessResult:'wirksam'});
+ assert.equal(verified.status,200,verified.body);
+ const closed=await call('POST',{action:'complaint-status',id:record.id,
+  expectedRevision:JSON.parse(verified.body).record.revision,complaintId,state:'abgeschlossen'});
  assert.equal(closed.status,200,closed.body);
  assert.equal(JSON.parse(closed.body).record.complaints[0].state,'abgeschlossen');
  const stale=await call('POST',{action:'save',id:record.id,expectedRevision:0,fields:valid});
@@ -559,7 +580,7 @@ test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, o
   assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
  }
  assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
- assert.match(build,/shipment-evidence\.js\?v=1908/,'Staff runtime must have cache-busted version');
+ assert.match(build,/shipment-evidence\.js\?v=1910/,'Staff runtime must have cache-busted version');
 });
 
 
@@ -582,10 +603,10 @@ test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cac
  assert.match(guest,/clipboard\.writeText\(record\.id\)/);
  assert.match(guest,/t\('referencePending'\)/);
  assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
- assert.match(build,/shipment-evidence\.js\?v=1908/);
- assert.match(build,/i18n\/shipment-evidence\.js\?v=1908/);
+ assert.match(build,/shipment-evidence\.js\?v=1910/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=1910/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
- assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
+ assert.match(html,/i18n\/shipment-evidence\.js\?v=1910-upload/);
  assert.match(html,/shipment-evidence-guest\.js\?v=1907/);
 });
 
