@@ -70,7 +70,8 @@ test('RC1968: Kunden ohne neues Feld bleiben mit alten Kundendaten kompatibel',(
  const sh={carrierEmail:'old-shipment@example.com'};
  assert.equal(emailRecipient('carrier',sh,c),'current@example.com');
  assert.deepEqual(Array.from(carrierTo(c,sh)),['current@example.com','stale@example.com']);
- assert.deepEqual(Array.from(carrierTo(null,sh)),['old-shipment@example.com']);
+ assert.deepEqual(Array.from(carrierTo(null,sh)),[],'Ohne aktuellen Kundenordner darf eine gespeicherte Sendung keine Empfänger freigeben');
+ assert.equal(emailRecipient('carrier',sh,null),'');
 });
 
 test('RC1968: Kundennachricht und eigene Info-Mail werden nicht umgeschrieben',()=>{
@@ -99,5 +100,6 @@ test('RC1968: Server blockiert entfernte Carrier-Adresse vor Vorschau und Graph-
  assert.ok(guard>0&&guard<send,'Carrier-Whitelist muss vor Graph-Send liegen');
  assert.match(server,/Object\.prototype\.hasOwnProperty\.call\(customer,'carrierEmail'\)/);
  assert.match(server,/MAIL_RECIPIENT_NOT_IN_CUSTOMER_FOLDER/);
+ assert.match(server,/MAIL_CUSTOMER_FOLDER_NOT_FOUND/);
  assert.match(server,/permitted\.includes\(lower\(to\)\)/);
 });
