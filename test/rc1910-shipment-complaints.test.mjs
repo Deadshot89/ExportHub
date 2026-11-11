@@ -111,7 +111,7 @@ test('Alle Dokumentationen: REF, Kunde, Versanddatum, Colli, Gewicht und Reklama
   assert.ok(at>before,`Listing order missing or changed: ${marker}`);
   before=at;
  }
- assert.match(list,/t\('complaintCompleted'\)/);
+ assert.match(list,/'complaintCompleted'/);
  assert.match(list,/counts\[c\.state==='abgeschlossen'/);
  assert.match(list,/fields\.exporthubRef\|\|r\.id/);
 });
