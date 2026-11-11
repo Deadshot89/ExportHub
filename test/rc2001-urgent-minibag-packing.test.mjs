@@ -38,7 +38,7 @@ test('non-whole packs require an explicit confirmation and persist review eviden
 test('Minibag tick skips warning but keeps required ten-day leadtime check',()=>{
  const minibag=model.createOrder(base([line(900,true)]),actor,now,catalog);
  assert.equal(minibag.items[0].minibag,true);
- assert.throws(()=>model.createOrder(base([{...line(900,true),minibagLeadtime:null}]),actor,now,catalog),e=>e.code==='URGENT_CHECK_REQUIRED');
+ assert.throws(()=>model.createOrder(base([{...line(900,true),minibagLeadtime:null}]),actor,now,catalog),e=>e.code==='URGENT_CHECK_MISSING');
 });
 test('all-lines requests and absent catalog never invent a packaging warning',()=>{
  const noCatalog=model.createOrder(base([line(900)]),actor,now);
