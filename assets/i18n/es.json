@@ -2725,5 +2725,16 @@
   "urgentOrderV2.deletePublicPendingToast": "Solicitud enviada. Logística debe aprobarla.",
   "urgentOrderV2.deletePublicPending": "Pendiente de aprobación de logística.",
   "urgentOrderV2.deletePublicRejected": "Se rechazó la solicitud anterior.",
-  "urgentOrderV2.deletePublicDisclaimer": "Solo se elimina la solicitud, no el envío real."
+  "urgentOrderV2.deletePublicDisclaimer": "Solo se elimina la solicitud, no el envío real.",
+  "urgentOrderV2.minibagReviewPrompt": "Comprobar Minibag: {articles} no corresponde a un embalaje estándar completo. ¿Seguro que no es un Minibag? Aceptar = continuar sin Minibag; Cancelar = corregir el artículo.",
+  "urgentOrderV2.minibagReviewCancel": "Comprueba la casilla Minibag y la cantidad.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Gestionar artículos de forma segura",
+  "urgentOrderV2.packingCatalogHelp": "Importa la lista TSV con las columnas Item number, Net weight y Packing quantity. Los tamaños se guardan solo en el almacenamiento privado de Azure.",
+  "urgentOrderV2.packingCatalogInput": "Lista de artículos (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Actualizar lista de forma segura",
+  "urgentOrderV2.packingCatalogAvailable": "{count} artículos con tamaño de embalaje · {unknown} sin tamaño válido.",
+  "urgentOrderV2.packingCatalogPickFile": "Selecciona primero la lista de artículos.",
+  "urgentOrderV2.packingCatalogTooLarge": "El archivo supera el límite de 5 MB.",
+  "urgentOrderV2.packingCatalogSaving": "Validando y guardando la lista de forma segura …",
+  "urgentOrderV2.packingCatalogSaved": "{count} artículos guardados · {unknown} sin tamaño válido."
 }

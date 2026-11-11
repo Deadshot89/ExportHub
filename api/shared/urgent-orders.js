@@ -2,6 +2,7 @@
 // Urgent Order domain model. No D365 access and no implicit claims of stock availability.
 const crypto = require('node:crypto');
 const apiI18n = require('./i18n');
+const packing = require('./urgent-packing');
 const PRIORITIES = Object.freeze(['P1','P2','P3','P4']);
 const STATUSES = Object.freeze(['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced']);
 const LANGUAGES = Object.freeze(['de','en']);
@@ -109,7 +110,7 @@ function validateWholeOrderChecks(raw,now,orderType){
  const checked=pickableStock!==null||holdsClear!==null;
  return {pickableStock,holdsClear,exceptionReason:failed?reason:'',checkResult:failed?'exception':complete?'passed':'not_checked',checkedAt:checked?now:null};
 }
-function createOrder(raw,actor,now=new Date().toISOString()){
+function createOrder(raw,actor,now=new Date().toISOString(),catalog=null){
  const p=raw&&typeof raw==='object'?raw:{};
  const delivery=text(p.delivery,10).toUpperCase();
  const priority=text(p.priority,2).toUpperCase();
@@ -127,6 +128,15 @@ function createOrder(raw,actor,now=new Date().toISOString()){
  // Entire order is a distinct scope: never invent an article, line number or stock checks.
  if(allLines&&Array.isArray(p.items)&&p.items.length)throw problem('URGENT_SCOPE_CONFLICT','Bei komplettem Auftrag keine einzelnen Artikel übermitteln.');
  const items=allLines?[{id:crypto.randomUUID(),scope:'ALL_LINES',line:'',article:'',quantity:null,minibag:false,newArticle:false,checks:null,exceptionReason:'',checkResult:'not_checked',status:'Open',checkedAt:null}]:validateItems(p.items,now,orderType);
+  // Only confirmed catalog data can trigger a warning; a 0/unknown pack size never does.
+  if(!allLines){
+   const checks=packing.requireReview(p.items,catalog);
+   for(const check of checks){
+    if(p.items[check.index].minibagReviewed===true){
+     items[check.index].minibagReview={confirmedWithoutMinibag:true,packingQuantity:check.packingQuantity,remainder:check.remainder,checkedAt:now};
+    }
+   }
+  }
  const orderChecks=allLines?validateWholeOrderChecks(p.orderChecks,now,orderType):null;
  return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,orderType,directOutbound,
   email:email(p.email),language:language(p.language),...dispatch,

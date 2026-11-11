@@ -166,7 +166,22 @@ async function api(action,params){
  if(!response.ok||data.ok===false){
   const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
   const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
-  e.status=response.status;e.code=code;throw e;
+  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];e.minibagIndices=Array.isArray(data.minibagIndices)?data.minibagIndices:[];
+  if(action==='create'&&code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&Array.isArray(params&&params.items)){
+   const articles=new Set(e.minibagArticles);
+   const indices=new Set(e.minibagIndices||[]);
+   const affected=params.items.filter((x,i)=>!x.minibag&&x.minibagReviewed!==true&&(indices.size?indices.has(i):articles.has(x.article)));
+   if(!affected.length)throw e;
+   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
+   const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
+   if(!window.confirm(msg)){
+    showWizardStep(2);
+    throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
+   }
+   affected.forEach(x=>{x.minibagReviewed=true;});
+   return api(action,params);
+  }
+  throw e;
  }return data;
 }
 function localizeLineChoices(box){
