@@ -166,7 +166,21 @@ async function api(action,params){
  if(!response.ok||data.ok===false){
   const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
   const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
-  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];throw e;
+  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];
+  if(action==='create'&&code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&Array.isArray(params&&params.items)){
+   const articles=new Set(e.minibagArticles);
+   const affected=params.items.filter(x=>!x.minibag&&articles.has(x.article)&&x.minibagReviewed!==true);
+   if(!affected.length)throw e;
+   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
+   const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
+   if(!window.confirm(msg)){
+    showWizardStep(2);
+    throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
+   }
+   affected.forEach(x=>{x.minibagReviewed=true;});
+   return api(action,params);
+  }
+  throw e;
  }return data;
 }
 function localizeLineChoices(box){
@@ -379,24 +393,6 @@ async function refresh(){
  try{const data=await api('list',{accessToken:secret});orders=data.orders||[];render();activateLink();}
  catch(e){const errorText=localeV2('loadError','Die Anfragen können mit diesem Link nicht geladen werden.');$('orders').innerHTML='<div class="empty" role="alert"><p>'+esc(errorText)+' '+esc(e.message)+'</p><button type="button" class="btn secondary small" id="retryPublicList">'+esc(localeV2('retry','Erneut versuchen'))+'</button></div>';$('retryPublicList').addEventListener('click',refresh);}
 }
-async function createWithMinibagReview(p){
- try{return await api('create',p);}
- catch(e){
-  if(e.code!=='URGENT_MINIBAG_CONFIRM_REQUIRED')throw e;
-  const articles=new Set(e.minibagArticles||[]);
-  const affected=p.items.filter(x=>!x.minibag&&articles.has(x.article));
-  if(!affected.length)throw e;
-  const en=p.language==='en';
-  const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
-  const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
-  if(!window.confirm(msg)){
-   showWizardStep(2);
-   throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
-  }
-  affected.forEach(x=>{x.minibagReviewed=true;});
-  return await api('create',p);
- }
-}
 async function submit(ev){
  ev.preventDefault();
  if(wizardStep!==3){showWizardStep(1);return;}
@@ -413,7 +409,7 @@ async function submit(ev){
  hideLateCutoffChoice();
  $('submitOrder').disabled=true;showMessage('Anfrage wird gespeichert …','');
  try{
-  const data=await createWithMinibagReview(p);
+  const data=await api('create',p);
   rememberEmail(p.email); // Save only after successful server confirmation.
   secret=data.accessToken;
   const late=!!(data.order.cutoff&&data.order.cutoff.lateSameDay);
