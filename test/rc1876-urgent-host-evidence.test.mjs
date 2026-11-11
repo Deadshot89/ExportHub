@@ -52,7 +52,9 @@ test('RC1876: both urgent endpoints log only sanitized evidence for host failure
   assert.equal(context.res.status,503);
   const value=JSON.parse(context.res.body);
   assert.equal(value.code,'URGENT_HOST_UNTRUSTED');
-  assert.equal(value.retryable,true);
+  assert.equal(value.retryable,false,'an unverified host must not be retried without verification');
+  assert.deepEqual(value.diagnostic,{direct:'azure-functions-worker',forwarded:'absent',origin:'other',verifiedDeployment:internal.safeHostDiagnostic({headers:{}}).verifiedDeployment});
+  assert.doesNotMatch(JSON.stringify(value.diagnostic),/LOG_PRIVATE|azurewebsites\\.net|evil\\.example|access=/);
   assert.doesNotMatch(JSON.stringify(logs),/LOG_PRIVATE|evil\.example|Cookie/);
   assert.ok(logs.some(x=>x[0]==='urgent-host-evidence'));
  }finally{internal.storage=original}
