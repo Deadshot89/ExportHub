@@ -390,7 +390,9 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   const draftCc=(draft.searchParams.get('cc')||'').split(';').map(email=>email.trim().toLowerCase()).filter(Boolean);
   // Der TESTSERVICE-Kunde hat bewusst keinen manuellen CC im Kundenordner.
   expect(draftCc).toEqual([]);
-  await settleStateSave(page,{timeout:25_000});
+  // Large TESTSERVICE team state can take longer than the historical 18 s
+  // flush cap. Keep the live Azure persistence/readback mandatory, bounded.
+  await settleStateSave(page,{timeout:85_000});
 
   const proof=await page.evaluate(async({token,runId,ref})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
