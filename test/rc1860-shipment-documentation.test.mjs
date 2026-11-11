@@ -77,7 +77,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
  const azure=JSON.parse(fs.readFileSync('api/shipment-documentation/function.json','utf8'));
- assert.match(build,/rc1860-shipment-documentation\.js\?v=1934/);
+ assert.match(build,/rc1860-shipment-documentation\.js\?v=1935/);
  assert.match(build,/'assets\/rc1860-shipment-documentation\.js'/);
  assert.match(ui,/getElementById\('rc786ReferenceFilesCard'\)/);
  assert.match(ui,/action:'complaint'/);
