@@ -109,19 +109,19 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   assert.deepEqual(carrier,['sped@example.com'],'Alte Sendungs- und Kontaktverzeichnis-Adressen dürfen nicht in die aktuelle Speditionsmail zurückkehren');
 });
 
-test('RC1968 / #904: Essentra Schweden GPJQC7 nutzt nur die aktuelle Speditionsmail-Zuordnung',()=>{
+test('RC1968 / #904: Essentra Schweden REF1968 nutzt nur die aktuelle Speditionsmail-Zuordnung',()=>{
   const state={customers:[{
-    id:'SW-3014',account:'9000003014',name:'Essentra Components AB - SE',
-    carrierEmail:'imp.hel.se@freja.com; pbe@freja.com',
-    carrierMail:'imp.hel.se@freja.com; pbe@freja.com; charter@gate41.com',
-    speditionMail:'charter@gate41.com',
-    mailRecipients:'charter@gate41.com',
-    carrierContacts:[{email:'charter@gate41.com'}]
+    id:'C-1968',account:'9000000000',name:'Customer SE',
+    carrierEmail:'active-a@freight.example; active-b@freight.example',
+    carrierMail:'active-a@freight.example; active-b@freight.example; retired@freight.example',
+    speditionMail:'retired@freight.example',
+    mailRecipients:'retired@freight.example',
+    carrierContacts:[{email:'retired@freight.example'}]
   }]};
-  const sh={id:'GPJQC7',reference:'GPJQC7',customerId:'SW-3014',
-    carrierEmail:'charter@gate41.com',speditionMail:'charter@gate41.com'};
+  const sh={id:'REF1968',reference:'REF1968',customerId:'C-1968',
+    carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'};
   const actual=load(state).shipmentContacts(sh,'carrier').map(x=>x.email);
-  assert.deepEqual(actual,['imp.hel.se@freja.com','pbe@freja.com']);
+  assert.deepEqual(actual,['active-a@freight.example','active-b@freight.example']);
 });
 
 test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
