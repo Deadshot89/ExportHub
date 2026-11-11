@@ -331,6 +331,10 @@ async function openRecord(id){state.searchRun++;const serial=++state.serial;stat
   try{
    const probe=await request('GET',{action:'inspect',id});
    if(serial!==state.serial||!active())return;
+   if(probe.storageTarget&&probe.storageTarget.accountName&&probe.storageTarget.containerName){
+    const location=t('storageLocation')+': '+probe.storageTarget.accountName+' / '+probe.storageTarget.containerName+' ('+probe.storageTarget.environment+')';
+    app.appendChild(make('p','eh1903-muted',location));
+   }
    if(probe.found&&probe.deleted){
     app.appendChild(make('p','eh1903-muted',t('restoreFound')+' '+id));
     if(probe.canRestore){
