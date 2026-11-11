@@ -110,3 +110,20 @@ test('RC1985: confirmed task deletion outlives normal tombstone retention',()=>{
   ],_teamSyncMeta:{fields:{},tombstones:[]}});
   assert.deepEqual(stale.tasks.map(task=>task.id),['new-task']);
 });
+
+test('RC1985: later automatic tombstone cannot downgrade user-confirmed deletion',()=>{
+  const stored={tasks:[],_teamSyncMeta:{fields:{},tombstones:[{
+    collection:'tasks',id:'deleted-task',deletedAt:'2026-11-11T10:00:00Z',
+    explicitUserAction:true
+  }]}};
+  const stale={tasks:[{id:'deleted-task',title:'Reintroduced from stale device',
+    updatedAt:'2026-11-11T14:00:00Z'}],_teamSyncMeta:{fields:{},tombstones:[{
+      collection:'tasks',id:'deleted-task',deletedAt:'2026-11-11T12:00:00Z',
+      explicitUserAction:false
+  }]}};
+  const merged=merge.mergeState(stored,stale);
+  assert.deepEqual(merged.tasks,[],'confirmed deletion cannot be downgraded');
+  assert.equal(merged._teamSyncMeta.tombstones[0].explicitUserAction,true);
+  merge.pruneTombstones(merged,1);
+  assert.equal(merged._teamSyncMeta.tombstones[0].explicitUserAction,true);
+});
