@@ -606,7 +606,7 @@ test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cac
  assert.match(build,/shipment-evidence\.js\?v=1910/);
  assert.match(build,/i18n\/shipment-evidence\.js\?v=1910/);
  assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
- assert.match(html,/i18n\/shipment-evidence\.js\?v=1910-upload/);
+ assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
  assert.match(html,/shipment-evidence-guest\.js\?v=1907/);
 });
 
