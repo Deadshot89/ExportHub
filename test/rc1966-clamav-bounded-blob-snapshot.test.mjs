@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {Readable} from 'node:stream';
+import {EventEmitter} from 'node:events';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -242,4 +243,31 @@ test('RC1978: throwing stream cleanup fails closed even after exact matching dat
  await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
  assert.ok(destroyCalls>=1);
  assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1979: asynchronous SDK error after timeout cannot crash the worker',async()=>{
+ const stalled=new EventEmitter();
+ let destroyCalls=0;
+ stalled[Symbol.asyncIterator]=()=>({next:()=>new Promise(()=>{})});
+ stalled.destroy=()=>{destroyCalls++};
+ const f=fixture({response:{readableStreamBody:stalled}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:40});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(destroyCalls>=1);
+ assert.ok(stalled.listenerCount('error')>=1,'late errors need a permanent handler');
+ assert.doesNotThrow(()=>stalled.emit('error',Error('AccountKey=SECRET_LATE_SDK_ERROR')));
+ assert.deepEqual(f.stats(),{props:1,downs:1});
+});
+
+test('RC1979: broken SDK error-listener registration is rejected without accepting bytes',async()=>{
+ let cleaned=0;
+ const malformed={
+  [Symbol.asyncIterator](){return{next:async()=>({done:false,value:Buffer.from(bytes)})}},
+  on(){throw Error('AccountKey=SECRET_LISTENER_FAILURE');},
+  destroy(){cleaned++}
+ };
+ const f=fixture({response:{readableStreamBody:malformed}});
+ const read=createBoundedReadSnapshot({container:f.container,expected,kind:'xlsx',timeoutMs:250});
+ await assert.rejects(read(locator),e=>e.message==='RC1966_BLOB_UNVERIFIED');
+ assert.ok(cleaned>=1,'failed listener registration must close stream');
 });
