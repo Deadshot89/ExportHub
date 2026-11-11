@@ -275,6 +275,8 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
           noShipment:matches.length===1&&!matches[0].linkedShipmentId};
       },{token:session.token,id:abdDraft.notificationId,ref:savedPackAbd.ref});
       expect(packAbdServer).toEqual({status:200,found:1,refCorrect:true,packRefCorrect:true,linked:true,noShipment:true});
+      // Only after authenticated Azure readback may a navigation-aborted save be acknowledged.
+      expect(acknowledgeConfirmedStateSaveNavigationAbort(runtime)).toBeLessThanOrEqual(1);
       await page.locator('[data-pack-notifications-nav]').click();
       await expect(page.locator('#packNotificationInbox')).toBeVisible();
       await page.locator('#packNotificationInbox [data-pack-notification-id]').filter({hasText:refA}).first().click();
