@@ -46,7 +46,7 @@ const tasks=[
 ];
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
-  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1970/);
+  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1971/);
   assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1969/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
@@ -238,6 +238,12 @@ test('RC1563 Listen scrollen im Panel; Tabelle füllt die Höhe der rechten Spal
 test('RC1565 Dashboard scrollt auch mit langen ABD- und Palettenlisten nicht',()=>{
   assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid \.rc205-widget > \.rc205-list\{display:none!important\}/);
   assert.match(css,/\.rc1558-stack \.rc1558-list\{overflow-x:hidden\}/);
+});
+
+test('RC1969: ABD- und Palettenkonto-Zahlen werden kleiner dargestellt, ohne andere KPI-Kacheln zu ändern',()=>{
+  assert.match(css,/body\\[data-rc1558-overview="1"\\] #content \\.rc205-dashboard-grid \\.rc205-mini-metrics \\.metric strong\\{font-size:19px!important;line-height:1\\.15!important\\}/,'ABD/Palettenkonto auf Desktop 19px');
+  assert.match(css,/@media \\(min-width:1251px\\) and \\(max-height:960px\\)\\{[\\s\\S]*?\\.rc205-dashboard-grid \\.rc205-mini-metrics \\.metric strong\\{font-size:16px!important\\}/,'kompakte Höhe 16px');
+  assert.match(css,/\\.rc1558-kpi-value\\{font-size:28px/,'übrige KPI-Kacheln unverändert');
 });
 
 test('RC1969: jede Dashboard-KPI hat ein eigenes sichtbares, barrierefrei dekoratives SVG-Icon',()=>{
