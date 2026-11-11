@@ -120,15 +120,17 @@ for(const viewport of ['desktop','mobile-standard']){
     await stableTarget.click();
     await expect(page.locator('html')).not.toHaveClass(/rc1502-sop-target-picking/);
 
+    // The target-picker queues an asynchronous Azure save; only inspect the
+    // draft after its mandatory success acknowledgement (not merely UI click).
+    const persistence=page.locator('[data-sop-persist-status]').first();
+    await expect(persistence).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
+
     let saved=await stateSnapshot(page);
     expect(saved.draftVersion).toBe(DRAFT);
     expect(saved.step).toBeTruthy();
     expect(saved.step.target).toEqual({stableKey:TARGET,selector:`[data-tour-key="${TARGET}"]`});
     expect(saved.visuals.some(item=>item.stepId===STEP_ID&&item.src===IMAGE&&item.caption==='RC1502 E2E ABD-Schrittbild')).toBe(true);
     expect(saved.released).toBe(before.released);
-
-    const persistence=page.locator('[data-sop-persist-status]').first();
-    await expect(persistence).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
 
     const durable=await durableSnapshot(page);
     for(const [layer,snapshot] of Object.entries(durable)){
