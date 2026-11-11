@@ -62,7 +62,7 @@ async function call(method,payload){
 
 test('RC1934 P0: exact lookup, verified tombstone restore, ETag and unrelated-data isolation',async t=>{
  const old=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
- process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=exporthubdata89;AccountKey=DO_NOT_LOG_A_SECRET;EndpointSuffix=core.windows.net';
  t.after(()=>{if(old===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old});
  const db=createStore();
  const user={role:'Administrator',rights:{documents:{level:'edit',read:true,edit:true}}};
@@ -78,6 +78,9 @@ test('RC1934 P0: exact lookup, verified tombstone restore, ETag and unrelated-da
    fileCount:responseBody(inspect).fileCount,canRestore:responseBody(inspect).canRestore},
   {found:true,deleted:true,fileCount:1,canRestore:true});
  assert.equal(responseBody(inspect).record,undefined,'Inspection must not disclose full contents');
+ assert.deepEqual(responseBody(inspect).storageTarget,{environment:'production',accountName:'exporthubdata89',containerName:auth.TEAM_CONTAINER});
+ assert.ok(!inspect.body.includes('AccountKey'),'Connection-string secrets must not be serialized');
+ assert.ok(!inspect.body.includes('DO_NOT_LOG_A_SECRET'),'Connection-string values must never appear in response');
  const stale=await call('POST',{action:'restore',id:ID,expectedRevision:1});
  assert.equal(stale.status,409);
  assert.ok(![...db.stored.keys()].some(k=>k.includes('recovery-backups')));
