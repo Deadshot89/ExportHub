@@ -171,8 +171,8 @@ function failureDetails(e){
 }
 function identity(user){return{id:model.text(user&&user.id,150),name:model.text(user&&(user.name||user.user||user.login),150)};}
 function requestBody(req){return auth.body(req);}
-function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
-function visibleOrders(doc,user){return doc.orders.filter(x=>model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
+function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id&&!x.deletedAt);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
+function visibleOrders(doc,user){return doc.orders.filter(x=>model.activeOrder(x)&&model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 function accessibleOrder(doc,id,user){const order=findOrder(doc,id);if(!model.canRead(order,user))throw model.problem('URGENT_FORBIDDEN','Kein Zugriff auf diesen Auftrag.',403);return order;}
 async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
@@ -188,7 +188,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   let open=0,closed=0;
   for(const order of doc.orders){
-   if(!model.canRead(order,user))continue;
+   if(!model.activeOrder(order)||!model.canRead(order,user))continue;
    if(model.isClosed(order))closed++;else open++;
   }
   return{open,closed,total:open+closed,environment:refs.environment};
@@ -196,11 +196,35 @@ async function execute(req,user,refs){
  if(action==='create'){
   const created=model.createOrder(p,identity(user),now);
   return write(refs,doc=>{
-   const previous=doc.orders.find(x=>x.orderNumber===created.orderNumber);
+   const previous=doc.orders.find(x=>!x.deletedAt&&x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
    doc.orders.push(created);
    // Email history is browser-local; do not link the email to the login profile.
    return{order:created,environment:refs.environment};
+  });
+ }
+ if(action==='request-delete'){
+  const id=model.text(p.id,90);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,id,user);
+   const deletion=model.requestDeletion(order,user,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
+  });
+ }
+ if(action==='claim-delete-handler'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf Löschanfragen übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.claimDeletionHandler(order,user,now);
+   return {order,deletion};
+  });
+ }
+ if(action==='respond-delete'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur der zuständige Bearbeiter darf die Löschung bestätigen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.resolveDeletion(order,user,p.approve,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
   });
  }
  if(action==='save-profile'){
