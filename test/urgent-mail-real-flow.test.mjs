@@ -8,6 +8,10 @@ const start=page.indexOf('function mailIssueRequiredText(){');
 const end=page.indexOf('async function copyDraft(){',start);
 assert.ok(start>=0&&end>start,'Urgent Order mail handlers must exist');
 const handlers=page.slice(start,end);
+const presetStart=page.indexOf('const PROBLEM_PRESETS=[');
+const presetEnd=page.indexOf('// Reuse real problem descriptions entered on the website',presetStart);
+assert.ok(presetStart>=0&&presetEnd>presetStart,'Selectable problems must exist');
+const presetHandlers=page.slice(presetStart,presetEnd);
 
 function harness(){
   const apiCalls=[],messages=[],attrs={};
@@ -27,6 +31,7 @@ function harness(){
   const location={href:''};
   const context={
     modalKind:'problem',modalOrder:'order-1',orders:[{id:'order-1'}],
+    draftNeedsRegenerate:false,
     $:id=>{assert.ok(elements[id],'Unknown UI element '+id);return elements[id]},
     window:{location},
     setMessage:(id,message,kind)=>messages.push({id,message,kind}),
@@ -36,6 +41,7 @@ function harness(){
     api:async (action,payload)=>{apiCalls.push({action,payload});throw Error('API not set')}
   };
   vm.createContext(context);
+  vm.runInContext(presetHandlers,context,{filename:'assets/urgent-orders.html#mail-presets'});
   vm.runInContext(handlers,context,{filename:'assets/urgent-orders.html#mailhandlers'});
   return {context,elements,apiCalls,messages,location};
 }
@@ -114,4 +120,43 @@ test('Urgent Order failed persistence does not open Outlook or delete edited tex
   assert.equal(elements.mailSubject.value,subject);
   assert.equal(elements.mailBody.value,body);
   assert.equal(elements.openMailer.disabled,false);
+});
+
+test('selected problem reasons and free text are sent together, but stale drafts never launch Outlook',async()=>{
+ const {context,elements,apiCalls,location,messages}=harness();
+ elements.mailIssue.value='Ergänzung im Freitext';
+ vm.runInContext("selectedProblems.add('stock');selectedProblems.add('damage')",context);
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  if(action==='prepare-mail')return {draft:{to:'cs@example.org',subject:'Neuer Entwurf',body:'Neue Mail'}};
+  return {order:{id:'order-1'}};
+ };
+ await context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ assert.equal(apiCalls[0].action,'prepare-mail');
+ assert.match(apiCalls[0].payload.note,/Nicht genügend Bestand verfügbar/);
+ assert.match(apiCalls[0].payload.note,/Ware beschädigt oder unvollständig/);
+ assert.match(apiCalls[0].payload.note,/Ergänzung im Freitext/);
+ vm.runInContext("selectedProblems.add('hold'); draftNeedsRegenerate=true",context);
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'changing a selected reason must prevent mail handoff');
+ assert.equal(location.href,'');
+ assert.ok(messages.some(m=>m.kind==='error'));
+ await context.generateDraft();
+ await context.mailto();
+ assert.deepEqual(apiCalls.map(x=>x.action),['prepare-mail','prepare-mail','record-mail-handoff']);
+ assert.match(location.href,/^mailto:/);
+});
+
+test('a selected problem alone meets the minimum note requirement',async()=>{
+ const {context,elements,apiCalls}=harness();
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return {draft:{to:'cs@example.org',subject:'Problem',body:'Mail'}};
+ };
+ vm.runInContext("selectedProblems.add('stock')",context);
+ await context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ assert.equal(elements.mailIssueError.hidden,true);
+ assert.equal(apiCalls[0].payload.note,'Nicht genügend Bestand verfügbar');
 });
