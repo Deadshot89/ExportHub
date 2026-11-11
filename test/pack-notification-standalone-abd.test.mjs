@@ -131,6 +131,11 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
   for(const file of ['index.html','TESTVERSION.html']){
     const source=fs.readFileSync(file,'utf8');
     const out=injectPackAbdOwnership(source,file);
+    // RC1382 may be invoked again by verify-final-html after the Pack build.
+    // Re-entry must not loosen ownership or duplicate any injected guard.
+    assert.equal(injectPackAbdOwnership(out,file),out,'Repeated ABD ownership verification must be idempotent');
+    const incomplete=out.replace('if(item.packNotificationId){renderAbd();return false;}', 'renderAbd();');
+    assert.throws(()=>injectPackAbdOwnership(incomplete,file),/incomplete or duplicated ABD ownership patch/);
     assert.match(out,/function shipmentForAbd\(a\)\{if\(!a\|\|q\(a\.packNotificationId\)\)return null/);
     assert.match(out,/packNotificationId:q\(d\.packNotificationId\|\|existing&&existing\.packNotificationId\)/);
     assert.match(out,/var sh=!item\.packNotificationId&&item\.linkedShipmentId/);
