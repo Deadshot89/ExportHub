@@ -410,7 +410,9 @@ function render(){
   const details=document.createElement('details');details.className='order';
   const problem=canManage?'<button type="button" class="btn danger small" data-mail="problem">'+escapeHtml(localeV2('reportProblem','Problem melden'))+'</button>':'';
   const shippingLabel=escapeHtml(localeV2('shippingConfirmation','Versandbestätigung'));
-  const shipping=canManage?'<button type="button" class="btn alt small" data-mail="shipping">'+shippingLabel+'</button>':'';
+  const readyToConfirm=(order.items||[]).length>0&&(order.items||[]).every(item=>item.status==='Shipped'||item.status==='Invoiced');
+  const unavailable=escapeHtml(localeV2('shippingNotReady','Erst möglich, wenn alle Positionen versendet sind.'));
+  const shipping=canManage?'<button type="button" class="btn alt small" data-mail="shipping"'+(readyToConfirm?'':' disabled aria-disabled="true" title="'+unavailable+'"')+'>'+shippingLabel+'</button>':'';
   const rows=(order.items||[]).map(item=>{
    if(item.scope==='ALL_LINES')return '<tr><td colspan="5"><strong>'+escapeHtml(localeV2('wholeOrder','Entire order (all lines)'))+'</strong> · '+escapeHtml(localeV2('individualLinesNotChecked','Individual lines not checked'))+'</td><td>'+(canManage?'<select class="state-pill" aria-label="Status: kompletter Auftrag" data-item="'+escapeHtml(item.id)+'">'+STATUS.map(status=>'<option value="'+escapeHtml(status)+'" '+(item.status===status?'selected':'')+'>'+escapeHtml(statusText(status))+'</option>').join('')+'</select>':statusBadge(item.status))+'</td></tr>';
    const checkLabel=item.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):localeV2('confirmed','Bestätigt');
