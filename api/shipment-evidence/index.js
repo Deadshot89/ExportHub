@@ -382,11 +382,82 @@ async function downloadFile(ctx,docId,record,fileId){
   return{status:200,headers:{'Content-Type':entry.mime,'Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':'sandbox','Content-Disposition':'attachment; filename="'+entry.name.replace(/[^A-Za-z0-9._-]/g,'_')+'"'},body:bytes};
 
 }
+
+/**
+ * RC1934 P0: Look up one immutable DOK ID without trusting the paginated UI.
+ * This endpoint exposes only minimal metadata and requires an authenticated admin.
+ * Absence never authorizes automatic reconstruction from an unrelated shipment.
+ */
+async function inspectDeletedEvidence(ctx,docId){
+ let record;
+ try{record=(await getRecord(ctx,docId)).record}
+ catch(error){
+  if(error.code!=='NOT_FOUND')throw error;
+  const exact=ctx.prefix+'records/'+docId+'.json';
+  let versionEntries=0,storageHistoryCandidate=false,versionsKnown=true;
+  try{
+   for await(const item of ctx.container.listBlobsFlat({prefix:exact,includeDeleted:true,includeVersions:true,includeSnapshots:true})){
+    if(item.name!==exact)continue;
+    versionEntries++;
+    if(item.deleted||item.versionId||item.snapshot)storageHistoryCandidate=true;
+    if(versionEntries>=100)break;
+   }
+  }catch(_){versionsKnown=false}
+  return json(200,{ok:true,id:docId,found:false,versionsKnown,versionEntries,storageHistoryCandidate});
+ }
+ const missingFiles=[];
+ for(const file of Array.isArray(record.files)?record.files:[]){
+  if(!file||!/^[a-f0-9-]{36}$/i.test(String(file.id||''))){missingFiles.push('invalid');continue}
+  try{await fileBlob(ctx,docId,file.id).getProperties()}
+  catch(error){if(error.statusCode===404){missingFiles.push(file.id);continue}throw error}
+ }
+ return json(200,{ok:true,id:docId,found:true,revision:record.revision,
+  deleted:!!record.deletedAt,deletedAt:record.deletedAt||null,createdAt:record.createdAt||null,
+  fileCount:Array.isArray(record.files)?record.files.length:0,missingFileCount:missingFiles.length,
+  canRestore:!!record.deletedAt&&missingFiles.length===0});
+}
+/** Preserve the exact pre-restore JSON under an immutable, read-back-verified key. */
+async function backupEvidenceBeforeRestore(ctx,docId,record){
+ const before=Buffer.from(JSON.stringify(record),'utf8');
+ const hash=crypto.createHash('sha256').update(before).digest('hex');
+ const key=ctx.prefix+'recovery-backups/'+docId+'/'+record.revision+'-'+hash.slice(0,24)+'.json';
+ const backup=ctx.container.getBlockBlobClient(key);
+ try{
+  await backup.uploadData(before,{conditions:{ifNoneMatch:'*'},blobHTTPHeaders:{blobContentType:'application/json'}});
+ }catch(error){if(error.statusCode!==409&&error.statusCode!==412)throw error}
+ const copy=await backup.download(0),parts=[];
+ for await(const part of copy.readableStreamBody)parts.push(Buffer.from(part));
+ if(!Buffer.concat(parts).equals(before))fail('BACKUP_NOT_VERIFIED','Wiederherstellung gesperrt: Sicherheitskopie nicht bestaetigt.',503);
+ return hash;
+}
+async function restoreDeletedEvidence(ctx,docId,record,blob,etag){
+ if(!record.deletedAt)fail('NOT_DELETED','Dieser Nachweis ist nicht geloescht.',409);
+ for(const file of Array.isArray(record.files)?record.files:[]){
+  if(!file||!/^[a-f0-9-]{36}$/i.test(String(file.id||'')))
+   fail('MISSING_ORIGINAL_FILE','Wiederherstellung gesperrt: Dateireferenz ungueltig.',409);
+  try{await fileBlob(ctx,docId,file.id).getProperties()}
+  catch(error){if(error.statusCode===404)fail('MISSING_ORIGINAL_FILE','Wiederherstellung gesperrt: Originaldatei fehlt.',409);throw error}
+ }
+ await backupEvidenceBeforeRestore(ctx,docId,record);
+ const deletedAt=record.deletedAt,deletedBy=record.deletedBy||'';
+ delete record.deletedAt;
+ delete record.deletedBy;
+ record.lastDeletion={at:deletedAt,by:deletedBy};
+ bump(record,ctx,'admin-restore',{deletedAt,deletedBy});
+ await saveRecord(blob,record,etag);
+ return json(200,{ok:true,record:cleanRecord(record),restored:true});
+}
+
 async function processRequest(req){
  const method=req.method,query=req.query||{},payload=method==='POST'?body(req):query;
  const action=txt(payload.action,32)||(method==='GET'?'list':'');
  if(PUBLIC_ACTIONS.has(action))return guestRequest(req,method,payload,action);
  const ctx=await login(req,method==='POST');
+ if(action==='inspect'||action==='restore'){
+  if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren duerfen die Datenrettung pruefen.',403);
+  if(method==='GET'&&action==='inspect')return inspectDeletedEvidence(ctx,id(payload.id));
+  if(method!=='POST'||action!=='restore')fail('INVALID_ACTION','Unbekannte Anfrage.',405);
+ }
  if(method==='GET'&&action==='list')return list(ctx,payload);
   if(method==='GET'&&action==='for-reference')return recordsForReference(ctx,payload);
  if(method==='POST'&&action==='create'){
@@ -428,6 +499,7 @@ async function processRequest(req){
   await saveRecord(blob,record,etag);
   return json(200,{ok:true,record:cleanRecord(record),canRegisterCustomer:true,canDelete:ctx.isAdmin===true});
  }
+ if(action==='restore')return restoreDeletedEvidence(ctx,docId,record,blob,etag);
  if(action==='delete'){
   if(!ctx.isAdmin)fail('ADMIN_REQUIRED','Nur Administratoren dürfen Dokumentationen löschen.',403);
   record.deletedAt=new Date().toISOString();
