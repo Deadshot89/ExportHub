@@ -141,4 +141,14 @@ const complaintUi={
  possibleCause:'Causa possibile',useSuggestion:'Usa nel campo',suggestionNotSaved:'Non ancora salvato. Verifica e salva.'}
 };
 for(const [locale,strings] of Object.entries(complaintUi))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
+
+const complaintAiFilesI18n={
+ de:{selectForAi:'Für KI auswählen',complaintFileAiConsent:'Ausgewählte PDFs/Fotos ausdrücklich an KI übertragen (max. 2 Dateien, 4 MB je Datei)',aiFileSelectionLimit:'Maximal zwei Dateien für die KI auswählen.'},
+ en:{selectForAi:'Select for AI',complaintFileAiConsent:'Explicitly send selected PDFs/photos to AI (max. 2 files, 4 MB each)',aiFileSelectionLimit:'Select no more than two files for AI.'},
+ pl:{selectForAi:'Wybierz do AI',complaintFileAiConsent:'Wyraźna zgoda na wysłanie wybranych plików do AI (maks. 2 pliki po 4 MB)',aiFileSelectionLimit:'Wybierz najwyżej dwa pliki dla AI.'},
+ es:{selectForAi:'Seleccionar para IA',complaintFileAiConsent:'Autorizar envío de archivos PDF/fotos elegidos a la IA (máx. 2 archivos de 4 MB)',aiFileSelectionLimit:'Selecciona un máximo de dos archivos.'},
+ fr:{selectForAi:'Sélectionner pour IA',complaintFileAiConsent:'Autoriser explicitement l’envoi des PDF/photos choisis à l’IA (2 fichiers de 4 Mo max.)',aiFileSelectionLimit:'Choisissez deux fichiers au maximum.'},
+ it:{selectForAi:'Seleziona per IA',complaintFileAiConsent:'Autorizzo esplicitamente l’invio di PDF/foto selezionati all’IA (massimo 2 file da 4 MB)',aiFileSelectionLimit:'Seleziona al massimo due file.'}
+};
+for(const [locale,strings] of Object.entries(complaintAiFilesI18n))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 })(window);
