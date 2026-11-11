@@ -197,6 +197,48 @@ test('RC1934 P0: TESTSERVICE lookup cannot restore a production DOK',async t=>{
  assert.ok(![...db.stored.keys()].some(k=>k.includes('recovery-backups')));
 });
 
+test('RC1934 P0: deleted Azure blob with retained versions is reported without restoring data',async t=>{
+ const old=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ t.after(()=>{if(old===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old});
+ const db=createStore();
+ // Simulate a fully missing current blob. Azure only returns the synthetic
+ // HasVersionsOnly marker when deletedwithversions is explicitly requested.
+ db.stored.delete(RECORD);
+ let listOptions=null;
+ const listOriginal=db.container.listBlobsFlat.bind(db.container);
+ db.container.listBlobsFlat=options=>{
+  if(options.prefix!==RECORD)return listOriginal(options);
+  listOptions=options;
+  return{async *[Symbol.asyncIterator](){
+   if(options.includeDeletedWithVersions)yield{name:RECORD,deleted:false,hasVersionsOnly:true};
+  }};
+ };
+ const user={role:'Administrator',rights:{documents:{level:'edit',read:true,edit:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({getContainerClient:()=>db.container}));
+ const probe=await call('GET',{action:'inspect',id:ID});
+ assert.equal(probe.status,200,probe.body);
+ assert.equal(listOptions?.prefix,RECORD,'Never scan unrelated customer or shipment blobs');
+ assert.equal(listOptions?.includeDeletedWithVersions,true);
+ assert.equal(listOptions?.includeVersions,true);
+ assert.equal(listOptions?.includeSnapshots,true);
+ assert.equal(listOptions?.includeDeleted,true);
+ const result=responseBody(probe);
+ assert.equal(result.found,false,'No active blob must be fabricated from version metadata');
+ assert.equal(result.versionEntries,1);
+ assert.equal(result.storageHistoryCandidate,true,'HasVersionsOnly marker is actionable forensic evidence');
+ assert.equal(result.versionsKnown,true);
+ assert.equal(result.record,undefined,'No blob contents or secrets in admin inspection response');
+ const restore=await call('POST',{action:'restore',id:ID,expectedRevision:2});
+ assert.equal(restore.status,404,'Missing active JSON may never be automatically reconstructed');
+ assert.deepEqual(db.stored.get(FILE).bytes,db.originalPhoto,'Original photo stays unchanged');
+ assert.deepEqual(db.stored.get(OTHER).bytes,db.unrelated,'Other documentation stays unchanged');
+ assert.equal([...db.stored.keys()].some(k=>k.includes('recovery-backups')),false);
+});
+
 test('RC1934 P0: exact DOK lookup UI, translations and backup protection remain parsable',()=>{
  const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
  const i18n=fs.readFileSync('assets/i18n/shipment-evidence.js','utf8');
