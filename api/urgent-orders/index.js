@@ -20,7 +20,7 @@ function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},rep
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
 function publicSiteEnvironment(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
@@ -62,7 +62,7 @@ function serverDeploymentEnvironment(){
 }
 function isAzureInternalWorkerHost(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurewebsites.net');
@@ -72,7 +72,7 @@ function isAzureInternalWorkerHost(value){
 // even when forwarding headers or Origin imitate the official site.
 function unknownStaticWebAppHost(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
@@ -83,7 +83,7 @@ function unknownStaticWebAppHost(url){
 // The verified release identity remains mandatory for internal Azure worker requests.
 function safeHostClass(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return'absent';
   const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   if(host==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'canonical-production';
