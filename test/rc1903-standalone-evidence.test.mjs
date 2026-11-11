@@ -282,6 +282,12 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  const verified=await call('POST',{action:'complaint-update',id:record.id,
   expectedRevision:JSON.parse(planned.body).record.revision,complaintId,effectivenessResult:'wirksam'});
  assert.equal(verified.status,200,verified.body);
+ const verifiedRecord=JSON.parse(verified.body).record;
+ const lastAudit=verifiedRecord.history.filter(x=>x.action==='complaint-update').at(-1)?.effectivenessAudit;
+ assert.equal(lastAudit?.before.result,'offen');
+ assert.equal(lastAudit?.after.result,'wirksam');
+ assert.equal(lastAudit?.after.verifiedBy,'Mitarbeiter');
+ assert.equal(lastAudit?.after.evidence,'Kontrollliste mit zehn Nachweisen');
  const closed=await call('POST',{action:'complaint-status',id:record.id,
   expectedRevision:JSON.parse(verified.body).record.revision,complaintId,state:'abgeschlossen'});
  assert.equal(closed.status,200,closed.body);
