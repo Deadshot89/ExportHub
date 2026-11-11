@@ -98,7 +98,11 @@ export function injectPackAbdOwnership(html,file='index.html'){
   );
   replaceOnce(
     'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;',
-    "function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;if(q(d.packNotificationId)){var pn=arr(state().packNotifications).find(function(n){return q(n.id)===q(d.packNotificationId)&&q(n.reference)===q(d.packNotificationRef)}),other=arr(state().abdRequests).find(function(a){return q(a.id)===q(d.id)||cleanRef(a.ref||a.reference)===cleanRef(d.ref)}),duplicated=arr(state().abdRequests).some(function(a){return q(a.packNotificationId)===q(d.packNotificationId)&&q(a.id)!==q(d.id)}),shipRefUsed=shipments().some(function(sh){return cleanRef(sh.ref||sh.reference||sh.shipmentRef)===cleanRef(d.ref)});if(!pn||low(pn.status)==='cancelled'||!q(d.packNotificationRef)||(other&&(q(other.packNotificationId)!==q(d.packNotificationId)||q(other.packNotificationRef)!==q(d.packNotificationRef)))||duplicated||shipRefUsed||q(d.linkedShipmentId)){if(showAlert)alert('ABD-Zuordnung nicht eindeutig. Keine Anfrage gespeichert.');return null}}"
+    "function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;if(q(d.packNotificationId)){if(!window.ExportHUBPackAbd||typeof window.ExportHUBPackAbd.canSave!=='function'||!window.ExportHUBPackAbd.canSave(d)){if(showAlert)alert('ABD-Speicherung läuft oder Packmodul fehlt.');return null}var pn=arr(state().packNotifications).find(function(n){return q(n.id)===q(d.packNotificationId)&&q(n.reference)===q(d.packNotificationRef)}),other=arr(state().abdRequests).find(function(a){return q(a.id)===q(d.id)||cleanRef(a.ref||a.reference)===cleanRef(d.ref)}),duplicated=arr(state().abdRequests).some(function(a){return q(a.packNotificationId)===q(d.packNotificationId)&&q(a.id)!==q(d.id)}),shipRefUsed=shipments().some(function(sh){return cleanRef(sh.ref||sh.reference||sh.shipmentRef)===cleanRef(d.ref)});if(!pn||low(pn.status)==='cancelled'||!q(d.packNotificationRef)||(other&&(q(other.packNotificationId)!==q(d.packNotificationId)||q(other.packNotificationRef)!==q(d.packNotificationRef)))||duplicated||shipRefUsed||q(d.linkedShipmentId)){if(showAlert)alert('ABD-Zuordnung nicht eindeutig. Keine Anfrage gespeichert.');return null}}"
+  );
+  replaceOnce(
+    "var existing=s.abdRequests.find(function(x){return q(x.id)===q(d.id)||cleanRef(x.ref||x.reference)===cleanRef(d.ref)}),files=",
+    "var existing=s.abdRequests.find(function(x){return q(x.id)===q(d.id)||cleanRef(x.ref||x.reference)===cleanRef(d.ref)}),packPrior=q(d.packNotificationId)?{request:existing?clone(existing):null}:null,files="
   );
   replaceOnce(
     'source:d.source,linkedShipmentId:q(d.linkedShipmentId||existing&&existing.linkedShipmentId),',
@@ -115,6 +119,14 @@ export function injectPackAbdOwnership(html,file='index.html'){
   replaceOnce(
     "source=d.source==='shipment'?'Aus Sendung übernommen':'Manuelle Erstellung'",
     "source=d.packNotificationId?'Aus Packmeldung übernommen':d.source==='shipment'?'Aus Sendung übernommen':'Manuelle Erstellung'"
+  );
+  replaceOnce(
+    "persist('ABD-Anfrage gespeichert');if(showAlert)alert('ABD-Anfrage gespeichert: '+item.ref);return item}",
+    "if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item,packPrior,{showAlert:!!showAlert,openMail:status==='Angefragt'});}else{persist('ABD-Anfrage gespeichert');if(showAlert)alert('ABD-Anfrage gespeichert: '+item.ref);}return item}"
+  );
+  replaceOnce(
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(!window.__EXPORTHUB_TEST_NO_MAILTO__)",
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(item.packNotificationId){renderAbd();return false;}if(!window.__EXPORTHUB_TEST_NO_MAILTO__)"
   );
   return out;
 }
