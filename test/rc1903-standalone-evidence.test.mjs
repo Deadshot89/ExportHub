@@ -657,3 +657,29 @@ test('RC1903: first photo upload creates own DOK; public and staff require persi
    assert.ok(strings[key],locale+' '+key);
  }
 });
+
+test('RC1903 P0: live TESTSERVICE pins fingerprinted root and unmodified public page independently',()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ const rootLiteral=live.match(/^const ROOT_GUEST_ASSET=(.+);$/m);
+ const publicLiteral=live.match(/^const PUBLIC_GUEST_ASSET=(.+);$/m);
+ assert.ok(rootLiteral&&publicLiteral,'Live gate must define separate root and public URL checks');
+ const rootPattern=vm.runInNewContext(rootLiteral[1]);
+ const publicPattern=vm.runInNewContext(publicLiteral[1]);
+ // This exact release URL was observed in main verification #43081248149.
+ const fingerprinted='<script defer src="/assets/shipment-evidence-guest.js?v=1907&h=8886450c1a"></script>';
+ assert.match(fingerprinted,rootPattern,'Fingerprint added by asset-fingerprint must not cause false release failure');
+ assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1907"></script>',rootPattern,
+   'Root must require a content fingerprint, not just the old version number');
+ assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1906&h=8886450c1a"></script>',rootPattern,
+   'Root must reject stale runtime versions');
+ assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1907&h=INVALID"></script>',rootPattern,
+   'Root must reject malformed fingerprints');
+ assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1907&h=8886450c1ax"></script>',rootPattern,
+   'Root must reject overlong fingerprints');
+ assert.match('<script defer src="/assets/shipment-evidence-guest.js?v=1907"></script>',publicPattern,
+   'Standalone public HTML is not fingerprinted by RC1112');
+ assert.doesNotMatch('<script src="/assets/shipment-evidence-guest.js?v=1906"></script>',publicPattern,
+   'Standalone public page must reject outdated runtime');
+ assert.ok(live.includes('assert.match(html,ROOT_GUEST_ASSET,'),'Main TESTSERVICE root must validate fingerprinted script');
+ assert.ok(live.includes('assert.match(publicHtml,PUBLIC_GUEST_ASSET,'),'Public page must keep separate guest asset check');
+});
