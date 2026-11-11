@@ -41,7 +41,7 @@ concurrency:
 
 jobs:
   verify_and_deploy_testservice:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
       GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
@@ -138,7 +138,9 @@ jobs:
         run: |
           set -euo pipefail
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          # A successful real Chromium launch is mandatory before any browser gate.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: RC1124 Lokales Browser-Gate
         id: rc1124_local_browser_gate

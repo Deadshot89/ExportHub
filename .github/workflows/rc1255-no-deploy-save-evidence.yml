@@ -1,0 +1,51 @@
+name: RC1255 No-Deploy Save Evidence (current main)
+
+# Offline-only tests. No Azure tokens, writes, deployments, or production actions.
+on:
+  push:
+    branches:
+      - test/rc1255-main-offline-proof-20261111
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/rc1255-no-deploy-save-evidence.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1255-main-offline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-save-evidence:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/test/rc1255-main-offline-proof-20261111') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/test/rc1255-main-offline-proof-20261111') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.ref == 'test/rc1255-main-offline-proof-20261111' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1255 meta delta, ACK, conflict, RC1124 and RC1153 release contracts (offline)
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 \
+            test/p0-state-conditional-write-conflict.test.mjs \
+            test/rc1549-live-browser-timeout-budget.test.mjs \
+            test/rc1124-browser-release-gate.test.mjs \
+            test/rc1982-save-meta-delta.test.mjs \
+            test/rc1982-save-drain-diagnostics.test.mjs \
+            test/rc1153-testservice-release-gate.test.mjs
+      - name: Keep Azure live acceptance explicitly blocked
+        run: |
+          echo 'OFFLINE_ONLY: no Azure deployment, no Azure mutation, no production changes.'
+          echo 'RC1255: Azure ACK and independent ShipmentHistory readback are NOT PROVEN.'
