@@ -342,13 +342,14 @@ function deleteActionsMarkup(order){
  const info=pending?'<p role="status">'+escapeHtml(localeV2('deleteWaitPrefix',"Deletion requested – waiting for "))+escapeHtml(owner||localeV2('deleteAssignedProcessor',"assigned processor"))+'</p>':
    record.state==='rejected'?'<p role="status">'+escapeHtml(localeV2('deleteRejected',"Previous deletion request was declined."))+'</p>':'';
  const ask=!pending&&!complete?'<button type="button" class="btn alt small" data-delete-action="request">'+escapeHtml(localeV2('deleteButton',"Delete request"))+'</button>':'';
+ const start=!pending&&canManage&&!owner&&!complete?'<button type="button" class="btn alt small" data-delete-action="start">'+escapeHtml(localeV2('deleteClaim',"Claim processing"))+'</button>':'';
  const claim=pending&&canManage&&!owner?'<button type="button" class="btn alt small" data-delete-action="claim">'+escapeHtml(localeV2('deleteClaim',"Claim processing"))+'</button>':'';
  const decisions=pending&&canManage&&ownerId===viewerId&&!!ownerId?
   '<button type="button" class="btn danger small" data-delete-action="approve">'+escapeHtml(localeV2('deleteApprove',"Approve deletion"))+'</button>'+
   '<button type="button" class="btn alt small" data-delete-action="reject">'+escapeHtml(localeV2('deleteReject',"Reject"))+'</button>':'';
  return '<div class="mail-history" data-urgent-deletion><strong>'+escapeHtml(localeV2('deleteHeading',"Delete Urgent Order request"))+'</strong>'+
   '<p class="help">'+escapeHtml(localeV2('deleteDisclaimer',"Only the Urgent Order request is removed. Shipments and documents are preserved."))+'</p>'+
-  info+'<div class="btn-row">'+ask+claim+decisions+'</div></div>';
+  info+'<div class="btn-row">'+ask+start+claim+decisions+'</div></div>';
 }
 function render(){
  showView(activeView);
@@ -398,10 +399,11 @@ function render(){
    try{
     if(action==='request')await api('request-delete',{id:order.id});
     else if(action==='claim')await api('claim-delete-handler',{id:order.id});
+    else if(action==='start')await api('start-processing',{id:order.id});
     else await api('respond-delete',{id:order.id,approve:action==='approve'});
     await refresh();
     setMessage('listMessage',action==='reject'?localeV2('deleteDeclinedToast',"Deletion declined."):
-     action==='claim'?localeV2('deleteClaimedToast',"Processing assigned."):
+     (action==='claim'||action==='start')?localeV2('deleteClaimedToast',"Processing assigned."):
      action==='request'?localeV2('deleteRequestToast',"Deletion completed or awaiting approval."):
      localeV2('deleteApprovedToast',"Deletion approved."),'ok');
    }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
