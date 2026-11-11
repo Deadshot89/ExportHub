@@ -162,6 +162,24 @@ function responsiveViewport(page){
   return !!(viewport&&viewport.width<=900);
 }
 
+// RC1982: Keep live-save failures fail-closed and record only non-sensitive
+// runtime booleans, generations and a sanitized machine-readable error code.
+async function rc1982DrainSnapshot(page){
+  return page.evaluate(()=>{
+    const runtime=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+    const finite=value=>Number.isFinite(Number(value))?Number(value):null;
+    return {
+      saving:runtime.saving===true,
+      pending:runtime.pendingSave===true,
+      dirty:runtime.dirty===true,
+      hasTimer:!!runtime.saveTimer,
+      changedGeneration:finite(runtime.changeGeneration),
+      savedGeneration:finite(runtime.lastSavedGeneration),
+      lastErrorCode:String(runtime.lastSaveErrorCode||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,48)
+    };
+  }).catch(()=>({unavailable:true}));
+}
+
 export async function settleStateSave(page,options={}){
   if(process.env.EXPORTHUB_E2E_LIVE!=='1')return {skipped:true};
   const timeout=Math.max(3000,Number(options.timeout||25_000));
@@ -215,7 +233,7 @@ export async function settleStateSave(page,options={}){
           if(timer)clearTimeout(timer);
         }
       },remaining);
-      if(result&&result.timeout)throw new Error(result.error);
+      if(result&&result.timeout){const snapshot=await rc1982DrainSnapshot(page);throw new Error('Azure-Save Drain Timeout: '+JSON.stringify(snapshot));}
       if(result&&result.ok!==true){
         const details=await page.evaluate(()=>{
           const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
