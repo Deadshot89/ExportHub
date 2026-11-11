@@ -151,4 +151,32 @@ const complaintAiFilesI18n={
  it:{selectForAi:'Seleziona per IA',complaintFileAiConsent:'Autorizzo esplicitamente l’invio di PDF/foto selezionati all’IA (massimo 2 file da 4 MB)',aiFileSelectionLimit:'Seleziona al massimo due file.'}
 };
 for(const [locale,strings] of Object.entries(complaintAiFilesI18n))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
+// RC1911: document-list columns and explicit effectiveness-confirmed close.
+const complaintListI18n={
+ de:{refShort:'REF',documentationRefShort:'Dokumentation',complaintStatus:'Reklamationsstatus',
+  noComplaintsShort:'Keine Reklamation',complaintCompleted:'Erledigt',markComplaintDone:'Als erledigt markieren',
+  verifyBeforeDone:'Erst Wirksamkeitsprüfung speichern und bestätigen.',saveComplaintFirst:'Änderungen zuerst speichern.',
+  confirmComplaintDone:'Wirksamkeit bestätigt – Reklamation als erledigt markieren?'},
+ en:{refShort:'REF',documentationRefShort:'Documentation',complaintStatus:'Complaint status',
+  noComplaintsShort:'No complaint',complaintCompleted:'Completed',markComplaintDone:'Mark as completed',
+  verifyBeforeDone:'Save and confirm the effectiveness review first.',saveComplaintFirst:'Save changes first.',
+  confirmComplaintDone:'Effectiveness confirmed – mark complaint as completed?'},
+ pl:{refShort:'REF',documentationRefShort:'Dokumentacja',complaintStatus:'Status reklamacji',
+  noComplaintsShort:'Brak reklamacji',complaintCompleted:'Zakończona',markComplaintDone:'Oznacz jako zakończoną',
+  verifyBeforeDone:'Najpierw zapisz i zatwierdź ocenę skuteczności.',saveComplaintFirst:'Najpierw zapisz zmiany.',
+  confirmComplaintDone:'Skuteczność potwierdzona – zakończyć reklamację?'},
+ es:{refShort:'REF',documentationRefShort:'Documentación',complaintStatus:'Estado de la reclamación',
+  noComplaintsShort:'Sin reclamación',complaintCompleted:'Resuelta',markComplaintDone:'Marcar como resuelta',
+  verifyBeforeDone:'Guarda y confirma primero la verificación de eficacia.',saveComplaintFirst:'Guarda los cambios primero.',
+  confirmComplaintDone:'Eficacia confirmada: ¿marcar como resuelta?'},
+ fr:{refShort:'REF',documentationRefShort:'Documentation',complaintStatus:'Statut de réclamation',
+  noComplaintsShort:'Aucune réclamation',complaintCompleted:'Terminée',markComplaintDone:'Marquer comme terminée',
+  verifyBeforeDone:'Enregistrer et confirmer d’abord la vérification d’efficacité.',saveComplaintFirst:'Enregistrer les modifications d’abord.',
+  confirmComplaintDone:'Efficacité confirmée : terminer la réclamation ?'},
+ it:{refShort:'REF',documentationRefShort:'Documentazione',complaintStatus:'Stato del reclamo',
+  noComplaintsShort:'Nessun reclamo',complaintCompleted:'Completato',markComplaintDone:'Segna come completato',
+  verifyBeforeDone:'Salva e conferma prima la verifica di efficacia.',saveComplaintFirst:'Salva prima le modifiche.',
+  confirmComplaintDone:'Efficacia confermata: completare il reclamo?'}
+};
+for(const [locale,strings] of Object.entries(complaintListI18n))Object.assign(w.ExportHUBEvidenceI18n[locale],strings);
 })(window);
