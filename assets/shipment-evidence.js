@@ -158,6 +158,9 @@ async function write(action,extra,expectedId){
     (state.record&&state.record.id||null)===originalId){
    state.record=result.record;if(typeof result.canDelete==='boolean')state.canDelete=result.canDelete;if(typeof result.canRegisterCustomer==='boolean')state.canRegisterCustomer=result.canRegisterCustomer;showForm(state.record);
    status(action==='create'?t('created'):action==='upload'?t('verifyingUpload'):t('saved'),false);
+   if(['complaint','complaint-update','complaint-status'].includes(action)){
+    try{w.dispatchEvent(new Event('exporthub:complaint-updated'))}catch(_){}
+   }
   }
   return result;
  }catch(e){if(serial===state.serial&&active())status(e.message,true);return null}
