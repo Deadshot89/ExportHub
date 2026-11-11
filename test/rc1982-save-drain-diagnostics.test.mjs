@@ -117,6 +117,29 @@ test('RC1982: idle flags cannot mask a locally unsaved generation or missing Azu
   }
 });
 
+test('RC1171: idle UI with lagging Azure ACK triggers exactly one flush and requires fresh ACK',async()=>{
+  const start=source.indexOf('export async function settleStateSave(');
+  const end=source.indexOf('\n\n// RC1579:',start);
+  const statement=source.slice(start,end).replace('export async function settleStateSave(','async function settleStateSave(');
+  const runtime={saving:false,pendingSave:false,dirty:false,saveTimer:null,
+    changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1};
+  let calls=0,clock=0;
+  const FakeDate=class extends Date{static now(){clock+=1000;return clock}};
+  const clean={runtime,flushSave:async(_reason,options)=>{
+    calls++;
+    assert.equal(options.force,true);
+    assert.equal(options.userInitiated,true);
+    runtime.lastServerSaveAckGeneration=3;
+    return true;
+  }};
+  const context={process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
+    window:{ExportHUBClean:clean},Date:FakeDate,Number,Math,JSON,Promise,pause:async()=>{}};
+  const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
+  const result=await settle({evaluate:fn=>Promise.resolve(fn())},{timeout:3000,stableMs:200});
+  assert.equal(calls,1,'Only one controlled Azure flush is permitted');
+  assert.equal(result.unconfirmedGeneration,false,'Fresh Azure ACK is required');
+});
+
 test('RC1982: diagnostic collection fails closed and never approves a save',async()=>{
   const fn=vm.runInNewContext(extracted+'\nrc1982DrainSnapshot;',{window:{}});
   const result=await fn({evaluate:()=>Promise.reject(Error('browser closed'))});
