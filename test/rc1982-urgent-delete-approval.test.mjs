@@ -42,6 +42,10 @@ test('RC1982: status change starts processing permanently; only handler can acce
  assert.equal(o.deletion.requestedBy.id,creator.id);
  assert.equal(model.requestDeletion(o,creator).state,'pending','duplicate request remains pending');
  assert.throws(()=>model.resolveDeletion(o,another,true),error('URGENT_DELETE_NOT_HANDLER'));
+ assert.throws(()=>model.setItemStatus(o,o.items[0].id,'In Progress',another),error('URGENT_DELETE_PENDING'),'another employee must not take over by changing status while pending');
+ assert.equal(model.processingOwner(o).id,worker.id);
+ assert.throws(()=>model.recordMailHandoff(o,{kind:'problem',to:o.email,subject:'Problem',body:'A possible shipment issue'},another),error('URGENT_DELETE_PENDING'),'mail activity must not silently change the assigned handler');
+
  assert.throws(()=>model.resolveDeletion(o,creator,true),error('URGENT_FORBIDDEN'));
  const approval=model.resolveDeletion(o,worker,true,'2026-11-11T09:03:00Z');
  assert.equal(approval.state,'deleted');
