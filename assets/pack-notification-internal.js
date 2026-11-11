@@ -174,6 +174,9 @@
     return{ok:true,notification:n};
   }
   async function markNotificationOpened(notification){
+    // Viewing Pack details requires read access; writing task/status data does not.
+    // An ABD-only editor must not stage a forbidden tasks mutation before saving.
+    if(typeof root.canWrite==='function'&&!root.canWrite('tasks'))return true;
     const state=sharedState(),now=new Date().toISOString(),id=q(notification&&notification.id);
     const live=notificationById(state,id),liveBefore=live?{status:live.status,updatedAt:live.updatedAt}:null,taskBefore=[];
     if(live&&q(live.status).toLowerCase()==='new'){live.status='in_review';live.updatedAt=now;}
