@@ -2426,8 +2426,8 @@
   "urgentOrderV2.formTitle": "Create a new request",
   "urgentOrderV2.formIntro": "Enter the order and goods flow. Requests appear separately in the appropriate tab.",
   "urgentOrderV2.requestedDispatchDate": "Requested dispatch date * (German local time)",
-  "urgentOrderV2.cutoffLateWarning": "A quick note about today's deadline: Please report orders for today by 3:15 pm. If it's later, it's best to choose tomorrow as the shipping date. You can still report the order for today. If the system doesn't release it automatically, we'll take care of it tomorrow.",
-  "urgentOrderV2.cutoffHeading": "A quick note about today's deadline",
+  "urgentOrderV2.cutoffLateWarning": "Please report your order by 3:15 pm. Running late? Choose tomorrow as the shipping date. If it really needs to go today, you can still report it. If it isn't approved automatically, we'll handle it tomorrow.",
+  "urgentOrderV2.cutoffHeading": "Shipping today?",
   "urgentOrderV2.cutoffSubmitToday": "Report anyway",
   "urgentOrderV2.cutoffMoveTomorrow": "Move to tomorrow",
   "urgentOrderV2.priorityLabel": "Priority / reason for request *",
@@ -2726,7 +2726,7 @@
   "urgentOrderV2.deletePublicPending": "Deletion requested – waiting for logistics approval.",
   "urgentOrderV2.deletePublicRejected": "The previous deletion request was declined.",
   "urgentOrderV2.deletePublicDisclaimer": "Deletion affects the Urgent Order request, not the actual shipment.",
-  "urgentOrderV2.minibagReviewPrompt": "Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag? Please check. OK = continue without Minibag; Cancel = correct the item.",
+  "urgentOrderV2.minibagReviewPrompt": "The quantity for {articles} is not a full standard pack. Are you sure this is not a Minibag? OK = continue without Minibag; Cancel = correct the item.",
   "urgentOrderV2.minibagReviewCancel": "Please check the Minibag option and quantity.",
   "urgentOrderV2.packingCatalogTitle": "Minibag · Manage item master securely",
   "urgentOrderV2.packingCatalogHelp": "Import the tab-separated list with Item number, Net weight and Packing quantity. Pack sizes are stored only in private Azure storage.",
@@ -2736,5 +2736,12 @@
   "urgentOrderV2.packingCatalogPickFile": "Please select the item list first.",
   "urgentOrderV2.packingCatalogTooLarge": "File exceeds the 5 MB limit.",
   "urgentOrderV2.packingCatalogSaving": "Validating and securely saving the item list …",
-  "urgentOrderV2.packingCatalogSaved": "{count} items saved · {unknown} without a valid pack size."
+  "urgentOrderV2.packingCatalogSaved": "{count} items saved · {unknown} without a valid pack size.",
+  "urgentOrderV2.packingPreflightRunning": "Checking Minibag quantities …",
+  "urgentOrderV2.packingPreflightOk": "Minibag check complete: {count} items checked against their pack size.",
+  "urgentOrderV2.packingPreflightMissing": "No Minibag item list is loaded. Quantities cannot be checked automatically.",
+  "urgentOrderV2.packingPreflightUnknown": "No valid pack size is available for: {articles}. These items could not be checked.",
+  "urgentOrderV2.packingPreflightUnknownConfirm": "Please check the item numbers. Continue anyway?",
+  "urgentOrderV2.packingPreflightConfirmed": "Minibag quantities checked. Your confirmation was saved for these items and quantities.",
+  "urgentOrderV2.packingPreflightRetry": "Please check the quantity or select Minibag."
 }

@@ -208,6 +208,8 @@ function lineField(){
  box.querySelector('[data-remove]').addEventListener('click',()=>{box.remove();if(!document.querySelector('.uo-item'))lineField()});
  const min=box.querySelector('[data-field="minibag"]'),lead=box.querySelector('[data-leadtime]');
  min.addEventListener('change',()=>{lead.hidden=!min.checked;lead.querySelector('select').required=min.checked;if(!min.checked)lead.querySelector('select').value='';});
+ box.addEventListener('input',event=>{if(event.target.matches('[data-field="article"],[data-field="quantity"]'))delete box.dataset.packingReviewed;});
+ min.addEventListener('change',()=>{delete box.dataset.packingReviewed;});
  localizeLineChoices(box);$('lineFields').appendChild(box);
 }
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
@@ -238,7 +240,7 @@ function syncP1Approval(){
 function formItems(){
  return [...document.querySelectorAll('.uo-item')].map(box=>{
   const get=k=>box.querySelector('[data-field="'+k+'"]'),check=k=>get(k).value==='true'?true:get(k).value==='false'?false:null;
-  return{line:get('line').value.trim(),article:get('article').value.trim(),quantity:Number(get('quantity').value),minibag:get('minibag').checked,pickableStock:check('pickableStock'),holdsClear:check('holdsClear'),minibagLeadtime:get('minibag').checked?check('minibagLeadtime'):null,exceptionReason:get('exceptionReason').value.trim()};
+  return{line:get('line').value.trim(),article:get('article').value.trim(),quantity:Number(get('quantity').value),minibag:get('minibag').checked,minibagReviewed:!get('minibag').checked&&box.dataset.packingReviewed===(get('article').value.trim()+'\t'+get('quantity').value),pickableStock:check('pickableStock'),holdsClear:check('holdsClear'),minibagLeadtime:get('minibag').checked?check('minibagLeadtime'):null,exceptionReason:get('exceptionReason').value.trim()};
  });
 }
 
@@ -254,7 +256,30 @@ function showInternalStep(step){
   $('internalWizardReview').textContent=form.elements.orderNumber.value.trim()+' · '+priorityText(form.elements.priority.value)+' · '+(isAllLines()?(localeV2('wholeOrder','Entire order (all lines)')):items.length+' '+localeV2('positions','Positionen'))+' · '+form.elements.email.value.trim();
  }
 }
-function nextInternalStep(){
+async function checkInternalMinibagsBeforeNext(){
+ const boxes=[...document.querySelectorAll('.uo-item')],data=formItems();
+ const result=await api('packing-preflight',{items:data});
+ const validIndex=i=>Number.isInteger(i)&&i>=0&&i<data.length;
+ const unknown=(result.unknownIndices||[]).filter(validIndex);
+ const missing=unknown.map(i=>data[i].article||data[i].line||'#'+(i+1)).join(', ');
+ let status=localeV2('packingPreflightOk','Minibag-Prüfung: {count} Artikel anhand der Verpackungsgröße geprüft.').replace('{count}',String(result.checkedCount||0));
+ if(!result.ready)status=localeV2('packingPreflightMissing','Keine Minibag-Artikelliste geladen. Eine automatische Prüfung ist nicht möglich.');
+ else if(unknown.length)status=localeV2('packingPreflightUnknown','Keine Verpackungsgröße hinterlegt für: {articles}. Diese Positionen konnten nicht geprüft werden.').replace('{articles}',missing);
+ if(!result.ready||unknown.length){
+  const prompt=localeV2('packingPreflightUnknownConfirm','Minibag-Prüfung unvollständig. Bitte Artikelnummern prüfen. Trotzdem weitermachen?');
+  if(!window.confirm(status+'\n'+prompt))return null;
+ }
+ const review=(result.reviewIndices||[]).filter(validIndex);
+ if(review.length){
+  const list=review.map(i=>data[i].article+' ('+data[i].quantity+')').join(', ');
+  const prompt=localeV2('minibagReviewPrompt','Die Menge bei {articles} passt nicht zur vollen Verpackung. Ist das wirklich kein Minibag?').replace('{articles}',list);
+  if(!window.confirm(prompt))return null;
+  review.forEach(i=>{boxes[i].dataset.packingReviewed=data[i].article+'\t'+data[i].quantity;});
+  status=localeV2('packingPreflightConfirmed','Minibag-Mengen geprüft und deine Bestätigung gespeichert.');
+ }
+ return status;
+}
+async function nextInternalStep(){
  const panel=document.querySelector('[data-internal-step="'+internalStep+'"]');
  for(const field of panel.querySelectorAll('input,select,textarea'))if(field.willValidate&&!field.checkValidity()){field.reportValidity();field.focus();return;}
  if(internalStep===2&&isAllLines()){
@@ -264,6 +289,17 @@ function nextInternalStep(){
   const items=formItems();
   if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage',localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
   if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
+ }
+ if(internalStep===2&&!isAllLines()){
+  const button=$('internalWizardNext');button.disabled=true;
+  setMessage('createMessage',localeV2('packingPreflightRunning','Minibag-Mengen werden geprüft …'),'');
+  try{
+   const notice=await checkInternalMinibagsBeforeNext();
+   if(notice===null){setMessage('createMessage',localeV2('packingPreflightRetry','Bitte Menge oder Minibag-Haken prüfen.'),'warning');return;}
+   setMessage('createMessage',notice,'ok');showInternalStep(3);
+  }catch(e){setMessage('createMessage',e.message,'error');}
+  finally{button.disabled=false;}
+  return;
  }
  setMessage('createMessage','','');showInternalStep(internalStep+1);
 }
@@ -449,7 +485,7 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- const fallback=$('newOrder').elements.language.value==='en'?"A quick note about today's deadline: Please report orders for today by 3:15 pm. If it's later, it's best to choose tomorrow as the shipping date. You can still report the order for today. If the system doesn't release it automatically, we'll take care of it tomorrow.":"Hinweis zur heutigen Meldefrist: Bitte melde Aufträge für heute bis 15:15 Uhr. Ist es später, wähle am besten morgen als Versandtag. Du kannst den Auftrag trotzdem für heute melden. Wenn das System ihn nicht automatisch freigibt, kümmern wir uns morgen darum.";
+ const fallback=$('newOrder').elements.language.value==='en'?"Shipping today? Please report your order by 3:15 pm. Running late? Choose tomorrow as the shipping date. If it really has to go today, you can still report it. If it isn't approved automatically, we'll handle it tomorrow.":"Heute noch versenden? Bitte melde deinen Auftrag bis 15:15 Uhr an. Du bist später dran? Dann wähle bitte morgen als Versandtag. Wenn es unbedingt heute sein muss, kannst du den Auftrag trotzdem melden. Wird er nicht automatisch freigegeben, bearbeiten wir ihn morgen.";
  return localeV2('cutoffLateWarning',fallback);
 }
 let internalCutoffApproved=false;

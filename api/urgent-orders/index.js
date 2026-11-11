@@ -210,6 +210,10 @@ async function execute(req,user,refs){
   }
   return{open,closed,total:open+closed,environment:refs.environment};
  }
+ if(action==='packing-preflight'){
+  const catalog=await readPackingCatalog(refs);
+  return{...packing.preflight(p.items,catalog),environment:refs.environment};
+ }
  if(action==='packing-catalog-status'){
   if(!canImportCatalog(user))throw model.problem('URGENT_FORBIDDEN','Keine Berechtigung zur Artikelstammdatenverwaltung.',403);
   const catalog=await readPackingCatalog(refs);

@@ -2426,8 +2426,8 @@
   "urgentOrderV2.formTitle": "Utwórz nowe zgłoszenie",
   "urgentOrderV2.formIntro": "Wprowadź dane zamówienia i przepływu towarów. Zgłoszenia znajdziesz w odpowiedniej zakładce.",
   "urgentOrderV2.requestedDispatchDate": "Żądana data wysyłki * (czas lokalny w Niemczech)",
-  "urgentOrderV2.cutoffLateWarning": "Krótka informacja o dzisiejszym terminie: Zamówienia na dziś zgłoś proszę do 15:15. Jeśli jest już później, najlepiej wybierz jutro jako dzień wysyłki. Nadal możesz zgłosić zamówienie na dziś. Jeśli system nie zwolni go automatycznie, zajmiemy się nim jutro.",
-  "urgentOrderV2.cutoffHeading": "Krótka informacja o terminie",
+  "urgentOrderV2.cutoffLateWarning": "Zgłoś zamówienie do 15:15. Jest już później? Wybierz jutro jako dzień wysyłki. Jeśli musi wyjść dziś, nadal możesz je zgłosić. Jeśli system nie zatwierdzi go automatycznie, zajmiemy się nim jutro.",
+  "urgentOrderV2.cutoffHeading": "Wysyłka jeszcze dziś?",
   "urgentOrderV2.cutoffSubmitToday": "Zgłoś mimo to",
   "urgentOrderV2.cutoffMoveTomorrow": "Przenieś na jutro",
   "urgentOrderV2.priorityLabel": "Priorytet / powód zgłoszenia *",
@@ -2726,7 +2726,7 @@
   "urgentOrderV2.deletePublicPending": "Oczekiwanie na zgodę logistyki.",
   "urgentOrderV2.deletePublicRejected": "Ostatni wniosek odrzucono.",
   "urgentOrderV2.deletePublicDisclaimer": "Usunięcie dotyczy tylko zgłoszenia, nie przesyłki.",
-  "urgentOrderV2.minibagReviewPrompt": "Sprawdź Minibag: {articles} nie stanowi pełnego standardowego opakowania. Czy na pewno to nie Minibag? OK = zgłoś bez Minibag; Anuluj = popraw pozycję.",
+  "urgentOrderV2.minibagReviewPrompt": "Ilość dla {articles} nie odpowiada pełnemu opakowaniu. Czy na pewno to nie Minibag? OK = dalej bez Minibag; Anuluj = popraw artykuł.",
   "urgentOrderV2.minibagReviewCancel": "Sprawdź zaznaczenie Minibag i ilość.",
   "urgentOrderV2.packingCatalogTitle": "Minibag · Bezpieczne zarządzanie kartoteką",
   "urgentOrderV2.packingCatalogHelp": "Zaimportuj listę TSV z kolumnami Item number, Net weight i Packing quantity. Wielkości opakowań są przechowywane wyłącznie w prywatnym magazynie Azure.",
@@ -2736,5 +2736,12 @@
   "urgentOrderV2.packingCatalogPickFile": "Najpierw wybierz listę artykułów.",
   "urgentOrderV2.packingCatalogTooLarge": "Plik przekracza limit 5 MB.",
   "urgentOrderV2.packingCatalogSaving": "Sprawdzanie i bezpieczne zapisywanie listy …",
-  "urgentOrderV2.packingCatalogSaved": "Zapisano {count} artykułów · {unknown} bez ważnej wielkości."
+  "urgentOrderV2.packingCatalogSaved": "Zapisano {count} artykułów · {unknown} bez ważnej wielkości.",
+  "urgentOrderV2.packingPreflightRunning": "Sprawdzanie ilości Minibag …",
+  "urgentOrderV2.packingPreflightOk": "Kontrola Minibag: sprawdzono wielkości opakowań dla {count} artykułów.",
+  "urgentOrderV2.packingPreflightMissing": "Nie wczytano listy artykułów Minibag. Nie można automatycznie sprawdzić ilości.",
+  "urgentOrderV2.packingPreflightUnknown": "Brak prawidłowej wielkości opakowania dla: {articles}. Nie można sprawdzić tych pozycji.",
+  "urgentOrderV2.packingPreflightUnknownConfirm": "Sprawdź numery artykułów. Kontynuować mimo to?",
+  "urgentOrderV2.packingPreflightConfirmed": "Ilości Minibag sprawdzone. Potwierdzenie zapisano dla tych artykułów i ilości.",
+  "urgentOrderV2.packingPreflightRetry": "Sprawdź ilość lub zaznacz Minibag."
 }
