@@ -79,7 +79,7 @@
     el.setAttribute('data-status',visible?lastSave.status:'');
     return true;
   }
-  async function confirmSave(item,prior,options){
+  async function confirmSave(item,options){
     if(saveBusy)return false;
     saveBusy=true;lastSave={id:q(item&&item.id),status:'saving'};
     const opts=options||{};
