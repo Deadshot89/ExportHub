@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:''};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -313,6 +313,13 @@ function complaintsPanel(record){
  }
  complaints.slice().reverse().forEach(c=>{
   const details=make('details','eh1903-complaint'),summary=make('summary',null,dateText(c.reportedDate)+' · '+(c.createdBy||'')+' · '+t(c.category||'sonstiges')+' · '+t(c.state));
+  const openKey=record.id+':'+c.id;
+  if(state.expandedComplaintId===openKey)details.open=true;
+  details.addEventListener('toggle',()=>{
+   if(!details.isConnected)return;
+   if(details.open)state.expandedComplaintId=openKey;
+   else if(state.expandedComplaintId===openKey)state.expandedComplaintId='';
+  });
   details.appendChild(summary);details.appendChild(make('p',null,c.text));
   const statusSelect=make('select');statusSelect.setAttribute('aria-label',t('state'));
   ['offen','in_pruefung','abgeschlossen'].forEach(st=>{const o=make('option',null,t(st));o.value=st;o.selected=c.state===st;statusSelect.appendChild(o)});
@@ -327,6 +334,7 @@ function complaintsPanel(record){
   const upload=make('input');upload.type='file';upload.multiple=true;upload.accept='application/pdf,image/jpeg,image/png';
   upload.setAttribute('aria-label',t('complaintAttachments'));upload.disabled=c.state==='abgeschlossen';
   upload.addEventListener('change',async()=>{
+   state.expandedComplaintId=openKey;
    const selected=[...upload.files];upload.value='';
    if(!selected.length)return;
    if(state.uploading||state.busy){status(t('uploadBusy'),true);return}
@@ -393,8 +401,9 @@ function complaintsPanel(record){
    const data={complaintId:c.id};
    details.querySelectorAll('[data-complaint-field]').forEach(el=>data[el.getAttribute('data-complaint-field')]=el.value);
    // Data and verification are saved with a single optimistic-concurrency revision.
+   state.expandedComplaintId=openKey;
    const result=await write('complaint-update',data,record.id);
-   if(!result)details.open=true;
+   if(!result&&details.isConnected)details.open=true;
   },true));
   const consentLabel=make('label','eh1903-consent'),consent=make('input');
   consent.type='checkbox';consentLabel.appendChild(consent);consentLabel.appendChild(make('span',null,t('complaintAiConsent')));
