@@ -207,7 +207,7 @@ function lineField(){
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
 function syncScope(){
  const all=isAllLines();$('lineFields').hidden=all;$('addLine').hidden=all;
- $('internalStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'):localeV2('individualLinesOption','Einzelne Artikel / Lines erfassen');
+ $('internalStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Checks for the entire order'):localeV2('individualLinesOption','Enter individual items / lines');
  for(const el of $('lineFields').querySelectorAll('input,select,textarea'))el.disabled=all;
  $('internalWholeOrderChecks').hidden=!all;
  $('internalWholeOrderChecks').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!all);
@@ -219,8 +219,8 @@ function wholeOrderChecks(){
 function wholeOrderChecksMarkup(order){
  if(!order.allLines)return'';
  const c=order.orderChecks||{};
- const label=v=>v===true?localeV2('yes','Ja'):v===false?localeV2('no','Nein'):localeV2('wholeOrderNotChecked','Noch nicht geprüft');
- return '<p class="help" data-whole-order-checks="true"><strong>'+escapeHtml(localeV2('wholeOrderChecksTitle','Prüfungen für den gesamten Auftrag'))+'</strong> · '+escapeHtml(localeV2('wholeOrderStock','Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?'))+' '+escapeHtml(label(c.pickableStock))+' · '+escapeHtml(localeV2('wholeOrderHolds',"Weder Don't Process noch Credit Hold für den gesamten Auftrag?"))+' '+escapeHtml(label(c.holdsClear))+(c.exceptionReason?' · '+escapeHtml(c.exceptionReason):'')+'</p>';
+ const label=v=>v===true?localeV2('yes','Yes'):v===false?localeV2('no','No'):localeV2('wholeOrderNotChecked','Not yet checked');
+ return '<p class="help" data-whole-order-checks="true"><strong>'+escapeHtml(localeV2('wholeOrderChecksTitle','Checks for the entire order'))+'</strong> · '+escapeHtml(localeV2('wholeOrderStock','Has pickable stock been checked for the entire order?'))+' '+escapeHtml(label(c.pickableStock))+' · '+escapeHtml(localeV2('wholeOrderHolds',"Is the entire order clear of Don't Process and Credit Hold?"))+' '+escapeHtml(label(c.holdsClear))+(c.exceptionReason?' · '+escapeHtml(c.exceptionReason):'')+'</p>';
 }
 function syncP1Approval(){
  const p1=$('newOrder').elements.priority.value==='P1',field=$('p1CostApprovalField'),check=$('p1CostApproved');
@@ -252,7 +252,7 @@ function nextInternalStep(){
  const panel=document.querySelector('[data-internal-step="'+internalStep+'"]');
  for(const field of panel.querySelectorAll('input,select,textarea'))if(field.willValidate&&!field.checkValidity()){field.reportValidity();field.focus();return;}
  if(internalStep===2&&isAllLines()){
-   const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){setMessage('createMessage',localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+   const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){setMessage('createMessage',localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
   }
   if(internalStep===2&&!isAllLines()){
   const items=formItems();
@@ -450,7 +450,7 @@ async function submit(ev){
  if(!form.reportValidity()){showInternalStep(1);return;}
  const items=isAllLines()?[]:formItems();
  if(isAllLines()){
-  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showInternalStep(2);setMessage('createMessage',localeV2('wholeOrderReasonRequired','Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben.'),'error');return;}
+  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showInternalStep(2);setMessage('createMessage',localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
  }
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
