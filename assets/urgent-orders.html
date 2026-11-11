@@ -296,7 +296,7 @@ async function nextInternalStep(){
   setMessage('createMessage',localeV2('packingPreflightRunning','Minibag-Mengen werden geprüft …'),'');
   try{
    const notice=await checkInternalMinibagsBeforeNext();
-   if(notice===null){setMessage('createMessage',localeV2('packingPreflightRetry','Bitte Menge oder Minibag-Haken prüfen.'),'warning');return;}
+   if(notice===null){setMessage('createMessage',localeV2('packingPreflightRetry','Please check the quantity or select Minibag.'),'warning');return;}
    setMessage('createMessage',notice,'ok');showInternalStep(3);
   }catch(e){setMessage('createMessage',e.message,'error');}
   finally{button.disabled=false;}

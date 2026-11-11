@@ -393,7 +393,7 @@ async function nextWizardStep(){
   showMessage(localeV2('packingPreflightRunning','Minibag-Mengen werden geprüft …'),'');
   try{
    const notice=await checkMinibagBeforeNext();
-   if(notice===null){showMessage(localeV2('packingPreflightRetry','Bitte Menge oder Minibag-Haken prüfen.'),'warning');return;}
+   if(notice===null){showMessage(localeV2('packingPreflightRetry','Please check the quantity or select Minibag.'),'warning');return;}
    showMessage(notice,'ok');showWizardStep(3);
   }catch(e){showMessage(e.message,'error');}
   finally{button.disabled=false;}
