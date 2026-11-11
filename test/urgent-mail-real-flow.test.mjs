@@ -202,3 +202,41 @@ test('changing the draft language during the API call also rejects an outdated t
  assert.equal(elements.mailBody.value,'');
  assert.equal(context.draftNeedsRegenerate,true);
 });
+
+test('shipping confirmation cannot hand off an outdated language or an in-flight draft',async()=>{
+ const {context,elements,apiCalls,location}=harness();
+ context.modalKind='shipping';
+ elements.mailLanguage.value='de';
+ const promises=[];
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  if(action==='prepare-mail')return new Promise(resolve=>promises.push(resolve));
+  return {order:{id:'order-1',mailHistory:[{status:'open_requested'}]}};
+ };
+ let running=context.generateDraft();
+ assert.equal(context.draftNeedsRegenerate,true,'draft must remain blocked while API prepares it');
+ elements.mailSubject.value='Alte Betreffzeile';
+ elements.mailBody.value='Alter Entwurf';
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'no handoff while preparing the current draft');
+ promises.shift()({draft:{to:'cs@example.org',subject:'DE Betreff',body:'DE Mail'}});
+ await running;
+ assert.equal(context.draftNeedsRegenerate,false);
+ assert.equal(elements.mailSubject.value,'DE Betreff');
+ elements.mailLanguage.value='en';
+ context.draftNeedsRegenerate=true;
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'changing language must block old email handoff');
+ running=context.generateDraft();
+ assert.equal(context.draftNeedsRegenerate,true);
+ assert.equal(apiCalls[1].payload.language,'en');
+ await context.mailto();
+ assert.equal(apiCalls.length,2,'no handoff while regenerating');
+ promises.shift()({draft:{to:'cs@example.org',subject:'EN Subject',body:'EN Body'}});
+ await running;
+ assert.equal(context.draftNeedsRegenerate,false);
+ await context.mailto();
+ assert.deepEqual(apiCalls.map(x=>x.action),['prepare-mail','prepare-mail','record-mail-handoff']);
+ assert.equal(apiCalls[2].payload.subject,'EN Subject');
+ assert.match(location.href,/^mailto:/);
+});
