@@ -438,3 +438,20 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
     width:32px;height:32px;min-width:32px;flex-basis:32px;padding:6px;border-radius:9px
   }
 }
+
+
+/* RC1969: auch die Arbeitsbereiche unterhalb der Kennzahlen tragen ein passendes Symbol. */
+#rc1558Overview .rc1558-head h3,
+#content [data-rc1573-tile] :is(h2,h3),
+#content [data-rc1573-tile] .rc205-quick-title{
+  display:inline-flex;align-items:center;gap:7px;min-width:0
+}
+#rc1558Overview .rc1558-panel-icon,
+#content [data-rc1573-tile] .rc1558-panel-icon{
+  display:inline-block;flex:0 0 25px;width:25px;height:25px;padding:4px;
+  border-radius:8px;color:var(--rc1558-primary,var(--pc-primary,#1f6fd1));
+  background:color-mix(in srgb,var(--pc-primary,#1f6fd1) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--pc-primary,#1f6fd1) 16%,transparent);
+  vertical-align:middle
+}
+#content [data-rc1573-tile] .rc1969-card-icon{display:inline-flex;align-items:center;flex:none}
