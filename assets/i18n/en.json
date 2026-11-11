@@ -2725,5 +2725,16 @@
   "urgentOrderV2.deletePublicPendingToast": "Deletion requested. Logistics approval is required.",
   "urgentOrderV2.deletePublicPending": "Deletion requested – waiting for logistics approval.",
   "urgentOrderV2.deletePublicRejected": "The previous deletion request was declined.",
-  "urgentOrderV2.deletePublicDisclaimer": "Deletion affects the Urgent Order request, not the actual shipment."
+  "urgentOrderV2.deletePublicDisclaimer": "Deletion affects the Urgent Order request, not the actual shipment.",
+  "urgentOrderV2.minibagReviewPrompt": "Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag? Please check. OK = continue without Minibag; Cancel = correct the item.",
+  "urgentOrderV2.minibagReviewCancel": "Please check the Minibag option and quantity.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Manage item master securely",
+  "urgentOrderV2.packingCatalogHelp": "Import the tab-separated list with Item number, Net weight and Packing quantity. Pack sizes are stored only in private Azure storage.",
+  "urgentOrderV2.packingCatalogInput": "Item list (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Securely update item list",
+  "urgentOrderV2.packingCatalogAvailable": "{count} items with pack size available · {unknown} without a valid pack size.",
+  "urgentOrderV2.packingCatalogPickFile": "Please select the item list first.",
+  "urgentOrderV2.packingCatalogTooLarge": "File exceeds the 5 MB limit.",
+  "urgentOrderV2.packingCatalogSaving": "Validating and securely saving the item list …",
+  "urgentOrderV2.packingCatalogSaved": "{count} items saved · {unknown} without a valid pack size."
 }

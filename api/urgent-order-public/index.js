@@ -78,6 +78,7 @@ async function publicAction(req,refs){
  if(action==='create'){
   checkRate(req,'create');
   const now=new Date().toISOString();
+  const catalog=p.allLines===true?null:await internal.readPackingCatalog(refs);
   const secret=credential();
   const provided=txt(p.accessToken,100);
   const result=await internal.write(refs,doc=>{
@@ -92,7 +93,7 @@ async function publicAction(req,refs){
    const day=now.slice(0,10),counter=doc.publicDaily&&doc.publicDaily.day===day?Number(doc.publicDaily.count)||0:0;
    if(counter>=MAX_PUBLIC_CREATES_PER_DAY)throw model.problem('URGENT_PUBLIC_DAILY_LIMIT','Daily public reporting capacity reached. Please contact logistics.',429);
    const actor={id:'REPORTER:'+(group?group.id:secret.id),name:'Customer Service'};
-   const order=model.createOrder(p,actor,now);
+   const order=model.createOrder(p,actor,now,catalog);
    if(doc.orders.some(o=>!o.deletedAt&&o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
    if(!group)group=issueGroup(doc,secret,reporterEmail,now);
    order.reporterId=group.id;
@@ -122,6 +123,10 @@ module.exports=async function(context,req){
   const responseStatus=!recognized&&status<500?503:status;
   context.log&&context.log.warn&&context.log.warn('urgent-order-public',internalCode,status);
    if(internalCode==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(internal.safeHostDiagnostic(req)));
+  if(publicCode==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
+   // Never expose stored master-data values to anonymous reporters.
+   context.res=json(409,{ok:false,code:publicCode,message:e.message,minibagArticles:e.minibagArticles||[],minibagIndices:e.minibagIndices||[]});return;
+  }
   const serviceError=responseStatus>=500;
   const safeMessages={
    URGENT_STORAGE_MISSING:'Urgent Order ist noch nicht mit dem Datenspeicher verbunden. Bitte die Logistik informieren.',
