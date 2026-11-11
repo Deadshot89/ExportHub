@@ -32,9 +32,11 @@ async function createPackNotification(page,token,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packPackageType').selectOption({label:'Euro Palette'});
-  await page.locator('#packPackageCount').fill('2');
-  await page.locator('#packWeight').fill('680');
+  const packageLine=page.locator('[data-pack-entry]').first();
+  await packageLine.locator('[data-entry-type]').selectOption({label:'Euro Palette'});
+  await packageLine.locator('[data-entry-count]').fill('2');
+  await packageLine.locator('[data-entry-weight]').fill('680');
+  await packageLine.locator('[data-entry-weight]').blur();
   const rows=page.locator('[data-pack-package]');
   await expect(rows).toHaveCount(2);
   for(let i=0;i<2;i++){
@@ -86,7 +88,7 @@ async function createPackNotification(page,token,suffix='A'){
   await card.click();
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
-  await expect(page.locator('#packPackageCount')).toHaveValue('2');
+  await expect(page.locator('[data-pack-entry] [data-entry-count]').first()).toHaveValue('2');
   await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName);
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
