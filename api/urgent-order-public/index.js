@@ -110,7 +110,7 @@ module.exports=async function(context,req){
    if(internalCode==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(internal.safeHostDiagnostic(req)));
   if(publicCode==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
    // Never expose stored master-data values to anonymous reporters.
-   context.res=json(409,{ok:false,code:publicCode,message:e.message,minibagArticles:e.minibagArticles||[]});return;
+   context.res=json(409,{ok:false,code:publicCode,message:e.message,minibagArticles:e.minibagArticles||[],minibagIndices:e.minibagIndices||[]});return;
   }
   const serviceError=responseStatus>=500;
   const safeMessages={
