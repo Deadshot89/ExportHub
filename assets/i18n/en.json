@@ -2694,5 +2694,12 @@
   "urgentOrderV2.requestScope": "Request scope",
   "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Approval of special transport costs acknowledged by the requester",
   "urgentOrderV2.p1ApprovalDetailBy": "Confirmed by",
-  "urgentOrderV2.p1ApprovalDetailMissing": "No transport-cost acknowledgement is recorded for this P1 order."
+  "urgentOrderV2.p1ApprovalDetailMissing": "No transport-cost acknowledgement is recorded for this P1 order.",
+  "urgentOrderV2.wholeOrderChecksTitle": "Checks for the entire order",
+  "urgentOrderV2.wholeOrderChecksHelp": "These checks concern the whole order. Individual items and stock locations are not considered checked.",
+  "urgentOrderV2.wholeOrderStock": "Has pickable stock been checked for the entire order?",
+  "urgentOrderV2.wholeOrderHolds": "Is the entire order clear of Don't Process and Credit Hold?",
+  "urgentOrderV2.wholeOrderNotChecked": "Not yet checked",
+  "urgentOrderV2.wholeOrderReason": "Reason for a failed whole-order check",
+  "urgentOrderV2.wholeOrderReasonRequired": "For a failed whole-order check, provide a reason of at least 8 characters."
 }
