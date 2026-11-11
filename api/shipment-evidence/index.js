@@ -58,6 +58,12 @@ function verifiedDeploymentEnvironment(){
  }catch(_){}
  return null;
 }
+// Only the public, non-secret storage-account name may enter admin diagnostics.
+// Never serialize a connection string, SAS token, shared key or full endpoint.
+function safeStorageAccountName(connectionString){
+ const match=String(connectionString||'').match(/(?:^|;)AccountName=([^;]*)/i);
+ return match&&/^[a-z0-9]{3,24}$/.test(match[1])?match[1]:null;
+}
 function storageContext(req,user){
  const env=verifiedDeploymentEnvironment()||auth.environmentFromRequest(req),
        cfg=isolationConfig(),isolated=env==='testservice'&&cfg.enabled;
@@ -65,7 +71,8 @@ function storageContext(req,user){
  if(!conn)fail('STORAGE_UNAVAILABLE','Azure-Speicher nicht konfiguriert.',503);
  const container=isolated?cfg.container:auth.TEAM_CONTAINER;
  const prefix=env==='testservice'?'testservice/shipment-evidence/v1/':'shipment-evidence/v1/';
- return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user};
+ return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user,
+  storageTarget:{environment:env,accountName:safeStorageAccountName(conn),containerName:container}};
 }
 function guestOrigin(req){
  const h=req.headers||{},rawOrigin=txt(h.origin||h.Origin,300),referer=txt(h.referer||h.Referer,500),
@@ -404,7 +411,7 @@ async function inspectDeletedEvidence(ctx,docId){
     if(versionEntries>=100)break;
    }
   }catch(_){versionsKnown=false}
-  return json(200,{ok:true,id:docId,found:false,versionsKnown,versionEntries,storageHistoryCandidate});
+  return json(200,{ok:true,id:docId,found:false,versionsKnown,versionEntries,storageHistoryCandidate,storageTarget:ctx.storageTarget});
  }
  const missingFiles=[];
  for(const file of Array.isArray(record.files)?record.files:[]){
@@ -415,7 +422,7 @@ async function inspectDeletedEvidence(ctx,docId){
  return json(200,{ok:true,id:docId,found:true,revision:record.revision,
   deleted:!!record.deletedAt,deletedAt:record.deletedAt||null,createdAt:record.createdAt||null,
   fileCount:Array.isArray(record.files)?record.files.length:0,missingFileCount:missingFiles.length,
-  canRestore:!!record.deletedAt&&missingFiles.length===0});
+  canRestore:!!record.deletedAt&&missingFiles.length===0,storageTarget:ctx.storageTarget});
 }
 /** Preserve the exact pre-restore JSON under an immutable, read-back-verified key. */
 async function backupEvidenceBeforeRestore(ctx,docId,record,raw){
