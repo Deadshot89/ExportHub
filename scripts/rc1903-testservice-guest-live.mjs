@@ -16,6 +16,10 @@ const bytesPdf=Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n');
 const api=new URL('/api/shipment-evidence',BASE);
 // Match real browser API calls: no client-controlled environment header.
 const noStore={'Accept':'application/json','Cache-Control':'no-store'};
+// Root HTML is fingerprinted by RC1112 with ?v=...&h=<10 hex chars>.
+// The independent /sendungsdokumentation page is not in the fingerprinted HTML list.
+const ROOT_GUEST_ASSET=/\/assets\/shipment-evidence-guest\.js\?v=1907&h=[a-f0-9]{10}["']/;
+const PUBLIC_GUEST_ASSET=/\/assets\/shipment-evidence-guest\.js\?v=1907["']/;
 const safeError=(body)=>String(body?.code||body?.message||'NO_RESPONSE').slice(0,140);
 async function request(method,action,data={},token=''){
  const headers={...noStore,'Origin':BASE};
@@ -38,12 +42,12 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Updated guest runtime missing from verified TESTSERVICE HTML');
+assert.match(html,ROOT_GUEST_ASSET,'Verified TESTSERVICE HTML must pin guest v1907 plus a content fingerprint');
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
 assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
-assert.match(publicHtml,/\/assets\/shipment-evidence-guest\.js\?v=1907["']/,'Public evidence page still serves a stale upload runtime');
+assert.match(publicHtml,PUBLIC_GUEST_ASSET,'Public evidence page still serves a stale upload runtime');
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
 const unique=crypto.randomBytes(5).toString('hex');
