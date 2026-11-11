@@ -47,6 +47,54 @@ function fixture(overrides={}){
   counters:()=>({claims,reads,scans})
  };
 }
+test('RC1977: candidate proof timestamps the scan COMPLETION, not job start',async()=>{
+ const completedAt=NOW+37000;
+ const f=fixture({clock:()=>completedAt});
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(r.status,'candidate-only');
+ assert.equal(r.receipt.payload.scannedAt,completedAt);
+ assert.equal(r.receipt.payload.expiresAt,completedAt+10*60*1000);
+ assert.deepEqual(verifyCandidateAttestation({
+  attestation:r.receipt,expected:context,secret:proofKey,now:completedAt
+ }),{valid:true,authorizedForRelease:false,verdict:'candidate-clean'});
+ assert.equal(r.authorizedForRelease,false);
+});
+
+test('RC1977: invalid, reversed or over-budget completion time never signs a candidate',async()=>{
+ for(const returned of [NOW-1,NOW+TIME_BUDGET.jobMs+1,0,undefined,
+  null,'next',Number.NaN]){
+  const f=fixture({clock:()=>returned});
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'worker-error');
+  assert.equal(r.receipt,undefined);
+  assert.equal(r.authorizedForRelease,false);
+ }
+ const f=fixture({clock:null});
+ const missing=await scanOfflineCandidate(f.settings);
+ assert.equal(missing.reason,'worker-adapter-unavailable');
+ assert.deepEqual(f.counters(),{claims:0,reads:0,scans:0});
+ const errored=fixture({clock:()=>{throw Error('FAKE_SECRET_KEY=do_not_echo');}});
+ const r=await scanOfflineCandidate(errored.settings);
+ assert.equal(r.reason,'worker-error');
+ assert.doesNotMatch(JSON.stringify(r),/FAKE_SECRET_KEY|do_not_echo/);
+});
+
+test('RC1977: definitions that age out during a scan cannot be attested as fresh',async()=>{
+ // Fresh by 250 ms at job start; stale by 250 ms at completion.
+ const definitionsUpdatedAt=NOW-24*60*60*1000+250;
+ const f=fixture({
+  getDefinitionsUpdatedAt:async()=>definitionsUpdatedAt,
+  clock:()=>NOW+500
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'worker-error');
+ assert.equal(r.receipt,undefined);
+ assert.equal(r.authorizedForRelease,false);
+ assert.deepEqual(f.counters(),{claims:1,reads:2,scans:1});
+});
+
 test('RC1975: planned scan and Blob timeouts fit the proposed 240-second Consumption Job',()=>{
  assert.equal(TIME_BUDGET.jobMs,240000);
  assert.equal(TIME_BUDGET.eicarProbes,2);
