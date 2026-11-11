@@ -266,3 +266,36 @@ test('RC1980 API: malformed text Blob stream chunks cannot reach parser',async()
   assert.equal(rec.deleted,true);
  }finally{fx.restore()}
 });
+
+test('RC1980 API: malformed max-byte setting cannot disable upload and quarantine size guards',async()=>{
+ const previous=process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES;
+ process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES='not-a-number';
+ let fx;
+ try{
+  fx=loadEndpoint();
+  const upload=await fx.call({action:'upload',file:{name:'original.csv',type:'text/csv',
+   base64:Buffer.from('Pos;HS Code\n1;39269097').toString('base64')}});
+  assert.equal(upload.status,202);
+  const rec=[...fx.records.values()][0];
+  rec.tags['Malware scanning scan result']='No threats found';
+  const over=Buffer.alloc(12*1024*1024+1,65);
+  rec.streamChunks=[over];
+  const original=Buffer.from;let copied=false;
+  Buffer.from=function(...args){
+   if(args[0]===over)copied=true;
+   return original.apply(this,args);
+  };
+  let result;
+  try{result=await fx.call({action:'status',uploadId:upload.body.upload.id})}
+  finally{Buffer.from=original;}
+  assert.equal(result.status,409);
+  assert.equal(result.body.code,'ABD_SCAN_CONTENT_MISMATCH');
+  assert.equal(result.body.analysis,undefined);
+  assert.equal(copied,false,'invalid environment limit must not permit large copy');
+  assert.equal(rec.deleted,true);
+ }finally{
+  if(fx)fx.restore();
+  if(previous===undefined)delete process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES;
+  else process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES=previous;
+ }
+});
