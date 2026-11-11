@@ -321,7 +321,19 @@
     return false;
   }
   function dispatchAbd(model){
-    try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-abd',{detail:{notificationId:model.notificationId,reference:model.reference}}));return true;}}catch(_){}
+    const id=q(model&&model.notificationId);
+    if(!id)return false;
+    try{
+      // RC2005 P0: call the installed, ownership-checking handler directly.
+      // A dispatched event alone does not prove a receiver actually opened ABD.
+      const abd=root.ExportHUBPackAbd;
+      if(abd&&typeof abd.begin==='function'){abd.begin(id);return true;}
+      if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){
+        const detail={notificationId:id,reference:q(model.reference),handled:false};
+        root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-abd',{detail}));
+        return detail.handled===true;
+      }
+    }catch(_){}
     return false;
   }
   let inboxFilter='open';
@@ -356,7 +368,7 @@
       const action=target.getAttribute('data-pack-action');
       if(action==='back')renderPackInbox();
       else if(action==='shipment')dispatchShipment(model);
-      else if(action==='abd')dispatchAbd(model);
+      else if(action==='abd'){if(!dispatchAbd(model)&&typeof root.alert==='function')root.alert(tr('pack.internal.abdOpenError'));}
       else if(action==='edit')showEdit(null,'');
       else if(action==='edit-cancel')reopen();
       else if(action==='edit-save'){if(busy)return;busy=true;const draft=collectEditForm(section);const result=await saveEdit(model.notificationId,draft);busy=false;if(result.ok)reopen();else showEdit(draft,editErrorText(result));}
