@@ -130,7 +130,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          bash .github/scripts/rc2015-playwright-browser-ready.sh
       - name: Protect ExportHUB core browser flows
         env:
           EXPORTHUB_E2E_STATIC: '1'
@@ -200,7 +200,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          bash .github/scripts/rc2015-playwright-browser-ready.sh
       - name: Verify Production candidate package read-only
         env:
           EXPORTHUB_E2E_STATIC: '1'
