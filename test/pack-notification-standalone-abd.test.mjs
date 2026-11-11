@@ -283,7 +283,7 @@ test('internal detail has two independent actions and locale labels exist in six
   assert.match(internal,/data-pack-action="abd"/);
   assert.match(internal,/exporthub:pack-create-abd/);
   assert.match(internal,/const ownAbds=arr\(\(sourceState\|\|sharedState\(\)\)\.abdRequests\)/);
-  assert.match(internal,/else if\(action==='abd'\)dispatchAbd\(model\)/);
+  assert.match(internal,/else if\(action==='abd'\)\{if\(!dispatchAbd\(model\)/);
   const root={};
   vm.runInNewContext(fs.readFileSync('assets/i18n/pack-notification.js','utf8'),{window:root,globalThis:root,console,Intl},{filename:'pack-notification.js'});
   for(const language of ['de','en','pl','es','fr','it']){
