@@ -2755,5 +2755,6 @@
   "urgentOrderV2.issueDelay": "Expédition impossible à la date souhaitée",
   "urgentOrderV2.issueRegenerate": "Veuillez régénérer le brouillon d'e-mail.",
   "urgentOrderV2.issueTooLong": "La description du problème, modèles sélectionnés inclus, ne doit pas dépasser 2 000 caractères.",
-  "urgentOrderV2.shippingNotReady": "Disponible uniquement lorsque toutes les lignes ont été expédiées."
+  "urgentOrderV2.shippingNotReady": "Disponible uniquement lorsque toutes les lignes ont été expédiées.",
+  "urgentOrderV2.mailShippingPreparing": "Préparation de la confirmation d'expédition."
 }
