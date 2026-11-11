@@ -8,6 +8,10 @@ const start=page.indexOf('function mailIssueRequiredText(){');
 const end=page.indexOf('async function copyDraft(){',start);
 assert.ok(start>=0&&end>start,'Urgent Order mail handlers must exist');
 const handlers=page.slice(start,end);
+const presetStart=page.indexOf('const PROBLEM_PRESETS=[');
+const presetEnd=page.indexOf('// Reuse real problem descriptions entered on the website',presetStart);
+assert.ok(presetStart>=0&&presetEnd>presetStart,'Selectable problems must exist');
+const presetHandlers=page.slice(presetStart,presetEnd);
 
 function harness(){
   const apiCalls=[],messages=[],attrs={};
@@ -27,6 +31,7 @@ function harness(){
   const location={href:''};
   const context={
     modalKind:'problem',modalOrder:'order-1',orders:[{id:'order-1'}],
+    draftNeedsRegenerate:false,
     $:id=>{assert.ok(elements[id],'Unknown UI element '+id);return elements[id]},
     window:{location},
     setMessage:(id,message,kind)=>messages.push({id,message,kind}),
@@ -36,6 +41,7 @@ function harness(){
     api:async (action,payload)=>{apiCalls.push({action,payload});throw Error('API not set')}
   };
   vm.createContext(context);
+  vm.runInContext(presetHandlers,context,{filename:'assets/urgent-orders.html#mail-presets'});
   vm.runInContext(handlers,context,{filename:'assets/urgent-orders.html#mailhandlers'});
   return {context,elements,apiCalls,messages,location};
 }
@@ -114,4 +120,123 @@ test('Urgent Order failed persistence does not open Outlook or delete edited tex
   assert.equal(elements.mailSubject.value,subject);
   assert.equal(elements.mailBody.value,body);
   assert.equal(elements.openMailer.disabled,false);
+});
+
+test('selected problem reasons and free text are sent together, but stale drafts never launch Outlook',async()=>{
+ const {context,elements,apiCalls,location,messages}=harness();
+ elements.mailIssue.value='Ergänzung im Freitext';
+ vm.runInContext("selectedProblems.add('stock');selectedProblems.add('damage')",context);
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  if(action==='prepare-mail')return {draft:{to:'cs@example.org',subject:'Neuer Entwurf',body:'Neue Mail'}};
+  return {order:{id:'order-1'}};
+ };
+ await context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ assert.equal(apiCalls[0].action,'prepare-mail');
+ assert.match(apiCalls[0].payload.note,/Nicht genügend Bestand verfügbar/);
+ assert.match(apiCalls[0].payload.note,/Ware beschädigt oder unvollständig/);
+ assert.match(apiCalls[0].payload.note,/Ergänzung im Freitext/);
+ vm.runInContext("selectedProblems.add('hold'); draftNeedsRegenerate=true",context);
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'changing a selected reason must prevent mail handoff');
+ assert.equal(location.href,'');
+ assert.ok(messages.some(m=>m.kind==='error'));
+ await context.generateDraft();
+ await context.mailto();
+ assert.deepEqual(apiCalls.map(x=>x.action),['prepare-mail','prepare-mail','record-mail-handoff']);
+ assert.match(location.href,/^mailto:/);
+});
+
+test('a selected problem alone meets the minimum note requirement',async()=>{
+ const {context,elements,apiCalls}=harness();
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return {draft:{to:'cs@example.org',subject:'Problem',body:'Mail'}};
+ };
+ vm.runInContext("selectedProblems.add('stock')",context);
+ await context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ assert.equal(elements.mailIssueError.hidden,true);
+ assert.equal(apiCalls[0].payload.note,'Nicht genügend Bestand verfügbar');
+});
+
+test('an older API response never overwrites an edited problem note or its mail draft',async()=>{
+ const {context,elements,apiCalls,location}=harness();
+ elements.mailIssue.value='Bestand ist nicht verfügbar';
+ elements.mailSubject.value='Keep manual subject';
+ elements.mailBody.value='Keep manual body';
+ let resolveDraft;
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return new Promise(resolve=>{resolveDraft=resolve;});
+ };
+ const running=context.generateDraft();
+ assert.equal(apiCalls.length,1);
+ elements.mailIssue.value='Artikel wurde nachträglich geändert';
+ context.draftNeedsRegenerate=true;
+ resolveDraft({draft:{to:'cs@example.org',subject:'Old subject',body:'Old body'}});
+ await running;
+ assert.equal(elements.mailSubject.value,'Keep manual subject');
+ assert.equal(elements.mailBody.value,'Keep manual body');
+ assert.equal(context.draftNeedsRegenerate,true);
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'stale problem text must not be recorded as a sent-mail handoff');
+ assert.equal(location.href,'');
+});
+
+test('changing the draft language during the API call also rejects an outdated template',async()=>{
+ const {context,elements,apiCalls}=harness();
+ elements.mailIssue.value='Kunde erwartet neue Lieferung';
+ let resolveDraft;
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  return new Promise(resolve=>{resolveDraft=resolve;});
+ };
+ const running=context.generateDraft();
+ assert.equal(apiCalls[0].payload.language,'de');
+ elements.mailLanguage.value='en';
+ resolveDraft({draft:{to:'cs@example.org',subject:'Old German draft',body:'Outdated'}});
+ await running;
+ assert.equal(elements.mailSubject.value,'');
+ assert.equal(elements.mailBody.value,'');
+ assert.equal(context.draftNeedsRegenerate,true);
+});
+
+test('shipping confirmation cannot hand off an outdated language or an in-flight draft',async()=>{
+ const {context,elements,apiCalls,location}=harness();
+ context.modalKind='shipping';
+ elements.mailLanguage.value='de';
+ const promises=[];
+ context.api=async(action,payload)=>{
+  apiCalls.push({action,payload});
+  if(action==='prepare-mail')return new Promise(resolve=>promises.push(resolve));
+  return {order:{id:'order-1',mailHistory:[{status:'open_requested'}]}};
+ };
+ let running=context.generateDraft();
+ assert.equal(context.draftNeedsRegenerate,true,'draft must remain blocked while API prepares it');
+ elements.mailSubject.value='Alte Betreffzeile';
+ elements.mailBody.value='Alter Entwurf';
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'no handoff while preparing the current draft');
+ promises.shift()({draft:{to:'cs@example.org',subject:'DE Betreff',body:'DE Mail'}});
+ await running;
+ assert.equal(context.draftNeedsRegenerate,false);
+ assert.equal(elements.mailSubject.value,'DE Betreff');
+ elements.mailLanguage.value='en';
+ context.draftNeedsRegenerate=true;
+ await context.mailto();
+ assert.equal(apiCalls.length,1,'changing language must block old email handoff');
+ running=context.generateDraft();
+ assert.equal(context.draftNeedsRegenerate,true);
+ assert.equal(apiCalls[1].payload.language,'en');
+ await context.mailto();
+ assert.equal(apiCalls.length,2,'no handoff while regenerating');
+ promises.shift()({draft:{to:'cs@example.org',subject:'EN Subject',body:'EN Body'}});
+ await running;
+ assert.equal(context.draftNeedsRegenerate,false);
+ await context.mailto();
+ assert.deepEqual(apiCalls.map(x=>x.action),['prepare-mail','prepare-mail','record-mail-handoff']);
+ assert.equal(apiCalls[2].payload.subject,'EN Subject');
+ assert.match(location.href,/^mailto:/);
 });
