@@ -42,6 +42,20 @@ test('RC1968 #904: beide Mail-Renderer schließen alte Sendungs- und Legacy-Alia
  assert.deepEqual(Array.from(carrierTo(customer,shipment)),approved);
 });
 
+test('RC1968: Übersichtserinnerung ignoriert entfernte Sendungs-E-Mail',()=>{
+ const html=patchRc1968CarrierMailHtml(source);
+ const excerpt=html.match(/function recipient\(sh,target\)\{[^\n]+\}/);
+ assert.ok(excerpt,'Übersichts-Reminder-Empfängerberechnung fehlt');
+ const customer={carrierEmail:'active@freight.example',carrierMail:'retired@freight.example'};
+ const func=vm.runInNewContext('('+excerpt[0]+')',{
+  customerFor(){return customer},
+  emailList:emailItems,
+  low(v){return String(v==null?'':v).toLowerCase()}
+ });
+ const result=func({carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'},'carrier');
+ assert.deepEqual(Array.from(result.to),['active@freight.example']);
+});
+
 test('RC1968: explizit gelöschtes/geleertes Carrier-Feld ist verbindlich leer',()=>{
  const {emailRecipient,carrierTo}=composers();
  const c={carrierEmail:'',carrierMail:'old@example.com',speditionMail:'old@example.com'};
@@ -70,7 +84,7 @@ test('RC1968: Kundennachricht und eigene Info-Mail werden nicht umgeschrieben',(
 
 test('RC1968: exakt zwei eindeutige Anker und verpflichtender Release-Build in allen Umgebungen',()=>{
  const {html}=composers();
- assert.equal(RC1968_PATCH_COUNT,2);
+ assert.equal(RC1968_PATCH_COUNT,3);
  assert.throws(()=>patchRc1968CarrierMailHtml(html),/expected one source anchor/);
  assert.throws(()=>patchRc1968CarrierMailHtml('unvollständiges HTML'),/expected one source anchor/);
  assert.match(build,/import \{patchRc1968CarrierMailHtml\}/);
