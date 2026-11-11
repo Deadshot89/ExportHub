@@ -97,7 +97,17 @@ function assertShipmentAccess(user,team,ref,method){
  if(!shipments.allShipments(state).some(sh=>['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'].some(k=>txt(sh&&sh[k],40).toUpperCase()===ref)))throw problem('SHIPMENT_NOT_FOUND','Diese Sendungsreferenz existiert nicht im zentralen ExportHUB-Sendungsbestand.',404);
 }
 // Authenticated read-only aggregate, no names, texts or REF details are returned.
-async function countsForEnvironment(env){
+function knownRefs(team){
+ const state=team&&team.state&&typeof team.state==='object'?team.state:{};
+ const keys=['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'];
+ const known=new Set();
+ shipments.allShipments(state).forEach(sh=>keys.forEach(key=>{
+  const value=txt(sh&&sh[key],40).toUpperCase();
+  if(/^[A-Z0-9]{6}$/.test(value))known.add(value);
+ }));
+ return known;
+}
+async function countsForEnvironment(env,allowedRefs){
  const cfg=clientFor(env),client=cfg.service.getContainerClient(cfg.container);
  let cursor,pages=0,count=0;
  do{
@@ -105,7 +115,7 @@ async function countsForEnvironment(env){
   const pager=client.listBlobsFlat({prefix:cfg.prefix}).byPage({continuationToken:cursor,maxPageSize:50});
   const page=(await pager.next()).value||{};
   const names=(page.segment&&page.segment.blobItems||[]).map(item=>item.name)
-   .filter(name=>name.startsWith(cfg.prefix)&&/^[A-Z0-9]{6}\.json$/.test(name.slice(cfg.prefix.length)));
+   .filter(name=>name.startsWith(cfg.prefix)&&/^[A-Z0-9]{6}\.json$/.test(name.slice(cfg.prefix.length))&&allowedRefs.has(name.slice(cfg.prefix.length,-5)));
   const batch=await Promise.all(names.map(async name=>{
    const ref=name.slice(cfg.prefix.length,-5);
    const entry=await read(client.getBlockBlobClient(name),ref);
@@ -116,13 +126,37 @@ async function countsForEnvironment(env){
  }while(cursor);
  return json(200,{ok:true,open:count});
 }
+// Read-only, authenticated REF preview; no complaint descriptions or evidence.
+async function listForEnvironment(env,allowedRefs,query){
+ const cfg=clientFor(env),client=cfg.service.getContainerClient(cfg.container);
+ const cursor=txt(query&&query.continuation,1200)||undefined;
+ const pager=client.listBlobsFlat({prefix:cfg.prefix}).byPage({continuationToken:cursor,maxPageSize:50});
+ const page=(await pager.next()).value||{};
+ const names=(page.segment&&page.segment.blobItems||[]).map(item=>item.name)
+  .filter(name=>name.startsWith(cfg.prefix)&&/^[A-Z0-9]{6}\.json$/.test(name.slice(cfg.prefix.length))&&allowedRefs.has(name.slice(cfg.prefix.length,-5)));
+ const records=await Promise.all(names.map(async name=>{
+  const ref=name.slice(cfg.prefix.length,-5),entry=await read(client.getBlockBlobClient(name),ref);
+  if(!entry.etag)return null;
+  const fields=entry.record.fields||{};
+  return{source:'ref',reference:ref,id:'REF-'+ref,updatedAt:entry.record.updatedAt||'',
+   fields:{exporthubRef:ref,shipmentNumber:fields.shipmentNumber||'',customer:fields.customer||'',
+    dispatchDate:fields.dispatchDate||'',colli:fields.colli||'',weightKg:fields.weightKg||''},
+   complaints:(entry.record.complaints||[]).filter(Boolean).map(c=>({id:c.id,state:c.state||'offen'}))};
+ }));
+ return json(200,{ok:true,records:records.filter(Boolean),continuation:page.continuationToken||null});
+}
 async function handle(req){
  const {env,username,user,team}=await userEnvironment(req);
  const input=req.method==='GET'?(req.query||{}):bodyOf(req);
  if(req.method==='GET'&&input.action==='counts'){
   if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))
    throw problem('DOCUMENTATION_FORBIDDEN','Keine Leseberechtigung fuer die Sendungsdokumentation.',403);
-  return countsForEnvironment(env)
+  return countsForEnvironment(env,knownRefs(team))
+ }
+ if(req.method==='GET'&&input.action==='list'){
+  if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))
+   throw problem('DOCUMENTATION_FORBIDDEN','Keine Leseberechtigung fuer die Sendungsdokumentation.',403);
+  return listForEnvironment(env,knownRefs(team),input)
  }
  const ref=reference(input.reference);
  assertShipmentAccess(user,team,ref,req.method);
