@@ -2701,5 +2701,7 @@
   "urgentOrderV2.wholeOrderHolds": "¿Está todo el pedido libre de bloqueos Don't Process y Credit Hold?",
   "urgentOrderV2.wholeOrderNotChecked": "Todavía sin comprobar",
   "urgentOrderV2.wholeOrderReason": "Motivo de una comprobación negativa del pedido completo",
-  "urgentOrderV2.wholeOrderReasonRequired": "Para una comprobación negativa, indica un motivo de al menos 8 caracteres."
+  "urgentOrderV2.wholeOrderReasonRequired": "Para una comprobación negativa, indica un motivo de al menos 8 caracteres.",
+  "urgentOrderV2.untrustedHostHelp": "Utiliza únicamente la página oficial de TESTSERVICE. Si cambias de página, tendrás que volver a introducir los datos no guardados.",
+  "urgentOrderV2.openOfficialTestservice": "Abrir TESTSERVICE oficial"
 }
