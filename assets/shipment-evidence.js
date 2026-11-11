@@ -351,6 +351,13 @@ function complaintsPanel(record){
   const gallery=make('div','eh1903-complaint-files');
   files.forEach(file=>{
    const row=make('div','eh1903-file');
+   const attachChoice=make('input');
+   attachChoice.type='checkbox';attachChoice.value=file.id;attachChoice.dataset.complaintAiFile=c.id;
+   attachChoice.setAttribute('aria-label',t('selectForAi')+': '+file.name);
+   attachChoice.disabled=Number(file.size)>4*1024*1024;
+   const choiceLabel=make('label','eh1903-evidence-choice');choiceLabel.appendChild(attachChoice);
+   choiceLabel.appendChild(make('span',null,t('selectForAi')));
+   row.appendChild(choiceLabel);
    row.appendChild(make('span',null,file.name));
    row.appendChild(button(t('preview'),()=>preview(record.id,file)));
    row.appendChild(button(t('download'),()=>downloadEvidence(record.id,file)));
@@ -392,13 +399,20 @@ function complaintsPanel(record){
   const consentLabel=make('label','eh1903-consent'),consent=make('input');
   consent.type='checkbox';consentLabel.appendChild(consent);consentLabel.appendChild(make('span',null,t('complaintAiConsent')));
   toolbar.appendChild(consentLabel);
+  const transferLabel=make('label','eh1903-consent'),transfer=make('input');
+  transfer.type='checkbox';transferLabel.appendChild(transfer);
+  transferLabel.appendChild(make('span',null,t('complaintFileAiConsent')));
+  toolbar.appendChild(transferLabel);
   const answer=make('div','eh1903-complaint-advice');
   toolbar.appendChild(button(t('analyzeComplaint'),async()=>{
    if(state.busy||!state.record||state.record.id!==record.id)return;
    status(t('loading'),false);
    try{
+    const selected=[...details.querySelectorAll('[data-complaint-ai-file]')].filter(el=>el.checked).map(el=>el.value);
+    if(selected.length>2){status(t('aiFileSelectionLimit'),true);return}
+    if(selected.length&&!transfer.checked){status(t('complaintFileAiConsent'),true);return}
     const result=await request('POST',{action:'complaint-analysis',id:record.id,expectedRevision:state.record.revision,
-     complaintId:c.id,consent:consent.checked,language:language()});
+     complaintId:c.id,consent:consent.checked,shareFiles:transfer.checked,fileIds:selected,language:language()});
     if(!answer.isConnected||!state.record||state.record.id!==record.id)return;
     answer.replaceChildren(make('h4',null,result.mode==='ki'?t('aiDraft'):t('ruleDraft')));
     const proposal=result.suggestions||{};
