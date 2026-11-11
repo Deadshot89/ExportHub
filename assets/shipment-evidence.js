@@ -71,10 +71,19 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
  const fullSearch=button(t('searchAll'),()=>scanAll());panel.appendChild(fullSearch);
  const list=make('div','eh1903-list');panel.appendChild(list);app.appendChild(panel);
  const more=button(t('loadMore'),()=>loadList(false));more.hidden=!state.continuation;panel.appendChild(more);
- fullSearch.hidden=!state.continuation||!state.search.trim();
+ const moreRef=button(t('loadMoreRef'),()=>loadLegacyList(!!state.legacyError));
+ moreRef.hidden=!state.legacyContinuation&&!state.legacyError;panel.appendChild(moreRef);
+ const legacyError=make('p','eh1903-status');legacyError.setAttribute('role','status');panel.appendChild(legacyError);
+ fullSearch.hidden=!(state.continuation||state.legacyContinuation)||!state.search.trim();
  const message=make('p','eh1903-status');message.setAttribute('data-eh1903-status','');message.setAttribute('aria-live','polite');app.appendChild(message);
- function updateRows(){list.replaceChildren();more.hidden=!state.continuation;fullSearch.hidden=!state.continuation||!state.search.trim();const term=state.search.toLowerCase().trim();
-  const matches=state.records.filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber,r.fields&&r.fields.exporthubRef].some(x=>String(x||'').toLowerCase().includes(term)));
+ function updateRows(){
+  list.replaceChildren();more.hidden=!state.continuation;
+  moreRef.hidden=!state.legacyContinuation&&!state.legacyError;
+  moreRef.textContent=t(state.legacyError?'retry':'loadMoreRef');
+  legacyError.textContent=state.legacyError?t('legacyUnavailable')+': '+state.legacyError:'';
+  fullSearch.hidden=!(state.continuation||state.legacyContinuation)||!state.search.trim();
+  const term=state.search.toLowerCase().trim();
+  const matches=[...state.records,...state.legacyRecords].filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber,r.fields&&r.fields.exporthubRef,r.reference].some(x=>String(x||'').toLowerCase().includes(term)));
   if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{
     const row=make('div','eh1903-row eh1903-record-row'),data=make('div','eh1903-record-grid'),fields=r.fields||{};
@@ -85,7 +94,8 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
       data.appendChild(section);return section
     };
     const ref=cell(t(fields.exporthubRef?'refShort':'documentationRefShort'),fields.exporthubRef||r.id,'eh1903-record-ref');
-    if(fields.exporthubRef)ref.appendChild(make('span','eh1903-record-sub',t('documentationRefShort')+': '+r.id));
+    if(r.source==='ref')ref.appendChild(make('span','eh1903-record-sub',t('legacyRefRecord')));
+    else if(fields.exporthubRef)ref.appendChild(make('span','eh1903-record-sub',t('documentationRefShort')+': '+r.id));
     const customer=cell(t('customer'),fields.customer||'–','eh1903-record-customer');
     if(fields.shipmentNumber)customer.appendChild(make('span','eh1903-record-sub',t('shipmentNumber')+': '+fields.shipmentNumber));
     cell(t('dispatchDate'),dateText(fields.dispatchDate));
@@ -103,7 +113,15 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
       chip.setAttribute('data-complaint-state',statusKey);chips.appendChild(chip);
     }
     statuses.appendChild(chips);data.appendChild(statuses);
-    row.appendChild(data);row.appendChild(button(t('edit'),()=>openRecord(r.id)));list.appendChild(row)
+    row.appendChild(data);
+    row.appendChild(button(r.source==='ref'?t('openShipment'):t('edit'),()=>{
+     if(r.source==='ref'){
+      let opened=false;
+      try{opened=!!(w.ExportHUBShipmentView&&w.ExportHUBShipmentView.open&&w.ExportHUBShipmentView.open(r.reference,'documentation'))}catch(_){}
+      if(!opened)status(t('openShipmentUnavailable'),true)
+     }else openRecord(r.id)
+    }));
+    list.appendChild(row)
   });
  }
  search.addEventListener('input',()=>{state.search=search.value;state.searchRun++;updateRows()});updateRows();
