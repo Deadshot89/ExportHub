@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const ABD_PROFORMA_ASSETS=['assets/rc1549-abd-proforma.js','assets/essentra-company-logo.png','assets/rc1790-delivery-note.js','assets/i18n/rc1790-delivery-note.js','assets/rc1940-documents-workspace.js','assets/rc1962-d365-local-import.js','assets/rc1962-d365-xlsx-worker.js'];
-export const ABD_PROFORMA_MARKERS=['exporthub-rc1549-abd-proforma','assets/rc1549-abd-proforma.js?v=1962'];
+export const ABD_PROFORMA_MARKERS=['exporthub-rc1549-abd-proforma','assets/rc1549-abd-proforma.js?v=1971'];
 const ENTRIES=['index.html','TESTVERSION.html','demo.html'];
-const TAG='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1962"></script>';
+const TAG='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1971"></script>';
 const DELIVERY_I18N_TAG='<script id="exporthub-rc1790-delivery-note-i18n" defer src="/assets/i18n/rc1790-delivery-note.js?v=1790"></script>';
 const DELIVERY_TAG='<script id="exporthub-rc1790-delivery-note" defer src="/assets/rc1790-delivery-note.js?v=1790"></script>';
 const DOCUMENT_TAG='<script id="exporthub-rc1940-documents" defer src="/assets/rc1940-documents-workspace.js?v=1962"></script>';
@@ -23,11 +23,11 @@ function inject(html,file){
  }
  // Legacy entrypoints can already contain the old invoice tag. Normalize it
  // before using TAG as the insertion anchor for delivery/documents runtimes.
- html=html.replace(/(id="exporthub-rc1549-abd-proforma"[^>]*src="\/assets\/rc1549-abd-proforma\.js\?v=)\d+/g,(_m,p)=>p+'1962');
+ html=html.replace(/(id="exporthub-rc1549-abd-proforma"[^>]*src="\/assets\/rc1549-abd-proforma\.js\?v=)\d+/g,(_m,p)=>p+'1971');
  if(!html.includes('id="exporthub-rc1790-delivery-note"'))html=html.replace(TAG,TAG+'\n'+DELIVERY_I18N_TAG+'\n'+DELIVERY_TAG);
  if(!html.includes('id="exporthub-rc1940-documents"'))html=html.replace(DELIVERY_TAG,DELIVERY_TAG+'\n'+DOCUMENT_TAG);
  // Normalize legacy cache keys BEFORE positioning the new local importer after the document runtime.
- html=html.replace(/(id="exporthub-rc1549-abd-proforma"[^>]*src="\/assets\/rc1549-abd-proforma\.js\?v=)\d+/g,(_m,p)=>p+'1962');
+ html=html.replace(/(id="exporthub-rc1549-abd-proforma"[^>]*src="\/assets\/rc1549-abd-proforma\.js\?v=)\d+/g,(_m,p)=>p+'1971');
  html=html.replace(/(id="exporthub-rc1940-documents"[^>]*src="\/assets\/rc1940-documents-workspace\.js\?v=)\d+/g,(_m,p)=>p+'1962');
  if(!html.includes('id="exporthub-rc1962-d365-local-import"'))html=html.replace(DOCUMENT_TAG,DOCUMENT_TAG+'\n'+D365_LOCAL_TAG);
  // Upgrade existing local import tags: an old cached JS would still invoke the broken worker.
