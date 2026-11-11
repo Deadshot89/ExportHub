@@ -2702,5 +2702,16 @@
   "urgentOrderV2.wholeOrderNotChecked": "Jeszcze nie sprawdzono",
   "urgentOrderV2.wholeOrderReason": "Uzasadnienie negatywnej kontroli całego zamówienia",
   "urgentOrderV2.wholeOrderReasonRequired": "W przypadku negatywnej kontroli podaj uzasadnienie liczące co najmniej 8 znaków.",
-  "urgentOrderV2.untrustedHostHelp": "Korzystasz z oficjalnego TESTSERVICE. API odrzuciło weryfikację środowiska. Zamówienie nie zostało zapisane. Nie wysyłaj go ponownie, dopóki dział logistyki nie sprawdzi połączenia."
+  "urgentOrderV2.untrustedHostHelp": "Korzystasz z oficjalnego TESTSERVICE. API odrzuciło weryfikację środowiska. Zamówienie nie zostało zapisane. Nie wysyłaj go ponownie, dopóki dział logistyki nie sprawdzi połączenia.",
+  "urgentOrderV2.minibagReviewPrompt": "Sprawdź Minibag: {articles} nie stanowi pełnego standardowego opakowania. Czy na pewno to nie Minibag? OK = zgłoś bez Minibag; Anuluj = popraw pozycję.",
+  "urgentOrderV2.minibagReviewCancel": "Sprawdź zaznaczenie Minibag i ilość.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Bezpieczne zarządzanie kartoteką",
+  "urgentOrderV2.packingCatalogHelp": "Zaimportuj listę TSV z kolumnami Item number, Net weight i Packing quantity. Wielkości opakowań są przechowywane wyłącznie w prywatnym magazynie Azure.",
+  "urgentOrderV2.packingCatalogInput": "Lista artykułów (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Bezpiecznie zaktualizuj listę",
+  "urgentOrderV2.packingCatalogAvailable": "{count} artykułów z wielkością opakowania · {unknown} bez ważnej wielkości.",
+  "urgentOrderV2.packingCatalogPickFile": "Najpierw wybierz listę artykułów.",
+  "urgentOrderV2.packingCatalogTooLarge": "Plik przekracza limit 5 MB.",
+  "urgentOrderV2.packingCatalogSaving": "Sprawdzanie i bezpieczne zapisywanie listy …",
+  "urgentOrderV2.packingCatalogSaved": "Zapisano {count} artykułów · {unknown} bez ważnej wielkości."
 }
