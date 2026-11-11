@@ -106,7 +106,7 @@ test('RC1982: idle flags cannot mask a locally unsaved generation or missing Azu
     const context={
       process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
       window:{ExportHUBClean:{runtime,flushSave:()=>true}},
-      Date:FakeDate,Number,Math,JSON,Promise,pause:async()=>{}
+      Date:FakeDate,Number,Math,JSON,Promise,setTimeout,clearTimeout,pause:async()=>{}
     };
     const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
     await assert.rejects(
@@ -133,7 +133,7 @@ test('RC1171: idle UI with lagging Azure ACK triggers exactly one flush and requ
     return true;
   }};
   const context={process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
-    window:{ExportHUBClean:clean},Date:FakeDate,Number,Math,JSON,Promise,pause:async()=>{}};
+    window:{ExportHUBClean:clean},Date:FakeDate,Number,Math,JSON,Promise,setTimeout,clearTimeout,pause:async()=>{}};
   const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
   const result=await settle({evaluate:fn=>Promise.resolve(fn())},{timeout:3000,stableMs:200});
   assert.equal(calls,1,'Only one controlled Azure flush is permitted');
