@@ -46,7 +46,7 @@ assert.ok(ROOT_GUEST_ASSET.test(html),'Verified TESTSERVICE HTML must pin guest 
 const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(publicPage.status,200,'Public submission URL not reachable');
 const publicHtml=await publicPage.text();
-assert.match(publicHtml,/id="eh1903-guest-root"/,'Public submission page missing its root');
+assert.ok(/id="eh1903-guest-root"/.test(publicHtml),'Public submission page missing its root');
 assert.ok(PUBLIC_GUEST_ASSET.test(publicHtml),'Public evidence page still serves a stale upload runtime');
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
