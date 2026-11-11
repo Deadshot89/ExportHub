@@ -199,3 +199,26 @@ test('DOK- und REF-Seiten laden parallel ohne gegenseitige Ungültigmachung',asy
  assert.equal(state.legacyError,'');
  assert.equal(redraws,2);
 });
+
+test('Fehlgeschlagene DOK-Abfrage bleibt sichtbar, auch wenn REF erfolgreich geladen wird',async()=>{
+ const ui=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ assert.match(ui,/dokError\.textContent=state\.dokError/);
+ assert.match(ui,/retryDok=button\(t\('retry'\),\(\)=>loadList\(false\)\)/);
+ const begin=ui.indexOf('async function loadList(reset){'),end=ui.indexOf('async function scanAll(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const state={view:'list',serial:4,records:[],continuation:null,loading:false,listToken:0,
+  dokError:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:'',legacyRequestToken:0};
+ let redrawn=0;
+ const ctx={
+  state,request:async()=>{throw Error('DOK-Archiv nicht erreichbar')},
+  legacyRequest:async()=>({records:[{id:'REF-ABC123',reference:'ABC123'}],continuation:null}),
+  active:()=>true,showList:()=>{redrawn++},status:()=>{},t:key=>key,Promise,Map,String
+ };
+ vm.createContext(ctx);vm.runInContext(ui.slice(begin,end),ctx);
+ const [ref,dok]=await Promise.all([ctx.loadLegacyList(false),ctx.loadList(false)]);
+ assert.equal(ref,true);
+ assert.equal(dok,false);
+ assert.equal(state.dokError,'DOK-Archiv nicht erreichbar');
+ assert.equal(state.legacyRecords.length,1);
+ assert.equal(redrawn,2,'both success and failure repaint the same persistent warning area');
+});
