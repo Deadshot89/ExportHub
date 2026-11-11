@@ -2702,5 +2702,16 @@
   "urgentOrderV2.wholeOrderNotChecked": "Pas encore vérifié",
   "urgentOrderV2.wholeOrderReason": "Motif d’un contrôle négatif de la commande entière",
   "urgentOrderV2.wholeOrderReasonRequired": "En cas de contrôle négatif, indiquez un motif d’au moins 8 caractères.",
-  "urgentOrderV2.untrustedHostHelp": "Vous êtes sur le TESTSERVICE officiel. L'API a refusé la vérification sécurisée de l'environnement. La commande n'a pas été enregistrée. Ne la renvoyez pas avant la vérification par la logistique."
+  "urgentOrderV2.untrustedHostHelp": "Vous êtes sur le TESTSERVICE officiel. L'API a refusé la vérification sécurisée de l'environnement. La commande n'a pas été enregistrée. Ne la renvoyez pas avant la vérification par la logistique.",
+  "urgentOrderV2.minibagReviewPrompt": "Vérifier Minibag : {articles} ne correspond pas à un emballage standard complet. Confirmez-vous que ce n'est pas un Minibag ? OK = continuer sans Minibag ; Annuler = corriger l'article.",
+  "urgentOrderV2.minibagReviewCancel": "Vérifiez la case Minibag et la quantité.",
+  "urgentOrderV2.packingCatalogTitle": "Minibag · Gérer les articles en toute sécurité",
+  "urgentOrderV2.packingCatalogHelp": "Importez la liste TSV avec Item number, Net weight et Packing quantity. Les conditionnements sont conservés uniquement dans le stockage Azure privé.",
+  "urgentOrderV2.packingCatalogInput": "Liste d'articles (TSV/TXT)",
+  "urgentOrderV2.packingCatalogImport": "Mettre à jour la liste en sécurité",
+  "urgentOrderV2.packingCatalogAvailable": "{count} articles avec conditionnement · {unknown} sans conditionnement valide.",
+  "urgentOrderV2.packingCatalogPickFile": "Sélectionnez d'abord la liste des articles.",
+  "urgentOrderV2.packingCatalogTooLarge": "Le fichier dépasse la limite de 5 Mo.",
+  "urgentOrderV2.packingCatalogSaving": "Validation et enregistrement sécurisé de la liste …",
+  "urgentOrderV2.packingCatalogSaved": "{count} articles enregistrés · {unknown} sans conditionnement valide."
 }
