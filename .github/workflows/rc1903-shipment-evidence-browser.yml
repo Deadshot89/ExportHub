@@ -31,9 +31,11 @@ concurrency:
 
 jobs:
   guest_browser:
-    # Pin to the supported 24.04 image so Chromium deps resolve from a stable Ubuntu archive.
-    # Keep the full --with-deps installation and all browser/security gates enabled.
+    # The pinned official Playwright image includes Chromium and its system dependencies.
+    # Avoid broken Ubuntu apt DNS; keep every browser/API/security assertion active.
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
@@ -57,10 +59,11 @@ jobs:
           node .github/packmeldungen/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
 
-      - name: Install Playwright Chromium
+      - name: Verify packaged Chromium and install matching Playwright runner
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          node -e "const fs=require('node:fs'),{chromium}=require('@playwright/test');if(!fs.existsSync(chromium.executablePath()))throw new Error('Expected pinned Chromium executable missing');"
+          node -e "const {chromium}=require('@playwright/test');chromium.launch().then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Verify public link, own read-only records and upload on desktop and mobile
         env:
