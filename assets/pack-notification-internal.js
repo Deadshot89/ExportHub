@@ -47,12 +47,16 @@
   }
   function detailFromNotification(notification,task){
     const n=notification||{};
+    // ABD-only users need no tasks write right: derive the reverse link from
+    // the authoritative ABD request instead of mutating packNotifications.
+    const ownAbds=arr(sharedState().abdRequests).filter(a=>a&&q(a.packNotificationId)===q(n.id)&&q(a.packNotificationRef)===q(n.reference));
+    const ownAbd=ownAbds.length===1?ownAbds[0]:null;
     return{
       taskId:q(task&&task.id),notificationId:q(n.id),reference:q(n.reference||task&&task.sourceRef),
       customer:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),stationName:q(n.packStationName||n.packStationId),createdAt:q(n.createdAt),
       packageType:q(n.packageType),packageCount:Number(n.packageCount)||0,totalWeight:Number(n.totalWeight)||0,
       packages:arr(n.packages).map(x=>({...x})),documents:arr(n.documents).map(x=>({...x})),note:q(n.note),
-      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId),abdRequestId:q(n.abdRequestId),abdRequestRef:q(n.abdRequestRef),
+      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId),abdRequestId:q(ownAbd&&ownAbd.id),abdRequestRef:q(ownAbd&&(ownAbd.ref||ownAbd.reference)),
       deliveryNoteReference:q(n.deliveryNoteReference),cancelledAt:q(n.cancelledAt),editedAt:q(n.editedAt)
     };
   }
