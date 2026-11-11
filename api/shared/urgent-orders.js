@@ -91,6 +91,24 @@ function validateItems(raw,now,orderType='STANDARD'){
   return{id:crypto.randomUUID(),line,article,quantity:positiveInt(r&&r.quantity),minibag:isMinibag,newArticle,checks,exceptionReason:failed?exceptionReason:'',checkResult:failed?'exception':'passed',status:'Open',checkedAt:now};
  });
 }
+// Whole-order checks are explicit order-level statements, never evidence that
+// individual lines, quantities or locations were verified.
+function validateWholeOrderChecks(raw,now,orderType){
+ const input=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+ const check=(value,label)=>{
+  if(value===undefined||value===null)return null;
+  if(typeof value!=='boolean')throw problem('URGENT_ORDER_CHECK_INVALID','Invalid whole-order check: '+label);
+  return value;
+ };
+ const pickableStock=orderType==='DIRECT_OUTBOUND'?null:check(input.pickableStock,'stock');
+ const holdsClear=check(input.holdsClear,'holds');
+ const failed=pickableStock===false||holdsClear===false;
+ const reason=text(input.exceptionReason,1000);
+ if(failed&&reason.length<8)throw problem('URGENT_EXCEPTION_REASON_REQUIRED','For a failed whole-order check, provide a reason of at least 8 characters.');
+ const complete=holdsClear===true&&(orderType==='DIRECT_OUTBOUND'||pickableStock===true);
+ const checked=pickableStock!==null||holdsClear!==null;
+ return {pickableStock,holdsClear,exceptionReason:failed?reason:'',checkResult:failed?'exception':complete?'passed':'not_checked',checkedAt:checked?now:null};
+}
 function createOrder(raw,actor,now=new Date().toISOString()){
  const p=raw&&typeof raw==='object'?raw:{};
  const delivery=text(p.delivery,10).toUpperCase();
@@ -109,9 +127,10 @@ function createOrder(raw,actor,now=new Date().toISOString()){
  // Entire order is a distinct scope: never invent an article, line number or stock checks.
  if(allLines&&Array.isArray(p.items)&&p.items.length)throw problem('URGENT_SCOPE_CONFLICT','Bei komplettem Auftrag keine einzelnen Artikel übermitteln.');
  const items=allLines?[{id:crypto.randomUUID(),scope:'ALL_LINES',line:'',article:'',quantity:null,minibag:false,newArticle:false,checks:null,exceptionReason:'',checkResult:'not_checked',status:'Open',checkedAt:null}]:validateItems(p.items,now,orderType);
+ const orderChecks=allLines?validateWholeOrderChecks(p.orderChecks,now,orderType):null;
  return{id:crypto.randomUUID(),orderNumber:orderNumber(p.orderNumber),delivery,priority,orderType,directOutbound,
   email:email(p.email),language:language(p.language),...dispatch,
-  allLines,transportCostsApproval:priority==='P1'?{confirmedBy:{id:ownerId,name:text(actor.name,150)},confirmedAt:now}:null,
+  allLines,orderChecks,transportCostsApproval:priority==='P1'?{confirmedBy:{id:ownerId,name:text(actor.name,150)},confirmedAt:now}:null,
   createdBy:{id:ownerId,name:text(actor.name,150)},createdAt:now,updatedAt:now,
   items,history:[{at:now,actorId:ownerId,event:'created'}]};
 }

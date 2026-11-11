@@ -2694,5 +2694,13 @@
   "urgentOrderV2.requestScope": "Alcance de la solicitud",
   "urgentOrderV2.p1ApprovalDetailLabel": "P1 · El solicitante confirma la aprobación de los costes del transporte especial",
   "urgentOrderV2.p1ApprovalDetailBy": "Confirmado por",
-  "urgentOrderV2.p1ApprovalDetailMissing": "No consta una confirmación de los costes del transporte para esta solicitud P1."
+  "urgentOrderV2.p1ApprovalDetailMissing": "No consta una confirmación de los costes del transporte para esta solicitud P1.",
+  "urgentOrderV2.wholeOrderChecksTitle": "Comprobaciones del pedido completo",
+  "urgentOrderV2.wholeOrderChecksHelp": "Estas comprobaciones se aplican al pedido completo. No implican que se hayan comprobado artículos ni ubicaciones individuales.",
+  "urgentOrderV2.wholeOrderStock": "¿Se ha comprobado el stock disponible para preparación del pedido completo?",
+  "urgentOrderV2.wholeOrderHolds": "¿Está todo el pedido libre de bloqueos Don't Process y Credit Hold?",
+  "urgentOrderV2.wholeOrderNotChecked": "Todavía sin comprobar",
+  "urgentOrderV2.wholeOrderReason": "Motivo de una comprobación negativa del pedido completo",
+  "urgentOrderV2.wholeOrderReasonRequired": "Para una comprobación negativa, indica un motivo de al menos 8 caracteres.",
+  "urgentOrderV2.untrustedHostHelp": "Estás en el TESTSERVICE oficial. La API rechazó la verificación segura del entorno. El pedido no se ha guardado. No lo envíes de nuevo hasta que Logística compruebe la conexión."
 }

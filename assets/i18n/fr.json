@@ -2694,5 +2694,13 @@
   "urgentOrderV2.requestScope": "Portée de la demande",
   "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Approbation des frais de transport spécial confirmée par le demandeur",
   "urgentOrderV2.p1ApprovalDetailBy": "Confirmé par",
-  "urgentOrderV2.p1ApprovalDetailMissing": "Aucune confirmation des frais de transport n'est enregistrée pour cette demande P1."
+  "urgentOrderV2.p1ApprovalDetailMissing": "Aucune confirmation des frais de transport n'est enregistrée pour cette demande P1.",
+  "urgentOrderV2.wholeOrderChecksTitle": "Contrôles de la commande entière",
+  "urgentOrderV2.wholeOrderChecksHelp": "Ces contrôles concernent la commande entière. Les articles et emplacements de stock individuels ne sont pas considérés comme vérifiés.",
+  "urgentOrderV2.wholeOrderStock": "Le stock disponible pour préparation a-t-il été vérifié pour toute la commande ?",
+  "urgentOrderV2.wholeOrderHolds": "Toute la commande est-elle sans blocage Don't Process ni Credit Hold ?",
+  "urgentOrderV2.wholeOrderNotChecked": "Pas encore vérifié",
+  "urgentOrderV2.wholeOrderReason": "Motif d’un contrôle négatif de la commande entière",
+  "urgentOrderV2.wholeOrderReasonRequired": "En cas de contrôle négatif, indiquez un motif d’au moins 8 caractères.",
+  "urgentOrderV2.untrustedHostHelp": "Vous êtes sur le TESTSERVICE officiel. L'API a refusé la vérification sécurisée de l'environnement. La commande n'a pas été enregistrée. Ne la renvoyez pas avant la vérification par la logistique."
 }

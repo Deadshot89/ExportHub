@@ -83,13 +83,19 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div></div>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3 id="urgentStepTwoHeading">Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div><div id="wholeOrderChecks" class="stack" hidden>
+<h4 data-i18n="urgentOrderV2.wholeOrderChecksTitle">Prüfungen für den gesamten Auftrag</h4>
+<p class="muted" data-i18n="urgentOrderV2.wholeOrderChecksHelp">Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.</p>
+<div class="check" id="wholeOrderPickableRow"><label for="wholeOrderPickable" data-i18n="urgentOrderV2.wholeOrderStock">Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?</label><select id="wholeOrderPickable"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<div class="check"><label for="wholeOrderHolds" data-i18n="urgentOrderV2.wholeOrderHolds">Weder Don't Process noch Credit Hold für den gesamten Auftrag?</label><select id="wholeOrderHolds"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<label class="field"><span data-i18n="urgentOrderV2.wholeOrderReason">Begründung bei negativer Gesamtprüfung</span><textarea id="wholeOrderReason" maxlength="1000"></textarea></label>
+</div></div>
 </div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
 <section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
 <h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Kurzer Hinweis zur Meldefrist</h3>
 <p id="lateCutoffText"></p>
 <div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
-</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="urgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Du bist auf dem offiziellen TESTSERVICE. Die API hat den sicheren Umgebungsnachweis abgelehnt. Der Auftrag wurde nicht gespeichert. Bitte nicht erneut senden; die Logistik prüft die Verbindung.</span> </p>
 </form></section>
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
@@ -151,7 +157,7 @@ function accessFromHash(){
 }
 function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
 function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
-function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
+function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';const help=$('urgentHostHelp');if(help)help.hidden=!(kind==='error'&&String(message||'').includes('URGENT_HOST_UNTRUSTED')&&/-testservice\./i.test(location.hostname||''));}
 async function api(action,params){
  let response;
  try{response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});}
@@ -199,10 +205,31 @@ function syncType(){
   if(['arrivalAt','arrivalMode','arrivalProvider','dispatchMethod','deliveryNotePresent','asnWorking','holdsClear'].includes(i.name))i.required=direct;
   else i.required=false;
  });
- document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});
+ document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});syncScope();
 }
 function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
-function syncScope(){const all=isAllLines();$('lines').hidden=all;$('addLine').hidden=all;$('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);}
+function syncScope(){
+ const all=isAllLines(),direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('urgentStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Checks for the entire order'):localeV2('individualLinesOption','Enter individual items / lines');
+ $('lines').hidden=all;$('addLine').hidden=all;
+ $('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);
+ $('wholeOrderChecks').hidden=!all;
+ $('wholeOrderPickableRow').hidden=direct;
+ $('wholeOrderChecks').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!all||(direct&&el.id==='wholeOrderPickable'));
+}
+function wholeOrderChecks(){
+ return {pickableStock:$('orderType').value==='DIRECT_OUTBOUND'?null:flag($('wholeOrderPickable')),
+  holdsClear:flag($('wholeOrderHolds')),exceptionReason:$('wholeOrderReason').value.trim()};
+}
+function wholeChecksMarkup(order){
+ if(!order.allLines)return'';
+ const c=order.orderChecks||{};
+ const label=v=>v===true?localeV2('yes','Yes'):v===false?localeV2('no','No'):localeV2('wholeOrderNotChecked','Not yet checked');
+ return '<div class="muted" data-whole-order-checks="true"><strong>'+esc(localeV2('wholeOrderChecksTitle','Checks for the entire order'))+'</strong> · '+
+  esc(localeV2('wholeOrderStock','Has pickable stock been checked for the entire order?'))+' '+esc(label(c.pickableStock))+' · '+
+  esc(localeV2('wholeOrderHolds',"Is the entire order clear of Don't Process and Credit Hold?"))+' '+esc(label(c.holdsClear))+
+  (c.exceptionReason?'<div>'+esc(c.exceptionReason)+'</div>':'')+'</div>';
+}
 function syncP1Approval(){
  const form=$('reportForm'),p1=form.elements.priority.value==='P1',check=$('p1CostApproved');
  $('p1CostApprovalField').hidden=!p1;check.required=p1;if(!p1)check.checked=false;
@@ -279,7 +306,7 @@ function buildPayload(){
  const form=$('reportForm'),x=form.elements;
  return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
   email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,requestedDispatchDate:x.requestedDispatchDate.value,
-  directOutbound:directOutbound(form),allLines:isAllLines(),transportCostsApproved:x.priority.value==='P1'&&$('p1CostApproved').checked,items:isAllLines()?[]:items()};
+  directOutbound:directOutbound(form),allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:x.priority.value==='P1'&&$('p1CostApproved').checked,items:isAllLines()?[]:items()};
 }
 
 let wizardStep=1;
@@ -294,6 +321,9 @@ function showWizardStep(step){
 function nextWizardStep(){
  const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
  for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
+ if(wizardStep===2&&isAllLines()){
+  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
+ }
  if(wizardStep===2&&!isAllLines()){
   const p=buildPayload();
   if(p.items.some(x=>!x.line&&!x.article)){showMessage(localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
@@ -329,7 +359,7 @@ function render(){
    const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
    return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+wholeChecksMarkup(o)+lineHtml+'</div>';
   target.appendChild(node);
  }
 }
@@ -356,6 +386,7 @@ async function submit(ev){
  const lateToday=syncCutoff();
  if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
+ if(p.allLines&&(p.orderChecks.pickableStock===false||p.orderChecks.holdsClear===false)&&p.orderChecks.exceptionReason.length<8){showWizardStep(2);showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
  if(invalid){showMessage('Fehlgeschlagene Artikelprüfungen benötigen eine Begründung.','error');return;}

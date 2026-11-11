@@ -23,6 +23,7 @@ function groupByToken(doc,v){
 function publicOrder(order){
  return{
   id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,allLines:order.allLines===true,
+   orderChecks:order.allLines&&order.orderChecks?{pickableStock:order.orderChecks.pickableStock===true?true:order.orderChecks.pickableStock===false?false:null,holdsClear:order.orderChecks.holdsClear===true?true:order.orderChecks.holdsClear===false?false:null,checkResult:order.orderChecks.checkResult||'not_checked',exceptionReason:txt(order.orderChecks.exceptionReason,1000)}:null,
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
@@ -116,7 +117,9 @@ module.exports=async function(context,req){
   const message=serviceError
    ?safeMessages[publicCode]||apiI18n.t(req,'api.urgent.serverError')
    :e&&e.message||'Ungültige Anfrage.';
-  context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
+  const response={ok:false,code:publicCode,message,retryable:serviceError&&!['URGENT_WRITE_UNVERIFIED','URGENT_HOST_UNTRUSTED'].includes(publicCode)};
+   if(publicCode==='URGENT_HOST_UNTRUSTED')response.diagnostic=internal.safeHostDiagnostic(req);
+   context.res=json(responseStatus,response);
  }
 };
 module.exports.publicAction=publicAction;

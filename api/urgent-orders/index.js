@@ -20,7 +20,7 @@ function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},rep
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
 function publicSiteEnvironment(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
@@ -62,7 +62,7 @@ function serverDeploymentEnvironment(){
 }
 function isAzureInternalWorkerHost(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurewebsites.net');
@@ -72,7 +72,7 @@ function isAzureInternalWorkerHost(value){
 // even when forwarding headers or Origin imitate the official site.
 function unknownStaticWebAppHost(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
@@ -83,7 +83,7 @@ function unknownStaticWebAppHost(url){
 // The verified release identity remains mandatory for internal Azure worker requests.
 function safeHostClass(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return'absent';
   const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   if(host==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'canonical-production';
@@ -269,7 +269,9 @@ module.exports=async function(context,req){
   const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
+  context.res=json(status,response);
  }
 };
 module.exports.execute=execute;
