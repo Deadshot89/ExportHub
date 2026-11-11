@@ -18,24 +18,25 @@ function merged(...values) {
  }));
  return result;
 }
-function composers() {
+function composers(customers=[]) {
  const html=patchRc1968CarrierMailHtml(source);
  const rc543=html.match(/function emailRecipient\(type,sh,c\)\{[^\n]+\}/);
  const later=html.match(/function carrierTo\(c,sh\)\{[^\n]+\}/);
  assert.ok(rc543,'RC543 Empfängerfunktion fehlt');
  assert.ok(later,'Mailstatus-Bridge Empfängerfunktion fehlt');
- const emailRecipient=vm.runInNewContext('('+rc543[0]+')',{emailList:emailItems});
- const carrierTo=vm.runInNewContext('('+later[0]+')',{mergeEmails:merged});
+ const findCustomer=key=>customers.find(c=>[c.id,c.account,c.customerNumber,c.name].includes(key))||null;
+ const emailRecipient=vm.runInNewContext('('+rc543[0]+')',{emailList:emailItems,findCustomer});
+ const carrierTo=vm.runInNewContext('('+later[0]+')',{mergeEmails:merged,findCustomer});
  return{emailRecipient,carrierTo,html};
 }
 
 test('RC1968 #904: beide Mail-Renderer schließen alte Sendungs- und Legacy-Aliase aus',()=>{
- const {emailRecipient,carrierTo}=composers();
  const customer={id:'C-1968',name:'Customer SE',
   carrierEmail:'active-a@freight.example; active-b@freight.example',
   carrierMail:'retired@freight.example',speditionMail:'retired@freight.example',
   mailRecipients:'retired@freight.example'};
- const shipment={reference:'REF1968',carrierEmail:'retired@freight.example',
+ const {emailRecipient,carrierTo}=composers([customer]);
+ const shipment={customerId:'C-1968',reference:'REF1968',carrierEmail:'retired@freight.example',
   speditionMail:'retired@freight.example',forwarderEmail:'retired@freight.example'};
  const approved=['active-a@freight.example','active-b@freight.example'];
  assert.deepEqual(emailItems(emailRecipient('carrier',shipment,customer)),approved);
@@ -46,32 +47,36 @@ test('RC1968: Übersichtserinnerung ignoriert entfernte Sendungs-E-Mail',()=>{
  const html=patchRc1968CarrierMailHtml(source);
  const excerpt=html.match(/function recipient\(sh,target\)\{[^\n]+\}/);
  assert.ok(excerpt,'Übersichts-Reminder-Empfängerberechnung fehlt');
- const customer={carrierEmail:'active@freight.example',carrierMail:'retired@freight.example'};
+ const customer={id:'C-1968',carrierEmail:'active@freight.example',carrierMail:'retired@freight.example'};
  const func=vm.runInNewContext('('+excerpt[0]+')',{
-  customerFor(){return customer},
+  customerFor(){return{carrierEmail:'retired@freight.example'}},
+  main(){return{customers:[customer]}},
+  arr(x){return Array.isArray(x)?x:[]},
+  q(x){return String(x==null?'':x).trim()},
   emailList:emailItems,
   low(v){return String(v==null?'':v).toLowerCase()}
  });
- const result=func({carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'},'carrier');
+ const result=func({customerId:'C-1968',carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'},'carrier');
  assert.deepEqual(Array.from(result.to),['active@freight.example']);
 });
 
 test('RC1968: explizit gelöschtes/geleertes Carrier-Feld ist verbindlich leer',()=>{
- const {emailRecipient,carrierTo}=composers();
- const c={carrierEmail:'',carrierMail:'old@example.com',speditionMail:'old@example.com'};
- const sh={carrierEmail:'old@example.com'};
+ const c={id:'C-EMPTY',carrierEmail:'',carrierMail:'old@example.com',speditionMail:'old@example.com'};
+ const {emailRecipient,carrierTo}=composers([c]);
+ const sh={customerId:'C-EMPTY',carrierEmail:'old@example.com'};
  assert.equal(emailRecipient('carrier',sh,c),'');
  assert.deepEqual(Array.from(carrierTo(c,sh)),[]);
 });
 
 test('RC1968: Kunden ohne neues Feld bleiben mit alten Kundendaten kompatibel',()=>{
- const {emailRecipient,carrierTo}=composers();
- const c={carrierMail:'current@example.com',speditionMail:'stale@example.com'};
- const sh={carrierEmail:'old-shipment@example.com'};
+ const c={id:'C-LEGACY',carrierMail:'current@example.com',speditionMail:'stale@example.com'};
+ const {emailRecipient,carrierTo}=composers([c]);
+ const sh={customerId:'C-LEGACY',carrierEmail:'old-shipment@example.com'};
  assert.equal(emailRecipient('carrier',sh,c),'current@example.com');
  assert.deepEqual(Array.from(carrierTo(c,sh)),['current@example.com','stale@example.com']);
- assert.deepEqual(Array.from(carrierTo(null,sh)),[],'Ohne aktuellen Kundenordner darf eine gespeicherte Sendung keine Empfänger freigeben');
- assert.equal(emailRecipient('carrier',sh,null),'');
+ const absent=composers();
+ assert.deepEqual(Array.from(absent.carrierTo(null,sh)),[],'Ohne aktuellen Kundenordner darf eine gespeicherte Sendung keine Empfänger freigeben');
+ assert.equal(absent.emailRecipient('carrier',sh,null),'');
 });
 
 test('RC1968: Kundennachricht und eigene Info-Mail werden nicht umgeschrieben',()=>{
@@ -83,7 +88,7 @@ test('RC1968: Kundennachricht und eigene Info-Mail werden nicht umgeschrieben',(
  assert.ok(html.includes("target==='customer'?customerTo(c,sh):target==='carrier'?carrierTo(c,sh)"));
 });
 
-test('RC1968: exakt zwei eindeutige Anker und verpflichtender Release-Build in allen Umgebungen',()=>{
+test('RC1968: exakt drei eindeutige Anker und verpflichtender Release-Build in allen Umgebungen',()=>{
  const {html}=composers();
  assert.equal(RC1968_PATCH_COUNT,3);
  assert.throws(()=>patchRc1968CarrierMailHtml(html),/expected one source anchor/);
@@ -91,7 +96,7 @@ test('RC1968: exakt zwei eindeutige Anker und verpflichtender Release-Build in a
  assert.match(build,/import \{patchRc1968CarrierMailHtml\}/);
  assert.match(build,/for\(const file of \['index.html','TESTVERSION.html','demo.html'\]\)\{/);
  assert.match(build,/const rc1968Carrier=patchRc1968CarrierMailHtml\(rc1718Printed,file\)/);
- assert.match(build,/fs\.writeFileSync\(target,rc1968Carrier\.replace\(oldContacts,/);
+ assert.match(build,/fs\.writeFileSync\(target,(?:patchRc1982MetaDeltaHtml\()?rc1968Carrier\.replace\(oldContacts,/);
 });
 
 test('RC1968: Server blockiert entfernte Carrier-Adresse vor Vorschau und Graph-Versand',()=>{
