@@ -94,5 +94,5 @@ test('RC1982: patch is idempotent and fails closed on missing or partial anchors
   )),/partially/);
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/import \{patchRc1982MetaDeltaHtml\} from '\.\.\/\.\.\/scripts\/rc1982-save-meta-delta\.mjs'/);
-  assert.match(build,/patchRc1982MetaDeltaHtml\(patchRc1662SavedShipmentDeltaHtml\(/);
+  assert.match(build,/patchRc1982MetaDeltaHtml\(rc1718Printed\.replace\(/);
 });
