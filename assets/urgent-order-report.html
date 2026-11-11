@@ -42,6 +42,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 .workspace-nav{position:sticky;top:0;z-index:11;backdrop-filter:blur(12px);margin:9px 0 15px}.workspace-nav .workspace-tab{flex:1 1 175px}.board>.panel{padding:clamp(18px,2.7vw,28px)}
 .cutoff-choice{border:1px solid #e4c58c;background:#fff8eb;border-radius:13px;padding:16px;margin-top:13px;color:#644513}
 .cutoff-choice h3{font-size:16px;margin:0 0 8px}.cutoff-choice p{margin:0 0 14px;line-height:1.6}
+.cutoff-choice .cutoff-copy p{margin:0 0 12px}.cutoff-choice .cutoff-copy ul{margin:0 0 16px;padding-left:22px}.cutoff-choice .cutoff-copy li{margin:0 0 9px;line-height:1.6}
 .cutoff-choice .actions{gap:10px}
 @media(max-width:550px){.cutoff-choice .actions button{flex:1 1 100%}}
 @media(prefers-color-scheme:dark){.cutoff-choice{background:#392d1d;border-color:#80683f;color:#f5deb0}}
@@ -92,8 +93,8 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 </div></div>
 </div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
 <section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
-<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">Auftrag für heute melden?</h3>
-<p id="lateCutoffText"></p>
+<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">⚠️ ACHTUNG: Meldefrist für heutigen Versand beachten</h3>
+<div id="lateCutoffText" class="cutoff-copy"></div>
 <div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
 </section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="urgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Du bist auf dem offiziellen TESTSERVICE. Die API hat den sicheren Umgebungsnachweis abgelehnt. Der Auftrag wurde nicht gespeichert. Bitte nicht erneut senden; die Logistik prüft die Verbindung.</span> </p>
 </form></section>
@@ -279,16 +280,34 @@ function berlinCutoffClock(){
  return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
 }
 function cutoffText(){
- const fallback=$('reportForm').elements.language.value==='en'?"Orders shipping today must be entered by 3:00 pm. The reporting deadline is 3:15 pm. After 3:15 pm, please select tomorrow as the shipping date. You can still report an order for today. If it is not approved automatically, we will process it tomorrow.":"Aufträge für den heutigen Versand müssen bis 15:00 Uhr erfasst sein. Die Meldefrist endet um 15:15 Uhr. Nach 15:15 Uhr bitte morgen als Versandtag auswählen. Du kannst den Auftrag trotzdem für heute melden. Wird er nicht automatisch freigegeben, bearbeiten wir ihn erst morgen.";
+ const fallback=$('reportForm').elements.language.value==='en'?"The regular reporting deadline for today's shipments is **3:15 pm** (order entry by 3:00 pm).\n\n- **Reporting after 3:15 pm?** Please choose **tomorrow** as the shipping date.\n- **Still reporting for today?** You can submit the order. If the system no longer approves it automatically, we will process it on the next working day.":"Die reguläre Meldefrist für den heutigen Versand endet um **15:15 Uhr** (Erfassung bis 15:00 Uhr).\n\n- **Sie melden nach 15:15 Uhr?** Bitte wählen Sie **morgen** als Versandtag.\n- **Trotzdem für heute melden?** Eine Übermittlung ist weiterhin möglich. Falls das System den Auftrag nicht mehr automatisch freigibt, wird er von uns am nächsten Arbeitstag bearbeitet.";
  return localeV2('cutoffLateWarning',fallback);
 }
+// Render trusted locale text without innerHTML: bold spans and bullet items stay readable.
+function renderCutoffText(){
+ const root=$('lateCutoffText');root.replaceChildren();
+ let list=null;
+ for(const row of cutoffText().split(/\r?\n/)){
+  const line=row.trim();if(!line)continue;
+  const bullet=line.startsWith('- '),item=document.createElement(bullet?'li':'p');
+  for(const part of (bullet?line.slice(2):line).split(/(\*\*[^*]+\*\*)/g)){
+   if(!part)continue;
+   if(part.startsWith('**')&&part.endsWith('**')){
+    const strong=document.createElement('strong');strong.textContent=part.slice(2,-2);item.append(strong);
+   }else item.append(document.createTextNode(part));
+  }
+  if(bullet){if(!list){list=document.createElement('ul');root.append(list);}list.append(item);}
+  else{list=null;root.append(item);}
+ }
+}
+
 let cutoffApproved=false;
 function hideLateCutoffChoice(){
  $('lateCutoffChoice').hidden=true;
  $('submitOrder').hidden=false;
 }
 function showLateCutoffChoice(){
- $('lateCutoffText').textContent=cutoffText();
+ renderCutoffText();
  $('lateCutoffChoice').hidden=false;
  $('submitOrder').hidden=true;
  $('lateMoveTomorrow').focus();
@@ -299,7 +318,7 @@ function syncCutoff(){
  control.min=clock.date;
  const late=control.value===clock.date&&clock.minutes>15*60+15;
  if(!late)hideLateCutoffChoice();
- else if(!$('lateCutoffChoice').hidden)$('lateCutoffText').textContent=cutoffText();
+ else if(!$('lateCutoffChoice').hidden)renderCutoffText();
  return late;
 }
 function cutoffTomorrow(){
