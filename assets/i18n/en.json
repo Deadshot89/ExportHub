@@ -2701,5 +2701,7 @@
   "urgentOrderV2.wholeOrderHolds": "Is the entire order clear of Don't Process and Credit Hold?",
   "urgentOrderV2.wholeOrderNotChecked": "Not yet checked",
   "urgentOrderV2.wholeOrderReason": "Reason for a failed whole-order check",
-  "urgentOrderV2.wholeOrderReasonRequired": "For a failed whole-order check, provide a reason of at least 8 characters."
+  "urgentOrderV2.wholeOrderReasonRequired": "For a failed whole-order check, provide a reason of at least 8 characters.",
+  "urgentOrderV2.untrustedHostHelp": "Use only the official TESTSERVICE site. Unsaved entries must be entered again if you change pages.",
+  "urgentOrderV2.openOfficialTestservice": "Open official TESTSERVICE"
 }
