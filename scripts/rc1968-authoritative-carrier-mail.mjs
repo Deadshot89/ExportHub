@@ -12,17 +12,17 @@ const RC1968_REPLACEMENTS = [
   {
     id: 'RC543_CARRIER_MAIL',
     before: "if(type==='carrier')return emailList(sh.carrierEmail||c.carrierEmail||c.speditionMail||c.carrierMail||c.forwarderEmail||c.palletCarrierEmail||c.packageCarrierEmail).join('; ');",
-    after: "if(type==='carrier')return emailList(c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')?c.carrierEmail:c?(c.carrierMail||c.speditionMail||c.forwarderEmail||c.palletCarrierEmail||c.packageCarrierEmail):(sh&&sh.carrierEmail)).join('; ');"
+    after: "if(type==='carrier')return emailList(c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')?c.carrierEmail:c?(c.carrierMail||c.speditionMail||c.forwarderEmail||c.palletCarrierEmail||c.packageCarrierEmail):'').join('; ');"
   },
   {
     id: 'OVERVIEW_REMINDER_RECIPIENT',
     before: "var to=[];keys.forEach(function(k){to=to.concat(emailList(c[k])).concat(emailList(sh&&sh[k]))});",
-    after: "var to=[];if(target==='carrier'&&c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')){to=emailList(c.carrierEmail)}else if(target==='carrier'&&c&&Object.keys(c).length){keys.forEach(function(k){to=to.concat(emailList(c[k]))})}else{keys.forEach(function(k){to=to.concat(emailList(c[k])).concat(emailList(sh&&sh[k]))})};"
+    after: "var to=[];if(target==='carrier'&&c&&Object.prototype.hasOwnProperty.call(c,'carrierEmail')){to=emailList(c.carrierEmail)}else if(target==='carrier'&&c&&Object.keys(c).length){keys.forEach(function(k){to=to.concat(emailList(c[k]))})}else{keys.forEach(function(k){to=to.concat(emailList(c[k]))})};"
   },
   {
     id: 'MAIL_STATUS_CARRIER_TO',
     before: "function carrierTo(c,sh){var l=locationFor(c,sh),explicit=mergeEmails(sh&&sh.carrierEmail,sh&&sh.speditionMail,sh&&sh.forwarderEmail,l&&l.carrierEmail,l&&l.speditionMail,l&&l.carrierMail,l&&l.forwarderEmail,c&&c.carrierEmail,c&&c.speditionMail,c&&c.carrierMail,c&&c.forwarderEmail,c&&c.anmeldungMail,c&&c.mailRecipients);return explicit}",
-    after: "function carrierTo(c,sh){if(c){if(Object.prototype.hasOwnProperty.call(c,'carrierEmail'))return mergeEmails(c.carrierEmail);return mergeEmails(c.carrierMail,c.speditionMail,c.forwarderEmail,c.anmeldungMail,c.mailRecipients,c.palletCarrierEmail,c.packageCarrierEmail)}return mergeEmails(sh&&sh.carrierEmail,sh&&sh.speditionMail,sh&&sh.forwarderEmail)}"
+    after: "function carrierTo(c,sh){if(c){if(Object.prototype.hasOwnProperty.call(c,'carrierEmail'))return mergeEmails(c.carrierEmail);return mergeEmails(c.carrierMail,c.speditionMail,c.forwarderEmail,c.anmeldungMail,c.mailRecipients,c.palletCarrierEmail,c.packageCarrierEmail)}return []}"
   }
 ];
 
