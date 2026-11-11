@@ -139,6 +139,11 @@ test('release patch explicitly guards saved Pack ownership and prevents shipment
     assert.match(out,/source=d\.packNotificationId\?'Aus Packmeldung übernommen'/);
     assert.doesNotMatch(source,/var sh=!item\.packNotificationId&&item\.linkedShipmentId/);
     assert.equal(out.includes('function saveAbdInternal(showAlert,status)'),true);
+    assert.equal(injectPackAbdOwnership(out,file),out,'second pass must preserve complete ABD ownership protection');
+    const tampered=out.replace('source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
+      'source:d.source,');
+    assert.notEqual(tampered,out,'test must remove a real ownership protection');
+    assert.throws(()=>injectPackAbdOwnership(tampered,file),/contract drift/,'partial protections must still fail closed');
   }
   assert.throws(()=>injectPackAbdOwnership('function saveAbdInternal(showAlert,status){}','TESTVERSION.html'),/contract drift/);
   assert.ok(PACK_ASSETS.includes('pack-notification-abd.js'));
