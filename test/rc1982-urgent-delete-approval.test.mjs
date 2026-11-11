@@ -76,8 +76,11 @@ test('RC1982: shipments already shipped or invoiced can never be deleted',()=>{
  const order=make('SO198217');
  model.setItemStatus(order,order.items[0].id,'In Progress',worker,date);
  model.requestDeletion(order,creator);
- model.setItemStatus(order,order.items[0].id,'Shipped',worker,date);
- assert.throws(()=>model.resolveDeletion(order,worker,true),error('URGENT_DELETE_DISPATCHED'),'late dispatch prevents deletion after request');
+ assert.throws(()=>model.setItemStatus(order,order.items[0].id,'Shipped',worker,date),error('URGENT_DELETE_PENDING'),'the pending decision freezes status changes');
+ // Simulate a delayed external state import that marks the order as shipped.
+ // The approval must revalidate dispatch status before any deletion.
+ order.items[0].status='Shipped';
+ assert.throws(()=>model.resolveDeletion(order,worker,true),error('URGENT_DELETE_DISPATCHED'),'out-of-band dispatch prevents deletion after request');
 });
 
 test('RC1982: email handoff counts as started work; legacy ownerless processing requires takeover',()=>{
