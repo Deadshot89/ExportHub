@@ -78,7 +78,7 @@ test('RC1505/RC1124: TESTSERVICE Browser-Gate bleibt im Main-Workflow und Produc
   assert.match(main,/npm install --no-save @playwright\/test@1\.63\.0/);
   assert.match(main,/runs-on:\s*ubuntu-24\.04/);
   assert.match(main,/npx playwright install chromium/);
-  assert.match(main,/chromium\\.launch/);
+  assert.match(main,/chromium\.launch/);
   assert.match(main,/RC1124 Lokales Browser-Gate/);
   assert.match(main,/actions\/upload-artifact@v7/);
   assert.match(main,/retention-days:\s*14/);
