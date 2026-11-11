@@ -492,7 +492,7 @@ test('RC1985: identical shipment tasks count once in dashboard but remain review
   const {api}=editorHarness(tasks,()=>true);
   const summary=api.buildModel(new Date('2026-11-11T10:00:00'));
   assert.equal(summary.total,3,'only the exact same process, date and owner is collapsed');
-  assert.deepEqual(summary.today.map(x=>x.id),['complete','different-action']);
+  assert.deepEqual(Array.from(summary.today,x=>x.id),['complete','different-action']);
   assert.equal(api.managedRows().rows.length,4,'no stored task was deleted or hidden from management');
   assert.match(api.taskViewHtml(),/Doppelter Eintrag/);
 });
