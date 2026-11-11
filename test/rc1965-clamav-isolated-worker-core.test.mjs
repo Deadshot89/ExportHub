@@ -24,7 +24,7 @@ function fixture(overrides={}){
  let claims=0,reads=0,scans=0;
  const settings={
   envelope:receipt,expected:context,queueSecret:queueKey,proofSecret:proofKey,
-  now:NOW,
+  now:NOW,clock:()=>NOW,
   claimJob:async({jobId,environment})=>{
    claims++;
    assert.equal(jobId,receipt.payload.jobId);
