@@ -69,6 +69,14 @@ function createBoundedReadSnapshot({container,expected,kind,timeoutMs=DEFAULT_TI
    // its stream before checking cancellation so it cannot leak resources.
    const stream=response&&response.readableStreamBody;
    activeStream=stream;
+   // RC1979: after timeout an SDK stream may emit 'error' asynchronously,
+   // even if destroy() has already returned. Attach a permanent scoped
+   // listener so late errors cannot terminate the isolated Node worker.
+   // Async iteration still rejects on stream errors; this never marks clean.
+   if(stream&&typeof stream.on==='function'){
+    try{stream.on('error',()=>{});}
+    catch(_){return fail();}
+   }
    if(controller.signal.aborted)return fail();
    if(!response||response.etag!==scope.blobEtag||
       response.contentLength!==scope.bytes||
