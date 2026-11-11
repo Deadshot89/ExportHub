@@ -162,6 +162,15 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  assert.equal(complaint.data.record.complaints.length,1);
  assert.equal(complaint.data.record.complaints[0].state,'offen');
  const complaintId=complaint.data.record.complaints[0].id;
+ const historicalList=await call('GET',{action:'list'});
+ assert.equal(historicalList.status,200);
+ assert.equal(historicalList.data.records.length,1,'Stored REF is shown in the historical register');
+ assert.equal(historicalList.data.records[0].reference,'ABC123');
+ assert.equal(historicalList.data.records[0].fields.colli,'5');
+ assert.equal(historicalList.data.records[0].fields.weightKg,'120.5');
+ assert.deepEqual(historicalList.data.records[0].complaints,[{state:'offen'}],
+  'Summary must exclude complaint text and IDs');
+ assert.equal(JSON.stringify(historicalList.data).includes('Karton beschaedigt'),false);
  const initiallyOpen=await call('GET',{action:'counts'});
  assert.equal(initiallyOpen.status,200);
  assert.deepEqual(initiallyOpen.data,{ok:true,open:1},'REF counter must not reveal case details');
