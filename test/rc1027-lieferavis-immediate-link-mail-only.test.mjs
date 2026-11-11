@@ -134,6 +134,25 @@ test('RC opt-in: keine fremden URLs durch den Platzhalter einschleusen',()=>{
   assert.equal(rc.composeOwnAvis({body:'{{LIEFERAVIS}}',url:'https://example.org/evil',lang:'de'}),'{{LIEFERAVIS}}');
 });
 
+test('RC opt-in: ein bereits angezeigter Link bleibt bei einer Freitextänderung an derselben Stelle',()=>{
+  const sh={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(sh,{reference:'7RZ5W9'});
+  const first=api.injectMailBody(sh,'own','Hallo\n\n{{LIEFERAVIS}}\n\nGruß','de');
+  const edited=first.replace('Hallo','Hallo zusammen');
+  const second=api.injectMailBody(sh,'own',edited,'de');
+  assert.match(second,/Hallo zusammen\n\nHier zur Avisierung klicken:/);
+  assert.equal((second.match(/server-token/g)||[]).length,1);
+});
+test('RC opt-in: nach manueller AVIS-Deaktivierung wird der im Entwurf gerenderte Link entfernt',()=>{
+  const sh={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(sh,{reference:'7RZ5W9'});
+  const first=api.injectMailBody(sh,'own','Hallo\n\n{{LIEFERAVIS}}\n\nGruß','de');
+  sh.customerAvisDisabledAt='2026-11-11T10:00:00Z';
+  const next=api.injectMailBody(sh,'own',first,'de');
+  assert.doesNotMatch(next,/www\.exporthub360\.de\/avis\/|Hier zur Avisierung klicken/);
+  assert.match(next,/Hallo[\s\S]*Gruß/);
+});
+
 test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne normalen Speicherschritt',async()=>{
   const shipment={customerName:'Heizmann AG Hydraulik',selectedLocationId:'MAIN-C1',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
