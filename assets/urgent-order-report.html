@@ -374,9 +374,29 @@ function render(){
    const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
    return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+wholeChecksMarkup(o)+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+wholeChecksMarkup(o)+lineHtml+publicDeleteMarkup(o)+'</div>';
+  const deleteButton=node.querySelector('[data-delete-order]');
+  if(deleteButton)deleteButton.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(!window.confirm(localeV2('deletePublicPrompt',"Delete this Urgent Order? If processing has started, approval is required.")))return;
+   deleteButton.disabled=true;
+   try{
+    const result=await api('request-delete',{accessToken:secret,id:o.id});
+    await refresh();
+    showMessage(result.deleted?localeV2('deletePublicSuccess',"Request deleted."):
+      localeV2('deletePublicPendingToast',"Deletion requested. Logistics approval is required."),'ok');
+   }catch(error){deleteButton.disabled=false;showMessage(error.message,'error');}
+  });
   target.appendChild(node);
  }
+}
+function publicDeleteMarkup(order){
+ const record=order.deletion||{},pending=record.state==='pending';
+ const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
+ const note=pending?'<p role="status">'+esc(localeV2('deletePublicPending',"Deletion requested – waiting for logistics approval."))+'</p>':
+  record.state==='rejected'?'<p role="status">'+esc(localeV2('deletePublicRejected',"The previous deletion request was declined."))+'</p>':'';
+ return '<div class="order-delete"><p class="muted">'+esc(localeV2('deletePublicDisclaimer',"Deletion affects the Urgent Order request, not the actual shipment."))+'</p>'+
+  note+(pending||complete?'':'<button type="button" class="btn secondary small" data-delete-order>'+esc(localeV2('deleteButton',"Delete request"))+'</button>')+'</div>';
 }
 function urgentTrackingBase(){
  const host=String(location.hostname||'').toLowerCase();

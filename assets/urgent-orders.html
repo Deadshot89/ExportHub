@@ -163,7 +163,7 @@ function rememberEmail(value){
 }
 function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
 // RC1811_INTERNAL_EMAIL_HISTORY_END
-let orders=[],canManage=false,modalOrder='',modalKind='',currentTab='open',activeView='open';
+let orders=[],canManage=false,viewerId='',modalOrder='',modalKind='',currentTab='open',activeView='open';
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
  try{const x=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return txt(x.token)}catch(_){return''}
@@ -338,9 +338,28 @@ function approvalDetailMarkup(order){
  if(!person||!date)return '<p class="help" data-p1-approval="missing">'+escapeHtml(localeV2('p1ApprovalDetailMissing','No transport-cost acknowledgement is recorded for this P1 order.'))+'</p>';
  return '<p class="help" data-p1-approval="recorded"><strong>'+escapeHtml(localeV2('p1ApprovalDetailLabel','P1 · Approval of special transport costs acknowledged by the requester'))+'</strong> · '+escapeHtml(localeV2('p1ApprovalDetailBy','Confirmed by'))+' '+escapeHtml(person)+' · '+escapeHtml(date)+'</p>';
 }
+function deleteActionsMarkup(order){
+ const record=order.deletion||{},pending=record.state==='pending';
+ const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
+ const handler=order.processingBy||[...(order.history||[])].reverse().find(x=>x&&
+  ['status','mail_open_requested','mail_sent_manually_confirmed','processing_claimed'].includes(x.event)&&x.actorId);
+ const owner=handler?txt(handler.name||handler.actorName||handler.id||handler.actorId):'';
+ const ownerId=handler?txt(handler.id||handler.actorId):'';
+ const info=pending?'<p role="status">'+escapeHtml(localeV2('deleteWaitPrefix',"Deletion requested – waiting for "))+escapeHtml(owner||localeV2('deleteAssignedProcessor',"assigned processor"))+'</p>':
+   record.state==='rejected'?'<p role="status">'+escapeHtml(localeV2('deleteRejected',"Previous deletion request was declined."))+'</p>':'';
+ const ask=!pending&&!complete?'<button type="button" class="btn alt small" data-delete-action="request">'+escapeHtml(localeV2('deleteButton',"Delete request"))+'</button>':'';
+ const start=!pending&&canManage&&!owner&&!complete?'<button type="button" class="btn alt small" data-delete-action="start">'+escapeHtml(localeV2('deleteClaim',"Claim processing"))+'</button>':'';
+ const claim=pending&&canManage&&!owner?'<button type="button" class="btn alt small" data-delete-action="claim">'+escapeHtml(localeV2('deleteClaim',"Claim processing"))+'</button>':'';
+ const decisions=pending&&canManage&&ownerId===viewerId&&!!ownerId?
+  '<button type="button" class="btn danger small" data-delete-action="approve">'+escapeHtml(localeV2('deleteApprove',"Approve deletion"))+'</button>'+
+  '<button type="button" class="btn alt small" data-delete-action="reject">'+escapeHtml(localeV2('deleteReject',"Reject"))+'</button>':'';
+ return '<div class="mail-history" data-urgent-deletion><strong>'+escapeHtml(localeV2('deleteHeading',"Delete Urgent Order request"))+'</strong>'+
+  '<p class="help">'+escapeHtml(localeV2('deleteDisclaimer',"Only the Urgent Order request is removed. Shipments and documents are preserved."))+'</p>'+
+  info+'<div class="btn-row">'+ask+start+claim+decisions+'</div></div>';
+}
 function render(){
  showView(activeView);
- renderStats();const n=orders.filter(isClosedOrder).length;$('internalOpenCount').textContent=orders.length-n;$('internalClosedCount').textContent=n;$('internalOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+(orders.length-n));$('internalClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+n);$('internalOpen').dataset.hasOpen=orders.length>n?'true':'false';$('internalOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');$('internalClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');const selected=filtered();$('listHint').textContent=selected.length+' / '+orders.length+' · '+localeV2('listHint','Aufträge – Positionen öffnen für Details');
+ renderStats();const n=orders.filter(isClosedOrder).length;$('internalOpenCount').textContent=orders.length-n;$('internalClosedCount').textContent=n;$('internalOpen').setAttribute('aria-label',localeV2('tabOpen','Offene Anfragen')+': '+(orders.length-n));$('internalClosed').setAttribute('aria-label',localeV2('tabClosed','Geschlossene Anfragen')+': '+n);$('internalOpen').dataset.hasOpen=orders.length>n?'true':'false';$('internalOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');$('internalClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');const selected=filtered();const pendingDeletes=orders.filter(o=>o.deletion&&o.deletion.state==='pending').length;$('listHint').textContent=selected.length+' / '+orders.length+' · '+localeV2('listHint','Aufträge – Positionen öffnen für Details')+(pendingDeletes?' · '+pendingDeletes+' '+localeV2('deletePendingCount',"deletion approvals pending"):'');
  const root=$('orders');root.innerHTML='';
  if(!selected.length){root.innerHTML='<div class="empty">'+escapeHtml(localeV2('noResultsInternal','Keine passenden Urgent Orders gefunden.'))+'</div>';return;}
  selected.forEach(order=>{
@@ -364,7 +383,8 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+'</div>';
+  const deletionIndicator=order.deletion&&order.deletion.state==='pending'?'<span class="sub" role="status">'+escapeHtml(localeV2('deletePendingLabel',"Deletion pending"))+'</span>':'';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+deletionIndicator+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+deleteActionsMarkup(order)+'</div>';
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();
@@ -376,6 +396,24 @@ function render(){
    history.scrollIntoView({block:'nearest',behavior:'smooth'});
   }));
 
+  details.querySelectorAll('[data-delete-action]').forEach(button=>button.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   const action=button.dataset.deleteAction;
+   if(action==='request'&&!window.confirm(localeV2('deleteConfirmRequest',"Delete this Urgent Order? If processing has started, approval is required.")))return;
+   if(action==='approve'&&!window.confirm(localeV2('deleteConfirmApprove',"Approve deletion? The request will then be hidden.")))return;
+   button.disabled=true;
+   try{
+    if(action==='request')await api('request-delete',{id:order.id});
+    else if(action==='claim')await api('claim-delete-handler',{id:order.id});
+    else if(action==='start')await api('start-processing',{id:order.id});
+    else await api('respond-delete',{id:order.id,approve:action==='approve'});
+    await refresh();
+    setMessage('listMessage',action==='reject'?localeV2('deleteDeclinedToast',"Deletion declined."):
+     (action==='claim'||action==='start')?localeV2('deleteClaimedToast',"Processing assigned."):
+     action==='request'?localeV2('deleteRequestToast',"Deletion completed or awaiting approval."):
+     localeV2('deleteApprovedToast',"Deletion approved."),'ok');
+   }catch(e){setMessage('listMessage',e.message,'error');button.disabled=false;}
+  }));
   details.querySelectorAll('[data-item]').forEach(select=>select.addEventListener('change',async()=>{
    const previous=(order.items||[]).find(x=>x.id===select.dataset.item)?.status;
    const note=select.value==='Problem'?(window.prompt(localeV2('problemPrompt','Bitte das Problem beschreiben.'))||'').trim():'';
@@ -390,7 +428,7 @@ function render(){
 }
 async function refresh(){
  try{
-  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;
+  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;viewerId=txt(data.currentUserId||'');
    $('packingCatalogPanel').hidden=!data.canImportPackingCatalog;
    if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',localeV2('packingCatalogAvailable','{count} items available · {unknown} without valid pack sizes.').replace('{count}',s.count).replace('{unknown}',s.unknownPackSize),'ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;

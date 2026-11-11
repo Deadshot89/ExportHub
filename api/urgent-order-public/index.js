@@ -27,6 +27,8 @@ function publicOrder(order){
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
+  deletion:{state:model.deleteView(order).state,started:model.deleteView(order).started,
+    requestedAt:model.deleteView(order).requestedAt},
   items:(order.items||[]).map(x=>({
    id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,scope:x.scope||null,
    checkResult:x.checkResult,minibag:!!x.minibag,newArticle:!!x.newArticle,
@@ -58,7 +60,20 @@ async function publicAction(req,refs){
   checkRate(req,'list');
   const doc=await internal.readDocument(refs),group=groupByToken(doc,p.accessToken);
   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Invalid or missing tracking link.',403);
-  return{orders:doc.orders.filter(o=>o.reporterId===group.id).map(publicOrder).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),environment:refs.environment};
+  return{orders:doc.orders.filter(o=>!o.deletedAt&&o.reporterId===group.id).map(publicOrder).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),environment:refs.environment};
+ }
+ if(action==='request-delete'){
+  checkRate(req,'request-delete');
+  const id=txt(p.id,90),accessToken=p.accessToken;
+  return internal.write(refs,doc=>{
+   const group=groupByToken(doc,accessToken);
+   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Ungültiger Überwachungslink.',403);
+   const order=doc.orders.find(o=>o&&o.id===id&&o.reporterId===group.id&&!o.deletedAt);
+   if(!order)throw model.problem('URGENT_NOT_FOUND','Anfrage nicht gefunden.',404);
+   const deletion=model.requestDeletion(order,{id:'REPORTER:'+group.id,name:'Customer Service'});
+   return {deleted:!!order.deletedAt,deletion:{state:deletion.state,requestedAt:deletion.requestedAt},
+     order:order.deletedAt?null:publicOrder(order)};
+  });
  }
  if(action==='create'){
   checkRate(req,'create');
@@ -72,14 +87,14 @@ async function publicAction(req,refs){
    const reporterEmail=model.email(p.email);
    if(group&&group.email!==reporterEmail)throw model.problem('URGENT_REPORTER_EMAIL_MISMATCH','Use the email address associated with your tracking link.',403);
    if(doc.orders.length>=MAX_ORDERS)throw model.problem('URGENT_CAPACITY','The report service has reached its request limit.',503);
-   if(group&&doc.orders.filter(o=>o.reporterId===group.id).length>=MAX_REPORTER_ORDERS)throw model.problem('URGENT_REPORTER_CAPACITY','This tracking link has reached its request limit.',409);
+   if(group&&doc.orders.filter(o=>!o.deletedAt&&o.reporterId===group.id).length>=MAX_REPORTER_ORDERS)throw model.problem('URGENT_REPORTER_CAPACITY','This tracking link has reached its request limit.',409);
    // Durable daily cap is enforced inside the same ETag-protected write so parallel
    // Azure workers cannot bypass a per-instance memory counter.
    const day=now.slice(0,10),counter=doc.publicDaily&&doc.publicDaily.day===day?Number(doc.publicDaily.count)||0:0;
    if(counter>=MAX_PUBLIC_CREATES_PER_DAY)throw model.problem('URGENT_PUBLIC_DAILY_LIMIT','Daily public reporting capacity reached. Please contact logistics.',429);
    const actor={id:'REPORTER:'+(group?group.id:secret.id),name:'Customer Service'};
    const order=model.createOrder(p,actor,now,catalog);
-   if(doc.orders.some(o=>o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
+   if(doc.orders.some(o=>!o.deletedAt&&o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
    if(!group)group=issueGroup(doc,secret,reporterEmail,now);
    order.reporterId=group.id;
    doc.orders.push(order);

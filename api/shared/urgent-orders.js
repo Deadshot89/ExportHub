@@ -147,6 +147,7 @@ function createOrder(raw,actor,now=new Date().toISOString(),catalog=null){
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
 function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),note=''){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
  if(!STATUSES.includes(status))throw problem('URGENT_STATUS_INVALID','Ungültiger Status.');
  const item=(order.items||[]).find(x=>x.id===itemId);
@@ -157,10 +158,107 @@ function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),not
  if(status==='Problem'&&problemNote.length<8)throw problem('URGENT_PROBLEM_NOTE_REQUIRED','Bei Status Problem ist eine Beschreibung mit mindestens 8 Zeichen erforderlich.');
  if(status==='Problem')item.problemNote=problemNote;
  item.status=status;item.updatedAt=now;order.updatedAt=now;
+ if(!processingOwner(order))order.processingBy={id:text(user.id,150),name:text(user.name||user.user||user.login||user.id,150)};
  order.history=Array.isArray(order.history)?order.history:[];
  order.history.push({at:now,actorId:text(user.id),event:'status',itemId,previous,status,...(problemNote?{problemNote}:{})});
  if(order.history.length>200)order.history=order.history.slice(-200);
  return true;
+}
+// Deleting an Urgent Order is a reversible administrative hiding of the request,
+// NEVER deletion of a shipment, POD, D365 document or external shipping record.
+// Decisions are protected by the same ETag-conditional write as status changes.
+function activeOrder(order){return !!(order&&!order.deletedAt);}
+function actorRecord(actor){
+ const id=text(actor&&actor.id,150);
+ if(!id)throw problem('URGENT_ACTOR_REQUIRED','Angemeldeter Mitarbeiter erforderlich.',401);
+ return {id,name:text(actor.name||actor.user||actor.login||id,150)};
+}
+function processingOwner(order){
+ if(order&&order.processingBy&&text(order.processingBy.id))return actorRecord(order.processingBy);
+ const history=Array.isArray(order&&order.history)?order.history:[];
+ const entry=history.slice().reverse().find(e=>
+   e&&['status','mail_open_requested','mail_sent_manually_confirmed','processing_claimed'].includes(e.event)&&text(e.actorId));
+ return entry?{id:text(entry.actorId,150),name:text(entry.actorName||entry.actorId,150)}:null;
+}
+function workStarted(order){
+ if(!order)return false;
+ if(processingOwner(order))return true;
+ if(Array.isArray(order.mailHistory)&&order.mailHistory.length>0)return true;
+ return (order.items||[]).some(item=>item.status!=='Open')||
+   (Array.isArray(order.history)&&order.history.some(e=>e&&
+   ['status','mail_open_requested','mail_sent_manually_confirmed'].includes(e.event)));
+}
+function isDispatched(order){
+ return (order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status))||isClosed(order);
+}
+function appendHistory(order,event,actor,now,extra={}){
+ order.history=Array.isArray(order.history)?order.history:[];
+ order.history.push({at:now,actorId:actor.id,event,...extra});
+ if(order.history.length>200)order.history=order.history.slice(-200);
+ order.updatedAt=now;
+}
+function deleteView(order){
+ const request=order&&order.deletion;
+ return {state:order.deletedAt?'deleted':request&&request.state==='pending'?'pending':
+  request&&request.state==='rejected'?'rejected':'none',
+  started:workStarted(order),handler:processingOwner(order),
+  requestedAt:request&&request.requestedAt||null};
+}
+function requestDeletion(order,actor,now=new Date().toISOString()){
+ if(!activeOrder(order))throw problem('URGENT_ALREADY_DELETED','Die Anfrage wurde bereits gelöscht.',409);
+ const who=actorRecord(actor);
+ if(!canManage(actor)&&text(order.createdBy&&order.createdBy.id)!==who.id)
+  throw problem('URGENT_FORBIDDEN','Nur der Melder oder die Logistik darf die Löschung anfragen.',403);
+ if(isDispatched(order))throw problem('URGENT_DELETE_DISPATCHED','Versendete oder fakturierte Anfragen können nicht gelöscht werden.',409);
+ if(order.deletion&&order.deletion.state==='pending')return deleteView(order);
+ if(!workStarted(order)){
+  order.deletedAt=now;order.deletedBy=who;
+  order.deletion={state:'approved',requestedAt:now,requestedBy:who,resolvedAt:now,resolvedBy:who,reason:'unworked'};
+  appendHistory(order,'deletion_immediate',who,now);
+  return deleteView(order);
+ }
+ order.deletion={state:'pending',requestedAt:now,requestedBy:who,resolvedAt:null,resolvedBy:null};
+ appendHistory(order,'deletion_requested',who,now);
+ return deleteView(order);
+}
+function startProcessing(order,actor,now=new Date().toISOString()){
+ if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf eine Bearbeitung übernehmen.',403);
+ if(!activeOrder(order))throw problem('URGENT_ALREADY_DELETED','Die Anfrage wurde bereits gelöscht.',409);
+ if(order.deletion&&order.deletion.state==='pending')
+  throw problem('URGENT_DELETE_PENDING','Offene Löschanfrage bitte zuerst entscheiden.',409);
+ const who=actorRecord(actor),owner=processingOwner(order);
+ if(owner&&owner.id!==who.id)
+  throw problem('URGENT_PROCESSING_OWNER_EXISTS','Diese Anfrage wird bereits von einem anderen Mitarbeiter bearbeitet.',409);
+ if(owner)return {handler:owner,started:true};
+ order.processingBy=who;
+ appendHistory(order,'processing_claimed',who,now);
+ return {handler:who,started:true};
+}
+function claimDeletionHandler(order,actor,now=new Date().toISOString()){
+ if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf eine Bearbeitung übernehmen.',403);
+ if(!activeOrder(order)||!order.deletion||order.deletion.state!=='pending')
+  throw problem('URGENT_DELETE_NOT_PENDING','Keine offene Löschanfrage vorhanden.',409);
+ if(!workStarted(order))throw problem('URGENT_DELETE_NOT_STARTED','Keine Bearbeitung dokumentiert.',409);
+ if(processingOwner(order))throw problem('URGENT_DELETE_HANDLER_EXISTS','Bereits ein Bearbeiter zugeordnet.',409);
+ const who=actorRecord(actor);
+ order.processingBy=who;
+ appendHistory(order,'processing_claimed',who,now);
+ return deleteView(order);
+}
+function resolveDeletion(order,actor,approve,now=new Date().toISOString()){
+ if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur der zuständige Bearbeiter darf entscheiden.',403);
+ if(!activeOrder(order)||!order.deletion||order.deletion.state!=='pending')
+  throw problem('URGENT_DELETE_NOT_PENDING','Keine offene Löschanfrage vorhanden.',409);
+ const owner=processingOwner(order),who=actorRecord(actor);
+ if(!owner)throw problem('URGENT_DELETE_HANDLER_UNASSIGNED','Bitte zuerst einen Bearbeiter zuordnen.',409);
+ if(owner.id!==who.id)throw problem('URGENT_DELETE_NOT_HANDLER','Nur der zuständige Bearbeiter darf die Löschung bestätigen oder ablehnen.',403);
+ if(approve!==true&&approve!==false)throw problem('URGENT_DELETE_DECISION_INVALID','Ungültige Entscheidung.',400);
+ if(approve&&isDispatched(order))throw problem('URGENT_DELETE_DISPATCHED','Bereits versendete Anfragen dürfen nicht gelöscht werden.',409);
+ order.deletion.state=approve?'approved':'rejected';
+ order.deletion.resolvedAt=now;order.deletion.resolvedBy=who;
+ if(approve){order.deletedAt=now;order.deletedBy=who;}
+ appendHistory(order,approve?'deletion_approved':'deletion_rejected',who,now);
+ return deleteView(order);
 }
 function isClosed(order){return !!(order&&Array.isArray(order.items)&&order.items.length&&order.items.every(x=>CLOSED_STATUSES.includes(x.status)));}
 function summaryStatus(order){const unique=[...new Set((order.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
@@ -194,6 +292,7 @@ function draftMail(order,kind,lang,note,actor){
 // The browser cannot observe Outlook's Send action. Preserve the exact editor
 // content before opening the mail program; confirmation is explicitly manual.
 function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf E-Mails dokumentieren.',403);
  const p=raw&&typeof raw==='object'?raw:{};
  const kind=text(p.kind,30);
@@ -214,6 +313,7 @@ function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
  };
  order.mailHistory=Array.isArray(order.mailHistory)?order.mailHistory:[];
  order.mailHistory.push(mail);
+ if(!processingOwner(order))order.processingBy={id:actorId,name:text(actor.name||actor.user||actor.login||actorId,150)};
  order.updatedAt=now;
  order.history=Array.isArray(order.history)?order.history:[];
  order.history.push({at:now,actorId,event:'mail_open_requested',mailId:mail.id,kind});
@@ -221,6 +321,7 @@ function recordMailHandoff(order,raw,actor,now=new Date().toISOString()){
  return mail;
 }
 function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
+ if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(actor))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Versandbestätigungen erfassen.',403);
  const mail=(order.mailHistory||[]).find(m=>m.id===mailId);
  if(!mail)throw problem('URGENT_MAIL_NOT_FOUND','Gespeicherter E-Mail-Entwurf nicht gefunden.',404);
@@ -229,6 +330,7 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  const actorId=text(actor&&actor.id,150);
  if(!actorId)throw problem('URGENT_ACTOR_REQUIRED','Angemeldeter Mitarbeiter erforderlich.',401);
  mail.status='sent_confirmed';mail.sentAt=now;
+ if(!processingOwner(order))order.processingBy={id:actorId,name:text(actor.name||actor.user||actor.login||actorId,150)};
  mail.sentConfirmedBy={id:actorId,name:text(actor.name||actor.user||actor.login||actorId,150)};
  order.updatedAt=now;
  order.history=Array.isArray(order.history)?order.history:[];
@@ -237,4 +339,4 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  return mail;
 }
 
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,activeOrder,workStarted,processingOwner,deleteView,requestDeletion,startProcessing,claimDeletionHandler,resolveDeletion};
