@@ -5,9 +5,10 @@ import {createRequire} from 'node:module';
 import fs from 'node:fs/promises';
 
 const require=createRequire(import.meta.url);
-const {scanOfflineCandidate}=require('../tools/rc1965-clamav/isolated-scan-core.cjs');
+const {scanOfflineCandidate,TIME_BUDGET}=require('../tools/rc1965-clamav/isolated-scan-core.cjs');
 const {createQueueCandidate}=require('../tools/rc1964-clamav/cloud-job-preflight.cjs');
 const {verifyCandidateAttestation}=require('../tools/rc1963-clamav/scan-candidate-attestation.cjs');
+const {verifyClamAvEngine}=require('../tools/rc1972-clamav/engine-selftest.cjs');
 const NOW=Date.UTC(2026,10,10,14,0,0);
 const payload=Buffer.from('RC1965 SYNTHETIC XLSX BYTES FOR OFFLINE TEST');
 const sha=crypto.createHash('sha256').update(payload).digest('hex');
@@ -23,7 +24,7 @@ function fixture(overrides={}){
  let claims=0,reads=0,scans=0;
  const settings={
   envelope:receipt,expected:context,queueSecret:queueKey,proofSecret:proofKey,
-  now:NOW,
+  now:NOW,clock:()=>NOW,
   claimJob:async({jobId,environment})=>{
    claims++;
    assert.equal(jobId,receipt.payload.jobId);
@@ -38,6 +39,7 @@ function fixture(overrides={}){
    return{bytes:Buffer.from(payload),etag:context.blobEtag};
   },
   getDefinitionsUpdatedAt:async()=>NOW-60*1000,
+  engineCheck:async()=>({verified:true,authorizedForRelease:false}),
   runner:async(...args)=>{scans++;return safe(...args);}
  };
  return{
@@ -45,6 +47,191 @@ function fixture(overrides={}){
   counters:()=>({claims,reads,scans})
  };
 }
+test('RC1977: candidate proof timestamps the scan COMPLETION, not job start',async()=>{
+ const completedAt=NOW+37000;
+ const f=fixture({clock:()=>completedAt});
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(r.status,'candidate-only');
+ assert.equal(r.receipt.payload.scannedAt,completedAt);
+ assert.equal(r.receipt.payload.expiresAt,completedAt+10*60*1000);
+ assert.deepEqual(verifyCandidateAttestation({
+  attestation:r.receipt,expected:context,secret:proofKey,now:completedAt
+ }),{valid:true,authorizedForRelease:false,verdict:'candidate-clean'});
+ assert.equal(r.authorizedForRelease,false);
+});
+
+test('RC1977: invalid, reversed or over-budget completion time never signs a candidate',async()=>{
+ for(const returned of [NOW-1,NOW+TIME_BUDGET.jobMs+1,0,undefined,
+  null,'next',Number.NaN]){
+  const f=fixture({clock:()=>returned});
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'worker-error');
+  assert.equal(r.receipt,undefined);
+  assert.equal(r.authorizedForRelease,false);
+ }
+ const f=fixture({clock:null});
+ const missing=await scanOfflineCandidate(f.settings);
+ assert.equal(missing.reason,'worker-adapter-unavailable');
+ assert.deepEqual(f.counters(),{claims:0,reads:0,scans:0});
+ const errored=fixture({clock:()=>{throw Error('FAKE_SECRET_KEY=do_not_echo');}});
+ const r=await scanOfflineCandidate(errored.settings);
+ assert.equal(r.reason,'worker-error');
+ assert.doesNotMatch(JSON.stringify(r),/FAKE_SECRET_KEY|do_not_echo/);
+});
+
+test('RC1977: definitions that age out during a scan cannot be attested as fresh',async()=>{
+ // Fresh by 250 ms at job start; stale by 250 ms at completion.
+ const definitionsUpdatedAt=NOW-24*60*60*1000+250;
+ const f=fixture({
+  getDefinitionsUpdatedAt:async()=>definitionsUpdatedAt,
+  clock:()=>NOW+500
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'worker-error');
+ assert.equal(r.receipt,undefined);
+ assert.equal(r.authorizedForRelease,false);
+ assert.deepEqual(f.counters(),{claims:1,reads:2,scans:1});
+});
+
+test('RC1975: planned scan and Blob timeouts fit the proposed 240-second Consumption Job',()=>{
+ assert.equal(TIME_BUDGET.jobMs,240000);
+ assert.equal(TIME_BUDGET.eicarProbes,2);
+ assert.equal(TIME_BUDGET.eicarProbeMs,25000);
+ assert.equal(TIME_BUDGET.customerScanMs,90000);
+ assert.equal(TIME_BUDGET.blobReadMs,35000);
+ assert.equal(TIME_BUDGET.blobReads,2);
+ const total=TIME_BUDGET.eicarProbeMs*TIME_BUDGET.eicarProbes+
+  TIME_BUDGET.customerScanMs+TIME_BUDGET.blobReadMs*TIME_BUDGET.blobReads+
+  TIME_BUDGET.reserveMs;
+ assert.equal(total,240000,'reserve must fit the same proposed job ceiling');
+});
+
+test('RC1975: worker passes 25-second EICAR and 90-second customer scan limits',async()=>{
+ let probes=0,customerScans=0;
+ const f=fixture({
+  engineCheck:async options=>{
+   assert.equal(options.timeoutMs,TIME_BUDGET.eicarProbeMs);
+   assert.equal(options.runner,f.settings.runner,'EICAR must test the same scanner as the customer file');
+   probes++;
+   return{verified:true,authorizedForRelease:false};
+  },
+  runner:async(file,timeoutMs)=>{
+   customerScans++;
+   assert.equal(timeoutMs,TIME_BUDGET.customerScanMs);
+   return safe();
+  }
+ });
+ const result=await scanOfflineCandidate(f.settings);
+ assert.equal(result.status,'candidate-only');
+ assert.equal(result.authorizedForRelease,false);
+ assert.equal(result.receipt.authorizedForRelease,false);
+ assert.equal(probes,1);
+ assert.equal(customerScans,1);
+ assert.deepEqual(f.counters(),{claims:1,reads:2,scans:0});
+});
+
+test('RC1976: the same injected runner handles clean, EICAR and customer bytes',async()=>{
+ const probes=[];
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async(file,timeoutMs)=>{
+   const data=await fs.readFile(file);
+   probes.push(data.toString('ascii'));
+   if(probes.length<=2)assert.equal(timeoutMs,TIME_BUDGET.eicarProbeMs);
+   else assert.equal(timeoutMs,TIME_BUDGET.customerScanMs);
+   return{exitCode:data.includes(Buffer.from('EICAR-STANDARD-ANTIVIRUS-TEST-FILE!'))?1:0,
+    timedOut:false};
+  }
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(probes.length,3,'two EICAR readiness probes and a real candidate scan');
+ assert.match(probes[0],/clean file/);
+ assert.match(probes[1],/EICAR-STANDARD-ANTIVIRUS-TEST-FILE/);
+ assert.equal(probes[2],payload.toString('ascii'));
+ assert.equal(r.status,'candidate-only');
+ assert.equal(r.authorizedForRelease,false);
+ assert.equal(r.receipt.authorizedForRelease,false);
+});
+
+test('RC1976: scanner that falsely reports every file as clean fails EICAR before Blob reads',async()=>{
+ let scannerCalls=0;
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async()=>{scannerCalls++;return{exitCode:0,timedOut:false};}
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(scannerCalls,2,'clean probe passes, EICAR must fail');
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'engine-self-test-failed');
+ assert.equal(r.authorizedForRelease,false);
+ assert.equal(r.receipt,undefined);
+ assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+});
+
+test('RC1976: scanner flagging a benign clean probe cannot start EICAR or customer read',async()=>{
+ let scannerCalls=0;
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async()=>{scannerCalls++;return{exitCode:1,timedOut:false};}
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(scannerCalls,1);
+ assert.equal(r.reason,'engine-self-test-failed');
+ assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+});
+
+test('RC1973: missing EICAR engine readiness blocks before the first customer blob read',async()=>{
+ for(const outcome of [
+  {verified:false,authorizedForRelease:false},
+  {verified:true,authorizedForRelease:true},
+  {verified:true},
+  null
+ ]){
+  let checks=0;
+  const f=fixture({engineCheck:async()=>{checks++;return outcome;}});
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'engine-self-test-failed');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(checks,1);
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+ }
+});
+
+test('RC1973: broken readiness adapter or scanner self-test crash fails closed',async()=>{
+ const missing=fixture({engineCheck:null});
+ const r=await scanOfflineCandidate(missing.settings);
+ assert.equal(r.reason,'worker-adapter-unavailable');
+ assert.deepEqual(missing.counters(),{claims:0,reads:0,scans:0});
+ const broken=fixture({engineCheck:async()=>{throw Error('secret=DO_NOT_LOG');}});
+ const crashed=await scanOfflineCandidate(broken.settings);
+ assert.equal(crashed.reason,'worker-error');
+ assert.equal(crashed.authorizedForRelease,false);
+ assert.deepEqual(broken.counters(),{claims:1,reads:0,scans:0});
+ assert.doesNotMatch(JSON.stringify(crashed),/DO_NOT_LOG/);
+});
+
+test('RC1973: queue verification and atomic claim happen BEFORE costly EICAR probe',async()=>{
+ let probes=0;
+ const invalid=fixture({
+  envelope:{...receipt,payload:{...receipt.payload,uploadSha256:'e'.repeat(64)}},
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ assert.equal((await scanOfflineCandidate(invalid.settings)).reason,'invalid-queue-proof');
+ assert.equal(probes,0);
+ const duplicate=fixture({
+  claimJob:async()=>false,
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ assert.equal((await scanOfflineCandidate(duplicate.settings)).reason,'job-already-claimed');
+ assert.equal(probes,0);
+ assert.deepEqual(invalid.counters(),{claims:0,reads:0,scans:0});
+ assert.deepEqual(duplicate.counters(),{claims:0,reads:0,scans:0});
+});
+
 test('RC1965: valid queue + immutable bytes yield ONLY signed candidate, never parser release',async()=>{
  const f=fixture();
  const r=await scanOfflineCandidate(f.settings);
@@ -132,14 +319,14 @@ test('RC1965: signatures changed during scan cannot be falsely attested as updat
  const f=fixture({
   getDefinitionsUpdatedAt:async()=>{
    reads++;
-   if(reads===1)assert.equal(scannerRan,false,'record signature state before scanning');
-   if(reads===2)assert.equal(scannerRan,true,'recheck signatures only after scanning');
-   return reads===1?NOW-60000:NOW-1000;
+   if(reads<=2)assert.equal(scannerRan,false,'preflight and pre-scan checks precede scan');
+   if(reads===3)assert.equal(scannerRan,true,'post-scan checks follow scan');
+   return reads<=2?NOW-60000:NOW-1000;
   },
   runner:async()=>{scannerRan=true;return safe();}
  });
  const r=await scanOfflineCandidate(f.settings);
- assert.equal(reads,2);
+ assert.equal(reads,3);
  assert.equal(r.status,'blocked');
  assert.equal(r.reason,'definitions-changed-during-scan');
  assert.equal(r.receipt,undefined);
@@ -153,15 +340,76 @@ test('RC1965: signature metadata disappears after scanning, no candidate receipt
  let reads=0;
  const f=fixture({getDefinitionsUpdatedAt:async()=>{
   reads++;
-  if(reads===2)throw Error('Untrusted metadata failure');
+  if(reads===3)throw Error('Untrusted metadata failure');
   return NOW-60000;
  }});
  const r=await scanOfflineCandidate(f.settings);
- assert.equal(reads,2);
+ assert.equal(reads,3);
  assert.equal(r.status,'blocked');
  assert.equal(r.reason,'worker-error');
  assert.equal(r.receipt,undefined);
  assert.equal(r.authorizedForRelease,false);
+});
+
+test('RC1971: invalid AV definition metadata blocks BEFORE an expensive scan',async()=>{
+ for(const updatedAt of [
+  NOW-48*60*60*1000,
+  NOW+1,
+  0,
+  null,
+  'latest',
+  Number.NaN
+ ]){
+  let scans=0;
+  const f=fixture({
+   getDefinitionsUpdatedAt:async()=>updatedAt,
+   runner:async()=>{scans++;return safe();}
+  });
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.reason,'worker-error');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(scans,0,'invalid signatures must not consume scanner execution');
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+ }
+});
+
+test('RC1974: stale signatures do not run self-test or read any quarantined customer bytes',async()=>{
+ for(const updatedAt of [
+  NOW-25*60*60*1000,NOW+1,0,undefined,'invalid',Number.NaN
+ ]){
+  let engineProbes=0;
+  const f=fixture({
+   getDefinitionsUpdatedAt:async()=>updatedAt,
+   engineCheck:async()=>{engineProbes++;return{verified:true,authorizedForRelease:false};}
+  });
+  const r=await scanOfflineCandidate(f.settings);
+  assert.equal(r.status,'blocked');
+  assert.equal(r.authorizedForRelease,false);
+  assert.equal(r.receipt,undefined);
+  assert.equal(engineProbes,0,'reject stale state without CPU-heavy EICAR probes');
+  assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+ }
+});
+
+test('RC1974: signature update during EICAR self-test prevents any customer scan',async()=>{
+ let reads=0,probes=0;
+ const f=fixture({
+  getDefinitionsUpdatedAt:async()=>{
+   reads++;
+   return reads===1?NOW-60000:NOW-500;
+  },
+  engineCheck:async()=>{probes++;return{verified:true,authorizedForRelease:false};}
+ });
+ const result=await scanOfflineCandidate(f.settings);
+ assert.equal(probes,1);
+ assert.equal(reads,2);
+ assert.equal(result.status,'blocked');
+ assert.equal(result.reason,'worker-error');
+ assert.equal(result.receipt,undefined);
+ assert.equal(result.authorizedForRelease,false);
+ assert.deepEqual(f.counters(),{claims:1,reads:1,scans:0});
 });
 
 test('RC1965: stale or future AV definitions are never signed',async()=>{

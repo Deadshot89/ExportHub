@@ -10,10 +10,28 @@ const os=require('node:os');
 const path=require('node:path');
 const {MAX_BYTES,scanLocalQuarantine,runClamscan}=
  require('../rc1956-clamav/scan-local.cjs');
-const {verifyQueueCandidate}=require('../rc1964-clamav/cloud-job-preflight.cjs');
+const {verifyQueueCandidate,JOB_SHAPE}=require('../rc1964-clamav/cloud-job-preflight.cjs');
 const {createCandidateAttestation}=
  require('../rc1963-clamav/scan-candidate-attestation.cjs');
+const {verifyClamAvEngine}=
+ require('../rc1972-clamav/engine-selftest.cjs');
 
+// RC1975: 240 s was the candidate Container Apps Job ceiling, but the
+// prior defaults allowed 2 x 120 s probes + 120 s customer scan + 2 x 35 s
+// Blob reads (430 s before overhead). All values below are conservative
+// design timeouts, NOT an Azure deployment or a guarantee of runtime safety.
+// A future container job must enforce a separate 240 s hard execution cap.
+const TIME_BUDGET=Object.freeze({
+ jobMs:JOB_SHAPE.maxSeconds*1000,
+ eicarProbeMs:25000,eicarProbes:2,
+ customerScanMs:90000,blobReadMs:35000,blobReads:2,
+ reserveMs:30000
+});
+const plannedMaximum=TIME_BUDGET.eicarProbeMs*TIME_BUDGET.eicarProbes+
+ TIME_BUDGET.customerScanMs+TIME_BUDGET.blobReadMs*TIME_BUDGET.blobReads+
+ TIME_BUDGET.reserveMs;
+if(plannedMaximum>TIME_BUDGET.jobMs)
+ throw Error('RC1975_INVALID_JOB_BUDGET');
 const DENIED=Object.freeze({authorizedForRelease:false,dispatchAuthorized:false,deployAuthorized:false});
 const blocked=reason=>({...DENIED,status:'blocked',reason});
 const HEX64=/^[a-f0-9]{64}$/;
@@ -39,7 +57,8 @@ function snapshotMatches(snapshot,expected){
 async function scanOfflineCandidate({
  envelope,expected,queueSecret,proofSecret,
  claimJob,readSnapshot,getDefinitionsUpdatedAt,
- runner=runClamscan,now=Date.now()
+ runner=runClamscan,engineCheck=verifyClamAvEngine,
+ now=Date.now(),clock=Date.now
 }={}){
  if(!expected||expected.environment!=='testservice'||
     !Number.isSafeInteger(now)||now<=0)return blocked('invalid-context');
@@ -48,7 +67,8 @@ async function scanOfflineCandidate({
  });
  if(queue.valid!==true)return blocked('invalid-queue-proof');
  if(typeof claimJob!=='function'||typeof readSnapshot!=='function'||
-    typeof getDefinitionsUpdatedAt!=='function'||typeof runner!=='function')
+    typeof getDefinitionsUpdatedAt!=='function'||typeof runner!=='function'||
+    typeof engineCheck!=='function'||typeof clock!=='function')
   return blocked('worker-adapter-unavailable');
 
  let stageDir=null;
@@ -60,6 +80,22 @@ async function scanOfflineCandidate({
   const claimed=await claimJob({jobId,environment:'testservice'});
   if(claimed!==true){result=blocked('job-already-claimed');}
   else{
+   // RC1974: reject demonstrably stale signature metadata before the
+   // EICAR preflight OR any customer Blob read. The earlier RC1971 check
+   // happened after both expensive operations and wasted Consumption CPU.
+   const definitionsBefore=await getDefinitionsUpdatedAt();
+   if(!Number.isSafeInteger(definitionsBefore)||definitionsBefore<=0||
+      definitionsBefore>now||now-definitionsBefore>24*60*60*1000)
+    throw Error('RC1974_DEFINITIONS_NOT_CURRENT');
+   // RC1973: prevent any customer-blob read unless the actual engine has
+   // completed a clean-control + EICAR-detection self-test. The default
+   // invokes real clamscan; only synthetic tests inject a fake check.
+   // RC1976: self-test the EXACT runner subsequently used for customer
+   // bytes. Probing the default clamscan while injecting a separate scanner
+   // would falsely attest an engine that never scanned the uploaded file.
+   const engine=await engineCheck({runner,timeoutMs:TIME_BUDGET.eicarProbeMs});
+   if(!engine||engine.verified!==true||engine.authorizedForRelease!==false)
+    return blocked('engine-self-test-failed');
    const locator=Object.freeze({jobId,environment:'testservice',
     scopeHash:expected.scopeHash,blobKeyHash:expected.blobKeyHash});
    const first=await readSnapshot(locator);
@@ -70,13 +106,17 @@ async function scanOfflineCandidate({
     const stage=path.join(stageDir,'candidate.bin');
     await fs.writeFile(stage,first.bytes,{flag:'wx',mode:0o600});
     // Bind the candidate proof to the trusted scanner signature snapshot
-    // observed BEFORE scanning. Never substitute a post-scan update as proof
-    // of what the engine actually used.
-    const definitionsBefore=await getDefinitionsUpdatedAt();
+    // observed BEFORE scanning, including across the EICAR preflight.
+    // A refreshed database during the preflight must not be attested as
+    // the signatures actually used by the worker's scan process.
+    const definitionsImmediatelyBeforeScan=await getDefinitionsUpdatedAt();
+    if(definitionsImmediatelyBeforeScan!==definitionsBefore)
+     throw Error('RC1974_DEFINITIONS_CHANGED_DURING_PREFLIGHT');
     // The RC1956 scanner copies again into its own private, immutable directory
     // and returns no release permission even when clamscan exits 0.
     const scanned=await scanLocalQuarantine({
-     rootDir:stageDir,filePath:stage,runner
+     rootDir:stageDir,filePath:stage,runner,
+     timeoutMs:TIME_BUDGET.customerScanMs
     });
     if(!scanned||scanned.verdict!=='candidate-clean'){
      result=blocked(scanned&&scanned.verdict==='infected'?'malware-detected':'scan-unverified');
@@ -94,11 +134,21 @@ async function scanOfflineCandidate({
        // cannot attest the engine signatures that scanned these bytes.
        result=blocked('definitions-changed-during-scan');
       }else{
+       // RC1977: use completion time, never the original queue/claim time,
+       // for the signed scan proof. A scan that outlives the planned job
+       // budget, a reversed clock, or signatures stale at completion cannot
+       // issue even a non-releasing candidate receipt.
+       const finishedAt=clock();
+       if(!Number.isSafeInteger(finishedAt)||finishedAt<now||
+          finishedAt-now>TIME_BUDGET.jobMs||
+          finishedAt<definitionsBefore||
+          finishedAt-definitionsBefore>24*60*60*1000)
+        throw Error('RC1977_SCAN_TIME_UNVERIFIED');
        // Only candidate evidence. An authorized worker must additionally
        // prove this metadata belongs to the actual loaded scan engine.
        const receipt=createCandidateAttestation({
         candidate:scanned,context:expected,secret:proofSecret,
-        definitionsUpdatedAt:definitionsBefore,now
+        definitionsUpdatedAt:definitionsBefore,now:finishedAt
        });
        result={...DENIED,status:'candidate-only',receipt};
       }
@@ -120,4 +170,4 @@ async function scanOfflineCandidate({
  }
  return result;
 }
-module.exports={scanOfflineCandidate};
+module.exports={scanOfflineCandidate,TIME_BUDGET};
