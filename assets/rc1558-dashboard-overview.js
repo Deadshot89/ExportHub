@@ -734,6 +734,13 @@ function install(){
   if(typeof w.addEventListener!=='function')return;
   ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:language-changed','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
   w.addEventListener('load',schedule);
+  // Invalidate a count after actual case changes; next dashboard visit refetches.
+  w.addEventListener('exporthub:complaint-updated',function(){
+   if(openWorkLoggedOut)return;
+   openWorkEpoch++;openWorkInFlight=false;openWorkLastFetch=0;
+   openWorkCounts.complaints=null;openWorkAuthBackoff.complaints=0;
+   schedule()
+  });
   ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(false)})});
   ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(true)})});
   var fitFrame=0;w.addEventListener('resize',function(){if(fitFrame)return;var raf=w.requestAnimationFrame||function(fn){return setTimeout(fn,16)};fitFrame=raf(function(){fitFrame=0;fitNow()})});
