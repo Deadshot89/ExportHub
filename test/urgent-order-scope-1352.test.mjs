@@ -81,3 +81,47 @@ test('internal P1 details show the recorded confirmer and time, never fabricate 
   for(const key of ['urgentOrderV2.p1ApprovalDetailLabel','urgentOrderV2.p1ApprovalDetailBy','urgentOrderV2.p1ApprovalDetailMissing'])assert.ok(dict[key],lang+' missing '+key);
  }
 });
+
+test('whole-order checks remain available and are stored separately from unverified item lines',()=>{
+ const base={...payload,priority:'P3',allLines:true,items:[]};
+ const unchecked=model.createOrder(base,actor,at);
+ assert.deepEqual([unchecked.orderChecks.pickableStock,unchecked.orderChecks.holdsClear,unchecked.orderChecks.checkResult],[null,null,'not_checked']);
+ assert.equal(unchecked.items[0].checks,null);
+ assert.equal(unchecked.items[0].checkedAt,null);
+ const verified=model.createOrder({...base,orderChecks:{pickableStock:true,holdsClear:true}},actor,at);
+ assert.equal(verified.orderChecks.checkResult,'passed');
+ assert.equal(verified.orderChecks.checkedAt,at);
+ assert.equal(verified.items[0].checkResult,'not_checked','whole-order checks are not per-line evidence');
+ const failed=model.createOrder({...base,orderChecks:{pickableStock:false,holdsClear:true,exceptionReason:'Der Lagerbestand ist unvollständig.'}},actor,at);
+ assert.equal(failed.orderChecks.checkResult,'exception');
+ assert.equal(failed.orderChecks.exceptionReason,'Der Lagerbestand ist unvollständig.');
+ assert.equal(failed.items[0].checkResult,'not_checked');
+ assert.throws(()=>model.createOrder({...base,orderChecks:{pickableStock:false,holdsClear:true}},actor,at),e=>e.code==='URGENT_EXCEPTION_REASON_REQUIRED');
+ assert.throws(()=>model.createOrder({...base,orderChecks:{pickableStock:'true',holdsClear:true}},actor,at),e=>e.code==='URGENT_ORDER_CHECK_INVALID');
+ const direct=model.createOrder({...base,orderType:'DIRECT_OUTBOUND',directOutbound:{arrivalAt:'2026-11-11T08:00',arrivalMode:'TRUCK',arrivalProvider:'Test Carrier',dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true},orderChecks:{pickableStock:false,holdsClear:true}},actor,at);
+ assert.equal(direct.orderChecks.pickableStock,null,'stock pickability does not apply to direct outbound');
+ assert.equal(direct.orderChecks.checkResult,'passed');
+ const single=model.createOrder({...payload,priority:'P3'},actor,at);
+ assert.equal(single.orderChecks,null);
+});
+
+test('whole-order checks appear in both creation forms, not in fabricated line details',()=>{
+ for(const filename of ['urgent-orders.html','urgent-order-report.html']){
+  const html=fs.readFileSync(new URL('../assets/'+filename,import.meta.url),'utf8');
+  assert.match(html,/wholeOrderChecksTitle/);
+  assert.match(html,/wholeOrderStock/);
+  assert.match(html,/wholeOrderHolds/);
+  assert.match(html,/wholeOrderNotChecked/);
+  assert.match(html,/wholeOrderReason/);
+  assert.match(html,/orderChecks:isAllLines\(\)\?wholeOrderChecks\(\):null/);
+  assert.match(html,/function wholeOrderChecksMarkup|function wholeChecksMarkup/);
+  assert.match(html,/data-whole-order-checks=/);
+  for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))assert.doesNotThrow(()=>new vm.Script(match[1]));
+ }
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const dict=JSON.parse(fs.readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
+  for(const key of ['wholeOrderChecksTitle','wholeOrderChecksHelp','wholeOrderStock','wholeOrderHolds','wholeOrderNotChecked','wholeOrderReason','wholeOrderReasonRequired']){
+   assert.ok(String(dict['urgentOrderV2.'+key]||'').trim(),lang+' missing '+key);
+  }
+ }
+});
