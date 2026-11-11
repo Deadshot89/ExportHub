@@ -8,6 +8,7 @@ const require=createRequire(import.meta.url);
 const {scanOfflineCandidate,TIME_BUDGET}=require('../tools/rc1965-clamav/isolated-scan-core.cjs');
 const {createQueueCandidate}=require('../tools/rc1964-clamav/cloud-job-preflight.cjs');
 const {verifyCandidateAttestation}=require('../tools/rc1963-clamav/scan-candidate-attestation.cjs');
+const {verifyClamAvEngine}=require('../tools/rc1972-clamav/engine-selftest.cjs');
 const NOW=Date.UTC(2026,10,10,14,0,0);
 const payload=Buffer.from('RC1965 SYNTHETIC XLSX BYTES FOR OFFLINE TEST');
 const sha=crypto.createHash('sha256').update(payload).digest('hex');
@@ -63,7 +64,8 @@ test('RC1975: worker passes 25-second EICAR and 90-second customer scan limits',
  let probes=0,customerScans=0;
  const f=fixture({
   engineCheck:async options=>{
-   assert.deepEqual(options,{timeoutMs:TIME_BUDGET.eicarProbeMs});
+   assert.equal(options.timeoutMs,TIME_BUDGET.eicarProbeMs);
+   assert.equal(options.runner,f.settings.runner,'EICAR must test the same scanner as the customer file');
    probes++;
    return{verified:true,authorizedForRelease:false};
   },
@@ -80,6 +82,56 @@ test('RC1975: worker passes 25-second EICAR and 90-second customer scan limits',
  assert.equal(probes,1);
  assert.equal(customerScans,1);
  assert.deepEqual(f.counters(),{claims:1,reads:2,scans:0});
+});
+
+test('RC1976: the same injected runner handles clean, EICAR and customer bytes',async()=>{
+ const probes=[];
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async(file,timeoutMs)=>{
+   const data=await fs.readFile(file);
+   probes.push(data.toString('ascii'));
+   if(probes.length<=2)assert.equal(timeoutMs,TIME_BUDGET.eicarProbeMs);
+   else assert.equal(timeoutMs,TIME_BUDGET.customerScanMs);
+   return{exitCode:data.includes(Buffer.from('EICAR-STANDARD-ANTIVIRUS-TEST-FILE!'))?1:0,
+    timedOut:false};
+  }
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(probes.length,3,'two EICAR readiness probes and a real candidate scan');
+ assert.match(probes[0],/clean file/);
+ assert.match(probes[1],/EICAR-STANDARD-ANTIVIRUS-TEST-FILE/);
+ assert.equal(probes[2],payload.toString('ascii'));
+ assert.equal(r.status,'candidate-only');
+ assert.equal(r.authorizedForRelease,false);
+ assert.equal(r.receipt.authorizedForRelease,false);
+});
+
+test('RC1976: scanner that falsely reports every file as clean fails EICAR before Blob reads',async()=>{
+ let scannerCalls=0;
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async()=>{scannerCalls++;return{exitCode:0,timedOut:false};}
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(scannerCalls,2,'clean probe passes, EICAR must fail');
+ assert.equal(r.status,'blocked');
+ assert.equal(r.reason,'engine-self-test-failed');
+ assert.equal(r.authorizedForRelease,false);
+ assert.equal(r.receipt,undefined);
+ assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
+});
+
+test('RC1976: scanner flagging a benign clean probe cannot start EICAR or customer read',async()=>{
+ let scannerCalls=0;
+ const f=fixture({
+  engineCheck:verifyClamAvEngine,
+  runner:async()=>{scannerCalls++;return{exitCode:1,timedOut:false};}
+ });
+ const r=await scanOfflineCandidate(f.settings);
+ assert.equal(scannerCalls,1);
+ assert.equal(r.reason,'engine-self-test-failed');
+ assert.deepEqual(f.counters(),{claims:1,reads:0,scans:0});
 });
 
 test('RC1973: missing EICAR engine readiness blocks before the first customer blob read',async()=>{
