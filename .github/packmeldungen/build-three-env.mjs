@@ -88,6 +88,24 @@ export function injectPackAbdOwnership(html,file='index.html'){
     if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
     throw new Error(file+': RC1382 legacy ABD storage hook missing');
   }
+  // The final HTML verification intentionally runs this patch on an already
+  // assembled build. Treat an *exactly once* patched document as idempotent,
+  // but fail closed for a partial patch, duplicated controller, or drift.
+  const patchedSignatures=[
+    'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
+    "if(q(d.packNotificationId)){if(!window.ExportHUBPackAbd",
+    'source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId)',
+    's.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId)',
+    "source=d.packNotificationId?'Aus Packmeldung übernommen'",
+    'if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item',
+    'if(item.packNotificationId){renderAbd();return false;}if(!window.__EXPORTHUB_TEST_NO_MAILTO__'
+  ];
+  if(out.includes(patchedSignatures[0])){
+    for(const signature of patchedSignatures)
+      if(out.split(signature).length!==2)
+        throw new Error(file+': RC1382 incomplete or duplicated ABD ownership patch: '+signature.slice(0,62));
+    return out;
+  }
   function replaceOnce(needle,replacement){
     if(out.split(needle).length!==2)throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
     out=out.replace(needle,replacement);
