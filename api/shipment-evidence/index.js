@@ -7,6 +7,8 @@ const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const rights=require('../shared/state-write-guard');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
+const complaintOps=require('./complaints');
+const qmAi=require('../shared/qm-ai');
 const MAX_FILE=15*1024*1024;
 const TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png'};
 const FIELDS={shipmentNumber:100,customer:200,customerNumber:40,customerId:120,customerMode:16,dispatchDate:10,colli:10,weightKg:16,packaging:400,shippingMethod:80,carrier:160,trackingNumber:160,exporthubRef:20,contents:3000,loadSecuring:1500,remarks:2000};
@@ -58,11 +60,17 @@ function verifiedDeploymentEnvironment(){
  }catch(_){}
  return null;
 }
-// Only the public, non-secret storage-account name may enter admin diagnostics.
-// Never serialize a connection string, SAS token, shared key or full endpoint.
-function safeStorageAccountName(connectionString){
- const match=String(connectionString||'').match(/(?:^|;)AccountName=([^;]*)/i);
- return match&&/^[a-z0-9]{3,24}$/.test(match[1])?match[1]:null;
+// Identify only a standard Azure account from the actual SDK-selected Blob
+// endpoint. AccountName in a connection string may not be the endpoint used
+// when BlobEndpoint is overridden. Never echo URL, SAS, key or credentials.
+function safeStorageAccountName(blobServiceUrl){
+ try{
+  const url=new URL(String(blobServiceUrl||''));
+  if(url.protocol!=='https:'||url.username||url.password||
+     (url.port&&url.port!=='443'))return null;
+  const match=url.hostname.toLowerCase().match(/^([a-z0-9]{3,24})\.blob\.core\.windows\.net$/);
+  return match?match[1]:null;
+ }catch(_){return null}
 }
 function storageContext(req,user){
  const env=verifiedDeploymentEnvironment()||auth.environmentFromRequest(req),
@@ -71,8 +79,9 @@ function storageContext(req,user){
  if(!conn)fail('STORAGE_UNAVAILABLE','Azure-Speicher nicht konfiguriert.',503);
  const container=isolated?cfg.container:auth.TEAM_CONTAINER;
  const prefix=env==='testservice'?'testservice/shipment-evidence/v1/':'shipment-evidence/v1/';
- return{container:BlobServiceClient.fromConnectionString(conn).getContainerClient(container),prefix,user,
-  storageTarget:{environment:env,accountName:safeStorageAccountName(conn),containerName:container}};
+ const blobService=BlobServiceClient.fromConnectionString(conn);
+ return{container:blobService.getContainerClient(container),prefix,user,
+  storageTarget:{environment:env,accountName:safeStorageAccountName(blobService.url),containerName:container}};
 }
 function guestOrigin(req){
  const h=req.headers||{},rawOrigin=txt(h.origin||h.Origin,300),referer=txt(h.referer||h.Referer,500),
@@ -232,7 +241,8 @@ async function guestRequest(req,method,payload,action){
  if(record.deletedAt)fail('NOT_FOUND','Versandnachweis nicht gefunden.',404);
  if(method==='GET'&&action==='public-get')return json(200,{ok:true,record:publicRecord(record)});
  if(method==='GET'&&action==='public-file'){
-  const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular');
+  const guestFile=(record.files||[]).find(file=>file.id===payload.fileId&&file.uploadedBy==='Gastformular'&&
+    ['foto','lieferschein'].includes(file.kind));
   if(!guestFile)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
   return downloadFile(ctx,docId,record,payload.fileId);
  }
@@ -241,6 +251,7 @@ async function guestRequest(req,method,payload,action){
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)
   fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
  if(action==='public-upload'){
+  if(!['foto','lieferschein'].includes(payload.kind))fail('PUBLIC_BAD_KIND','Nur Versandfotos und Lieferscheine ohne Anmeldung erlaubt.',403);
   if(record.files.length>=PUBLIC_FILE_COUNT)fail('PUBLIC_FILE_LIMIT','Maximal 12 Dateien ohne Anmeldung.',413);
   const accumulated=record.files.reduce((sum,file)=>sum+(Number(file.size)||0),0);
   if(accumulated>=PUBLIC_MAX_BYTES)fail('PUBLIC_FILE_LIMIT','Maximal 60 MB insgesamt ohne Anmeldung.',413);
@@ -303,7 +314,7 @@ function rawFile(input,recordId){
  const name=txt(input.fileName,240).split(/[\\/]/).pop();
  const ext=(name.match(/\.([a-zA-Z0-9]+)$/)||[])[1]?.toLowerCase();
  const kind=input.kind;
- if(kind!=='foto'&&kind!=='lieferschein')fail('BAD_KIND','Dateityp nicht erlaubt.');
+ if(!['foto','lieferschein','reklamation'].includes(kind))fail('BAD_KIND','Dateityp nicht erlaubt.');
  if(!ext||!TYPES[ext]||(kind==='foto'&&!['jpg','jpeg','png'].includes(ext)))fail('BAD_EXTENSION','Erlaubt: PDF, JPG, PNG.');
  const encoded=input.base64;
  // Reject oversized uploads before running a full base64 validation or allocating bytes.
@@ -319,20 +330,24 @@ function rawFile(input,recordId){
  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace('T','-').slice(0,15);
  const base=name.slice(0,-(ext.length+1)).replace(/[^\p{L}\p{N}._ -]/gu,'_').slice(0,80)||'Datei';
  const fileId=crypto.randomUUID();
- const storedName=(kind==='foto'?'Versandfoto_':'Lieferschein_')+recordId+'_'+stamp+'_'+base+'_'+fileId.slice(0,8)+'.'+ext;
+ const storedName=(kind==='foto'?'Versandfoto_':kind==='reklamation'?'Reklamation_':'Lieferschein_')+recordId+'_'+stamp+'_'+base+'_'+fileId.slice(0,8)+'.'+ext;
  return{bytes,fileId,storedName,mime:TYPES[ext],kind};
 }
 async function upload(ctx,record,blob,etag,input){
  if(!record.fields)fail('SAVE_FIRST','Bitte zuerst einen Versandnachweis speichern.');
  if(record.files.length>=100)fail('FILE_LIMIT','Maximal 100 Dateien pro Dokumentation.',413);
+ const complaint=input.kind==='reklamation'&&Array.isArray(record.complaints)?record.complaints.find(c=>c.id===input.complaintId):null;
+ if(input.kind==='reklamation'&&!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+ if(complaint&&complaint.state==='abgeschlossen')fail('COMPLAINT_CLOSED','Die Reklamation ist abgeschlossen.',409);
+ if(complaint&&record.files.filter(f=>f.complaintId===complaint.id).length>=20)fail('COMPLAINT_FILE_LIMIT','Maximal 20 Anlagen pro Reklamation.',413);
  const f=rawFile(input,record.id),target=fileBlob(ctx,record.id,f.fileId);
  await target.uploadData(f.bytes,{blobHTTPHeaders:{blobContentType:f.mime},conditions:{ifNoneMatch:'*'}});
  try{
   const res=await target.download(0),parts=[];
   for await(const part of res.readableStreamBody)parts.push(Buffer.from(part));
   if(!Buffer.concat(parts).equals(f.bytes))fail('FILE_READBACK','Foto/Lieferschein konnte nach Speichern nicht bestaetigt werden.',503);
-  record.files.push({id:f.fileId,name:f.storedName,kind:f.kind,mime:f.mime,size:f.bytes.length,uploadedAt:new Date().toISOString(),uploadedBy:ctx.user});
-  bump(record,ctx,'file-upload',{fileId:f.fileId,kind:f.kind});
+  record.files.push({id:f.fileId,name:f.storedName,kind:f.kind,mime:f.mime,size:f.bytes.length,uploadedAt:new Date().toISOString(),uploadedBy:ctx.user,...(complaint?{complaintId:complaint.id}:{})});
+  bump(record,ctx,'file-upload',{fileId:f.fileId,kind:f.kind,...(complaint?{complaintId:complaint.id}:{})});
   await saveRecord(blob,record,etag);
  }catch(e){
   // A failed response can follow a successful metadata write (for example,
@@ -346,13 +361,48 @@ async function upload(ctx,record,blob,etag,input){
   throw e;
  }
 }
+// Authenticated dashboard summary: scan every page, never return a partial
+// count or expose customer/case details. Uses the same isolated storage as DOK.
+async function complaintCounts(ctx){
+ let continuation,open=0,pages=0;
+ do{
+  if(++pages>200)fail('COUNT_UNAVAILABLE','Reklamationszaehler: Datenbestand zu gross. Bitte erneut pruefen.',503);
+  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'})
+   .byPage({continuationToken:continuation,maxPageSize:50});
+  const page=(await pager.next()).value||{};
+  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name)
+   .filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
+  const batch=await Promise.all(names.map(async name=>{
+   try{return(await getRecord(ctx,name.split('/').pop().slice(0,-5))).record}
+   catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  }));
+  open+=complaintOps.openCount(batch);
+  continuation=page.continuationToken||undefined;
+ }while(continuation);
+ return json(200,{ok:true,open});
+}
+// The list view must not transfer customer complaint texts, measures,
+// analysis, history or file names. Full records stay behind the protected GET
+// detail endpoint; this summary is sufficient for the REF-first table.
+function listSummary(record){
+ if(!Array.isArray(record.complaints)||record.complaints.some(c=>!c||typeof c!=='object'||Array.isArray(c)))
+  fail('CORRUPT_COMPLAINTS','Reklamationsbestand unvollstaendig.',503);
+ const source=record.fields&&typeof record.fields==='object'&&!Array.isArray(record.fields)?record.fields:{};
+ const fields={};
+ for(const key of ['exporthubRef','customer','shipmentNumber','dispatchDate','colli','weightKg','trackingNumber'])
+  fields[key]=source[key]||'';
+ return{id:record.id,updatedAt:record.updatedAt||'',fields,
+  complaints:record.complaints.map(c=>({state:c.state==='abgeschlossen'?'abgeschlossen':
+   c.state==='in_pruefung'?'in_pruefung':'offen'})),
+  fileCount:Array.isArray(record.files)?record.files.length:0};
+}
 async function list(ctx,query){
  const continuationToken=txt(query.continuation,1200)||undefined;
  const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'}).byPage({continuationToken,maxPageSize:50});
  const page=(await pager.next()).value||{};
  const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
  const records=await Promise.all(names.map(async name=>{
-  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:{...cleanRecord(rec.record),history:[]}}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:listSummary(rec.record)}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
  }));
  return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
 }
@@ -373,16 +423,18 @@ async function recordsForReference(ctx,query){
   }));
   for(const record of records){
    if(!record||record.deletedAt||txt(record.fields&&record.fields.exporthubRef,20).toUpperCase()!==ref)continue;
-   linked.push({id:record.id,files:(record.files||[]).map(f=>({id:f.id,name:f.name,kind:f.kind,mime:f.mime,size:f.size,uploadedAt:f.uploadedAt}))});
+   linked.push({id:record.id,files:(record.files||[]).filter(f=>f.kind!=='reklamation').map(f=>({id:f.id,name:f.name,kind:f.kind,mime:f.mime,size:f.size,uploadedAt:f.uploadedAt}))});
   }
   continuation=page.continuationToken||null;
   scanned++;
  }while(continuation&&scanned<40);
  return json(200,{ok:true,reference:ref,records:linked,incomplete:!!continuation});
 }
-async function downloadFile(ctx,docId,record,fileId){
+async function downloadFile(ctx,docId,record,fileId,complaintId){
   const entry=record.files.find(x=>x.id===fileId);
   if(!entry)fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
+  if(entry.kind==='reklamation'&&(!complaintId||complaintId!==entry.complaintId||
+      !(record.complaints||[]).some(c=>c.id===entry.complaintId)))fail('FILE_NOT_FOUND','Datei nicht gefunden.',404);
   const source=await fileBlob(ctx,docId,entry.id).download(0),chunks=[];
   for await(const p of source.readableStreamBody)chunks.push(Buffer.from(p));
   const bytes=Buffer.concat(chunks);
@@ -390,7 +442,6 @@ async function downloadFile(ctx,docId,record,fileId){
   return{status:200,headers:{'Content-Type':entry.mime,'Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':'sandbox','Content-Disposition':'attachment; filename="'+entry.name.replace(/[^A-Za-z0-9._-]/g,'_')+'"'},body:bytes};
 
 }
-
 /**
  * RC1934 P0: Look up one immutable DOK ID without trusting the paginated UI.
  * This endpoint exposes only minimal metadata and requires an authenticated admin.
@@ -404,10 +455,10 @@ async function inspectDeletedEvidence(ctx,docId){
   const exact=ctx.prefix+'records/'+docId+'.json';
   let versionEntries=0,storageHistoryCandidate=false,versionsKnown=true;
   try{
-   for await(const item of ctx.container.listBlobsFlat({prefix:exact,includeDeleted:true,includeVersions:true,includeSnapshots:true})){
+   for await(const item of ctx.container.listBlobsFlat({prefix:exact,includeDeleted:true,includeVersions:true,includeDeletedWithVersions:true,includeSnapshots:true})){
     if(item.name!==exact)continue;
     versionEntries++;
-    if(item.deleted||item.versionId||item.snapshot)storageHistoryCandidate=true;
+    if(item.deleted||item.versionId||item.snapshot||item.hasVersionsOnly===true)storageHistoryCandidate=true;
     if(versionEntries>=100)break;
    }
   }catch(_){versionsKnown=false}
@@ -469,6 +520,7 @@ async function processRequest(req){
   if(method!=='POST'||action!=='restore')fail('INVALID_ACTION','Unbekannte Anfrage.',405);
  }
  if(method==='GET'&&action==='list')return list(ctx,payload);
+ if(method==='GET'&&action==='counts')return complaintCounts(ctx);
   if(method==='GET'&&action==='for-reference')return recordsForReference(ctx,payload);
  if(method==='POST'&&action==='create'){
   const normalized=fields(payload.fields),now=new Date().toISOString();
@@ -480,7 +532,7 @@ async function processRequest(req){
  const{blob,record,etag,raw}=await getRecord(ctx,docId);
  if(record.deletedAt&&action!=='restore')fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
  if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
- if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
+ if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId,payload.complaintId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
  if(!Number.isInteger(payload.expectedRevision)||payload.expectedRevision!==record.revision)fail('CONFLICT','Datensatz wurde geaendert. Bitte neu laden.',409);
  if(action==='register-customer'){
@@ -528,14 +580,103 @@ async function processRequest(req){
   if(record.complaints.length>=200)fail('COMPLAINT_LIMIT','Zu viele Kundenbeschwerden.',413);
   const reportedDate=txt(payload.reportedDate,10)||new Date().toISOString().slice(0,10);
   if(!validDate(reportedDate))fail('BAD_DATE','Beschwerdedatum ungueltig.');
-  record.complaints.push({id:crypto.randomUUID(),text:comment,reportedDate,state:'offen',createdAt:new Date().toISOString(),createdBy:ctx.user});
-  bump(record,ctx,'complaint');await saveRecord(blob,record,etag);
+  const created=complaintOps.created({...payload,text:comment,reportedDate},ctx.user);
+  record.complaints.push(created);
+  bump(record,ctx,'complaint',{complaintId:created.id});await saveRecord(blob,record,etag);
  }else if(action==='complaint-status'){
   const complaint=record.complaints.find(x=>x.id===payload.complaintId);
   if(!complaint||!STATES.has(payload.state))fail('BAD_STATUS','Beschwerde oder Status ungueltig.');
-  const from=complaint.state;complaint.state=payload.state;
-  complaint.changedAt=new Date().toISOString();complaint.changedBy=ctx.user;
+  const from=complaintOps.changeStatus(complaint,payload.state,ctx.user);
   bump(record,ctx,'complaint-status',{complaintId:complaint.id,from,to:complaint.state});await saveRecord(blob,record,etag);
+ }else if(action==='complaint-update'){
+  const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
+  if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  // Audit retains the previous effectiveness evidence and result before
+  // a revised cause, method or sample can invalidate the old approval.
+  const proofSnapshot=caseItem=>({
+   result:caseItem.effectivenessResult||'offen',checkDate:caseItem.checkDate||'',
+   method:caseItem.checkMethod||'',sample:caseItem.checkSample||'',
+   criteria:caseItem.checkCriteria||'',evidence:caseItem.effectivenessEvidence||'',
+   verifiedOn:caseItem.verifiedOn||'',verifiedBy:caseItem.verifiedBy||''
+  });
+  const previous=proofSnapshot(complaint);
+  const changed=complaintOps.edit(complaint,payload,ctx.user);
+  if(changed.length){
+   const event={complaintId:complaint.id,changed};
+   if(changed.some(k=>['rootCause','correctiveAction','preventiveAction','checkDate','checkMethod',
+      'checkSample','checkCriteria','effectivenessEvidence','effectivenessResult'].includes(k)))
+    event.effectivenessAudit={before:previous,after:proofSnapshot(complaint)};
+   bump(record,ctx,'complaint-update',event);
+   await saveRecord(blob,record,etag)
+  }
+ }else if(action==='complaint-analysis'){
+  const complaint=(record.complaints||[]).find(c=>c.id===payload.complaintId);
+  if(!complaint)fail('COMPLAINT_NOT_FOUND','Reklamation nicht gefunden.',404);
+  const suggestions=complaintOps.proposal(complaint,record.fields,ctx.user);
+  const fallback=(reason)=>json(200,{ok:true,mode:'regelbasiert',reason,suggestions,
+   notice:'Regelvorschlag (ohne KI) – keine Dateien oder Sendungsdaten extern uebertragen.'});
+  if(payload.consent!==true)return fallback('no_consent');
+  const ids=payload.fileIds==null?[]:payload.fileIds;
+  if(!Array.isArray(ids)||ids.length>2||new Set(ids).size!==ids.length)
+   fail('BAD_AI_EVIDENCE','Fuer die KI-Analyse maximal zwei unterschiedliche Anlagen auswaehlen.',400);
+  if(ids.length&&payload.shareFiles!==true)fail('FILE_CONSENT_REQUIRED','Datei-Transfer an die KI muss gesondert bestaetigt werden.',403);
+  const selected=ids.map(fileId=>{
+   if(typeof fileId!=='string'||fileId.length>80)fail('BAD_AI_EVIDENCE','Ungueltige Dateiauswahl.',400);
+   const file=(record.files||[]).find(f=>f.id===fileId&&f.complaintId===complaint.id&&f.kind==='reklamation');
+   if(!file)fail('COMPLAINT_FILE_NOT_FOUND','Anlage ist dieser Reklamation nicht zugeordnet.',404);
+   if(!['image/jpeg','image/png','application/pdf'].includes(file.mime)||file.size>4*1024*1024||file.size<1)
+    fail('AI_FILE_LIMIT','KI-Analyse: nur PDF/JPG/PNG mit maximal 4 MB je Datei.',413);
+   return file;
+  });
+  if(selected.reduce((n,f)=>n+f.size,0)>6*1024*1024)
+   fail('AI_FILE_LIMIT','Maximal 6 MB an KI-Anlagen pro Auswertung.',413);
+  const cfg=qmAi.resolveConfig(process.env);
+  if(!cfg.enabled)return fallback('not_configured');
+  // Shared QM quota: never reset the count when AI is used from shipment documentation.
+  const usage=ctx.container.getBlockBlobClient((ctx.prefix.startsWith('testservice/')?'testservice/':'')+'quality/ai-usage.json');
+  const store={read:()=>auth.readJson(usage,null,{missingBlobOnly:true}),
+   write:(value,version)=>auth.writeJson(usage,value,version)};
+  let quota;
+  try{quota=await qmAi.consumeQuota(store,cfg,ctx.user,complaint.id)}
+  catch(_){return fallback('quota_unavailable')}
+  if(!quota.allowed)return fallback(quota.reason);
+  const item={category:'versand',severity:'mittel',description:complaint.text,
+   impact:'Reklamation eines Kunden',rootCause:complaint.rootCause||'',
+   immediateAction:complaint.immediateAction||'',correctiveAction:complaint.correctiveAction||'',
+   preventiveAction:complaint.preventiveAction||''};
+  let answer,evidenceParts=[],providerCalled=false;
+  try{
+   for(const file of selected){
+    const response=await fileBlob(ctx,docId,file.id).download(0),chunks=[];
+    for await(const chunk of response.readableStreamBody)chunks.push(Buffer.from(chunk));
+    const bytes=Buffer.concat(chunks);
+    if(bytes.length!==file.size||bytes.length>4*1024*1024)
+      fail('AI_EVIDENCE_INVALID','Anlage unvollstaendig oder zu gross.',409);
+    const valid=file.mime==='application/pdf'&&bytes.subarray(0,5).toString('ascii')==='%PDF-'||
+      file.mime==='image/jpeg'&&bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255||
+      file.mime==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    if(!valid)fail('AI_EVIDENCE_INVALID','Dateiinhalt stimmt nicht mit dem Format ueberein.',409);
+    evidenceParts.push({inlineData:{mimeType:file.mime,data:bytes.toString('base64')}});
+   }
+   providerCalled=true;
+   answer=await qmAi.askGemini({config:cfg,item,language:txt(payload.language,2).toLowerCase(),evidenceParts,complaintMode:true});
+  }catch(e){answer={ok:false,reason:'server',validationError:e&&e.code}}
+  // Never keep the decoded attachments longer than this invocation.
+  evidenceParts=[];
+  try{const settled=await qmAi.finishQuota(store,quota,!!answer.ok);
+    if(!settled.settled)return fallback('quota_unavailable')}
+  catch(_){return fallback('quota_unavailable')}
+  if(!answer.ok){
+   if(answer.validationError)fail(answer.validationError,'Ausgewaehlte Anlage konnte nicht sicher gelesen werden.',409);
+   return json(200,{ok:true,mode:'regelbasiert',reason:answer.reason||'provider',suggestions,
+    notice:providerCalled&&selected.length?
+      'KI-Anfrage fehlgeschlagen. Die ausgewaehlten Dateien wurden moeglicherweise an den KI-Dienst uebertragen; keine erfolgreiche Auswertung. Regelvorschlag (ohne KI).':
+      'KI-Anfrage fehlgeschlagen. Regelvorschlag (ohne KI).'});
+  }
+  return json(200,{ok:true,mode:'ki',text:answer.text,suggestions,fileCount:selected.length,
+   notice:selected.length?
+    'KI-Vorschlag – fachlich pruefen. '+selected.length+' ausdruecklich ausgewaehlte Anlage(n) wurden mit der KI analysiert.':
+    'KI-Vorschlag – fachlich pruefen. Nur anonymisierte Textfelder wurden uebertragen.'});
  }else if(action==='upload')await upload(ctx,record,blob,etag,payload);
  else fail('INVALID_ACTION','Unbekannte Aktion.');
  return json(200,{ok:true,record:cleanRecord(record)});
