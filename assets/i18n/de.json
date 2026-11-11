@@ -2694,5 +2694,12 @@
   "urgentOrderV2.requestScope": "Umfang der Anfrage",
   "urgentOrderV2.p1ApprovalDetailLabel": "P1 · Genehmigung der Sondertransportkosten vom Ersteller bestätigt",
   "urgentOrderV2.p1ApprovalDetailBy": "Bestätigt von",
-  "urgentOrderV2.p1ApprovalDetailMissing": "Für diesen P1-Auftrag ist keine Kostenbestätigung dokumentiert."
+  "urgentOrderV2.p1ApprovalDetailMissing": "Für diesen P1-Auftrag ist keine Kostenbestätigung dokumentiert.",
+  "urgentOrderV2.wholeOrderChecksTitle": "Prüfungen für den gesamten Auftrag",
+  "urgentOrderV2.wholeOrderChecksHelp": "Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.",
+  "urgentOrderV2.wholeOrderStock": "Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?",
+  "urgentOrderV2.wholeOrderHolds": "Weder Don't Process noch Credit Hold für den gesamten Auftrag?",
+  "urgentOrderV2.wholeOrderNotChecked": "Noch nicht geprüft",
+  "urgentOrderV2.wholeOrderReason": "Begründung bei negativer Gesamtprüfung",
+  "urgentOrderV2.wholeOrderReasonRequired": "Bei negativer Gesamtprüfung mindestens 8 Zeichen Begründung angeben."
 }
