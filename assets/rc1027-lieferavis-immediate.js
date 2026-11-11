@@ -243,6 +243,7 @@ function localizedUrl(url,lang){
 function stripOwnAvisLink(text){
  text=String(text==null?'':text).replace(/\r\n/g,'\n');
  text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice|Awizo|Aviso|Avis|Avviso)[^:\n]*:[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
+ text=text.replace(RC_AVIS_GENERATED_LINE,'');
  return text.replace(/\n{3,}/g,'\n\n').trim()
 }
 function hasAvisPlaceholder(text){return /\{\{\s*LIEFERAVIS\s*\}\}/i.test(String(text||''))}
@@ -250,9 +251,14 @@ function avisSubject(text,lang){
  var names={de:'Lieferavis',en:'Collection notice',pl:'Awizo',es:'Aviso',fr:'Avis',it:'Avviso'};
  return String(text==null?'':text).replace(/\{\{\s*LIEFERAVIS\s*\}\}/gi,names[rc1267NormalizeLanguage(lang)]||names.de)
 }
+var RC_AVIS_GENERATED_LINE=/(?:^|\n)(?:Hier zur Avisierung klicken|Click here to arrange collection|Kliknij tutaj, aby zgłosić odbiór|Haga clic aquí para programar la recogida|Cliquez ici pour organiser l’enlèvement|Clicca qui per prenotare il ritiro)\s*:\s*https?:\/\/[^\s]+(?=\n|$)/gi;
 function ownAvisMail(body,url,lang){
  lang=rc1267NormalizeLanguage(lang);
- var source=stripOwnAvisLink(body);
+ var source=String(body==null?'':body);
+ // A draft may already contain a rendered placeholder. Refresh that exact slot,
+ // and strip it when AVIS access is revoked.
+ if(!hasAvisPlaceholder(source))source=source.replace(RC_AVIS_GENERATED_LINE,'\n{{LIEFERAVIS}}');
+ source=stripOwnAvisLink(source);
  // No placeholder means no AVIS link. Old auto-inserted lines are removed above.
  if(!hasAvisPlaceholder(source))return source;
  if(!url||!rc1333IsSafeAvisUrl(url))return source; // caller must block unresolved mail
