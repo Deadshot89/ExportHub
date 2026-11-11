@@ -87,4 +87,16 @@ function proposal(c,fields,actor){
   disclaimer:'Regelvorschlag (ohne KI) – vor Uebernahme fachlich pruefen. Keine Schuld- oder Haftungszusage.'
  };
 }
-module.exports={created,edit,changeStatus,proposal,TYPES};
+// Counts complaint cases (not shipments); a record with three active cases
+// contributes three. Unknown legacy states remain open, never silently closed.
+function openCount(records){
+ if(!Array.isArray(records))return 0;
+ let total=0;
+ for(const record of records){
+  if(!record||record.deletedAt||!Array.isArray(record.complaints))continue;
+  for(const complaint of record.complaints)
+   if(complaint&&complaint.state!=='abgeschlossen')total++;
+ }
+ return total;
+}
+module.exports={created,edit,changeStatus,proposal,openCount,TYPES};
