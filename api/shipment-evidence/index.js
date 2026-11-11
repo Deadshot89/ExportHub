@@ -468,7 +468,7 @@ async function processRequest(req){
  }
  const docId=id(payload.id);
  const{blob,record,etag}=await getRecord(ctx,docId);
- if(record.deletedAt)fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
+ if(record.deletedAt&&action!=='restore')fail('NOT_FOUND','Versandnachweis wurde entfernt.',404);
  if(method==='GET'&&action==='get')return json(200,{ok:true,record:cleanRecord(record),canDelete:ctx.isAdmin===true,canRegisterCustomer:ctx.canRegisterCustomer===true});
  if(method==='GET'&&action==='file')return downloadFile(ctx,docId,record,payload.fileId);
  if(method!=='POST')fail('INVALID_ACTION','Unbekannte Anfrage.');
