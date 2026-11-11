@@ -138,6 +138,8 @@ test('RC1982: both inline UIs compile and expose the exact approval/delete API a
  assert.match(internalHtml,/claim-delete-handler/);
  assert.match(internalHtml,/respond-delete/);
  assert.match(internalHtml,/data-urgent-deletion/);
+ assert.match(internalHtml,/ownerId===viewerId/,'approval buttons must be visible only to the handler');
+ assert.match(fs.readFileSync('api/urgent-orders/index.js','utf8'),/currentUserId:model\.text\(user&&user\.id/);
  assert.match(fs.readFileSync('api/urgent-orders/index.js','utf8'),/model\.resolveDeletion/);
  assert.match(fs.readFileSync('api/urgent-order-public/index.js','utf8'),/groupByToken\(doc,accessToken\)/);
 });
