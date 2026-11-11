@@ -44,6 +44,7 @@ function requireReview(items,catalog){
  if(missing.length){
   const e=problem('URGENT_MINIBAG_CONFIRM_REQUIRED','Bist du sicher, dass es kein Minibag ist? Bitte die Artikelmenge prüfen.',409);
   e.minibagArticles=[...new Set(missing.map(x=>x.article))];
+  e.minibagIndices=missing.map(x=>x.index);
   throw e;
  }
  return checks;
