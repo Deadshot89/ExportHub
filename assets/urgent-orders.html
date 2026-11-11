@@ -456,7 +456,8 @@ async function createWithMinibagReview(p){
  catch(e){
   if(e.code!=='URGENT_MINIBAG_CONFIRM_REQUIRED')throw e;
   const articles=new Set(e.minibagArticles||[]);
-  const affected=p.items.filter(x=>!x.minibag&&articles.has(x.article));
+  const indices=new Set(e.minibagIndices||[]);
+  const affected=p.items.filter((x,i)=>!x.minibag&&(indices.size?indices.has(i):articles.has(x.article)));
   if(!affected.length)throw e;
   const en=p.language==='en';
   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
