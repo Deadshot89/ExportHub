@@ -123,3 +123,19 @@ test('Als erledigt nur nach bestätigter Wirksamkeitsprüfung und ohne ungespeic
  assert.match(ui,/state:'abgeschlossen'/);
  assert.match(ui,/c\.state==='abgeschlossen'\?\['abgeschlossen','in_pruefung'\]:\['offen','in_pruefung'\]/);
 });
+
+test('Altfall: Wirksamkeit ohne dokumentierten Prüfer verhindert Erledigt',()=>{
+ const c=make();
+ Object.assign(c,{
+  rootCause:'Ursache belegt',correctiveAction:'Kontrollschritt',
+  checkDate:'2026-11-10',checkMethod:'Stichprobe',checkCriteria:'Null Fehler',
+  effectivenessEvidence:'10 unterschriebene Kontrollen',
+  effectivenessResult:'wirksam',verifiedOn:'2026-11-10',verifiedBy:''
+ });
+ assert.throws(()=>complaints.changeStatus(c,'abgeschlossen','Mitarbeiter'),
+  e=>e.code==='EFFECTIVENESS_REQUIRED');
+ assert.equal(c.state,'offen','Unbestätigte Prüfung darf Reklamation nicht schließen');
+ c.verifiedBy='QM-Prüfer';
+ complaints.changeStatus(c,'abgeschlossen','Mitarbeiter');
+ assert.equal(c.state,'abgeschlossen');
+});
