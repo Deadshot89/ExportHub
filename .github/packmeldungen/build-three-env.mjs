@@ -88,6 +88,26 @@ export function injectPackAbdOwnership(html,file='index.html'){
     if(file==='demo.html'||!out.includes('rc626-shipping-inspections-abd-controller'))return out;
     throw new Error(file+': RC1382 legacy ABD storage hook missing');
   }
+  // RC1382: the final HTML verifier intentionally runs this injector once
+  // more on dist. Accept only a FULLY patched legacy ABD module; never hide
+  // a partial injection or contract drift.
+  const applied=[
+    'function shipmentForAbd(a){if(!a||q(a.packNotificationId))return null;',
+    'function saveAbdInternal(showAlert,status){var d=abdState();if(!validateAbd(showAlert))return null;if(q(d.packNotificationId)){',
+    'source:d.source,packNotificationId:q(d.packNotificationId||existing&&existing.packNotificationId),',
+    's.abdDraft=clone(item);var sh=!item.packNotificationId&&item.linkedShipmentId&&findShipment(item.linkedShipmentId);',
+    "source=d.packNotificationId?'Aus Packmeldung übernommen':",
+    'if(item.packNotificationId){window.ExportHUBPackAbd.confirmSave(item,',
+    "var item=saveAbdInternal(false,'Angefragt');if(!item)return false;if(item.packNotificationId){renderAbd();return false;}"
+  ];
+  if(out.includes(applied[0])){
+    if(applied.some(signature=>out.split(signature).length!==2)||
+      out.includes('function shipmentForAbd(a){if(!a)return null;')||
+      out.includes('s.abdDraft=clone(item);var sh=item.linkedShipmentId&&findShipment(item.linkedShipmentId);')){
+      throw new Error(file+': RC1382 ABD ownership contract drift: partial injection');
+    }
+    return out;
+  }
   function replaceOnce(needle,replacement){
     if(out.split(needle).length!==2)throw new Error(file+': RC1382 ABD ownership contract drift: '+needle.slice(0,62));
     out=out.replace(needle,replacement);
