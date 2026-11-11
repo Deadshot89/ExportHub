@@ -504,13 +504,14 @@ test('RC1985: customer number is read only from an unambiguous linked shipment',
     {id:'manual',title:'Eigene Aufgabe',sourceType:'manual',linkedShipmentRef:'ABC123',owner:'Tobias'}
   ];
   const {api,store}=editorHarness(tasks,()=>true);
-  store.shipments=[{id:'S1',ref:'ABC123',customerAccount:'471100',customerName:'Testkunde'}];
+  store.shipments=[{id:'S1',ref:'ABC123',customerAccount:'471100',customerName:'Testkunde'},
+    {id:'S2',ref:'ABC123',customerAccount:'471100',customerName:'Testkunde'}];
   api.openTask('auto');
   assert.match(api.taskViewHtml(),/471100/);
   assert.equal(Object.prototype.hasOwnProperty.call(store.tasks[0],'customerNumber'),false,'no inferred number persisted');
   api.openTask('cleared');
   assert.doesNotMatch(api.taskViewHtml(),/471100/,'explicit removal is not silently undone');
-  store.savedShipments=[{id:'S2',ref:'ABC123',customerAccount:'SOMEONE-ELSE'}];
+  store.savedShipments=[{id:'S3',ref:'ABC123',customerAccount:'SOMEONE-ELSE'}];
   api.openTask('auto');
   assert.doesNotMatch(api.taskViewHtml(),/471100/,'ambiguous shipment links do not infer a customer');
 });
