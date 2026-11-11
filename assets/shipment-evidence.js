@@ -7,7 +7,7 @@ const FIELDS=[
  ['carrier','text'],['trackingNumber','text'],['exporthubRef','text'],
  ['remarks','textarea']
 ];
-const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:'',legacyRequestToken:0};
+const state={view:'list',record:null,records:[],continuation:null,busy:false,search:'',loading:false,listToken:0,serial:0,searchRun:0,scanning:false,uploading:false,canDelete:false,canRegisterCustomer:false,expandedComplaintId:'',legacyRecords:[],legacyContinuation:null,legacyLoading:false,legacyError:'',legacyRequestToken:0,dokError:''};
 let galleryRecord='',galleryUrls=new Map(),galleryLoads=new Map(),closeGalleryDialog=null;
 function language(){try{return String(w.ExportHUBI18n&&w.ExportHUBI18n.language&&w.ExportHUBI18n.language()||'de').toLowerCase().slice(0,2)}catch(_){return'de'}}
 function t(k){const p=w.ExportHUBEvidenceI18n||{},lang=language();return p[lang]&&p[lang][k]||p.de&&p.de[k]||k}
@@ -71,6 +71,8 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
  const fullSearch=button(t('searchAll'),()=>scanAll());panel.appendChild(fullSearch);
  const list=make('div','eh1903-list');panel.appendChild(list);app.appendChild(panel);
  const more=button(t('loadMore'),()=>loadList(false));more.hidden=!state.continuation;panel.appendChild(more);
+ const retryDok=button(t('retry'),()=>loadList(false));retryDok.hidden=!state.dokError;panel.appendChild(retryDok);
+ const dokError=make('p','eh1903-status');dokError.setAttribute('role','status');panel.appendChild(dokError);
  const moreRef=button(t('loadMoreRef'),()=>loadLegacyList(!!state.legacyError));
  moreRef.hidden=!state.legacyContinuation&&!state.legacyError;panel.appendChild(moreRef);
  const legacyError=make('p','eh1903-status');legacyError.setAttribute('role','status');panel.appendChild(legacyError);
@@ -78,13 +80,15 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
  const message=make('p','eh1903-status');message.setAttribute('data-eh1903-status','');message.setAttribute('aria-live','polite');app.appendChild(message);
  function updateRows(){
   list.replaceChildren();more.hidden=!state.continuation;
+  retryDok.hidden=!state.dokError;
+  dokError.textContent=state.dokError?'DOK · '+t('error')+': '+state.dokError:'';
   moreRef.hidden=!state.legacyContinuation&&!state.legacyError;
   moreRef.textContent=t(state.legacyError?'retry':'loadMoreRef');
   legacyError.textContent=state.legacyError?t('legacyUnavailable')+': '+state.legacyError:'';
   fullSearch.hidden=!(state.continuation||state.legacyContinuation)||!state.search.trim();
   const term=state.search.toLowerCase().trim();
   const matches=[...state.records,...state.legacyRecords].filter(r=>!term||[r.id,r.fields&&r.fields.customer,r.fields&&r.fields.shipmentNumber,r.fields&&r.fields.trackingNumber,r.fields&&r.fields.exporthubRef,r.reference].some(x=>String(x||'').toLowerCase().includes(term)));
-  if(!matches.length){list.appendChild(make('p','eh1903-muted',t('none')));return}
+  if(!matches.length){if(!state.dokError&&!state.legacyError)list.appendChild(make('p','eh1903-muted',t('none')));return}
   matches.forEach(r=>{
     const row=make('div','eh1903-row eh1903-record-row'),data=make('div','eh1903-record-grid'),fields=r.fields||{};
     const cell=(label,value,cls)=>{
@@ -128,7 +132,7 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
 }
 // DOK pagination must not invalidate an independent REF request.
 async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken,serial=state.serial;if(reset){
- state.records=[];state.continuation=null;
+ state.records=[];state.continuation=null;state.dokError='';
  state.legacyRecords=[];state.legacyContinuation=null;state.legacyError='';
  loadLegacyList(true);
 }if(state.view==='list')status(t('loading'),false);
@@ -136,10 +140,10 @@ async function loadList(reset){if(state.loading&&!reset)return false;state.loadi
   if(serial!==state.serial||listToken!==state.listToken)return false;
   const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
-  state.continuation=result.continuation||null;
+  state.continuation=result.continuation||null;state.dokError='';
   if(state.view==='list'&&active())showList(true);
   return true;
- }catch(e){if(listToken===state.listToken&&serial===state.serial&&state.view==='list')status(e.message,true);return false}
+ }catch(e){if(listToken===state.listToken&&serial===state.serial&&state.view==='list'){state.dokError=e.message;if(active())showList(true)}return false}
  finally{if(listToken===state.listToken)state.loading=false}}
 async function loadLegacyList(reset){
  if((state.legacyLoading&&!reset)||state.view!=='list')return false;
