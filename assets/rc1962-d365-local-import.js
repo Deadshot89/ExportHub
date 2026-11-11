@@ -65,7 +65,7 @@ async function read(){
  try{
   if(typeof w.Worker!=='function')throw Error('D365_BROWSER_DECOMPRESSION_UNAVAILABLE');
   var data=await new Promise(function(resolve,reject){
-   worker=new w.Worker('/assets/rc1962-d365-xlsx-worker.js?v=1962');
+   worker=new w.Worker('/assets/rc1962-d365-xlsx-worker.js?v=1970');
    timeoutId=w.setTimeout(function(){reject(Error('D365_TIMEOUT'))},15000);
    worker.onmessage=function(ev){var value=ev.data||{};if(value.ok===true)resolve(value.docs);else reject(Error(value.code||'D365_READ_FAILED'))};
    worker.onerror=function(){reject(Error('D365_READ_FAILED'))};
@@ -73,7 +73,12 @@ async function read(){
   });
   if(!Array.isArray(data)||!data.length||data.some(function(doc){return !doc||!Array.isArray(doc.positions)||!doc.positions.length}))throw Error('D365_READ_FAILED');
   docs=data;previewVersion++;state(t('ready'),'ok');return true
- }catch(e){docs=[];state(e&&e.message==='D365_TIMEOUT'?t('timeout'):e&&e.message==='D365_BROWSER_DECOMPRESSION_UNAVAILABLE'?t('unsupported'):t('invalid'),'bad');return false}
+ }catch(e){
+  docs=[];
+  var code=e&&/^D365_[A-Z_]+$/.test(String(e.message||''))?e.message:'D365_READ_FAILED';
+  var message=code==='D365_TIMEOUT'?t('timeout'):code==='D365_BROWSER_DECOMPRESSION_UNAVAILABLE'?t('unsupported'):t('invalid')+' ('+code+')';
+  state(message,'bad');return false
+ }
  finally{clearWorker();busy=false;render()}
 }
 function mount(mode){
