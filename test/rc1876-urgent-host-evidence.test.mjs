@@ -83,3 +83,16 @@ test('RC1876: host verification message is translated in all six API languages',
   assert.ok(dict['api.urgent.serverError'],lang);
  }
 });
+
+test('official TESTSERVICE /test shell is a valid urgent-order origin and is covered by the read-only live gate',()=>{
+ const official='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ const base='https://'+official;
+ const config=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ const route=config.routes.find(x=>x.route==='/test');
+ assert.equal(route.rewrite,'/TESTVERSION.html');
+ assert.equal(internal.resolveStorageEnvironment({headers:{host:official,origin:base,referer:base+'/test?v=1112'}},'testservice'),'testservice');
+ assert.equal(internal.resolveStorageEnvironment({headers:{host:'worker.azurewebsites.net',origin:base,referer:base+'/assets/urgent-orders.html?embedded=1'}},'testservice'),'testservice');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:'worker.azurewebsites.net',origin:base,referer:base+'/test?v=1112'}},''),e=>e.code==='URGENT_HOST_UNTRUSTED','a browser URL must not replace verified deployment evidence');
+ assert.match(live,/\/test\?v=1112/);
+ assert.match(live,/\/assets\/urgent-orders\.html\?embedded=1/);
+});
