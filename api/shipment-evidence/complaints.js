@@ -94,7 +94,8 @@ function openCount(records){
  if(!Array.isArray(records))return 0;
  let total=0;
  for(const record of records){
-  if(!record||record.deletedAt||!Array.isArray(record.complaints))continue;
+  if(!record||record.deletedAt)continue;
+  if(!Array.isArray(record.complaints))fail('CORRUPT_COMPLAINTS','Reklamationsbestand unvollstaendig.',503);
   for(const complaint of record.complaints)
    if(complaint&&complaint.state!=='abgeschlossen')total++;
  }
