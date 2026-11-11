@@ -222,3 +222,22 @@ test('Fehlgeschlagene DOK-Abfrage bleibt sichtbar, auch wenn REF erfolgreich gel
  assert.equal(state.legacyRecords.length,1);
  assert.equal(redrawn,2,'both success and failure repaint the same persistent warning area');
 });
+
+test('Altfall: manipulierte oder zukünftige Prüfdaten verhindern einen unbestätigten Abschluss',()=>{
+ const base={rootCause:'Nachgewiesene Ursache',correctiveAction:'Korrigierter Prüfschritt',
+  checkMethod:'Stichprobe',checkCriteria:'Keine Fehler',effectivenessEvidence:'Protokoll geprüft',
+  effectivenessResult:'wirksam',verifiedBy:'QM',checkDate:'2025-01-01',verifiedOn:'2025-01-03'};
+ for(const [key,value] of [
+  ['checkDate','2025-02-30'],['verifiedOn','2025-02-30'],
+  ['verifiedOn','2099-01-01'],['checkDate','2099-01-01'],
+  ['verifiedOn','2024-12-31'],['verifiedOn','keine Freigabe']
+ ]){
+  const c=make();Object.assign(c,base,{[key]:value});
+  assert.throws(()=>complaints.changeStatus(c,'abgeschlossen','Bearbeiter'),
+   e=>e.code==='EFFECTIVENESS_REQUIRED',key+' '+value);
+  assert.equal(c.state,'offen','Ungültige Prüfung darf Bestandsstatus nicht verändern');
+ }
+ const legitimate=make();Object.assign(legitimate,base);
+ complaints.changeStatus(legitimate,'abgeschlossen','QM');
+ assert.equal(legitimate.state,'abgeschlossen');
+});
