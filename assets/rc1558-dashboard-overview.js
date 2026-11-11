@@ -477,11 +477,11 @@ function barsHtml(items,max,kind){
 // This card only requests authorized aggregate counts, never order lines or QM case details.
 var openWorkCounts={urgent:null,quality:null,complaints:null};
 var openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;
-var openWorkAuthBackoff={urgent:0,quality:0,complaints:0};
+var openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};
 var OPEN_WORK_AUTH_BACKOFF_MS=5*60*1000;
 function resetOpenWorkCounts(loggedOut){
   openWorkEpoch++;openWorkLoggedOut=!!loggedOut;openWorkCounts={urgent:null,quality:null,complaints:null};openWorkLastFetch=0;
-  openWorkAuthBackoff={urgent:0,quality:0,complaints:0};
+  openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};
   // A previous user's stalled request must not block a fresh authorized session.
   openWorkInFlight=false;
   // An earlier user's response is invalidated by epoch even when it finishes later.
@@ -492,17 +492,17 @@ function openWorkToken(){
   try{var session=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return q(session.token)}catch(_){return''}
 }
 async function requestOpenWorkCount(path,signal){
-  var kind=path==='/api/urgent-orders'?'urgent':path==='/api/shipment-evidence'?'complaints':'quality',epoch=openWorkEpoch;
+  var kind=path==='/api/urgent-orders'?'urgent':path==='/api/shipment-evidence'?'complaints':path==='/api/shipment-documentation'?'complaintsLegacy':'quality',epoch=openWorkEpoch;
   // 401/403 are permission failures. Retry no more than once every five minutes per module,
   // while a new authenticated session may retry immediately.
   if(Date.now()<openWorkAuthBackoff[kind])throw Error('COUNT_AUTH_BACKOFF');
   var headers={'Content-Type':'application/json','Accept':'application/json'},token=openWorkToken();
   if(token)headers['X-ExportHUB-Token']=token;
   // Shipment evidence has a read-only GET count; Urgent and QM use their existing POST contracts.
-  var options=kind==='complaints'
+  var options=(kind==='complaints'||kind==='complaintsLegacy')
     ?{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers}
     :{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})};
-  if(kind==='complaints')path+='?action=counts';
+  if(kind==='complaints'||kind==='complaintsLegacy')path+='?action=counts';
   if(signal)options.signal=signal;
   var response=await w.fetch(path,options);
   if(!response||!response.ok||response.redirected||response.type==='opaqueredirect'){
@@ -533,12 +533,12 @@ function loadOpenWorkCounts(){
   if(openWorkLoggedOut||openWorkInFlight||!w.fetch||!w.document||w.document.hidden||!isDashboard())return;
   var now=Date.now();if(now-openWorkLastFetch<45000)return;
   openWorkLastFetch=now;openWorkInFlight=true;var epoch=openWorkEpoch;
-  Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa'),boundedOpenWorkCount('/api/shipment-evidence')]).then(function(results){
+  Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa'),boundedOpenWorkCount('/api/shipment-evidence'),boundedOpenWorkCount('/api/shipment-documentation')]).then(function(results){
     if(epoch!==openWorkEpoch||openWorkLoggedOut)return;
     openWorkCounts={
       urgent:results[0].status==='fulfilled'?results[0].value:null,
       quality:results[1].status==='fulfilled'?results[1].value:null,
-      complaints:results[2].status==='fulfilled'?results[2].value:null
+      complaints:results[2].status==='fulfilled'&&results[3].status==='fulfilled'?results[2].value+results[3].value:null
     };
     refreshNow();
   }).finally(function(){
@@ -738,7 +738,7 @@ function install(){
   w.addEventListener('exporthub:complaint-updated',function(){
    if(openWorkLoggedOut)return;
    openWorkEpoch++;openWorkInFlight=false;openWorkLastFetch=0;
-   openWorkCounts.complaints=null;openWorkAuthBackoff.complaints=0;
+   openWorkCounts.complaints=null;openWorkAuthBackoff.complaints=0;openWorkAuthBackoff.complaintsLegacy=0;
    schedule()
   });
   ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(false)})});
