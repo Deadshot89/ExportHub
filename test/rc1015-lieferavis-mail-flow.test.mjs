@@ -48,9 +48,10 @@ test('RC1024: Kunden- und Speditionsmail schützen eigene Vorlagen und verwenden
   assert.match(out,/Kennzeichen/i,'Der Lieferavis erklärt die im Portal erfassbaren Abholdaten nicht.');
   assert.doesNotMatch(avis,/Rückmeldung innerhalb der nächsten 24 Stunden/i,'Der Lieferavis darf nicht den alten E-Mail-Rückmeldeauftrag übernehmen.');
   const inject=between(out,'function rc1015InjectMailBody','function rc1024SyncVisibleMail');
-  assert.match(inject,/if\(!rc1018Enabled\(sh\)\)return source/,'Eine deaktivierte Sendung darf die vorhandene Vorlage nicht verändern.');
-  assert.match(inject,/mailSourceCache\.set\(key,source\)/,'Die unveränderte Ausgangsvorlage wird nicht für den Moduswechsel geschützt.');
-  assert.match(inject,/return rc1015AvisMailVariant\(source,u,shipmentReference\(sh\),lang,type\)/,'Aktiver Lieferavis verwendet nicht den geschützten Systemblock.');
+  assert.match(inject,/never append the system AVIS block/,'Automatische Avis-Einfügung muss abgeschaltet sein.');
+  assert.doesNotMatch(inject,/return rc1015AvisMailVariant\(/,'Kein impliziter AVIS-Systemblock');
+  const liveSync=between(out,'function rc1024SyncVisibleMail','function rc1024ScheduleVisibleMail');
+  assert.doesNotMatch(liveSync,/\.value=/,'E-Mail-Drafts dürfen nicht während der Bearbeitung überschrieben werden.');
   assert.match(out,/function mailModeLabel\(type,sh,lang\)/,'Die Mailoberfläche unterscheidet Sendungsdetails und Lieferavis nicht.');
 });
 
