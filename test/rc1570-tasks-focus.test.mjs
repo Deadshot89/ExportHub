@@ -476,3 +476,60 @@ test('Aufgaben: POD wird nach expliziter Systemgruppe klassifiziert, auch wenn B
   assert.equal(api.workGroup({title:'POD hochgeladen',area:'Versand',group:'Fehlende POD',status:'done',podUrl:'x'}),'pod');
   assert.equal(api.workGroup({title:'AV hochladen',area:'Versand',sourceType:'av_missing'}),'av');
 });
+
+
+test('RC1985: identical shipment tasks count once in dashboard but remain reviewable in management',()=>{
+  const tasks=[
+    {id:'legacy',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+      linkedShipmentRef:'ABC123',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
+    {id:'complete',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+      linkedShipmentRef:'ABC123',customerNumber:'100200',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
+    {id:'different-action',title:'ABD erstellen',group:'Ausgangsvermerk',sourceType:'av_missing',
+      linkedShipmentRef:'ABC123',dueDate:'2026-11-11',status:'offen',owner:'Tobias'},
+    {id:'different-day',title:'AV hochladen',group:'Ausgangsvermerk',sourceType:'av_missing',
+      linkedShipmentRef:'ABC123',dueDate:'2026-11-12',status:'offen',owner:'Tobias'}
+  ];
+  const {api}=editorHarness(tasks,()=>true);
+  const summary=api.buildModel(new Date('2026-11-11T10:00:00'));
+  assert.equal(summary.total,3,'only the exact same process, date and owner is collapsed');
+  assert.deepEqual(summary.today.map(x=>x.id),['complete','different-action']);
+  assert.equal(api.managedRows().rows.length,4,'no stored task was deleted or hidden from management');
+  assert.match(api.taskViewHtml(),/Doppelter Eintrag/);
+});
+
+test('RC1985: customer number is read only from an unambiguous linked shipment',()=>{
+  const tasks=[
+    {id:'auto',title:'AV hochladen',sourceType:'av_missing',linkedShipmentRef:'ABC123',owner:'Tobias'},
+    {id:'cleared',title:'AV hochladen',sourceType:'av_missing',linkedShipmentRef:'ABC123',customerNumber:'',owner:'Tobias'},
+    {id:'manual',title:'Eigene Aufgabe',sourceType:'manual',linkedShipmentRef:'ABC123',owner:'Tobias'}
+  ];
+  const {api,store}=editorHarness(tasks,()=>true);
+  store.shipments=[{id:'S1',ref:'ABC123',customerAccount:'471100',customerName:'Testkunde'}];
+  api.openTask('auto');
+  assert.match(api.taskViewHtml(),/471100/);
+  assert.equal(Object.prototype.hasOwnProperty.call(store.tasks[0],'customerNumber'),false,'no inferred number persisted');
+  api.openTask('cleared');
+  assert.doesNotMatch(api.taskViewHtml(),/471100/,'explicit removal is not silently undone');
+  store.savedShipments=[{id:'S2',ref:'ABC123',customerAccount:'SOMEONE-ELSE'}];
+  api.openTask('auto');
+  assert.doesNotMatch(api.taskViewHtml(),/471100/,'ambiguous shipment links do not infer a customer');
+});
+
+test('RC1985: creation of exact duplicate manual shipment task is rejected without a save',async()=>{
+  const existing=[{id:'manual-old',title:'Neue Beschreibung',area:'Versand',sourceType:'manual',
+    owner:'Tobias',linkedShipmentRef:'ABC123',dueDate:'2026-11-09',status:'open'}];
+  const {api,store,calls}=editorHarness(existing,()=>true);
+  api._tv.mode='new';api._tv.id='';
+  assert.equal(await api._saveForm(editorForm({ref:'ABC123'})),false);
+  assert.equal(store.tasks.length,1);
+  assert.equal(calls.length,0,'duplicate must not reach the server');
+  assert.match(api._tv.error,/existiert/);
+});
+
+test('RC1985: distinct process, date or reference is not treated as duplicate',async()=>{
+  const {api,store}=editorHarness([{id:'manual-old',title:'Neue Beschreibung',area:'Versand',
+    sourceType:'manual',owner:'Tobias',linkedShipmentRef:'ABC123',dueDate:'2026-11-08'}],()=>true);
+  api._tv.mode='new';api._tv.id='';
+  assert.equal(await api._saveForm(editorForm({ref:'ABC123'})),true,'different day is a separate task');
+  assert.equal(store.tasks.length,2);
+});
