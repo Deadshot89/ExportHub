@@ -29,19 +29,25 @@
  // Genau ein aktiver Punkt: eingebettete Module (Urgent Order, Fehler & Verbesserungen) setzen nur aria-current und
  // lassen das Dashboard "active"; ein echter Menüpunkt mit class active hat Vorrang (2026-11-06)
  var activeEl=null;
+ // Subviews use their parent menu entry; IT pages are collapsed into the shared IT button.
+ // Do not rely on stale class="active" during navigation or browser history changes.
+ function menuView(view){
+  var v=clean(view).toLowerCase();
+  return ({diagnostics:'it',release:'it',update:'it',
+   packnotification:'packnotifications',shipmentview:'shipmentoverview',
+   packagingmasterdata:'packaging',exams:'academy'})[v]||v;
+ }
  function findActive(n){
   var real=null,cur=null,dash=null,rendered=null;
-  var view=clean(d.body&&d.body.getAttribute('data-exporthub-view')).toLowerCase();
+  var view=menuView(d.body&&d.body.getAttribute('data-exporthub-view'));
   Array.prototype.forEach.call(n.children,function(el){
-   if(el.tagName!=='BUTTON')return;var v=viewOf(el);
-   if(view&&v===view&&allowed(el))rendered=el;
+   if(el.tagName!=='BUTTON'||!allowed(el))return;var v=viewOf(el);
+   if(view&&v===view)rendered=el;
    if(el.classList.contains('active')){if(v==='dashboard')dash=el;else if(!real)real=el}
-   else if(el.getAttribute('aria-current')==='page'&&!cur)cur=el;
+   if(el.getAttribute('aria-current')==='page'&&!cur)cur=el;
   });
-  // Die tatsächliche Ansicht hat Vorrang vor alten .active-Markierungen.
-  // IT-Unterseiten werden wie bisher über den gemeinsamen IT-Reiter dargestellt.
   function asIt(el){return el&&/^(diagnostics|release|update)$/.test(viewOf(el))?n.querySelector(':scope>[data-rc1579-proxy="it"]')||el:el}
-  return asIt(rendered)||asIt(real)||cur||dash;
+  return asIt(rendered)||asIt(cur)||asIt(real)||dash;
  }
  function isActive(el){return !!el&&el===activeEl}
  function iconVars(src){
