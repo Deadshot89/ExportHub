@@ -91,13 +91,16 @@ jobs:
             ok:data.diagnosticOnly===true&&data.ok===true,
             code:clean(data.code),mode:clean(data.targetMode),
             configured:data.configured===true,missing:(Array.isArray(data.missing)?data.missing:[]).map(clean).slice(0,8),
+            configuredUserPathMatch:data.configuredUserPathMatchesExplicitIds===true?'same':
+              data.configuredUserPathMatchesExplicitIds===false?'different':'unverified',
             checks};
           console.log('RC1687 Graph target diagnostic',JSON.stringify(summary));
           if(!summary.ok)console.log('::warning title=Graph POD target diagnostic::Read-only Graph target verification is pending; see redacted stages in this job.');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
             '\n### RC1687 '+environment+' Graph target (read-only)\n\n' +
             'Result: '+(summary.ok?'TARGET READABLE':'NOT VERIFIED')+'; code '+summary.code+'\n\n' +
-            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
+            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+
+            '\nConfigured path / explicit IDs: '+summary.configuredUserPathMatch+'\n');
           NODE
       - name: Offene TESTSERVICE POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
@@ -281,13 +284,16 @@ jobs:
             ok:data.diagnosticOnly===true&&data.ok===true,
             code:clean(data.code),mode:clean(data.targetMode),
             configured:data.configured===true,missing:(Array.isArray(data.missing)?data.missing:[]).map(clean).slice(0,8),
+            configuredUserPathMatch:data.configuredUserPathMatchesExplicitIds===true?'same':
+              data.configuredUserPathMatchesExplicitIds===false?'different':'unverified',
             checks};
           console.log('RC1687 Graph target diagnostic',JSON.stringify(summary));
           if(!summary.ok)console.log('::warning title=Graph POD target diagnostic::Read-only Graph target verification is pending; see redacted stages in this job.');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
             '\n### RC1687 '+environment+' Graph target (read-only)\n\n' +
             'Result: '+(summary.ok?'TARGET READABLE':'NOT VERIFIED')+'; code '+summary.code+'\n\n' +
-            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
+            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+
+            '\nConfigured path / explicit IDs: '+summary.configuredUserPathMatch+'\n');
           NODE
       - name: Offene PRODUCTION POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
