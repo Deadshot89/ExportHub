@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const languages=['de','en','pl','es','fr','it'];
+const required=[
+ 'avisPortal.documentsHeading','avisPortal.documentsIntro',
+ 'avisPortal.documentsAfterPickup','avisPortal.downloadDocument',
+ 'avisPortal.downloadPod','avisPortal.choose','avisPortal.uploadIntro',
+ 'avisPortal.uploadEmpty','avisPortal.uploadSaved','avisPortal.uploadBlocked',
+ 'avisPortal.uploadPending','avisPortal.uploadSecurity1',
+ 'avisPortal.uploadSecurity2','avisPortal.uploadSecurity3',
+ 'avisPortal.uploadSecurity4','avisPortal.uploadNotSaved',
+ 'avisPortal.uploadStored','avisPortal.uploadChecking',
+ 'avisPortal.noDocuments','avisPortal.noFurtherDocuments'
+];
+
+test('AVIS document and PDF upload text has entries in all six portal languages',()=>{
+ for(const language of languages){
+  const pack=JSON.parse(fs.readFileSync('assets/i18n/'+language+'.json','utf8'));
+  for(const key of required){
+   assert.equal(typeof pack[key],'string',language+': '+key+' missing');
+   assert.ok(pack[key].trim().length>0,language+': '+key+' blank');
+  }
+ }
+});
+
+test('AVIS select placeholder is translated explicitly (option nodes bypass legacy text translator)',()=>{
+ const html=fs.readFileSync('customer-avis.html','utf8');
+ assert.match(html,/function avisLabel\(/);
+ assert.match(html,/avisLabel\('avisPortal\.choose','Bitte auswählen'\)/);
+ assert.match(html,/addEventListener\('exporthub:language-changed'/);
+ assert.match(html,/\.upload-actions input\[type=file\]/);
+});
+
+test('AVIS invoice recognition does not depend on the old Lieferschein default',()=>{
+ const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+ const normalizer=fs.readFileSync('assets/document-reference-normalizer.js','utf8');
+ assert.match(normalizer,/function detectDocumentKind\(/);
+ assert.match(normalizer,/reason:'invoice'/);
+ assert.match(upload,/var actualKind=docKind/);
+ assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)==='rechnung'/);
+ assert.match(upload,/kind:actualKind,reference:ref/);
+});
