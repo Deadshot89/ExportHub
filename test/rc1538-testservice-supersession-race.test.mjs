@@ -16,11 +16,15 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40)}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),mainHeads=[]}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
+ let mainReadCount=0;
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
-  if(address.endsWith('/branches/main'))return reply(200,{commit:{sha}});
+  if(address.endsWith('/branches/main')){
+   const head=mainHeads.length?mainHeads[Math.min(mainReadCount++,mainHeads.length-1)]:sha;
+   return reply(200,{commit:{sha:head}});
+  }
   if(address.includes('/actions/workflows/'))return reply(200,{workflow_runs:[{id:123,head_sha:'b'.repeat(40),status:'in_progress'}]});
   if(address.endsWith('/actions/runs/123/cancel')){
    if(url!=='cancel')throw new Error('Test setup error');
@@ -48,6 +52,23 @@ test('RC1538: GET-LIST-POST race treats only already-completed 409 as idempotent
 test('RC1538: successful cancellation is still reported correctly',async()=>{
  const {lines}=await scenario({status:204,message:''});
  assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
+});
+
+test('RC1538: a newer main arriving after LIST blocks all cancel POSTs',async()=>{
+ const initial='a'.repeat(40),newMain='c'.repeat(40);
+ const {lines,calls}=await scenario({mainHeads:[initial,newMain],status:204});
+ assert.equal(calls.filter(x=>x.method==='POST').length,0);
+ assert.ok(lines.some(x=>x.includes('main advanced during cancellation')));
+ assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
+});
+
+test('RC1538: a newer main during a 409 retry prevents further cancel POSTs',async()=>{
+ const initial='a'.repeat(40),newMain='c'.repeat(40);
+ const {lines,calls}=await scenario({mainHeads:[initial,initial,newMain],
+  message:'Cannot cancel a workflow run that has not been queued yet.'});
+ assert.equal(calls.filter(x=>x.method==='POST').length,1);
+ assert.ok(lines.some(x=>x.includes('main advanced during cancellation')));
+ assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
 });
 
 test('RC1538: unrelated 409 does not hide a permission/logic problem',async()=>{
