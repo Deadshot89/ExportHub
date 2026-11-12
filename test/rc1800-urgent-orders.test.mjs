@@ -8,14 +8,14 @@ const orders=require('../api/shared/urgent-orders.js');
 const user={id:'CS-17',name:'Customer Service'};
 const logistics={id:'LOG-1',role:'Export',rights:{shipmentoverview:{edit:true}}};
 function input(overrides={}){
- return{orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'Example@Company.com',language:'en',items:[{line:'10',article:'ART-100',quantity:12,minibag:false,pickableStock:true,holdsClear:true},{line:'20',article:'ART-200',quantity:3,minibag:true,pickableStock:true,holdsClear:true,minibagLeadtime:true}],...overrides};
+ return{orderNumber:'SO300200003002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'Example@Company.com',language:'en',items:[{line:'10',article:'ART-100',quantity:12,minibag:false,pickableStock:true,holdsClear:true},{line:'20',article:'ART-200',quantity:3,minibag:true,pickableStock:true,holdsClear:true,minibagLeadtime:true}],...overrides};
 }
 function order(o={}){return orders.createOrder(input(o),user,'2026-11-04T10:00:00.000Z');}
-test('CS can report SO3002 with multiple validated Lines, separate quantities and statuses',()=>{
- const o=order();assert.equal(o.orderNumber,'SO3002');assert.equal(o.items.length,2);assert.deepEqual(o.items.map(x=>x.quantity),[12,3]);assert.deepEqual(o.items.map(x=>x.status),['Open','Open']);assert.equal(o.email,'example@company.com');assert.equal(o.items[1].checks.minibagLeadtime,true);
+test('CS can report SO300200003002 with multiple validated Lines, separate quantities and statuses',()=>{
+ const o=order();assert.equal(o.orderNumber,'SO300200003002');assert.equal(o.items.length,2);assert.deepEqual(o.items.map(x=>x.quantity),[12,3]);assert.deepEqual(o.items.map(x=>x.status),['Open','Open']);assert.equal(o.email,'example@company.com');assert.equal(o.items[1].checks.minibagLeadtime,true);
 });
 test('mandatory fields and checks reject incomplete or ambiguous submissions',()=>{
- assert.throws(()=>order({orderNumber:'3002'}),/SO beginnen/);
+ assert.throws(()=>order({orderNumber:'3002'}),/SO3002|14 Zeichen/);
  assert.throws(()=>order({priority:'P5'}),/P1 bis P4/);
  assert.throws(()=>order({delivery:''}),/DRP/);
  assert.throws(()=>order({email:'not-an-email'}),/E-Mail/);
@@ -51,7 +51,7 @@ test('DE/EN templates are deterministic; shipping confirmation blocked until ent
  const de=orders.draftMail(o,'problem','de','Artikel 20 fehlt beim Packen');
  const en=orders.draftMail(o,'problem','en','Item 20 missing in picking');
  assert.match(de.subject,/Problem/);assert.match(en.subject,/Issue/);
- assert.match(de.body,/SO3002/);assert.match(en.body,/ART-200/);
+ assert.match(de.body,/SO300200003002/);assert.match(en.body,/ART-200/);
  assert.equal(de.to,'example@company.com');
  assert.throws(()=>orders.draftMail(o,'problem','en','x'),/at least 8/);
  for(const item of o.items)orders.setItemStatus(o,item.id,'Shipped',logistics);
