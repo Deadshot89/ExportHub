@@ -105,7 +105,7 @@ function createHandler(deps = {}) {
     }
     return files;
   });
-  const graphConfigured = deps.graphConfigured || (environment => { try { referenceFolder.config(); referenceFolder.assertTargetForEnvironment(environment); return true; } catch (_) { return false; } });
+  const graphConfigured = deps.graphConfigured || (environment => { try { referenceFolder.config(environment); referenceFolder.assertTargetForEnvironment(environment); return true; } catch (_) { return false; } });
   const listArchivedFiles = deps.listArchivedFiles || avBlob.list;
   const now = deps.now || (() => new Date());
   return async function(req) {
