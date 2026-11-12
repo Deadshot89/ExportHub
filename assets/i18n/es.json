@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Guardado",
   "avisPortal.uploadChecking": "Comprobando",
   "avisPortal.noDocuments": "Actualmente no hay ningún documento autorizado disponible para descargar.",
-  "avisPortal.noFurtherDocuments": "Actualmente no hay más documentos autorizados disponibles."
+  "avisPortal.noFurtherDocuments": "Actualmente no hay más documentos autorizados disponibles.",
+  "avisPortal.quantitiesTitle": "Cantidades de artículos entregados",
+  "avisPortal.quantitiesIntro": "Solo se muestran las cantidades indicadas expresamente en los albaranes. No se usan bultos ni facturas para determinar las cantidades.",
+  "avisPortal.quantitiesAction": "Comprobar cantidades en albaranes",
+  "avisPortal.quantitiesLoading": "Comprobando albaranes …",
+  "avisPortal.quantitiesMissing": "No se encontraron cantidades de artículos entregados verificables sin ambigüedad.",
+  "avisPortal.quantitiesError": "No se pudo completar la comprobación del PDF.",
+  "avisPortal.quantitiesArticle": "Artículo",
+  "avisPortal.quantitiesQuantity": "Cantidad entregada",
+  "avisPortal.quantitiesSource": "Fuente: albarán",
+  "avisPortal.quantitiesIncomplete": "No se pudieron interpretar de forma inequívoca otros documentos."
 }
