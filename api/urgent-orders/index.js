@@ -396,7 +396,7 @@ module.exports=async function(context,req){
   const current=await withReadRetry(async()=>await auth.validateSession(req));
   const ref=storage(req);
   const result=await execute(req,current.user,ref);
-  await postSaveP1(body(req).action,result,ref,{log:context.log});
+  await postSaveP1(requestBody(req).action,result,ref,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   // A temporary storage/network failure without our own problem status is a
