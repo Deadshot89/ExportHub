@@ -150,3 +150,10 @@ for(const view of sections.find(s=>s.key==='start').views){
   assert.equal(result.startPills.filter(t=>t.active).map(t=>t.view).join(','),view);
  });
 }
+
+test('RC1820/RC1579: both navigation runtimes use fresh build asset versions',()=>{
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(build,/rc1820-top-navigation\.js\?v=20261111/);
+ assert.match(build,/rc1579-menu-redesign\.js\?v=20261112/);
+ assert.doesNotMatch(build,/rc1579-menu-redesign\.js\?v=1630/);
+});
