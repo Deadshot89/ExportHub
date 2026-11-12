@@ -16,7 +16,7 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued'}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40)}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
@@ -29,7 +29,7 @@ async function scenario({status=409,message='Cannot cancel a workflow run that i
    return reply(response.status,{message:response.message||''});
   }
   if(address.endsWith('/actions/runs/123'))
-   return reply(200,{head_sha:'b'.repeat(40),status:pollStatus});
+   return reply(200,{head_sha:pollSha,status:pollStatus});
   throw new Error('Unexpected GitHub request: '+address);
  };
  const fakeProcess={env:{GITHUB_TOKEN:'test-token',REPOSITORY:'Deadshot89/ExportHub',CURRENT_SHA:sha},exit:()=>{throw new Error('Unexpected exit')}};
@@ -86,8 +86,10 @@ test('RC1538: persistent not-yet-queued conflict remains fatal after bounded ret
 });
 
 test('RC1538: re-read mismatch in run SHA is fatal (no cross-run cancellation)',async()=>{
- const originalProgram=program;
- assert.match(originalProgram,/latest\.head_sha!==run\.head_sha/);
+ await assert.rejects(
+  scenario({message:'Cannot cancel a workflow run that has not been queued yet.',pollSha:'c'.repeat(40)}),
+  /SHA hat sich unerwartet geändert/
+ );
 });
 
 test('RC1903: live smoke includes token and cross-origin security proofs',()=>{
