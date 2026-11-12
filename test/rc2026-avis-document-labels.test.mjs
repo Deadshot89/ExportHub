@@ -12,7 +12,10 @@ const required=[
  'avisPortal.uploadSecurity2','avisPortal.uploadSecurity3',
  'avisPortal.uploadSecurity4','avisPortal.uploadNotSaved',
  'avisPortal.uploadStored','avisPortal.uploadChecking',
- 'avisPortal.noDocuments','avisPortal.noFurtherDocuments'
+ 'avisPortal.noDocuments','avisPortal.noFurtherDocuments',
+ 'avisPortal.quantitiesTitle','avisPortal.quantitiesIntro','avisPortal.quantitiesAction',
+ 'avisPortal.quantitiesLoading','avisPortal.quantitiesMissing','avisPortal.quantitiesError',
+ 'avisPortal.quantitiesArticle','avisPortal.quantitiesQuantity','avisPortal.quantitiesSource','avisPortal.quantitiesIncomplete'
 ];
 
 test('AVIS document and PDF upload text has entries in all six portal languages',()=>{
@@ -37,8 +40,29 @@ test('AVIS invoice recognition does not depend on the old Lieferschein default',
  const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
  const normalizer=fs.readFileSync('assets/document-reference-normalizer.js','utf8');
  assert.match(normalizer,/function detectDocumentKind\(/);
- assert.match(normalizer,/reason:'invoice'/);
+ assert.match(normalizer,/ambiguous-invoice/);
  assert.match(upload,/var actualKind=docKind,uploadName=file\.name/);
  assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)/);
  assert.match(upload,/kind:actualKind,reference:ref/);
+});
+
+test('AVIS: quantity check is session-authorized, read-only and accessible after pickup',()=>{
+ const api=fs.readFileSync('api/customer-avis/index.js','utf8');
+ const html=fs.readFileSync('customer-avis.html','utf8');
+ assert.ok(api.indexOf("const session=sessionFromRequest(req,payload)")<api.indexOf("getAction==='delivery-quantities'"));
+ assert.match(api,/readAvisDeliveredQuantities\(sh,sessionInfo,state\)/);
+ assert.match(html,/function deliveryQuantitiesPanelHtml\(/);
+ assert.match(html,/function bindDeliveryQuantities\(/);
+ assert.match(html,/api\('\?action=delivery-quantities'\)/);
+ assert.match(html,/data-i18n="avisPortal.quantitiesTitle"/);
+ assert.match(html,/bindDeliveryQuantities\(\);return}setStatus/);
+});
+
+test('AVIS: released invoice category takes priority, deduplication requires verified SHA',()=>{
+ const api=fs.readFileSync('api/customer-avis/index.js','utf8');
+ const refs=fs.readFileSync('api/shared/customer-avis-reference-docs.js','utf8');
+ assert.match(api,/addDocument\(out,seen,'invoiceFiles','Rechnung',f,i,true\)/);
+ assert.match(api,/sha256:'\+sha256/);
+ assert.match(refs,/crypto\.createHash\('sha256'\)/);
+ assert.doesNotMatch(refs,/if\(seen\.has\(key\)\)continue/);
 });
