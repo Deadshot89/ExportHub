@@ -61,6 +61,7 @@ for(const lang of LANGS){
   await installAvisDocumentFixture(page);
   await page.goto('/customer-avis.html?token='+('R'.repeat(32))+'&environment=testservice&lang='+lang,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.ExportHUBI18n&&window.ExportHUBI18n.t('avisPortal.uploadOptDelivery')!=='avisPortal.uploadOptDelivery');
+  await expect(page.locator('html')).toHaveAttribute('lang',lang);
   await page.locator('#accessForm input[name="reference"]').fill('ABC123');
   await page.locator('#accessForm button[type="submit"]').click();
   await expect(page.locator('#customerPdfDocumentType')).toBeVisible();
