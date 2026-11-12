@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
+import vm from 'node:vm';
 const require=createRequire(import.meta.url);
 
 const webPush=require('../api/shared/web-push.js');
@@ -250,7 +251,40 @@ test('P1 Urgent Order: save hook does not block a valid order if push fails',asy
   const publicApi=fs.readFileSync('api/urgent-order-public/index.js','utf8');
   const staffApi=fs.readFileSync('api/urgent-orders/index.js','utf8');
   assert.match(publicApi,/await internal\.postSaveP1\(body\(req\)\.action,result,refs/);
-  assert.match(staffApi,/await postSaveP1\(body\(req\)\.action,result,ref/);
+  assert.match(staffApi,/await postSaveP1\(requestBody\(req\)\.action,result,ref/);
+});
+
+// Exercise the actual request handler with mocked infrastructure; checking the
+// post-save hook in isolation would not detect a missing request-body helper.
+test('P1 regression: internal Urgent Order list/counts return 200 after post-save dispatch',async()=>{
+  const code=fs.readFileSync('api/urgent-orders/index.js','utf8');
+  const apiRequire=createRequire(new URL('../api/urgent-orders/index.js',import.meta.url));
+  const auth={
+    validateSession:async()=>({user:{id:'U-E2E',globalAdmin:true,rights:{shipmentoverview:{edit:true}}}}),
+    readJson:async()=>({value:{schemaVersion:1,orders:[],profiles:{},reporterGroups:[]},etag:'v1'}),
+    body:req=>req.body,
+    environmentFromRequest:()=> 'testservice'
+  };
+  const azure={BlobServiceClient:{fromConnectionString:()=>({
+    getContainerClient:()=>({getBlockBlobClient:()=>({})})
+  })}};
+  const mocks={'@azure/storage-blob':azure,'../shared/auth-store':auth,
+    '../shared/testservice-auth-isolation':{isolationConfig:()=>({enabled:false})}};
+  const module={exports:{}};
+  vm.runInNewContext(code,{
+    module,exports:module.exports,require:id=>mocks[id]||apiRequire(id),
+    __dirname:process.cwd()+'/api/urgent-orders',
+    process:{env:{EXPORTHUB_STORAGE_CONNECTION_STRING:'test-connection'}},
+    URL,setTimeout,clearTimeout,Buffer,console
+  },{filename:'api/urgent-orders/index.js'});
+  for(const action of ['list','counts']){
+    const context={log:{warn(){}}};
+    await module.exports(context,{method:'POST',headers:{
+      host:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+    },body:{action}});
+    assert.equal(context.res?.status,200,action+': '+String(context.res?.body||''));
+    assert.equal(JSON.parse(context.res.body).ok,true);
+  }
 });
 
 test('Packmeldung: neue Meldung löst Web Push aus, Fehler im Push stören die Meldung nicht',async()=>{
