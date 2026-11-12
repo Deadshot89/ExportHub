@@ -31,7 +31,14 @@ const TESTSERVICE_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeuro
 function essentraAvisCustomer(sh,c){
  sh=sh||{};c=c||{};
  var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
- return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+ var names=[c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''];
+ // SFL must never receive the ExportHUB360-branded AVIS link.
+ if(names.some(function(v){return /\bSFL\b/i.test(String(v||''))}))return true;
+ // Customer-folder choice overrides the legacy Essentra naming convention.
+ var portal=String(c.avisPortal||'').trim().toLowerCase();
+ if(portal==='wonderful-forest')return true;
+ if(portal==='exporthub360')return false;
+ return names.some(function(v){return /\bessentra\b/i.test(String(v||''))})
 }
 function publicAvisUrl(env,token,sh,c){const encoded=encodeURIComponent(text(token));if(env==='production'&&essentraAvisCustomer(sh,c))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token='+encoded;if(env==='production')return PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded;const url=TESTSERVICE_AVIS_ORIGIN+'/customer-avis.html?token='+encoded;return url+'&environment='+encodeURIComponent(env)}
 let teamContainer=null;
