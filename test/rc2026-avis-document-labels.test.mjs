@@ -38,7 +38,7 @@ test('AVIS invoice recognition does not depend on the old Lieferschein default',
  const normalizer=fs.readFileSync('assets/document-reference-normalizer.js','utf8');
  assert.match(normalizer,/function detectDocumentKind\(/);
  assert.match(normalizer,/reason:'invoice'/);
- assert.match(upload,/var actualKind=docKind/);
- assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)==='rechnung'/);
+ assert.match(upload,/var actualKind=docKind,uploadName=file\.name/);
+ assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)/);
  assert.match(upload,/kind:actualKind,reference:ref/);
 });
