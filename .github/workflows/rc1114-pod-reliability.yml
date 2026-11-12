@@ -12,6 +12,7 @@ on:
       - 'test/rc1209-graph-drive-target-resolver.test.mjs'
       - 'test/rc1259-container-documentation.test.mjs'
       - 'test/rc1440-pod-integrity-audit.test.mjs'
+      - 'test/rc1687-graph-target-diagnostics.test.mjs'
       - '.github/rc1114/**'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1114-pod-reliability.yml'
@@ -37,6 +38,9 @@ jobs:
 
       - name: RC1114/RC1209/RC1440 Vertrags-Regression
         run: node --test test/rc1114-pod-reliability.test.mjs test/rc1209-graph-drive-target-resolver.test.mjs test/rc1440-pod-integrity-audit.test.mjs
+
+      - name: RC1687 / P0 Graph-Ziel Diagnose-Regression (nur Mock-HTTP)
+        run: node --test test/rc1687-graph-target-diagnostics.test.mjs
 
       - name: RC1259/RC1284 Container- und Pickup-Regression
         run: node --test test/rc1259-container-documentation.test.mjs
