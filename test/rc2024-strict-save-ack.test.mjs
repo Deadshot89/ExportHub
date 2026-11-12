@@ -67,6 +67,10 @@ test('RC2024: three-environment build inherits guard and patch is idempotent/fai
   'const confirmed=serverAck||criticalSaveDeltaConfirmed(authoritative&&authoritative.state,stateDelta);',
   'const confirmed=serverAck||unverifiedNewCondition(authoritative);'
  )),/RC2024 save confirmation anchor missing or ambiguous/);
+ assert.throws(()=>patchRc2024StrictSaveAckHtml('<html>Broken app without saver</html>','index.html'),
+  /RC2024 save confirmation anchor missing or ambiguous/);
+ assert.throws(()=>patchRc2024StrictSaveAckHtml('<html>Broken TESTSERVICE app</html>','TESTVERSION.html'),
+  /RC2024 save confirmation anchor missing or ambiguous/);
  assert.equal(patchRc2024StrictSaveAckHtml('<html>Demo without authenticated saver</html>','demo.html'),
   '<html>Demo without authenticated saver</html>');
 });
