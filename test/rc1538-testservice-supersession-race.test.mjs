@@ -16,12 +16,15 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,confirmForce=true}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,confirmForce=true,mainHeads=[]}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
- let forceRequested=false;
+ let forceRequested=false,mainReadCount=0;
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
-  if(address.endsWith('/branches/main'))return reply(200,{commit:{sha}});
+  if(address.endsWith('/branches/main')){
+   const current=mainHeads.length?mainHeads[Math.min(mainReadCount++,mainHeads.length-1)]:sha;
+   return reply(200,{commit:{sha:current}});
+  }
   if(address.includes('/actions/workflows/'))return reply(200,{workflow_runs:[{id:123,head_sha:'b'.repeat(40),status:'in_progress'}]});
   if(address.endsWith('/actions/runs/123/cancel')){
    if(url!=='cancel')throw new Error('Test setup error');
@@ -122,6 +125,22 @@ test('RC1538: re-read mismatch in run SHA is fatal (no cross-run cancellation)',
   scenario({message:'Cannot cancel a workflow run that has not been queued yet.',pollSha:'c'.repeat(40)}),
   /SHA hat sich unerwartet geändert/
  );
+});
+
+test('RC1538: a newer main after LIST prevents all cancel and force-cancel requests',async()=>{
+ const initial='a'.repeat(40),newMain='c'.repeat(40);
+ const {lines,calls}=await scenario({mainHeads:[initial,newMain],status:204});
+ assert.equal(calls.filter(x=>x.method==='POST').length,0);
+ assert.ok(lines.some(x=>x.includes('main changed before cancel')));
+ assert.ok(!lines.some(x=>x.includes('123')&&x.includes('Cancel-Annahme erhalten.')));
+});
+
+test('RC1538: a newer main during repeated 409 prevents further cancel or force-cancel',async()=>{
+ const initial='a'.repeat(40),newMain='c'.repeat(40);
+ const {lines,calls}=await scenario({mainHeads:[initial,initial,newMain],message:'Cannot cancel a workflow run that has not been queued yet.'});
+ assert.equal(calls.filter(x=>x.method==='POST').length,1);
+ assert.ok(lines.some(x=>x.includes('main changed before cancel')));
+ assert.equal(calls.filter(x=>x.url.endsWith('/force-cancel')).length,0);
 });
 
 test('RC1903: live smoke includes token and cross-origin security proofs',()=>{

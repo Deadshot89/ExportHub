@@ -86,9 +86,17 @@ jobs:
           const payload=await request(`https://api.github.com/repos/${repo}/actions/workflows/${workflow}/runs?branch=main&per_page=100`);
           const runs=Array.isArray(payload&&payload.workflow_runs)?payload.workflow_runs:[];
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
+          let supersededDuringCancel=false;
           for(const run of older){
             let outcome;
             for(let attempt=0;attempt<5;attempt++){
+              // Revalidate main before every cancel, including 409 retries.
+              const latestMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+              if(!latestMain?.commit||latestMain.commit.sha!==currentSha){
+                supersededDuringCancel=true;
+                console.log(`RC1538: main changed before cancel; stop stale job ${currentSha}.`);
+                break;
+              }
               outcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/cancel`,{method:'POST'});
               if(!outcome||!outcome.notQueuedYet)break;
               // Recheck before retry: der alte Run könnte inzwischen beendet sein.
@@ -127,6 +135,7 @@ jobs:
               }
               await new Promise(resolve=>setTimeout(resolve,250*(2**attempt)));
             }
+            if(supersededDuringCancel)break;
             if(outcome&&outcome.forceCancelled)
               console.log(`RC1538: ältere Main Verification ${run.id} force-cancel durch GitHub abgeschlossen bestätigt.`);
             else if(outcome&&outcome.alreadyCompleted)
@@ -134,5 +143,6 @@ jobs:
             else
               console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) Cancel-Annahme erhalten.`);
           }
-          console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications beendet; aktueller SHA ${currentSha}.`);
+          if(!supersededDuringCancel)
+            console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications verarbeitet; aktueller SHA ${currentSha}.`);
           NODE
