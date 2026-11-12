@@ -55,6 +55,12 @@ for(const viewport of ['desktop','mobile-standard']){
     await targetBlock.locator('[data-sop-editor-action="cancel-target-pick"]').click();
     await expect(page.locator('html')).not.toHaveClass(/rc1502-sop-target-picking/);
 
+    // RC1502: the target picker commits asynchronously. The UI rendering a key
+    // is not a durable write; require the existing acknowledged save status
+    // before examining the canonical application state.
+    const persistence=page.locator('[data-sop-persist-status]').first();
+    await expect(persistence).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
+
     const persisted=await page.evaluate(()=>{
       const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():{};
       const doc=(state.isoSops||[]).find(item=>item.number==='SOP-EH-060');
