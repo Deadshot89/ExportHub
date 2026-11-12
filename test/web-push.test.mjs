@@ -226,6 +226,12 @@ test('P1 Urgent Order: private opt-in, permissions and immediate per-device push
   f.team.users[0].active=false;
   assert.equal((await f.notifyP1('production',order)).sent,0,'inactive user cannot receive P1 data');
   f.team.users[0].active=true;
+  f.team.users[0].disabled=true;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'disabled user receives no P1 alert');
+  f.team.users[0].disabled=false;
+  f.team.users[0].status='Deaktiviert';
+  assert.equal((await f.notifyP1('production',order)).sent,0,'deactivated user receives no P1 alert');
+  delete f.team.users[0].status;
   await f.call({action:'update',endpoint:authorized.endpoint,categories:{urgentP1:false}});
   assert.equal((await f.notifyP1('production',order)).sent,0,'user can disable P1 alert');
 });
