@@ -95,7 +95,7 @@ test('RC2026: TESTSERVICE-Graph-Readiness darf nicht von Produktions-REF-Konfigu
   ].join('\n');
   const env={...process.env,
     EXPORTHUB_GRAPH_TENANT_ID:'synthetic',EXPORTHUB_GRAPH_CLIENT_ID:'synthetic',
-    EXPORTHUB_GRAPH_CLIENT_SECRET:'synthetic',
+    EXPORTHUB_GRAPH_CLIENT_SECRET:'test-only-no-auth',
     EXPORTHUB_REFERENCE_DRIVE_USER:'',
     EXPORTHUB_REFERENCE_DRIVE_ID:'',EXPORTHUB_REFERENCE_FOLDER_ID:'',
     EXPORTHUB_TEST_REFERENCE_DRIVE_ID:'synthetic-test-drive',
