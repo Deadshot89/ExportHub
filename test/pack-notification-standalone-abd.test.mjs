@@ -130,6 +130,34 @@ test('RC1499: user-clicked Pack ABD save bypasses navigation defer but never byp
  }
 });
 
+
+test('RC2025: missing or invalid server ACK is never replaced by flushSave(true)',async()=>{
+ for(const runtime of [null,{},{
+    changeGeneration:7,lastServerSaveAckGeneration:undefined
+  },{
+    changeGeneration:7,lastServerSaveAckGeneration:NaN
+  },{
+    changeGeneration:7,lastServerSaveAckGeneration:0
+  }]){
+   const {root,state,api}=fixture();
+   const item={id:'ABD-SEC-1',ref:'SEC123',
+     packNotificationId:'PN-1',packNotificationRef:'PACK-01',linkedShipmentId:''};
+   state.abdRequests.push(item);state.abdDraft=item;
+   let mailTriggered=false;
+   root.__EXPORTHUB_TEST_NO_MAILTO__=true;
+   root.ExportHUBClean={
+     runtime,
+     queueSave(){if(runtime)runtime.changeGeneration=7;return true},
+     flushSave(){mailTriggered=true;return Promise.resolve(true)}
+   };
+   const saved=await api.confirmSave(item,{showAlert:false,openMail:false});
+   assert.equal(saved,false,'No genuine ACK: keep local ABD unconfirmed');
+   assert.equal(mailTriggered,true,'Even successful local flush cannot replace ACK');
+   assert.equal(api.saveStatusText(),'pack.internal.abdSaveUnconfirmed');
+   assert.equal(state.abdRequests.length,1,'retry preserves the exact ABD ID');
+ }
+});
+
 test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
   const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
   assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);

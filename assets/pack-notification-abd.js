@@ -102,9 +102,9 @@
       // flushSave returned true. Never send a mail on a stale acknowledgement.
       const hasServerAck=!!runtime&&target>0&&typeof runtime.lastServerSaveAckGeneration==='number'&&
         Number.isFinite(runtime.lastServerSaveAckGeneration);
-      const acknowledged=hasServerAck
-        ? runtime.lastServerSaveAckGeneration>=target
-        : flushed===true;
+      // RC2025: both a completed flush and genuine server generation ACK are required.
+      // A local-only flush result never substitutes for a missing Azure ACK.
+      const acknowledged=flushed===true&&hasServerAck&&runtime.lastServerSaveAckGeneration>=target;
       if(!acknowledged)throw new Error('ABD_SAVE_UNCONFIRMED');
       const n=notification(item.packNotificationId);
       const matches=arr(state().abdRequests).filter(r=>owned(r,n));
