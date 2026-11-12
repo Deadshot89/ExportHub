@@ -120,6 +120,7 @@ module.exports=async function(context,req){
  try{
   // No session is read or required. Every read must present the reporter's private capability token.
   const refs=internal.storage(req),result=await publicAction(req,refs);
+  await internal.postSaveP1(body(req).action,result,refs,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;

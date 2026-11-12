@@ -3,7 +3,7 @@
    also kept on the device (IndexedDB) so the detail page inbox.html can show it without login. */
 'use strict';
 
-try { importScripts('/assets/i18n/web-push.js?v=1701'); } catch (_) {}
+try { importScripts('/assets/i18n/web-push.js?v=1703'); } catch (_) {}
 var i18n = self.ExportHUBWebPushI18n;
 function tt(key,lang,vars){return i18n&&i18n.t?i18n.t(key,vars||null,lang):key}
 var DB_NAME = 'exporthub-web-push';

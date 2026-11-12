@@ -16,7 +16,7 @@ const MAX_SUBSCRIPTIONS = 2000;
 const MAX_FAILURES = 20;
 const LEDGER_DAYS = 14;
 const MAX_RETRIES = 8;
-const CATEGORIES = ['tasks', 'pack'];
+const CATEGORIES = ['tasks', 'pack', 'urgentP1'];
 
 function text(v) { return String(v == null ? '' : v).trim(); }
 function lower(v) { return text(v).toLowerCase(); }
@@ -39,7 +39,9 @@ function categoriesOf(input, previous) {
   const base = previous && typeof previous === 'object' ? previous : {};
   const src = input && typeof input === 'object' ? input : {};
   const out = {};
-  for (const key of CATEGORIES) out[key] = src[key] !== undefined ? src[key] !== false : base[key] !== false;
+  for (const key of CATEGORIES) out[key] = key === 'urgentP1'
+    ? (src[key] !== undefined ? src[key] === true : base[key] === true)
+    : (src[key] !== undefined ? src[key] !== false : base[key] !== false);
   return out;
 }
 function deviceLabel(value) { return text(value).replace(/[\u0000-\u001f<>]/g, '').slice(0, 80); }
@@ -58,8 +60,9 @@ function upsertSubscription(doc, input, nowIso) {
     displayName: text(input.user.name || input.user.user || input.user.username).slice(0, 120),
     endpoint: sub.endpoint,
     keys: sub.keys,
-    categories: categoriesOf(input.categories, previous && previous.categories),
+    categories: categoriesOf(input.categories, previous && previous.userId === userId && previous.categories),
     packAllowed: input.packAllowed === true,
+    urgentP1Allowed: input.urgentP1Allowed === true,
     deviceLabel: deviceLabel(input.deviceLabel) || (previous && previous.deviceLabel) || '',
     language: i18n.normalize(input.language) || i18n.normalize(previous && previous.userId === userId && previous.language) || i18n.normalize(input.user && (input.user.language || input.user.uiLanguage)) || 'de',
     createdAt: previous && previous.userId === userId ? previous.createdAt : nowIso,
@@ -114,7 +117,7 @@ function pruneLedger(doc, nowIso, days = LEDGER_DAYS) {
   return removed;
 }
 function publicSubscription(s) {
-  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', language: s.language || 'de', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true } : null;
+  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', language: s.language || 'de', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true, urgentP1Allowed: s.urgentP1Allowed === true } : null;
 }
 
 // container: { getBlockBlobClient(name) } with download/upload like @azure/storage-blob.

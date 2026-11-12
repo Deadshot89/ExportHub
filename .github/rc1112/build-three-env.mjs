@@ -130,8 +130,8 @@ const RC1740_POD_REMOVE_I18N_TAG='<script id="exporthub-rc1740-pod-remove-i18n" 
 const RC1740_POD_REMOVE_SCRIPT_TAG='<script id="exporthub-rc1740-pod-remove-script" defer src="/assets/rc1740-pod-remove.js?v=1740"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
-const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
-const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1702"></script>';
+const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1703"></script>';
+const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1703"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
@@ -655,7 +655,7 @@ function patchWebPush(html,file){
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_MANIFEST_TAG,'exporthub-web-push-manifest');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_I18N_TAG,'exporthub-web-push-i18n');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_SCRIPT_TAG,'exporthub-web-push-client');
-  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1702'))throw new Error(file+': Web Push fehlt');
+  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1703'))throw new Error(file+': Web Push fehlt');
   return html;
 }
 
