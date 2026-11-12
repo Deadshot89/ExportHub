@@ -23,9 +23,9 @@ function parse(text,filename=''){
  // "Packing slip No.: DNC..." on an invoice is a cross-reference, not proof
  // that the PDF itself is a delivery note. Do not display invoice quantities.
  const invoiceHeading=INVOICE.test(head)||firstLines.some(line=>
-    /^(?:invoice|rechnung|facture|factura|faktura)(?:\\b|\\s*[:#])/i.test(line));
+    /^(?:invoice|rechnung|facture|factura|faktura)(?:\b|\s*[:#])/i.test(line));
  const deliveryHeading=firstLines.some(line=>
-    /^(?:delivery[\\s-]*note|packing[\\s-]*slip|lieferschein)\\b(?!\\s*(?:no\\.?|nr\\.?|number)\\b)/i.test(line));
+    /^(?:delivery[\s-]*note|packing[\s-]*slip|lieferschein)\b(?!\s*(?:no\.?|nr\.?|number)\b)/i.test(line));
  if(!deliveryHeading||invoiceHeading)return{status:'unavailable',reason:'not-delivery-note',positions:[]};
  const refs=new Set();let match;DNC.lastIndex=0;
  while((match=DNC.exec(raw)))refs.add('DNC'+match[1]);
