@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Artykuł",
   "avisPortal.quantitiesQuantity": "Ilość dostarczona",
   "avisPortal.quantitiesSource": "Źródło: dowód dostawy",
-  "avisPortal.quantitiesIncomplete": "Nie udało się jednoznacznie odczytać pozostałych dokumentów."
+  "avisPortal.quantitiesIncomplete": "Nie udało się jednoznacznie odczytać pozostałych dokumentów.",
+  "avisPortal.uploadTitle": "Prześlij dokumenty PDF",
+  "avisPortal.uploadDocType": "Rodzaj dokumentu",
+  "avisPortal.uploadSelectPdf": "Wybierz PDF · maks. 10 MB",
+  "avisPortal.uploadStart": "Sprawdź i prześlij PDF",
+  "avisPortal.uploadOptCmr": "CMR / list przewozowy",
+  "avisPortal.uploadOptDelivery": "Dokument dostawy",
+  "avisPortal.uploadOptInvoice": "Faktura / faktura handlowa",
+  "avisPortal.uploadOptPacking": "Lista pakowa",
+  "avisPortal.uploadOptOther": "Inne",
+  "avisPortal.docDelivery": "Dokument dostawy",
+  "avisPortal.docInvoice": "Faktura",
+  "avisPortal.docPacking": "Lista pakowa",
+  "avisPortal.docDocument": "Dokument",
+  "avisPortal.docAttachment": "Załącznik",
+  "avisPortal.docNotAvailable": "Niedostępny"
 }
