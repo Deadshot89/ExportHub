@@ -9,7 +9,7 @@ const publicApi=require('../api/urgent-order-public/index.js');
 const data='Item number\tNet weight\tPacking quantity\n50607055\t0,00120\t1.000,00\n10000021\t0,00180\t100,00\n99999999\t0,00000\t0,00\n';
 const catalog=packing.parseCatalog(data);
 const line=(quantity,minibag=false,reviewed=false)=>({line:'10',article:'50607055',quantity,minibag,minibagReviewed:reviewed,pickableStock:true,holdsClear:true,minibagLeadtime:minibag?true:null});
-const base=items=>({orderNumber:'SO20261111',delivery:'DRP',priority:'P2',email:'cs@example.org',requestedDispatchDate:'2099-11-12',items});
+const base=items=>({orderNumber:'SO300220261111',delivery:'DRP',priority:'P2',email:'cs@example.org',requestedDispatchDate:'2099-11-12',items});
 const actor={id:'test-user',name:'Test User'},now='2026-11-11T11:00:00Z';
 test('private catalog parser respects actual pack sizes; zero is unknown',()=>{
  assert.equal(catalog.count,2);
