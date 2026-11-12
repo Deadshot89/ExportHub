@@ -138,7 +138,7 @@ async function upload(reference,name,buffer,mimeType,environment='production'){
  return{id:itemId,name:itemName,size:itemSize,webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 async function listFiles(reference,environment='production'){
- const ref=refValue(reference),select='id,name,file,folder,createdDateTime,lastModifiedDateTime';
+ const ref=refValue(reference),select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime';
  // A TESTSERVICE AV scan must never read the production REF directory.
  const target=exactTarget(environment),refFolder=target?await getFolder(ref,environment):null;
  if(target&&!refFolder)return [];
@@ -180,7 +180,7 @@ async function listFiles(reference,environment='production'){
      if(seenFiles.has(id))continue;
      if(files.length>=MAX_FILES)throw error('GRAPH_REFERENCE_FILE_LIMIT','Der REF-Ordner enthält zu viele Dateien für eine vollständige AV-Prüfung.',503);
      seenFiles.add(id);
-     files.push({id,name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null});
+     files.push({id,name:text(item.name),size:Number.isSafeInteger(Number(item.size))&&Number(item.size)>=0?Number(item.size):0,createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null});
     }else if(item.folder){
      if(!id)throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph lieferte einen Unterordner ohne ID.',502);
      if(seenFolders.has(id))continue;
