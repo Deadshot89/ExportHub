@@ -98,6 +98,38 @@ test('RC2019: denied authoritative ABD route cannot be bypassed by generic setVi
   assert.equal(calls.newAbd,0);
 });
 
+
+test('RC1499: user-clicked Pack ABD save bypasses navigation defer but never bypasses Azure ACK',async()=>{
+ for(const serverAcknowledges of [true,false]){
+  const {root,state,calls,api}=fixture();
+  const item={id:'ABD-SAVE-1',ref:'A1B2C3',source:'manual',
+    packNotificationId:'PN-1',packNotificationRef:'PACK-01',linkedShipmentId:''};
+  state.abdRequests.push(item);
+  state.abdDraft=item;
+  const runtime={changeGeneration:3,lastSavedGeneration:2,lastServerSaveAckGeneration:2};
+  const flushes=[];
+  root.ExportHUBClean={
+    runtime,
+    queueSave(reason){calls.save.push(reason);runtime.changeGeneration++;return true},
+    flushSave(reason,options){
+      flushes.push({reason,options});
+      if(serverAcknowledges)runtime.lastServerSaveAckGeneration=runtime.changeGeneration;
+      return Promise.resolve(true);
+    }
+  };
+  const success=await api.confirmSave(item,{showAlert:false,openMail:false});
+  assert.equal(success,serverAcknowledges,'an unconfirmed save must never be successful');
+  assert.equal(flushes.length,1);
+  assert.equal(flushes[0].reason,'Packmeldung ABD-Anfrage speichern');
+  assert.equal(flushes[0].options.userInitiated,true,
+    'a real Save click must not be deferred by transient navigation/visibility guard');
+  assert.equal(api.saveStatusText(),serverAcknowledges?'pack.internal.abdSaved':'pack.internal.abdSaveUnconfirmed');
+  if(!serverAcknowledges)assert.equal(runtime.lastServerSaveAckGeneration,2,
+    'neither a locally saved ABD nor flushSave(true) may invent a server ACK');
+  assert.equal(state.abdRequests.length,1,'a retry must not duplicate the ABD request');
+ }
+});
+
 test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
   const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
   assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);

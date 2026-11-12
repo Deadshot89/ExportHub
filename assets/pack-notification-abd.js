@@ -93,7 +93,9 @@
       const queued=await Promise.resolve(clean.queueSave(reason));
       if(queued===false)throw new Error('ABD_SAVE_QUEUE_REJECTED');
       const runtime=clean.runtime||null,target=Number(runtime&&runtime.changeGeneration)||0;
-      const flushed=await Promise.resolve(clean.flushSave(reason));
+      // This is an explicit user save: do not defer behind a just-opened ABD view.
+      // The existing server-generation ACK guard below remains mandatory.
+      const flushed=await Promise.resolve(clean.flushSave(reason,{userInitiated:true}));
       // RC2004 P0: a locally advanced lastSavedGeneration is not evidence of
       // Azure persistence. When the runtime exposes the authoritative server
       // acknowledgement, it must cover the exact queued generation even if
