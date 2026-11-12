@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const html=readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
 const translations=lang=>JSON.parse(readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
 const order={
- orderNumber:'SO3002',email:'cs@example.org',language:'de',
+ orderNumber:'SO300200003002',email:'cs@example.org',language:'de',
  delivery:'DRP',priority:'P2',items:[{line:'10',article:'ABC',quantity:2,status:'Open'}]
 };
 

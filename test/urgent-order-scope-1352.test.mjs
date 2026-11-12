@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const actor={id:'CS-17',name:'Customer Service'};
 const logistics={id:'OPS-1',rights:{shipmentoverview:{edit:true}}};
 const item={line:'10',article:'ART-10',quantity:2,pickableStock:true,holdsClear:true};
-const payload={orderNumber:'SO51352',delivery:'DRP',priority:'P1',email:'cs@example.com',language:'de',requestedDispatchDate:'2026-11-11',items:[item]};
+const payload={orderNumber:'SO300200051352',delivery:'DRP',priority:'P1',email:'cs@example.com',language:'de',requestedDispatchDate:'2026-11-11',items:[item]};
 const at='2026-11-10T11:30:00.000Z';
 
 test('P1 requires explicit creator acknowledgement; other priorities do not',()=>{

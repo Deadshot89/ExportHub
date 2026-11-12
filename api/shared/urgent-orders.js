@@ -15,7 +15,7 @@ function text(v,max=200){return String(v==null?'':v).trim().slice(0,max);}
 function problem(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e;}
 function email(v){const value=text(v,254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)||/[\r\n]/.test(value))throw problem('URGENT_EMAIL_INVALID','Bitte eine gültige CS-E-Mail-Adresse angeben.');return value;}
 function language(v){const raw=text(v,10).toLowerCase();return LANGUAGES.includes(raw)?raw:'de';}
-function orderNumber(v){const raw=text(v,40).toUpperCase();if(!/^SO[A-Z0-9-]{2,38}$/.test(raw))throw problem('URGENT_SO_INVALID','Die Auftragsnummer muss mit SO beginnen.');return raw;}
+function orderNumber(v){const raw=text(v,40).toUpperCase();if(!/^SO3002[0-9]{8}$/.test(raw))throw problem('URGENT_SO_INVALID','Ungültige Auftragsnummer. Bitte eine 14-stellige SO-Nummer eingeben, die mit SO3002 beginnt.');return raw;}
 function positiveInt(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<1||n>10000000)throw problem('URGENT_QUANTITY_INVALID','Jede Position braucht eine gültige Menge größer als 0.');return n;}
 function explicitCheck(v,key){if(typeof v!=='boolean')throw problem('URGENT_CHECK_MISSING','Die CS-Prüfung "'+key+'" muss mit Ja oder Nein beantwortet werden.');return v;}
 

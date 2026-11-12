@@ -12,9 +12,9 @@ const creator={id:'CS-1982',name:'CS'};
 const worker={id:'OPS-1982',name:'Logistik',rights:{shipmentoverview:{edit:true}}};
 const another={id:'OPS-OTHER',name:'Anderer Bearbeiter',rights:{shipmentoverview:{edit:true}}};
 const date='2026-11-11T09:00:00.000Z';
-const payload={orderNumber:'SO198201',delivery:'DRP',priority:'P2',email:'cs@example.org',
+const payload={orderNumber:'SO300200198201',delivery:'DRP',priority:'P2',email:'cs@example.org',
   requestedDispatchDate:'2026-11-12',items:[{line:'10',article:'A-1982',quantity:1,pickableStock:true,holdsClear:true}]};
-function make(number='SO198201'){return model.createOrder({...payload,orderNumber:number},creator,date);}
+function make(number='SO300200198201'){return model.createOrder({...payload,orderNumber:number},creator,date);}
 function error(code){return e=>e.code===code;}
 function publicReq(body){return {headers:{'x-forwarded-for':'192.0.2.28'},body};}
 
@@ -55,7 +55,7 @@ test('RC1982: status change starts processing permanently; only handler can acce
 });
 
 test('RC1982: claim processing before a status change prevents immediate deletion',()=>{
- const order=make('SO198280');
+ const order=make('SO300200198280');
  assert.equal(model.workStarted(order),false);
  const claim=model.startProcessing(order,worker,'2026-11-11T09:01:00Z');
  assert.equal(claim.started,true);
@@ -73,7 +73,7 @@ test('RC1982: claim processing before a status change prevents immediate deletio
 });
 
 test('RC1982: later collaborators cannot steal deletion approval identity',()=>{
- const order=make('SO198281');
+ const order=make('SO300200198281');
  model.startProcessing(order,worker);
  model.setItemStatus(order,order.items[0].id,'Waved',another,date);
  assert.equal(model.processingOwner(order).id,worker.id);
@@ -96,12 +96,12 @@ test('RC1982: responsible employee may refuse; order remains and requester may t
 
 test('RC1982: shipments already shipped or invoiced can never be deleted',()=>{
  for(const status of ['Shipped','Invoiced']){
-  const o=make('SO1982'+(status==='Shipped'?'15':'16'));
+  const o=make('SO3002001982'+(status==='Shipped'?'15':'16'));
   model.setItemStatus(o,o.items[0].id,status,worker,date);
   assert.throws(()=>model.requestDeletion(o,creator),error('URGENT_DELETE_DISPATCHED'));
   assert.equal(model.activeOrder(o),true);
  }
- const order=make('SO198217');
+ const order=make('SO300200198217');
  model.setItemStatus(order,order.items[0].id,'In Progress',worker,date);
  model.requestDeletion(order,creator);
  assert.throws(()=>model.setItemStatus(order,order.items[0].id,'Shipped',worker,date),error('URGENT_DELETE_PENDING'),'the pending decision freezes status changes');
@@ -117,7 +117,7 @@ test('RC1982: email handoff counts as started work; legacy ownerless processing 
  assert.equal(model.workStarted(o),true);
  assert.equal(model.processingOwner(o).id,worker.id);
  assert.equal(model.requestDeletion(o,creator).state,'pending');
- const old=make('SO198218');
+ const old=make('SO300200198218');
  old.items[0].status='Waved';
  assert.equal(model.workStarted(old),true);
  model.requestDeletion(old,creator);
@@ -133,8 +133,8 @@ test('RC1982: public token can delete only own group and never approve another w
  internal.write=async(_ref,mutator)=>mutator(state);
  internal.readDocument=async()=>state;
  try{
-  const first=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO198211'}),refs);
-  const second=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO198212',email:'other@example.org'}),refs);
+  const first=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO300200198211'}),refs);
+  const second=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO300200198212',email:'other@example.org'}),refs);
   const firstId=first.order.id,secondId=second.order.id;
   await assert.rejects(publicApi.publicAction(publicReq({action:'request-delete',id:secondId,accessToken:first.accessToken}),refs),error('URGENT_NOT_FOUND'));
   await assert.rejects(publicApi.publicAction(publicReq({action:'request-delete',id:firstId,accessToken:second.accessToken}),refs),error('URGENT_NOT_FOUND'));
