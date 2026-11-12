@@ -208,7 +208,7 @@ function createUrgentP1Notifier(overrides = {}) {
     // who lost access must not receive details via an old device subscription.
     const team = await deps().readTeam(env);
     const authorized = new Set((Array.isArray(team && team.users) ? team.users : [])
-      .filter(user => user && user.active !== false && urgentOrders.canManage(user))
+      .filter(user => reminders.isActive(user) && urgentOrders.canManage(user))
       .map(user => text(user.id)));
     const targets = doc.subscriptions.filter(s => s && authorized.has(text(s.userId)) &&
       s.urgentP1Allowed === true && s.categories && s.categories.urgentP1 === true);
