@@ -72,6 +72,44 @@ test('RC1724: AV-Prüfung liest nur den REF-Ordner der ausgewählten Umgebung',a
   assert.equal(avTasks(s).length,0);
 });
 
+
+test('RC2026: TESTSERVICE-Graph-Readiness darf nicht von Produktions-REF-Konfiguration abhängen',()=>{
+  // Separate process prevents environment leakage into concurrent AV/Graph tests.
+  const script=[
+    "const api=require('./api/av-check/index.js');",
+    "const seed={shipments:[{id:'S1',ref:'ABC123',abdRequired:true,abdFiles:[{id:'ABD1',name:'ABD_ABC123.pdf'}],status:'Abgeholt',actualPickupDate:'2026-10-13'}],tasks:[]};",
+    "const seen=[];",
+    "const handler=api.createHandler({",
+    " authorize:async()=>true,now:()=>new Date('2026-10-19T08:00:00Z'),",
+    " readState:async()=>structuredClone(seed),",
+    " mutateState:async(environment,mutator)=>mutator(structuredClone(seed)),",
+    " listArchivedFiles:async()=>[],",
+    " listFiles:async(ref,environment)=>{seen.push(environment);return[{name:'AV_ABC123.pdf'}]}",
+    "});",
+    "(async()=>{",
+    " const testservice=await handler({method:'POST',headers:{},body:{environment:'testservice',minAgeMinutes:0}});",
+    " const production=await handler({method:'POST',headers:{},body:{environment:'production',minAgeMinutes:0}});",
+    " process.stdout.write(JSON.stringify({test:{status:testservice.status,graphConfigured:testservice.body.graphConfigured,present:testservice.body.present},",
+    " production:{status:production.status,code:production.body.code,graphConfigured:production.body.graphConfigured},seen}));",
+    "})().catch(e=>{console.error(e.message);process.exit(1)})"
+  ].join('\n');
+  const env={...process.env,
+    EXPORTHUB_GRAPH_TENANT_ID:'synthetic',EXPORTHUB_GRAPH_CLIENT_ID:'synthetic',
+    EXPORTHUB_GRAPH_CLIENT_SECRET:'synthetic',
+    EXPORTHUB_REFERENCE_DRIVE_USER:'',
+    EXPORTHUB_REFERENCE_DRIVE_ID:'',EXPORTHUB_REFERENCE_FOLDER_ID:'',
+    EXPORTHUB_TEST_REFERENCE_DRIVE_ID:'synthetic-test-drive',
+    EXPORTHUB_TEST_REFERENCE_FOLDER_ID:'synthetic-test-folder'
+  };
+  const res=spawnSync(process.execPath,['-e',script],{cwd:process.cwd(),encoding:'utf8',env});
+  assert.equal(res.status,0,res.stderr);
+  assert.deepEqual(JSON.parse(res.stdout),{
+    test:{status:200,graphConfigured:true,present:1},
+    production:{status:503,code:'GRAPH_NOT_CONFIGURED',graphConfigured:false},
+    seen:['testservice']
+  },'independent test target must be usable, while unconfigured production remains blocked');
+});
+
 test('fehlendes AV erzeugt genau eine Aufgabe pro REF',async()=>{
   const s=state(shipment()),h=handler(s,{ABC123:[{name:'ABD_ABC123.pdf'},{name:'CMR.pdf'}]});
   const first=await h.run();
