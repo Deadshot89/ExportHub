@@ -565,3 +565,43 @@ test('RC1985 P0: confirmed task deletion survives two independent TESTSERVICE br
     await otherContext.close();
   }
 });
+
+
+// RC2013: the anonymous Urgent gate does not cover the signed-in staff flow.
+// Read-only on TESTSERVICE: no customer orders are created or modified.
+test('RC2013 P0: authentifizierte Urgent-Order-API auf TESTSERVICE erreichbar',async({page},testInfo)=>{
+  test.setTimeout(70_000);
+  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1',
+    'Authenticated Urgent live check runs only in the official TESTSERVICE gate.');
+  test.skip(testInfo.project.name!=='laptop','Run one authenticated logistics check.');
+
+  const session=await installE2ESession(page);
+  await page.goto('/assets/urgent-orders.html?embedded=1',{waitUntil:'domcontentloaded'});
+  const result=await page.evaluate(async({token})=>{
+    const response=await fetch('/api/urgent-orders',{
+      method:'POST',credentials:'same-origin',cache:'no-store',
+      headers:{
+        'Content-Type':'application/json','Accept':'application/json',
+        'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,
+        'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'
+      },
+      body:JSON.stringify({action:'list'})
+    });
+    const payload=await response.json().catch(()=>({}));
+    const rawCode=String(payload&&payload.code||'UNKNOWN');
+    return{
+      status:response.status,
+      code:/^[A-Z][A-Z0-9_]{0,63}$/.test(rawCode)?rawCode:'UNKNOWN',
+      ok:payload&&payload.ok===true,
+      environment:payload&&payload.environment,
+      orderList:Array.isArray(payload&&payload.orders),
+      canManage:payload&&payload.canManage===true
+    };
+  },{token:session.token});
+
+  expect(result.status,'Authenticated Urgent API HTTP '+result.status+' / '+result.code).toBe(200);
+  expect(result.ok).toBe(true);
+  expect(result.environment).toBe('testservice');
+  expect(result.orderList).toBe(true);
+  expect(result.canManage).toBe(true);
+});
