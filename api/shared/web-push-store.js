@@ -60,6 +60,7 @@ function upsertSubscription(doc, input, nowIso) {
     keys: sub.keys,
     categories: categoriesOf(input.categories, previous && previous.userId === userId && previous.categories),
     packAllowed: input.packAllowed === true,
+    urgentP1Allowed: input.urgentP1Allowed === true,
     deviceLabel: deviceLabel(input.deviceLabel) || (previous && previous.deviceLabel) || '',
     language: i18n.normalize(input.language) || i18n.normalize(previous && previous.userId === userId && previous.language) || i18n.normalize(input.user && (input.user.language || input.user.uiLanguage)) || 'de',
     createdAt: previous && previous.userId === userId ? previous.createdAt : nowIso,
@@ -114,7 +115,7 @@ function pruneLedger(doc, nowIso, days = LEDGER_DAYS) {
   return removed;
 }
 function publicSubscription(s) {
-  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', language: s.language || 'de', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true } : null;
+  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', language: s.language || 'de', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true, urgentP1Allowed: s.urgentP1Allowed === true } : null;
 }
 
 // container: { getBlockBlobClient(name) } with download/upload like @azure/storage-blob.
