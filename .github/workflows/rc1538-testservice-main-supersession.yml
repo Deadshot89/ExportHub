@@ -61,7 +61,7 @@ jobs:
               // Ein älterer Run kann zwischen LIST und CANCEL regulär enden.
               // Ausschließlich diesen belegten 409-Rennfall als erledigt werten.
               if(response.status===409&&options.method==='POST'&&
-                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/cancel$/.test(new URL(url).pathname)){
+                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/(?:cancel|force-cancel)$/.test(new URL(url).pathname)){
                 let message='';
                 try{message=JSON.parse(body).message||''}catch(_){}
                 if(message==='Cannot cancel a workflow run that is completed.')
@@ -117,7 +117,20 @@ jobs:
                 const stillMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
                 if(stillMain?.commit?.sha!==currentSha)
                   throw new Error('RC1538: main changed during force-cancel guard; refuse stale intervention.');
-                await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/force-cancel`,{method:'POST'});
+                const forceOutcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/force-cancel`,{method:'POST'});
+                // GitHub 409 may race with the old run completing. Only a
+                // same-SHA readback with completed status resolves this race.
+                // An unresolved queued or running old job must remain RED.
+                if(forceOutcome&&(forceOutcome.notQueuedYet||forceOutcome.alreadyCompleted)){
+                  const after409=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+                  if(after409.head_sha!==run.head_sha)
+                    throw new Error(`RC1538: Run ${run.id} SHA changed after force-cancel 409.`);
+                  if(after409.status==='completed'){
+                    outcome={alreadyCompleted:true};
+                    break;
+                  }
+                  throw new Error(`RC1538: force-cancel 409 for ${run.id}; old run remains ${after409.status}, cancellation unconfirmed.`);
+                }
                 // A 202 is only an accepted request, NOT proof of cancellation.
                 // Do not mark the gate green until GitHub reports completion.
                 let confirmed=false;
