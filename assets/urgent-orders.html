@@ -183,6 +183,28 @@ function rememberEmail(value){
 function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
 // RC1811_INTERNAL_EMAIL_HISTORY_END
 let orders=[],canManage=false,viewerId='',modalOrder='',modalKind='',currentTab='open',activeView='open',draftNeedsRegenerate=false;
+let urgentRefreshEpoch=0;
+function clearExternalTrackingSecrets(){
+ $('externalShareUrl').value='';
+ $('externalShareExistingLink').value='';
+ $('externalShareResult').hidden=true;
+ const linked=$('newOrder').elements.externalTrackingLink;
+ if(linked)linked.value='';
+}
+function clearUrgentPrivateView(resetDraft=false){
+ clearExternalTrackingSecrets();
+ orders=[];canManage=false;viewerId='';
+ $('orders').replaceChildren();
+ $('internalOpenCount').textContent='0';$('internalClosedCount').textContent='0';
+ $('listHint').textContent='';
+ $('packingCatalogPanel').hidden=true;
+ $('createButton').disabled=true;$('saveProfile').disabled=true;
+ $('mailOverlay').hidden=true;modalOrder='';modalKind='';draftNeedsRegenerate=false;
+ for(const id of ['mailSubject','mailBody','mailTo','mailIssue'])$(id).value='';
+ if(resetDraft){
+  $('newOrder').reset();$('lineFields').replaceChildren();lineField();showInternalStep(1);
+ }
+}
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
  try{const x=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return txt(x.token)}catch(_){return''}
@@ -499,8 +521,13 @@ function render(){
  });
 }
 async function refresh(){
+ const epoch=++urgentRefreshEpoch;
  try{
-  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;viewerId=txt(data.currentUserId||'');
+  const data=await api('list');
+  if(epoch!==urgentRefreshEpoch)return;
+  const newViewer=txt(data.currentUserId||'');
+  if(viewerId&&viewerId!==newViewer)clearExternalTrackingSecrets();
+  orders=data.orders||[];canManage=!!data.canManage;viewerId=newViewer;
    $('packingCatalogPanel').hidden=!data.canImportPackingCatalog;
    if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',localeV2('packingCatalogAvailable','{count} items available · {unknown} without valid pack sizes.').replace('{count}',s.count).replace('{unknown}',s.unknownPackSize),'ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
@@ -508,8 +535,9 @@ async function refresh(){
   renderSavedEmails();
   render();
  }catch(e){
-  $('packingCatalogPanel').hidden=true;
-   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
+  if(epoch!==urgentRefreshEpoch)return;
+  clearUrgentPrivateView(false);
+  $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
   $('createButton').disabled=true;$('saveProfile').disabled=true;
   const authMessage=e.status===401?localizedLoginRequired():e.message;
   $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(authMessage)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
@@ -746,6 +774,16 @@ async function copyDraft(){
  if(!$('mailSubject').value){setMessage('mailMessage','Bitte zuerst einen Entwurf erzeugen.','error');return;}
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
+window.addEventListener('exporthub:logout',()=>{
+ urgentRefreshEpoch++;
+ clearUrgentPrivateView(true);
+ $('access').hidden=false;$('access').textContent=localizedLoginRequired();
+});
+window.addEventListener('exporthub:user-changed',()=>{
+ urgentRefreshEpoch++;
+ clearUrgentPrivateView(true);
+ refresh();
+});
 $('newOrder').addEventListener('submit',submit);
 $('copyExternalShareUrl').addEventListener('click',async()=>{
  const url=$('externalShareUrl').value;
