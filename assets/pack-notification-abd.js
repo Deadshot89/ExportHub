@@ -155,16 +155,18 @@
       const queued=await Promise.resolve(clean.queueSave(reason));
       if(queued===false)throw new Error('ABD_SAVE_QUEUE_REJECTED');
       const runtime=clean.runtime||null,target=Number(runtime&&runtime.changeGeneration)||0;
-      const flushed=await Promise.resolve(clean.flushSave(reason));
+      const flushed=await Promise.resolve(clean.flushSave(reason,{userInitiated:true}));
       // RC2004 P0: a locally advanced lastSavedGeneration is not evidence of
       // Azure persistence. When the runtime exposes the authoritative server
       // acknowledgement, it must cover the exact queued generation even if
       // flushSave returned true. Never send a mail on a stale acknowledgement.
       const hasServerAck=!!runtime&&target>0&&typeof runtime.lastServerSaveAckGeneration==='number'&&
         Number.isFinite(runtime.lastServerSaveAckGeneration);
-      const acknowledged=hasServerAck
-        ? runtime.lastServerSaveAckGeneration>=target
-        : flushed===true;
+      // A local-only flush is not proof of Azure persistence. A matching
+      // generation-bound server ACK is mandatory unless the separate
+      // authenticated readback below independently proves the exact record.
+      const acknowledged=flushed===true&&hasServerAck&&
+        runtime.lastServerSaveAckGeneration>=target;
       if(!acknowledged&&!(await authoritativePackAbdReadback(item)))
         throw new Error('ABD_SAVE_UNCONFIRMED');
       const n=notification(item.packNotificationId);
