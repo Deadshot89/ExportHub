@@ -446,6 +446,7 @@ function render(){
  }
 }
 function publicDeleteMarkup(order){
+ if(order.canRequestDeletion===false)return '<div class="order-delete"><p class="muted">'+esc(localeV2('linkedInternalNoPublicDelete','Dieser Auftrag wurde intern freigegeben. Löschen ist nur über die interne Website möglich.'))+'</p></div>';
  const record=order.deletion||{},pending=record.state==='pending';
  const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
  const note=pending?'<p role="status">'+esc(localeV2('deletePublicPending',"Deletion requested – waiting for logistics approval."))+'</p>':
