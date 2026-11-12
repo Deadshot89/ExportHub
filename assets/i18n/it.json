@@ -2768,5 +2768,6 @@
   "urgentOrderV2.crossviewShareSuccess": "Link di tracciamento esterno creato. Copialo e condividilo in modo sicuro ora.",
   "urgentOrderV2.crossviewLinkCopied": "Link di tracciamento esterno copiato.",
   "urgentOrderV2.crossviewLinkManualCopy": "Seleziona il link e copialo manualmente.",
-  "urgentOrderV2.crossviewLinkedNoDelete": "Questo ordine è stato condiviso internamente. Può essere eliminato solo dal sito interno."
+  "urgentOrderV2.crossviewLinkedNoDelete": "Questo ordine è stato condiviso internamente. Può essere eliminato solo dal sito interno.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Link di tracciamento esterno esistente per la condivisione (facoltativo)"
 }
