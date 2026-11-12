@@ -115,7 +115,7 @@ test('Urgent internal session switches clear confidential orders, draft content 
  assert.match(html,/\$\('externalShareUrl'\)\.value=''/);
  assert.match(html,/\$\('externalShareExistingLink'\)\.value=''/);
  assert.match(html,/\$\('externalShareResult'\)\.hidden=true/);
- assert.match(html,/function clearUrgentPrivateView\(resetDraft=false\)/);
+ assert.match(html,/function clearUrgentPrivateView\(resetDraft=false,preservePendingLink=false\)/);
  assert.match(html,/orders=\[\];canManage=false;viewerId=''/);
  assert.match(html,/\$\('orders'\)\.replaceChildren\(\)/);
  assert.match(html,/window\.addEventListener\('exporthub:logout'/);
@@ -174,4 +174,16 @@ test('Urgent internal view clears bearer secrets and ignores out-of-order sessio
  assert.equal(vm.runInContext('orders[0].id',ctx),'current-session-order');
  assert.equal(vm.runInContext('viewerId',ctx),'current-user');
  assert.equal(vm.runInContext('urgentRefreshEpoch',ctx),2);
+ // A successful share's one-time bearer URL must survive a temporary API outage.
+ node('externalShareUrl').value='one-time-issued-secret';
+ node('externalShareResult').hidden=false;
+ ctx.api=async()=>{const error=new Error('temporary outage');error.status=503;throw error;};
+ await vm.runInContext('refresh()',ctx);
+ assert.equal(node('externalShareUrl').value,'one-time-issued-secret');
+ assert.equal(node('externalShareResult').hidden,false);
+ // An authentication failure must immediately purge the same secret.
+ ctx.api=async()=>{const error=new Error('login expired');error.status=401;throw error;};
+ await vm.runInContext('refresh()',ctx);
+ assert.equal(node('externalShareUrl').value,'');
+ assert.equal(node('externalShareResult').hidden,true);
 });
