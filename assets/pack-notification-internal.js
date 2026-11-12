@@ -327,11 +327,15 @@
       // RC2005 P0: call the installed, ownership-checking handler directly.
       // A dispatched event alone does not prove a receiver actually opened ABD.
       const abd=root.ExportHUBPackAbd;
-      if(abd&&typeof abd.begin==='function'){abd.begin(id);return true;}
+      // begin() reports its own navigation/editor errors and returns false.
+      // A callable handler alone never proves that the ABD editor opened.
+      if(abd&&typeof abd.begin==='function')
+        return abd.begin(id)===true?true:'reported';
       if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){
-        const detail={notificationId:id,reference:q(model.reference),handled:false};
+        const detail={notificationId:id,reference:q(model.reference),handled:false,success:false};
         root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-abd',{detail}));
-        return detail.handled===true;
+        // An event received but rejected by begin() is not a success.
+        return detail.handled===true?(detail.success===true?true:'reported'):false;
       }
     }catch(_){}
     return false;
@@ -368,7 +372,7 @@
       const action=target.getAttribute('data-pack-action');
       if(action==='back')renderPackInbox();
       else if(action==='shipment')dispatchShipment(model);
-      else if(action==='abd'){if(!dispatchAbd(model)&&typeof root.alert==='function')root.alert(tr('pack.internal.abdOpenError'));}
+      else if(action==='abd'){if(dispatchAbd(model)===false&&typeof root.alert==='function')root.alert(tr('pack.internal.abdOpenError'));}
       else if(action==='edit')showEdit(null,'');
       else if(action==='edit-cancel')reopen();
       else if(action==='edit-save'){if(busy)return;busy=true;const draft=collectEditForm(section);const result=await saveEdit(model.notificationId,draft);busy=false;if(result.ok)reopen();else showEdit(draft,editErrorText(result));}

@@ -195,10 +195,20 @@ function openPackAbdButtonFixture(options={}){
   const root={
     document:doc,__EXPORTHUB_GET_STATE__:()=>state,addEventListener(){},
     CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},
-    dispatchEvent(event){events.push(event);if(options.receiver)event.detail.handled=true;return true;},
+    dispatchEvent(event){events.push(event);
+      if(options.receiver||options.eventFail){
+        event.detail.handled=true;
+        event.detail.success=options.receiver===true;
+        if(options.eventFail)alerts.push('ABD-Editor nicht erreichbar');
+      }
+      return true;},
     alert(value){alerts.push(String(value));}
   };
-  if(options.installed)root.ExportHUBPackAbd={begin(id){calls.push(id);return true;}};
+  if(options.installed||options.directFail)root.ExportHUBPackAbd={begin(id){
+    calls.push(id);
+    if(options.directFail){alerts.push('ABD-Editor nicht erreichbar');return false;}
+    return true;
+  }};
   vm.runInNewContext(fs.readFileSync('assets/pack-notification-internal.js','utf8'),
     {window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout},
     {filename:'pack-notification-internal.js'});
@@ -228,7 +238,26 @@ test('RC2005: acknowledged event fallback opens without a misleading error',asyn
   await fixture.press();
   assert.equal(fixture.events.length,1);
   assert.equal(fixture.events[0].detail.handled,true);
+  assert.equal(fixture.events[0].detail.success,true);
   assert.equal(fixture.alerts.length,0);
+});
+
+test('RC2010 P0: direct Pack ABD handler failure never claims editor opened or shows duplicate alerts',async()=>{
+  const fixture=openPackAbdButtonFixture({directFail:true});
+  await fixture.press();
+  assert.deepEqual(fixture.calls,['PN-1']);
+  assert.equal(fixture.events.length,0,'No fallback or double invocation after reported direct failure');
+  assert.deepEqual(fixture.alerts,['ABD-Editor nicht erreichbar'],
+    'The genuine ABD handler already reports the failure; suppress duplicate generic alert');
+});
+
+test('RC2010 P0: event receiver rejection never claims editor opened or shows duplicate alerts',async()=>{
+  const fixture=openPackAbdButtonFixture({eventFail:true});
+  await fixture.press();
+  assert.equal(fixture.events.length,1);
+  assert.equal(fixture.events[0].detail.handled,true);
+  assert.equal(fixture.events[0].detail.success,false,'Receiving event is not opening editor');
+  assert.deepEqual(fixture.alerts,['ABD-Editor nicht erreichbar']);
 });
 
 test('ABD-only user may open Pack detail without staging an unauthorized task write',()=>{
@@ -283,7 +312,7 @@ test('internal detail has two independent actions and locale labels exist in six
   assert.match(internal,/data-pack-action="abd"/);
   assert.match(internal,/exporthub:pack-create-abd/);
   assert.match(internal,/const ownAbds=arr\(\(sourceState\|\|sharedState\(\)\)\.abdRequests\)/);
-  assert.match(internal,/else if\(action==='abd'\)\{if\(!dispatchAbd\(model\)/);
+  assert.match(internal,/else if\(action==='abd'\)\{if\(dispatchAbd\(model\)===false/);
   const root={};
   vm.runInNewContext(fs.readFileSync('assets/i18n/pack-notification.js','utf8'),{window:root,globalThis:root,console,Intl},{filename:'pack-notification.js'});
   for(const language of ['de','en','pl','es','fr','it']){
