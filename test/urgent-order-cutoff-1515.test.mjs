@@ -7,7 +7,7 @@ const require=createRequire(import.meta.url);
 const model=require('../api/shared/urgent-orders.js');
 
 const actor={id:'CS-cutoff',name:'Customer Service'};
-const payload={orderNumber:'SO31515',delivery:'DRP',priority:'P4',email:'cs@example.com',language:'de',
+const payload={orderNumber:'SO300200031515',delivery:'DRP',priority:'P4',email:'cs@example.com',language:'de',
  items:[{line:'10',article:'TEST-1',quantity:1,pickableStock:true,holdsClear:true}]};
 
 test('15:15 in Europe/Berlin remains within the same-day window; 15:16 is late',()=>{
