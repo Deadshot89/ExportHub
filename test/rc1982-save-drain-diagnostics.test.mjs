@@ -140,6 +140,56 @@ test('RC1171: idle UI with lagging Azure ACK triggers exactly one flush and requ
   assert.equal(result.unconfirmedGeneration,false,'Fresh Azure ACK is required');
 });
 
+test('RC1171: unsaved shipment form accepts only a core-saver-proven zero-write generation',async()=>{
+  const start=source.indexOf('export async function settleStateSave(');
+  const end=source.indexOf('\n\n// RC1579:',start);
+  const statement=source.slice(start,end).replace('export async function settleStateSave(','async function settleStateSave(');
+  let clock=0,calls=0;
+  const FakeDate=class extends Date{static now(){clock+=100;return clock}};
+  const runtime={
+    saving:false,pendingSave:false,dirty:false,saveTimer:null,
+    changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1,
+    lastQueueAt:1000,lastNoChangeAt:new Date(1000).toISOString(),noChangeSaveSkips:1
+  };
+  const context={process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
+    window:{ExportHUBClean:{runtime,flushSave:()=>{calls++;return true}}},
+    Date:FakeDate,Number,Math,JSON,Promise,setTimeout,clearTimeout,pause:async()=>{}};
+  const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
+  const result=await settle({evaluate:fn=>Promise.resolve(fn())},
+    {timeout:3000,stableMs:200,allowVerifiedNoChange:true});
+  assert.equal(result.verifiedNoPersistentChange,true);
+  assert.equal(result.unconfirmedGeneration,true,'Never invent a newer Azure ACK');
+  assert.equal(calls,0,'No network save should be claimed for an unchanged draft');
+  assert.equal(runtime.lastServerSaveAckGeneration,1,'Server acknowledgement must remain untouched');
+});
+
+test('RC1171: zero-write evidence never bypasses strict saves or stale generation claims',async()=>{
+  const start=source.indexOf('export async function settleStateSave(');
+  const end=source.indexOf('\n\n// RC1579:',start);
+  const statement=source.slice(start,end).replace('export async function settleStateSave(','async function settleStateSave(');
+  for(const [allowNoChange,queueAt,noChangeAt,pending] of [
+    [false,1000,1000,false], // All real saves require a fresh Azure ACK.
+    [true,2000,1000,false],  // The no-change marker predates the last queued change.
+    [true,1000,1000,true]    // A queued persistent save still has work to do.
+  ]){
+    let clock=0,calls=0;
+    const FakeDate=class extends Date{static now(){clock+=100;return clock}};
+    const runtime={
+      saving:false,pendingSave:pending,dirty:pending,saveTimer:null,
+      changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1,
+      lastQueueAt:queueAt,lastNoChangeAt:new Date(noChangeAt).toISOString(),noChangeSaveSkips:1
+    };
+    const context={process:{env:{EXPORTHUB_E2E_LIVE:'1'}},
+      window:{ExportHUBClean:{runtime,flushSave:()=>{calls++;return true}}},
+      Date:FakeDate,Number,Math,JSON,Promise,setTimeout,clearTimeout,pause:async()=>{}};
+    const settle=vm.runInNewContext(extracted+'\n'+statement+'\nsettleStateSave',context);
+    await assert.rejects(settle({evaluate:fn=>Promise.resolve(fn())},
+      {timeout:3000,stableMs:200,allowVerifiedNoChange:allowNoChange}),
+      /Azure-Speicherung blieb vor Browser-Navigation aktiv/);
+    assert.equal(calls,1,'A genuine unresolved generation still attempts one controlled flush');
+  }
+});
+
 test('RC1982: diagnostic collection fails closed and never approves a save',async()=>{
   const fn=vm.runInNewContext(extracted+'\nrc1982DrainSnapshot;',{window:{}});
   const result=await fn({evaluate:()=>Promise.reject(Error('browser closed'))});

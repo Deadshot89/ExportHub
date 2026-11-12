@@ -62,6 +62,31 @@ test('denied ABD navigation cannot be bypassed by direct Pack handoff',()=>{
   assert.equal(calls.newAbd,0,'ABD editor must not be opened behind a rejected route');
   assert.equal(state.abdRequests.length,0);
 });
+test('RC1499: Pack ABD opens lazy editor through RC325 instead of dashboard-only setView',()=>{
+  const {root,state,calls,api}=fixture();
+  let centralCalls=0,editorMounted=false;
+  root.ExportHUBRC325={route(view,source){
+    assert.equal(view,'abd');assert.equal(source,'pack-abd');
+    centralCalls++;state.view=view;editorMounted=true;
+    return false; // Production RC325 routes successfully even when view callback returns false.
+  }};
+  root.document.getElementById=id=>id==='rc626Abd'&&editorMounted?{id:'rc626Abd',querySelector(){return {}}}:null;
+  assert.equal(api.begin('PN-1'),true);
+  assert.equal(centralCalls,1,'The central router must lazy-load RC626');
+  assert.deepEqual(calls.views,[],'Never call dashboard fallback setView before RC325');
+  assert.equal(calls.newAbd,1,'Only one Pack-owned ABD draft may be created');
+  assert.equal(state.abdDraft.packNotificationId,'PN-1');
+});
+
+test('RC1499: selected ABD navigation without mounted editor is a real failure',()=>{
+  const {root,state,calls,api}=fixture();
+  root.ExportHUBRC325={route(view){state.view=view;return false;}};
+  assert.equal(api.begin('PN-1'),false);
+  assert.equal(calls.newAbd,0,'Do not create an ABD behind a missing editor');
+  assert.deepEqual(calls.views,[],'Do not fall back to dashboard-only setView');
+  assert.match(calls.alert,/ABD-Arbeitsbereich/);
+});
+
 test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
   const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
   assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);
