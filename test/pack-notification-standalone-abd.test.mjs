@@ -62,6 +62,42 @@ test('denied ABD navigation cannot be bypassed by direct Pack handoff',()=>{
   assert.equal(calls.newAbd,0,'ABD editor must not be opened behind a rejected route');
   assert.equal(state.abdRequests.length,0);
 });
+test('RC2019: Pack ABD opens via authoritative lazy router, never through dashboard fallback',()=>{
+  const {root,state,calls,api}=fixture();
+  const host={querySelector(){return {}}};
+  root.document.getElementById=id=>id==='rc626Abd'?host:null;
+  const routes=[];
+  root.ExportHUBRC325={route(view,source){routes.push([view,source]);state.view=view;return false}};
+  root.setView=()=>{throw new Error('RC2019 must not call generic setView when authoritative router exists')};
+  assert.equal(api.begin('PN-1'),true,'mounted ABD editor confirms navigation');
+  assert.deepEqual(routes,[['abd','pack-abd']]);
+  assert.deepEqual(calls.views,[]);
+  assert.equal(calls.newAbd,1);
+  assert.equal(state.abdDraft.packNotificationId,'PN-1');
+});
+
+test('RC2019: selected ABD menu without mounted editor is not a successful Pack handoff',()=>{
+  const {root,state,calls,api}=fixture();
+  const routes=[];
+  root.ExportHUBRC325={route(view){routes.push(view);state.view=view;return false}};
+  root.setView=()=>{throw new Error('must not bypass authoritative router')};
+  assert.equal(api.begin('PN-1'),false,'missing RC626 DOM must fail closed');
+  assert.deepEqual(routes,['abd']);
+  assert.equal(calls.newAbd,0,'never create the draft behind an absent editor');
+});
+
+test('RC2019: denied authoritative ABD route cannot be bypassed by generic setView',()=>{
+  const {root,state,calls,api}=fixture();
+  state.view='packnotifications';
+  const routes=[];
+  root.ExportHUBRC325={route(view){routes.push(view);return false}};
+  root.setView=()=>{throw new Error('no fallback after router rejection')};
+  assert.equal(api.begin('PN-1'),false);
+  assert.deepEqual(routes,['abd']);
+  assert.equal(state.view,'packnotifications');
+  assert.equal(calls.newAbd,0);
+});
+
 test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
   const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
   assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);
