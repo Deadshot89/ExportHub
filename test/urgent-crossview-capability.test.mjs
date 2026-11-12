@@ -90,3 +90,16 @@ test('Both forms expose scoped cross-view actions, not an anonymous global list'
  assert.match(outer,/canRequestDeletion===false/);
  assert.doesNotMatch(outer,/action:'list-all'/);
 });
+
+test('Cross-view interface labels are translated in all six supported languages',()=>{
+ const keys=[
+  'crossviewExistingLinkLabel','crossviewExistingLinkHelp','crossviewShareResultLabel',
+  'crossviewCopyLink','crossviewShareWarning','crossviewShareAction',
+  'crossviewLinkedLabel','crossviewShareConfirm','crossviewShareSuccess',
+  'crossviewLinkCopied','crossviewLinkManualCopy','crossviewLinkedNoDelete'
+ ];
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const pack=JSON.parse(fs.readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
+  for(const key of keys)assert.ok(pack['urgentOrderV2.'+key],lang+' missing '+key);
+ }
+});
