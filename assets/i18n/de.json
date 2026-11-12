@@ -2768,5 +2768,6 @@
   "urgentOrderV2.crossviewShareSuccess": "Externer Überwachungslink erstellt. Bitte jetzt kopieren und sicher teilen.",
   "urgentOrderV2.crossviewLinkCopied": "Externer Überwachungslink kopiert.",
   "urgentOrderV2.crossviewLinkManualCopy": "Link markieren und manuell kopieren.",
-  "urgentOrderV2.crossviewLinkedNoDelete": "Dieser Auftrag wurde intern freigegeben. Löschen ist nur über die interne Website möglich."
+  "urgentOrderV2.crossviewLinkedNoDelete": "Dieser Auftrag wurde intern freigegeben. Löschen ist nur über die interne Website möglich.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Vorhandenen externen Link für diese Freigabe verwenden (optional)"
 }
