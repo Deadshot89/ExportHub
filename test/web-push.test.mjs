@@ -217,8 +217,8 @@ test('P1 Urgent Order: private opt-in, permissions and immediate per-device push
   assert.equal(payload.kind,'urgentP1');
   assert.equal(payload.title,'P1 · Sondertransport gemeldet');
   assert.match(payload.body,/SO-P1-01/);
-  assert.doesNotMatch(JSON.stringify(payload),/cs@company\\.example|private/,'no reporter credentials or email in push');
-  assert.match(payload.url,/^\\/assets\\/web-push\\/inbox\\.html\\?m=/);
+  assert.doesNotMatch(JSON.stringify(payload),/cs@company\.example|private/,'no reporter credentials or email in push');
+  assert.match(payload.url,/^\/assets\/web-push\/inbox\.html\?m=/);
   assert.ok(Buffer.byteLength(JSON.stringify(payload))<webPush.MAX_PAYLOAD_BYTES);
   await f.call({action:'update',endpoint:authorized.endpoint,categories:{urgentP1:false}});
   assert.equal((await f.notifyP1('production',order)).sent,0,'user can disable P1 alert');
@@ -237,8 +237,8 @@ test('P1 Urgent Order: save hook does not block a valid order if push fails',asy
   assert.equal(sent.length,1,'only new P1 orders generate push');
   const publicApi=fs.readFileSync('api/urgent-order-public/index.js','utf8');
   const staffApi=fs.readFileSync('api/urgent-orders/index.js','utf8');
-  assert.match(publicApi,/await internal\\.postSaveP1\\(body\\(req\\)\\.action,result,refs/);
-  assert.match(staffApi,/await postSaveP1\\(body\\(req\\)\\.action,result,ref/);
+  assert.match(publicApi,/await internal\.postSaveP1\(body\(req\)\.action,result,refs/);
+  assert.match(staffApi,/await postSaveP1\(body\(req\)\.action,result,ref/);
 });
 
 test('Packmeldung: neue Meldung löst Web Push aus, Fehler im Push stören die Meldung nicht',async()=>{
