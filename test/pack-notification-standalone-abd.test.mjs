@@ -73,7 +73,16 @@ test('RC2011 P0: Pack ABD uses canonical router to lazy-load RC626 instead of st
     state.view='abd';
     return false; // RC626 openAbd may return void/false after mounting.
   }};
-  root.document.getElementById=id=>id==='rc626Abd'?{}:null;
+  // Simulate a real mounted editor, including the DOM APIs used by
+  // decorate(); a bare {} would fail in the decoration layer, not routing.
+  const element=()=>({
+    style:{},className:'',textContent:'',hidden:false,firstChild:null,
+    setAttribute(){},getAttribute(){return null},appendChild(){},
+    insertBefore(){},querySelector(){return null}
+  });
+  const mountedAbd=element();
+  root.document.createElement=()=>element();
+  root.document.getElementById=id=>id==='rc626Abd'?mountedAbd:null;
   assert.equal(api.begin('PN-1'),true);
   assert.equal(canonical,1);
   assert.equal(direct,0,'Legacy setView must never bypass canonical lazy controller');
