@@ -220,6 +220,12 @@ test('P1 Urgent Order: private opt-in, permissions and immediate per-device push
   assert.doesNotMatch(JSON.stringify(payload),/cs@company\.example|private/,'no reporter credentials or email in push');
   assert.match(payload.url,/^\/assets\/web-push\/inbox\.html\?m=/);
   assert.ok(Buffer.byteLength(JSON.stringify(payload))<webPush.MAX_PAYLOAD_BYTES);
+  f.team.users[0].rights.shipmentoverview.edit=false;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'revoked logistics permission blocks previously opted-in device');
+  f.team.users[0].rights.shipmentoverview.edit=true;
+  f.team.users[0].active=false;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'inactive user cannot receive P1 data');
+  f.team.users[0].active=true;
   await f.call({action:'update',endpoint:authorized.endpoint,categories:{urgentP1:false}});
   assert.equal((await f.notifyP1('production',order)).sent,0,'user can disable P1 alert');
 });
