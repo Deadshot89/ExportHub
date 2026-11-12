@@ -31,6 +31,10 @@
     if(/(?:^|[\s_.-])(?:rechnung|invoice|proforma)(?=[\s_.-]|$)/i.test(name))return'rechnung';
     if(/salespackingslip|(?:^|[\s_.-])(?:lieferschein|delivery[\s_.-]?note)(?=[\s_.-]|$)/i.test(name))return'lieferschein';
     if(/\b(?:commercial[\s-]+invoice|proforma[\s-]+invoice)\b/i.test(body))return'rechnung';
+    // The actual SIDE invoice layout has "Invoice Number" at the top and
+    // "Packing slip No.: DNC..." below it. That DNC is a cross-reference.
+    const heading=body.slice(0,2200);
+    if(/\b(?:invoice\s*(?:number|no\.?|nr\.?|#)|rechnungs(?:nummer|nr\.?)|faktura\s*(?:nr\.?|numer))\b/i.test(heading))return'rechnung';
     const invoiceNumber=/\b(?:rechnungs(?:nummer|nr\.?|nummer\s*[:#])|invoice\s*(?:number|no\.?|nr\.?|#))\b/i.test(body);
     const delivery=/\b(?:delivery[\s-]+note|lieferschein|packing[\s-]+slip)\b/i.test(body);
     if(invoiceNumber&&!delivery)return'rechnung';
