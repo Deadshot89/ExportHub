@@ -49,9 +49,16 @@
     // paperwork; conflicting or multiple DNCs must not be guessed.
     // Do not turn a customer invoice into a second DNC delivery note.
     if(detectDocumentKind(original,extractedText)==='rechnung'){
-      const base=original.replace(/\.pdf$/i,'');
-      const renamed=/^(?:rechnung|invoice|proforma)(?:[\s_.-]|$)/i.test(base)?original:'Rechnung_'+base+'.pdf';
-      return{name:renamed,renamed:renamed!==original,reference:null,reason:'invoice'};
+      const references=extractDocumentReferences(extractedText).filter(x=>x.type==='SIDE');
+      const filenameReferences=extractDocumentReferences(original).filter(x=>x.type==='SIDE');
+      const invoices=references.length?references:filenameReferences;
+      // A related DNC is NOT an invoice number. Ambiguous SIDE numbers must never be guessed.
+      const unique=Array.from(new Set(invoices.map(x=>x.canonical)));
+      const name=unique.length===1?unique[0]+'.pdf':
+        /^(?:rechnung|invoice|proforma)(?:[\s_.-]|$)/i.test(original)?original:
+        'Rechnung_'+original;
+      return{name,renamed:name!==original,reference:unique.length===1?unique[0]:null,
+        reason:unique.length>1?'ambiguous-invoice':'invoice'};
     }
     const contentRefs=extractDocumentReferences(extractedText);
     const filenameRefs=extractDocumentReferences(original);
