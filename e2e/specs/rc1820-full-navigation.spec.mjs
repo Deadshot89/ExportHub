@@ -133,6 +133,11 @@ test('RC1820: rapid navigation keeps menu, active marker, and content synchroniz
  });
  const top=page.locator('#rc1820TopNav');
  await top.locator('[data-rc1820-section="shipments"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Sendungen');
+ await top.locator('[data-rc1820-section="logistics"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Logistik');
+ await top.locator('[data-rc1820-section="shipments"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Sendungen');
  await top.locator('[data-rc1820-go="sec|shipments:shipmentoverview"]').click();
  await expect(page.locator('#content')).toHaveText('VIEW:shipmentoverview');
  await expect(top.locator('.rc1820-mega')).toBeHidden();
