@@ -1764,6 +1764,7 @@ function patchHtml(file){
   html=html.replace(/rc1460-shipment-view-files-avis-preview\.js\?v=1460/g,'rc1460-shipment-view-files-avis-preview.js?v=1616');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-normalizer" defer src="/assets/document-reference-normalizer.js?v=20261112"></script>','exporthub-shipment-doc-normalizer');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload-i18n" defer src="/assets/i18n/shipment-document-upload.js?v=3"></script>','exporthub-shipment-doc-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=3"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-error-report-i18n" defer src="/assets/i18n/shipment-error-report.js?v=1"></script>','exporthub-shipment-error-report-i18n');
@@ -2009,6 +2010,7 @@ for(const rel of [
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
+  'assets/document-reference-normalizer.js',
   'assets/i18n/shipment-document-upload.js',
   'assets/shipment-document-upload.js',
   'assets/i18n/shipment-error-report.js',
