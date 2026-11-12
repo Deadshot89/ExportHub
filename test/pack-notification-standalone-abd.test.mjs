@@ -62,6 +62,46 @@ test('denied ABD navigation cannot be bypassed by direct Pack handoff',()=>{
   assert.equal(calls.newAbd,0,'ABD editor must not be opened behind a rejected route');
   assert.equal(state.abdRequests.length,0);
 });
+test('RC2011 P0: Pack ABD uses canonical router to lazy-load RC626 instead of stale setView',()=>{
+  const {root,state,calls,api}=fixture();
+  let direct=0,canonical=0;
+  root.setView=()=>{direct++;state.view='dashboard';return false;};
+  root.ExportHUBRC325={route(view,source){
+    canonical++;
+    assert.equal(view,'abd');
+    assert.equal(source,'pack-abd');
+    state.view='abd';
+    return false; // RC626 openAbd may return void/false after mounting.
+  }};
+  root.document.getElementById=id=>id==='rc626Abd'?{}:null;
+  assert.equal(api.begin('PN-1'),true);
+  assert.equal(canonical,1);
+  assert.equal(direct,0,'Legacy setView must never bypass canonical lazy controller');
+  assert.equal(calls.newAbd,1);
+  assert.equal(state.abdDraft.packNotificationId,'PN-1');
+});
+
+test('RC2011 P0: a denied canonical route must not fall back to direct setView',()=>{
+  const {root,state,calls,api}=fixture();
+  let direct=0,canonical=0;
+  root.setView=()=>{direct++;state.view='abd';return true;};
+  root.ExportHUBRC325={route(){canonical++;return false;}};
+  root.document.getElementById=id=>id==='rc626Abd'?{}:null;
+  state.view='packnotifications';
+  assert.equal(api.begin('PN-1'),false);
+  assert.equal(canonical,1);
+  assert.equal(direct,0,'No permission bypass on rejected canonical route');
+  assert.equal(calls.newAbd,0);
+});
+
+test('RC2011 P0: canonical route without real ABD editor must fail closed',()=>{
+  const {root,state,calls,api}=fixture();
+  root.ExportHUBRC325={route(){state.view='abd';return true;}};
+  root.document.getElementById=()=>null;
+  assert.equal(api.begin('PN-1'),false);
+  assert.equal(calls.newAbd,0,'No false successful handoff before RC626 mounts');
+});
+
 test('ABD save indicator updates DOM only on state change to avoid observer rerender loops',()=>{
   const source=fs.readFileSync('assets/pack-notification-abd.js','utf8');
   assert.match(source,/if\(el\.textContent!==message\)el\.textContent=message/);
