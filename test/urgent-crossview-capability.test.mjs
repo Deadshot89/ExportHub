@@ -148,7 +148,7 @@ test('Urgent internal view clears bearer secrets and ignores out-of-order sessio
  const ctx=vm.createContext({
   $:node,orders:[{id:'previous'}],viewerId:'previous-user',canManage:true,modalOrder:'previous',
   modalKind:'problem',draftNeedsRegenerate:true,urgentRefreshEpoch:0,
-  api:async()=>new Promise(resolve=>pending.push(resolve)),
+  api:async()=>new Promise(resolve=>pending.push(resolve)),txt:value=>String(value==null?'':value),
   render:()=>{},renderSavedEmails:()=>{},setMessage:()=>{},localeV2:(_k,fallback)=>fallback,
   localizedLoginRequired:()=> 'Login required',lineField:()=>{},showInternalStep:()=>{}
  });
