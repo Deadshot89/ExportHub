@@ -16,12 +16,15 @@ const run=new AsyncFunction('process','fetch','console',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelReplies=[]}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelReplies=[],mainHeads=[]}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
- let cancelCount=0;
+ let cancelCount=0,mainReadCount=0;
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
-  if(address.endsWith('/branches/main'))return reply(200,{commit:{sha}});
+  if(address.endsWith('/branches/main')){
+   const head=mainHeads.length?mainHeads[Math.min(mainReadCount++,mainHeads.length-1)]:sha;
+   return reply(200,{commit:{sha:head}});
+  }
   if(address.includes('/actions/workflows/'))return reply(200,{workflow_runs:[{id:123,head_sha:'b'.repeat(40),status:'in_progress'}]});
   if(address.endsWith('/actions/runs/123/cancel')){
    if(url==='cancel'){
@@ -71,6 +74,28 @@ test('RC1538 P0: permanently unqueued older workflow fails closed after four bou
 
 test('RC1538 P0: unrelated not-queued wording on a non-409 error remains fatal',async()=>{
  await assert.rejects(scenario({status:403,message:'Cannot cancel a workflow run that has not been queued yet.'}),/GitHub API 403/);
+});
+
+test('RC1538 P0: a new main arriving after LIST is never cancelled by its predecessor',async()=>{
+ const original='a'.repeat(40),newMain='c'.repeat(40);
+ const {lines,calls}=await scenario({mainHeads:[original,newMain]});
+ assert.equal(calls.filter(x=>x.method==='POST').length,0,
+   'A superseded Main Verification must not cancel the new main run');
+ assert.ok(lines.some(x=>x.includes('main hat sich vor Cancel geändert')));
+ assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
+});
+
+test('RC1538 P0: new main during a 409 retry stops any further cancellation attempts',async()=>{
+ const original='a'.repeat(40),newMain='c'.repeat(40);
+ const transient='Cannot cancel a workflow run that has not been queued yet.';
+ const {lines,calls}=await scenario({
+  mainHeads:[original,original,newMain],
+  cancelReplies:[{status:409,message:transient},{status:204,message:''}]
+ });
+ assert.equal(calls.filter(x=>x.method==='POST').length,1,
+   'A retry must not cancel after main has advanced');
+ assert.ok(lines.some(x=>x.includes('main hat sich vor Cancel geändert')));
+ assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
 });
 
 test('RC1538: unrelated 409 does not hide a permission/logic problem',async()=>{
