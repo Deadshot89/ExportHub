@@ -204,7 +204,14 @@ function createUrgentP1Notifier(overrides = {}) {
     if (!enabled() || !order || order.priority !== 'P1') return { sent: 0 };
     const env = lower(environment) === 'testservice' ? 'testservice' : 'production';
     const doc = await deps().store.read(env);
-    const targets = doc.subscriptions.filter((s) => s && s.urgentP1Allowed === true && s.categories && s.categories.urgentP1 === true);
+    // Revalidate the user against current team rights for every P1 order. A user
+    // who lost access must not receive details via an old device subscription.
+    const team = await deps().readTeam(env);
+    const authorized = new Set((Array.isArray(team && team.users) ? team.users : [])
+      .filter(user => user && user.active !== false && urgentOrders.canManage(user))
+      .map(user => text(user.id)));
+    const targets = doc.subscriptions.filter(s => s && authorized.has(text(s.userId)) &&
+      s.urgentP1Allowed === true && s.categories && s.categories.urgentP1 === true);
     if (!targets.length) return { sent: 0 };
     const vapid = await deps().store.vapid(), nowIso = deps().now().toISOString();
     const id = reminders.urgentP1Payload(order, env, nowIso).id;
