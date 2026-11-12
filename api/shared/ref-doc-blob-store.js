@@ -38,13 +38,14 @@ function fileFromBlob(blob, p) {
     mimeType: text(props.contentType) || 'application/octet-stream',
     createdDateTime: props.createdOn ? new Date(props.createdOn).toISOString() : null,
     lastModifiedDateTime: props.lastModified ? new Date(props.lastModified).toISOString() : null,
-    blobName: blob.name
+    blobName: blob.name,
+    sha256: /^[a-f0-9]{64}$/i.test(text(blob.metadata&&blob.metadata.sha256))?text(blob.metadata.sha256).toLowerCase():''
   };
 }
 async function list(ref, env) {
   const c = client(env), p = prefix(ref, env), files = [];
   try {
-    for await (const entry of c.listBlobsFlat({ prefix: p })) {
+    for await (const entry of c.listBlobsFlat({ prefix: p, includeMetadata: true })) {
       const file = fileFromBlob(entry, p);
       if (!file) continue;
       if (files.length >= MAX_FILES) throw err('REFDOC_ARCHIVE_LIMIT', 'Zu viele Dokumente für eine vollständige Liste.');
