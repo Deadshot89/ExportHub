@@ -58,7 +58,7 @@ function upsertSubscription(doc, input, nowIso) {
     displayName: text(input.user.name || input.user.user || input.user.username).slice(0, 120),
     endpoint: sub.endpoint,
     keys: sub.keys,
-    categories: categoriesOf(input.categories, previous && previous.categories),
+    categories: categoriesOf(input.categories, previous && previous.userId === userId && previous.categories),
     packAllowed: input.packAllowed === true,
     deviceLabel: deviceLabel(input.deviceLabel) || (previous && previous.deviceLabel) || '',
     language: i18n.normalize(input.language) || i18n.normalize(previous && previous.userId === userId && previous.language) || i18n.normalize(input.user && (input.user.language || input.user.uiLanguage)) || 'de',
