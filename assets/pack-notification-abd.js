@@ -139,9 +139,20 @@
     return false;
   }
   function route(){
-    if(typeof root.setView==='function'){root.setView('abd');return q(state().view).toLowerCase()==='abd';}
-    if(root.ExportHUBRC325&&typeof root.ExportHUBRC325.route==='function'){
-      root.ExportHUBRC325.route('abd','pack-abd');return q(state().view).toLowerCase()==='abd';
+    // RC2011: The canonical router loads the lazy RC626 ABD controller.
+    // A direct setView can leave the user on Dashboard with no #rc626Abd.
+    const router=root.ExportHUBRC325;
+    if(router&&typeof router.route==='function'){
+      router.route('abd','pack-abd');
+      const d=root.document;
+      return q(state().view).toLowerCase()==='abd'&&
+        !!(d&&typeof d.getElementById==='function'&&d.getElementById('rc626Abd'));
+    }
+    // Legacy/test runtime without the canonical router. Never fall back here
+    // when RC325 explicitly rejects navigation or fails to mount the editor.
+    if(typeof root.setView==='function'){
+      root.setView('abd');
+      return q(state().view).toLowerCase()==='abd';
     }
     return false;
   }
