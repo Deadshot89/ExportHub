@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Article",
   "avisPortal.quantitiesQuantity": "Delivered quantity",
   "avisPortal.quantitiesSource": "Source: delivery note",
-  "avisPortal.quantitiesIncomplete": "Other documents could not be evaluated unambiguously."
+  "avisPortal.quantitiesIncomplete": "Other documents could not be evaluated unambiguously.",
+  "avisPortal.uploadTitle": "Upload PDF documents",
+  "avisPortal.uploadDocType": "Document type",
+  "avisPortal.uploadSelectPdf": "Select PDF · max. 10 MB",
+  "avisPortal.uploadStart": "Check and upload PDF",
+  "avisPortal.uploadOptCmr": "CMR / consignment note",
+  "avisPortal.uploadOptDelivery": "Delivery note",
+  "avisPortal.uploadOptInvoice": "Invoice / commercial invoice",
+  "avisPortal.uploadOptPacking": "Packing list",
+  "avisPortal.uploadOptOther": "Other",
+  "avisPortal.docDelivery": "Delivery note",
+  "avisPortal.docInvoice": "Invoice",
+  "avisPortal.docPacking": "Packing list",
+  "avisPortal.docDocument": "Document",
+  "avisPortal.docAttachment": "Attachment",
+  "avisPortal.docNotAvailable": "Unavailable"
 }
