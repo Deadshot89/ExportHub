@@ -83,3 +83,13 @@ test('AVIS: dynamic document labels and every select option use explicit transla
  assert.match(html,/Array\.from\(select\.options\|\|\[\]\)\.forEach/);
  assert.match(html,/avisCategoryLabel\(q\(d\.category\)\)/);
 });
+
+test('AVIS: delivered DNC quantities load automatically and are cached across 15-second refreshes',()=>{
+ const html=fs.readFileSync('customer-avis.html','utf8');
+ assert.match(html,/var avisQuantityCache=\{key:'',value:null,promise:null\}/);
+ assert.match(html,/dncDocs\.length\)setTimeout\(function\(\)\{request\(false\)\},250\)/);
+ assert.match(html,/if\(!force&&avisQuantityCache\.key===key&&avisQuantityCache\.value\)/);
+ assert.match(html,/if\(!avisQuantityCache\.promise\)avisQuantityCache\.promise=api\('\?action=delivery-quantities'\)/);
+ assert.match(html,/bindDeliveryQuantities\(data\)/);
+ assert.match(html,/if\(typeof refreshAvisQuantityLabels==='function'\)refreshAvisQuantityLabels\(\)/);
+});
