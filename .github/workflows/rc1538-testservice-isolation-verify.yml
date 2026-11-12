@@ -9,6 +9,7 @@ on:
       - '.github/workflows/rc1538-testservice-isolation-verify.yml'
       - 'tests/rc962-state-performance.test.cjs'
       - 'test/rc1538-testservice-release-isolation.test.mjs'
+      - 'test/rc1538-testservice-supersession-race.test.mjs'
 
 permissions:
   contents: read
@@ -28,3 +29,4 @@ jobs:
           set -euo pipefail
           node tests/rc962-state-performance.test.cjs
           node --test test/rc1538-testservice-release-isolation.test.mjs
+          node --test test/rc1538-testservice-supersession-race.test.mjs
