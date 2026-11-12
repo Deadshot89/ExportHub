@@ -70,7 +70,7 @@ test('RC1499: Pack ABD opens lazy editor through RC325 instead of dashboard-only
     centralCalls++;state.view=view;editorMounted=true;
     return false; // Production RC325 routes successfully even when view callback returns false.
   }};
-  root.document.getElementById=id=>id==='rc626Abd'&&editorMounted?{id:'rc626Abd'}:null;
+  root.document.getElementById=id=>id==='rc626Abd'&&editorMounted?{id:'rc626Abd',querySelector(){return {}}}:null;
   assert.equal(api.begin('PN-1'),true);
   assert.equal(centralCalls,1,'The central router must lazy-load RC626');
   assert.deepEqual(calls.views,[],'Never call dashboard fallback setView before RC325');
