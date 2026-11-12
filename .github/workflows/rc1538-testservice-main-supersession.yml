@@ -60,18 +60,16 @@ jobs:
               const body=await response.text();
               // Ein älterer Run kann zwischen LIST und CANCEL regulär enden.
               // Ausschließlich diesen belegten 409-Rennfall als erledigt werten.
-              if(response.status===409&&options.method==='POST'){
-                const path=new URL(url).pathname;
-                const normalCancel=/^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/cancel$/.test(path);
-                const forceCancel=/^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/force-cancel$/.test(path);
-                if(normalCancel||forceCancel){
-                  let message='';
-                  try{message=JSON.parse(body).message||''}catch(_){}
-                  if(normalCancel&&message==='Cannot cancel a workflow run that is completed.')
-                    return {alreadyCompleted:true};
-                  if(message==='Cannot cancel a workflow run that has not been queued yet.')
-                    return normalCancel?{notQueuedYet:true}:{forceNotQueuedYet:true};
-                }
+              if(response.status===409&&options.method==='POST'&&
+                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/(?:cancel|force-cancel)$/.test(new URL(url).pathname)){
+                let message='';
+                try{message=JSON.parse(body).message||''}catch(_){}
+                if(message==='Cannot cancel a workflow run that is completed.')
+                  return {alreadyCompleted:true};
+                // GitHub kann einen Run bereits als queued listen, bevor CANCEL erlaubt ist.
+                // Nicht als Erfolg werten: nur eng begrenzt wiederholen.
+                if(message==='Cannot cancel a workflow run that has not been queued yet.')
+                  return {notQueuedYet:true};
               }
               throw new Error(`GitHub API ${response.status}: ${body.slice(0,500)}`);
             }
@@ -89,28 +87,30 @@ jobs:
           const runs=Array.isArray(payload&&payload.workflow_runs)?payload.workflow_runs:[];
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           let supersededDuringCancel=false;
-          let unassignedQueueCount=0,acceptedCount=0,completedCount=0,forceConfirmedCount=0;
-          // A GitHub API queue-ghost classification NEVER means the old run was
-          // cancelled. The independent RC1381 stale-deploy guard remains mandatory.
-          async function classifyQueueOnlyRun(run){
-            const live=await request(`https://api.github.com/repos/${repo}/branches/main`);
-            if(live?.commit?.sha!==currentSha)
-              throw new Error('RC1538: main changed during queued-run classification; abort stale intervention.');
-            const latest=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
-            if(latest.head_sha!==run.head_sha)
-              throw new Error(`RC1538: Run ${run.id} SHA changed during queue inspection.`);
-            if(latest.status==='completed')return {alreadyCompleted:true};
-            const age=Date.now()-Date.parse(String(latest.created_at||''));
-            if(latest.status!=='queued'||!Number.isFinite(age)||age<60*60*1000)
-              return null;
+          // GitHub may expose a stuck queued run with zero assigned jobs.
+          // This is diagnostic evidence ONLY: an unconfirmed cancel stays RED.
+          async function warnUnassignedQueue(run){
+            const firstMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+            if(firstMain?.commit?.sha!==currentSha)
+              throw new Error('RC1538: main changed before zero-job diagnostics; refuse stale intervention.');
+            const readback=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+            if(readback.head_sha!==run.head_sha)
+              throw new Error(`RC1538: Run ${run.id} SHA changed during zero-job readback.`);
+            const ageMs=Date.now()-Date.parse(readback.created_at||'');
+            if(readback.status!=='queued'||!Number.isFinite(ageMs)||ageMs<60*60*1000)
+              return false;
             const assigned=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=1`);
             if(assigned?.total_count!==0||!Array.isArray(assigned.jobs)||assigned.jobs.length!==0)
-              return null;
-            // Recheck latest main after separate jobs read before recording the exception.
-            const afterMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
-            if(afterMain?.commit?.sha!==currentSha)
-              throw new Error('RC1538: main changed after queued-run inspection; abort stale intervention.');
-            return {unassignedQueueOnly:true};
+              return false;
+            const finalRun=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+            if(finalRun.head_sha!==run.head_sha)
+              throw new Error(`RC1538: Run ${run.id} SHA changed during zero-job confirmation.`);
+            const finalMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+            if(finalMain?.commit?.sha!==currentSha)
+              throw new Error('RC1538: main changed after zero-job diagnostics; refuse stale intervention.');
+            if(finalRun.status!=='queued')return false;
+            console.log(`::warning::RC1538 QUEUE_GHOST: Run ${run.id} remains queued for >1h with 0 assigned jobs; GitHub cancellation unconfirmed. NOT CANCELLED. Gate remains RED; RC1381 stale-deploy guard mandatory.`);
+            return true;
           }
           for(const run of older){
             let outcome;
@@ -143,12 +143,19 @@ jobs:
                 if(stillMain?.commit?.sha!==currentSha)
                   throw new Error('RC1538: main changed during force-cancel guard; refuse stale intervention.');
                 const forceOutcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/force-cancel`,{method:'POST'});
-                // GitHub can return the SAME 409 for an ancient queued run with zero
-                // jobs even from its documented force-cancel endpoint.
-                if(forceOutcome?.forceNotQueuedYet){
-                  const inspected=await classifyQueueOnlyRun(run);
-                  if(inspected){outcome=inspected;break;}
-                  throw new Error(`RC1538: Run ${run.id} force-cancel returned 409 without confirmed >1h queued/0-jobs condition.`);
+                // GitHub 409 may race with the old run completing. Only a
+                // same-SHA readback with completed status resolves this race.
+                // An unresolved queued or running old job must remain RED.
+                if(forceOutcome&&(forceOutcome.notQueuedYet||forceOutcome.alreadyCompleted)){
+                  const after409=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+                  if(after409.head_sha!==run.head_sha)
+                    throw new Error(`RC1538: Run ${run.id} SHA changed after force-cancel 409.`);
+                  if(after409.status==='completed'){
+                    outcome={alreadyCompleted:true};
+                    break;
+                  }
+                  if(after409.status==='queued')await warnUnassignedQueue(run);
+                  throw new Error(`RC1538: force-cancel 409 for ${run.id}; old run remains ${after409.status}, cancellation unconfirmed.`);
                 }
                 // A 202 is only an accepted request, NOT proof of cancellation.
                 // Do not mark the gate green until GitHub reports completion.
@@ -161,8 +168,7 @@ jobs:
                   if(after.status==='completed'){confirmed=true;break;}
                 }
                 if(!confirmed){
-                  const inspected=await classifyQueueOnlyRun(run);
-                  if(inspected){outcome=inspected;break;}
+                  await warnUnassignedQueue(run);
                   throw new Error(`RC1538: force-cancel for ${run.id} not confirmed by GitHub; gate remains blocked.`);
                 }
                 outcome={forceCancelled:true};
@@ -171,20 +177,13 @@ jobs:
               await new Promise(resolve=>setTimeout(resolve,250*(2**attempt)));
             }
             if(supersededDuringCancel)break;
-            if(outcome?.unassignedQueueOnly){
-              unassignedQueueCount++;
-              console.log(`::warning::RC1538 QUEUE_GHOST: Run ${run.id} is still queued with 0 assigned jobs >1h; GitHub cancel/force-cancel unavailable (409). NOT CANCELLED; RC1381 stale-deploy guard remains mandatory.`);
-            }else if(outcome?.forceCancelled){
-              forceConfirmedCount++;
+            if(outcome&&outcome.forceCancelled)
               console.log(`RC1538: ältere Main Verification ${run.id} force-cancel durch GitHub abgeschlossen bestätigt.`);
-            }else if(outcome?.alreadyCompleted){
-              completedCount++;
+            else if(outcome&&outcome.alreadyCompleted)
               console.log(`RC1538: ältere Main Verification ${run.id} inzwischen abgeschlossen; kein Abbruch nötig.`);
-            }else{
-              acceptedCount++;
+            else
               console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) Cancel-Annahme erhalten.`);
-            }
           }
           if(!supersededDuringCancel)
-            console.log(`RC1538: ${acceptedCount} cancellations accepted; ${completedCount} previously complete; ${forceConfirmedCount} force-cancel confirmed; ${unassignedQueueCount} GitHub QUEUE_GHOST unresolved (NOT cancelled); aktueller SHA ${currentSha}.`);
+            console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications verarbeitet; aktueller SHA ${currentSha}.`);
           NODE
