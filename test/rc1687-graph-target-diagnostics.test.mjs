@@ -318,3 +318,19 @@ test('P0 #999: missing configured user/path cannot trigger speculative Graph tar
     assert.ok(calls.every(x=>['POST','GET'].includes(x.method)));
   });
 });
+
+test('P0 #999: signed maintenance API and both RC1144 diagnostics publish only redacted path/ID agreement',()=>{
+  const api=fs.readFileSync(new URL('../api/pod-backup-reconcile/index.js',import.meta.url),'utf8');
+  const workflow=fs.readFileSync(new URL('../.github/workflows/rc1144-pod-backup-reconcile.yml',import.meta.url),'utf8');
+  const diagnosisStart=api.indexOf('if (payload.graphTargetDiagnostic === true)');
+  const diagnosisEnd=api.indexOf('if (payload.auditPodStatus === true',diagnosisStart);
+  const diagnostic=api.slice(diagnosisStart,diagnosisEnd);
+  assert.ok(api.indexOf('githubOidcAuthorized(req)')<diagnosisStart,'OIDC signature verification precedes diagnosis');
+  assert.match(diagnostic,/typeof diagnostic\.configuredUserPathMatchesExplicitIds === 'boolean'/);
+  assert.match(diagnostic,/configuredUserPathMatchesExplicitIds: diagnostic\.configuredUserPathMatchesExplicitIds/);
+  assert.doesNotMatch(diagnostic,/diagnostic\.(user|folder|driveId|folderId|rawPath|graphMessage)/,'no private target data in signed response');
+  assert.equal((workflow.match(/configuredUserPathMatch:data\.configuredUserPathMatchesExplicitIds===true\?'same':/g)||[]).length,2,'both environments show the same safe tri-state');
+  assert.equal((workflow.match(/data\.configuredUserPathMatchesExplicitIds===false\?'different':'unverified'/g)||[]).length,2,'unknown path must never become a claimed mismatch');
+  assert.equal((workflow.match(/Configured path \/ explicit IDs: /g)||[]).length,2,'only tri-state summary allowed');
+  assert.match(workflow,/inputs\.graphTargetDiagnostic != true/,'diagnostic-only event must still block POD backfill');
+});
