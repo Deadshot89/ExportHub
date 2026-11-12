@@ -141,3 +141,37 @@ test('RC1703: split text cannot produce a guessed DNC when multiple different re
   assert.equal(result.renamed,false);
   assert.equal(result.reason,'ambiguous');
 });
+
+test('AVIS invoice: invoice with a delivery-note DNC is not renamed into a second delivery note',()=>{
+  const api=load();
+  const input='Commercial Invoice SIDE250075003 / related Delivery Note DNC3019228588';
+  assert.equal(api.detectDocumentKind('scan.pdf',input),'rechnung');
+  const result=api.normalizedPdfName('DNC3019228588.pdf',input);
+  assert.equal(result.name,'Rechnung_DNC3019228588.pdf');
+  assert.equal(result.reason,'invoice');
+  assert.equal(result.reference,null);
+});
+
+test('AVIS delivery note: DNC normalization still works without an invoice heading',()=>{
+  const api=load();
+  assert.equal(api.detectDocumentKind('scan.pdf','Delivery note DNC3019228734'),'lieferschein');
+  assert.equal(api.normalizedPdfName('scanner.pdf','Delivery note DNC3019228734').name,'DNC3019228734.pdf');
+  assert.equal(api.detectDocumentKind('scan.pdf','Reference DNC3019228734 / no document heading'),'');
+});
+
+test('AVIS invoice: the operator filename is preserved when it already identifies an invoice',()=>{
+  const api=load();
+  const result=api.normalizedPdfName('Invoice-1002.pdf','Commercial Invoice DNC3019228588');
+  assert.equal(result.name,'Invoice-1002.pdf');
+  assert.equal(result.renamed,false);
+  assert.equal(result.reason,'invoice');
+});
+
+test('AVIS: invoice metadata takes precedence over the deliveryFiles default',()=>{
+  const handler=fs.readFileSync('api/customer-avis/index.js','utf8');
+  assert.match(handler,/if\(\/RECHNUNG\|.*INVOICE.*\/\.test\(raw\)\|\|field==='invoiceFiles'\)return'Rechnung'/);
+  assert.ok(handler.indexOf("return'Rechnung';if(/LIEFERSCHEIN")>0);
+  const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+  assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)==='rechnung'/);
+  assert.match(upload,/kind:actualKind,reference:ref/);
+});
