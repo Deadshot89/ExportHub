@@ -22,7 +22,14 @@ function rc1331AvisToken(sh,url){
 function essentraAvisCustomer(sh,c){
  sh=sh||{};c=c||{};
  var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
- return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+ var names=[c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''];
+ // SFL must never receive the ExportHUB360-branded AVIS link.
+ if(names.some(function(v){return /\bSFL\b/i.test(String(v||''))}))return true;
+ // Customer-folder choice overrides the legacy Essentra naming convention.
+ var portal=String(c.avisPortal||'').trim().toLowerCase();
+ if(portal==='wonderful-forest')return true;
+ if(portal==='exporthub360')return false;
+ return names.some(function(v){return /\bessentra\b/i.test(String(v||''))})
 }
 function avisCustomerFor(sh){
  var list=state().customers||[],nested=sh&&sh.customer&&typeof sh.customer==='object'?sh.customer:{};
