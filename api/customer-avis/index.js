@@ -6,6 +6,7 @@ const auth=require('../shared/fast-auth-store');
 const {DOCUMENT_CONTAINER}=require('../shared/document-blob-store');
 const pdfSecurity=require('../shared/customer-avis-pdf-security');
 const contentCheck=require('../shared/customer-avis-document-content');
+const deliveredQuantities=require('../shared/avis-delivery-quantity');
 const avisSlots=require('../shared/customer-avis-slots');
 const closureMail=require('../shared/avis-mail-html');
 const graphMail=require('../shared/graph-mail');
@@ -341,6 +342,40 @@ function publicShipment(sh,session,state,language='de'){
  const planned=text(sh.customerAvisPickupDate||sh.avisPickupDate||sh.plannedPickupDate||sh.pickupDate),from=text(sh.customerAvisPickupTimeFrom||sh.avisPickupTimeFrom),to=text(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo),slotAvailability=planned&&state?availabilityWithClosure(state,sh,planned):null;
  return{ok:true,closed:false,reference:sref(sh),shipmentId:sid(sh),sender:{name:text(sh.senderName||(sh.sender&&sh.sender.name))||'Essentra Components GmbH',address:text(sh.senderAddress||(sh.sender&&[sh.sender.street,sh.sender.city,sh.sender.country].filter(Boolean).join(', ')))||'Montel-Allee 3, 41334 Nettetal, Deutschland'},customerName:text(sh.customerName||(sh.customer&&sh.customer.name)),customerNumber:text(sh.customerNumber||sh.customerAccount||sh.customerNo),customerReference:text(sh.customerReference||sh.customerRef||sh.orderReference||sh.purchaseOrder||sh.poNumber),salesOrder:text(sh.salesOrder||sh.salesOrderNumber||sh.orderNumber),recipientName:text(sh.recipientName||sh.destinationName||sh.customerName),recipientAddress:text(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress),country:text(sh.recipientCountry||sh.country),shipDate:text(sh.shipDate||sh.shippingDate||sh.shipmentDate||sh.dispatchDate),incoterm:text(sh.incoterm||sh.incoterms),carrier:text(sh.carrier||sh.carrierName||sh.spedition),status:publicStatus(sh),goodsDescription:text(sh.goodsDescription||sh.description||sh.warenbeschreibung),remark:localizedShipmentRemark(sh,language),rows,totals,documents:docs,customerUploads:publicCustomerUploads(sh),appointment:{date:planned,timeFrom:from,timeTo:to,plate:text(sh.customerAvisPickupPlate||sh.avisPickupPlate),reference:sref(sh),note:text(sh.customerAvisPickupNote||sh.avisPickupNote),submittedAt:text(sh.customerAvisResponseAt||sh.avisResponseAt)},slotAvailability,closureNotices:publicClosureNotices(state),actualPickupAt:'',pod:{available:podAvailable(sh),status:text(sh.podStatus)||(podAvailable(sh)?'POD vorhanden':'Noch nicht vorhanden'),documents:podDocs},avis:{enabled:true,singleUse:false,session:true,securityVersion:1013,autoExpiresOn,postPickupDays:14},lastUpdatedAt:text(sh.updatedAt||sh._syncUpdatedAt||sh.modifiedAt)}
 }
+// Read-only, on-demand DNC scan within the already validated AVIS session.
+// Never stores extracted customer data or exposes raw PDF text to the portal.
+async function readAvisDeliveredQuantities(sh,sessionInfo,state){
+ const copies=[sh].concat(findCopies(state,sid(sh),sref(sh))),selected=[],ids=new Set();
+ for(const copy of copies)for(const d of documentRecords(copy)){
+  if(d.category!=='Lieferschein'||!(/\.pdf$/i.test(d.name)||/pdf/i.test(d.mime)))continue;
+  const identity=text(d.id);if(!identity||ids.has(identity))continue;
+  ids.add(identity);selected.push(d);
+ }
+ const output=[],fingerprints=new Set();let checked=0,unavailable=0;
+ for(const d of selected.slice(0,12)){
+  if(Number(d.size||0)>3*1024*1024){unavailable++;continue;}
+  let bytes=null;
+  try{
+   if(d.inline)bytes=d.inline.bytes;
+   else if(d.blobName)bytes=(await readDocumentBlob(d.blobName,sessionInfo.environment)).bytes;
+   else if(d.refItemId)bytes=d.refSource==='azure'?
+     (await refDocBlob.read(sref(sh),sessionInfo.environment,d.refItemId)).buffer:
+     (await referenceFolder.readFile(d.refItemId,sessionInfo.environment)).buffer;
+   // No arbitrary external URL may be fetched server-side.
+   if(!bytes||bytes.length<5||bytes.length>3*1024*1024||Buffer.from(bytes).toString('ascii',0,5)!=='%PDF-'){unavailable++;continue;}
+   const sha=crypto.createHash('sha256').update(bytes).digest('hex');
+   if(fingerprints.has(sha))continue;fingerprints.add(sha);
+   checked++;
+   const extracted=await contentCheck.extractPdfText(bytes);
+   const parsed=deliveredQuantities.parse(extracted,d.name);
+   if(parsed.status!=='parsed'){unavailable++;continue;}
+   output.push({document:fileName(d),documentReference:parsed.documentReference,positions:parsed.positions});
+  }catch(_){unavailable++;}
+ }
+ return{ok:true,status:output.length?(unavailable?'partial':'parsed'):'unavailable',
+  sources:output,checked,unavailable,limited:selected.length>12};
+}
+
 function validateTime(v){return!v||/^([01]\d|2[0-3]):[0-5]\d$/.test(v)}
 function validateAppointment(payload){const date=text(payload.pickupDate),from=text(payload.timeFrom),to=text(payload.timeTo),plate=text(payload.plate).replace(/[\r\n]+/g,' ').slice(0,40);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw error('PICKUP_DATE_REQUIRED','Bitte ein gültiges Abholdatum angeben.',400);if(!validateTime(from)||!validateTime(to))throw error('TIME_INVALID','Bitte eine gültige Abholzeit angeben.',400);if(!avisSlots.isValidSlot(from,to))throw error('PICKUP_SLOT_INVALID','Bitte ein freies 2-Stunden-Zeitfenster zwischen 08:30 und 16:00 auswählen.',400);return{date,from,to,plate,note:text(payload.note).slice(0,1000)}}
 function appointmentSnapshot(sh){return{date:text(sh&&(sh.customerAvisPickupDate||sh.avisPickupDate||sh.plannedPickupDate||sh.pickupDate)),timeFrom:text(sh&&(sh.customerAvisPickupTimeFrom||sh.avisPickupTimeFrom)),timeTo:text(sh&&(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo)),plate:text(sh&&(sh.customerAvisPickupPlate||sh.avisPickupPlate)),note:text(sh&&(sh.customerAvisPickupNote||sh.avisPickupNote))}}
@@ -401,7 +436,7 @@ module.exports=async function(context,req){
   if(req.method==='GET'){
    const refList=await refDocs.load(referenceFolder,sref(sh),sessionInfo.environment,(...a)=>context.log&&context.log.warn&&context.log.warn(...a),refDocBlob);
    sh=Object.assign({},sh,{__avisReferenceDocs:refList});
-   const getAction=lower(req.query&&req.query.action);if(getAction==='document'){const id=text(req.query&&req.query.id),allCopies=[sh].concat(findCopies(state,sid(sh),sref(sh))),allDocs=[];allCopies.forEach(copy=>documentRecords(copy).forEach(item=>allDocs.push(item)));const doc=allDocs.find(x=>x.id===id);if(!doc)throw error('DOCUMENT_NOT_FOUND','Das Dokument ist nicht mehr verfügbar.',404);if(doc.inline){context.res={status:200,isRaw:true,headers:{'Content-Type':doc.inline.mime||doc.mime||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:doc.inline.bytes};return}if(doc.blobName){const stored=await readDocumentBlob(doc.blobName,sessionInfo.environment);context.res={status:200,isRaw:true,headers:{'Content-Type':stored.mime||doc.mime||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:stored.bytes};return}if(doc.refItemId){const file=doc.refSource==='azure'?await refDocBlob.read(sref(sh),sessionInfo.environment,doc.refItemId).then(r=>({buffer:r.buffer,mimeType:r.file.mimeType})):await referenceFolder.readFile(doc.refItemId,sessionInfo.environment);context.res={status:200,isRaw:true,headers:{'Content-Type':doc.mime||file.mimeType||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:file.buffer};return}if(doc.external){context.res={status:302,headers:{Location:doc.external,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'},body:''};return}throw error('DOCUMENT_NOT_FOUND','Das Dokument ist nicht mehr verfügbar.',404)}context.res=json(200,publicShipment(sh,session,state,language));return
+   const getAction=lower(req.query&&req.query.action);if(getAction==='delivery-quantities'){context.res=json(200,await readAvisDeliveredQuantities(sh,sessionInfo,state));return}if(getAction==='document'){const id=text(req.query&&req.query.id),allCopies=[sh].concat(findCopies(state,sid(sh),sref(sh))),allDocs=[];allCopies.forEach(copy=>documentRecords(copy).forEach(item=>allDocs.push(item)));const doc=allDocs.find(x=>x.id===id);if(!doc)throw error('DOCUMENT_NOT_FOUND','Das Dokument ist nicht mehr verfügbar.',404);if(doc.inline){context.res={status:200,isRaw:true,headers:{'Content-Type':doc.inline.mime||doc.mime||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:doc.inline.bytes};return}if(doc.blobName){const stored=await readDocumentBlob(doc.blobName,sessionInfo.environment);context.res={status:200,isRaw:true,headers:{'Content-Type':stored.mime||doc.mime||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:stored.bytes};return}if(doc.refItemId){const file=doc.refSource==='azure'?await refDocBlob.read(sref(sh),sessionInfo.environment,doc.refItemId).then(r=>({buffer:r.buffer,mimeType:r.file.mimeType})):await referenceFolder.readFile(doc.refItemId,sessionInfo.environment);context.res={status:200,isRaw:true,headers:{'Content-Type':doc.mime||file.mimeType||'application/octet-stream','Content-Disposition':contentDisposition(doc.name),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:file.buffer};return}if(doc.external){context.res={status:302,headers:{Location:doc.external,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'},body:''};return}throw error('DOCUMENT_NOT_FOUND','Das Dokument ist nicht mehr verfügbar.',404)}context.res=json(200,publicShipment(sh,session,state,language));return
   }
   if(req.method==='POST'){
    const postAction=lower(payload.action||'appointment');
