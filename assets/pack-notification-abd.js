@@ -139,9 +139,19 @@
     return false;
   }
   function route(){
-    if(typeof root.setView==='function'){root.setView('abd');return q(state().view).toLowerCase()==='abd';}
-    if(root.ExportHUBRC325&&typeof root.ExportHUBRC325.route==='function'){
-      root.ExportHUBRC325.route('abd','pack-abd');return q(state().view).toLowerCase()==='abd';
+    // RC1499 P0: setView() can update the selected navigation/state without
+    // loading the lazy RC626 editor. The central route performs that load.
+    const navigation=root.ExportHUBRC325;
+    if(navigation&&typeof navigation.route==='function'){
+      navigation.route('abd','pack-abd');
+      const editor=root.document&&root.document.getElementById&&root.document.getElementById('rc626Abd');
+      // A selected ABD tab is not evidence that the ABD form actually opened.
+      return q(state().view).toLowerCase()==='abd'&&!!editor;
+    }
+    // Standalone/legacy contexts without RC325 retain their own renderer.
+    if(typeof root.setView==='function'){
+      root.setView('abd');
+      return q(state().view).toLowerCase()==='abd';
     }
     return false;
   }
