@@ -16,6 +16,15 @@ test('RC1988: only shipments containing Euro pallets receive the new header card
  assert.equal(p.rc1988HasEuroPallets({rows:[{type:'Europalette',count:2}]}),true);
  assert.equal(p.rc1988HasEuroPallets({packages:[{type:'EUR Palette',qty:1}]}),true);
  assert.equal(p.rc1988HasEuroPallets({palletOut:3}),true);
+ assert.equal(p.rc1988HasEuroPallets({colli:[{type:'Europalette',anzahl:4}]}),true);
+ assert.equal(p.rc1988HasEuroPallets({collis:[{type:'EUR Palette',quantity:1}]}),true);
+ assert.equal(p.rc1988HasEuroPallets({shipmentRows:[{packagingType:'Europalette',qty:3}]}),true);
+ assert.equal(p.rc1988HasEuroPallets({items:[{type:'Europalette',count:1}]}),true);
+ // Loading list uses the longest saved package array, not an outdated shorter array.
+ assert.equal(p.rc1988HasEuroPallets({rows:[{type:'Europalette',count:1}],colli:[{type:'Karton',count:1},{type:'Karton',count:1}]}),false);
+ assert.equal(p.rc1988HasEuroPallets({rows:[{type:'Karton',count:1}],colli:[{type:'Europalette',count:2},{type:'Karton',count:1}]}),true);
+ assert.equal(p.rc1988HasEuroPallets({colli:[{type:'Europalette'}]}),false);
+
  assert.equal(p.rc1988HasEuroPallets({rows:[{type:'Karton',count:5}]}),false);
  assert.equal(p.rc1988HasEuroPallets({rows:[{type:'Europalette',count:0}]}),false);
  assert.equal(p.rc1988HasEuroPallets({}),false);
