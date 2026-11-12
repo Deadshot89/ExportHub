@@ -35,5 +35,6 @@ test('RC1988: third header card is wired before pickup summary, with no new ledg
  assert.match(source,/data-rc1988-pallet-balance/);
  assert.match(source,/data-rc1988-pallet-beneficiary/);
  assert.ok(source.includes("repeat(3,minmax(0,1fr))"));
- assert.doesNotMatch(source,/function rc1988InsertTopPalletCard[\s\S]*?function restorePickupFields[\s\S]*?\.save\(/);
+ const block=source.slice(source.indexOf('function rc1988InsertTopPalletCard('),source.indexOf('function restorePickupFields('));
+ assert.doesNotMatch(block,/\.save\(|\.write\(/);
 });
