@@ -212,3 +212,49 @@ test('RC1965: successful Urgent badge count is not refetched on focus/state/visi
  assert.equal(requests.length,3,'logout must disable further protected requests');
  assert.equal(node.badge.hidden,true);
 });
+
+
+test('RC1991: Urgent nav stops retrying repeated API 5xx for five minutes, but keeps original failures visible to the browser gate',async()=>{
+ const source=menu.slice(menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count'));
+ assert.ok(source.startsWith('/* Urgent Order:'));
+ // Never modify the strict E2E error policy: HTTP 5xx remains a release failure.
+ assert.match(read('e2e/helpers/exporthub-browser.mjs'),/expect\(payload\.httpErrors,'HTTP-5xx bei Kern-Requests'\)\.toEqual\(\[\]\)/);
+ for(const unavailable of [500,502,503]){
+  let now=1000000,status=unavailable,calls=0;
+  const listeners={},intervals=[],styleHost={appendChild(el){this.style=el}};
+  const node={badge:null,setAttribute(){},appendChild(el){this.badge=el},
+   querySelector(sel){return sel==='[data-urgent-open-count]'?this.badge:null}};
+  const d={hidden:false,readyState:'complete',head:styleHost,documentElement:styleHost,
+   querySelector(sel){return sel==='[data-exporthub-urgent-nav]'?node:null},
+   getElementById(id){return id==='exporthub-urgent-nav-counter-style'?styleHost.style||null:null},
+   createElement(name){return {tagName:name,hidden:false,dataset:{},setAttribute(){}}},
+   addEventListener(name,fn){listeners['doc:'+name]=fn}};
+  const w={document:d,sessionStorage:{getItem(){return '{}'}},
+   addEventListener(name,fn){listeners[name]=fn},
+   setInterval(fn,ms){intervals.push({fn,ms})},
+   async fetch(){calls++;return status===200?
+    {ok:true,status:200,json:async()=>({ok:true,open:6})}:
+    {ok:false,status};}};
+  vm.runInNewContext(source,{window:w,document:d,globalThis:w,Date:{now:()=>now},Promise,JSON,Number,Error});
+  const flush=()=>new Promise(resolve=>setImmediate(resolve));
+  await flush();
+  assert.equal(calls,1,'the first failure is a real HTTP request, not silently skipped');
+  assert.equal(node.badge.hidden,true,'a failing count must not display a stale success');
+  assert.equal(intervals.length,1);
+  now+=45000;listeners.focus();listeners['exporthub:state-loaded']();intervals[0].fn();
+  await flush();assert.equal(calls,1,'do not flood a failing API every 45 seconds');
+  now+=254999;listeners.focus();await flush();
+  assert.equal(calls,1,'cooldown still active before exactly five minutes');
+  now+=1;status=200;listeners.focus();await flush();
+  assert.equal(calls,2,'retry once after bounded cooldown');
+  assert.equal(node.badge.textContent,'6');
+  assert.equal(node.badge.hidden,false);
+  now+=45000;status=unavailable;intervals[0].fn();await flush();
+  assert.equal(calls,3,'next 5xx reactivates cooldown');
+  status=200;listeners['exporthub:authenticated']();await flush();
+  assert.equal(calls,4,'new verified session bypasses stale-account cooldown');
+  assert.equal(node.badge.hidden,false);
+  listeners['exporthub:logout']();listeners.focus();await flush();
+  assert.equal(calls,4,'logout disables protected count polling');
+ }
+});
