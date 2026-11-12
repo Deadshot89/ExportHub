@@ -39,7 +39,9 @@ function categoriesOf(input, previous) {
   const base = previous && typeof previous === 'object' ? previous : {};
   const src = input && typeof input === 'object' ? input : {};
   const out = {};
-  for (const key of CATEGORIES) out[key] = src[key] !== undefined ? src[key] === true : (key === 'urgentP1' ? base[key] === true : base[key] !== false);
+  for (const key of CATEGORIES) out[key] = key === 'urgentP1'
+    ? (src[key] !== undefined ? src[key] === true : base[key] === true)
+    : (src[key] !== undefined ? src[key] !== false : base[key] !== false);
   return out;
 }
 function deviceLabel(value) { return text(value).replace(/[\u0000-\u001f<>]/g, '').slice(0, 80); }
