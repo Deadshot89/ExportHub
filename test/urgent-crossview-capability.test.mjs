@@ -50,13 +50,17 @@ test('Internal and external Urgent Orders share one store without exposing unrel
   assert.equal(newExternal.order.orderNumber,'SO300200214126');
   const linkedInternal=await internal.execute(req({action:'create',...base('SO300200214127'),externalTrackingLink:link}),creator,refs);
   assert.equal(linkedInternal.order.reporterId,shared.order.reporterId);
+  const historic=await internal.execute(req({action:'create',...base('SO300200214128')}),creator,refs);
+  const sharedHistoric=await internal.execute(req({action:'share-external',id:historic.order.id,externalTrackingLink:link}),creator,refs);
+  assert.equal(sharedHistoric.order.reporterId,shared.order.reporterId,'existing internal orders can join the same tracking link');
+  assert.equal(sharedHistoric.accessToken,shared.accessToken);
   const all=(await internal.execute(req({action:'list'}),reader,refs)).orders.map(x=>x.orderNumber).sort();
-  assert.deepEqual(all,['SO300200214125','SO300200214126','SO300200214127']);
+  assert.deepEqual(all,['SO300200214125','SO300200214126','SO300200214127','SO300200214128']);
   const publicList=(await external.publicAction(req({action:'list',accessToken:shared.accessToken}),refs)).orders.map(x=>x.orderNumber).sort();
   assert.deepEqual(publicList,all,'linked internal and external submissions are visible under the same capability');
 
   await assert.rejects(
-   internal.execute(req({action:'create',...base('SO300200214128','someone-else@example.org'),externalTrackingLink:link}),creator,refs),
+   internal.execute(req({action:'create',...base('SO300200214129','someone-else@example.org'),externalTrackingLink:link}),creator,refs),
    error=>error.code==='URGENT_REPORTER_EMAIL_MISMATCH'
   );
   await assert.rejects(
@@ -67,7 +71,7 @@ test('Internal and external Urgent Orders share one store without exposing unrel
    external.publicAction(req({action:'request-delete',id:first.order.id,accessToken:shared.accessToken}),refs),
    error=>error.code==='URGENT_REPORTER_DELETE_FORBIDDEN'
   );
-  assert.equal(state.orders.length,3,'rejected writes never duplicate or remove orders');
+  assert.equal(state.orders.length,4,'rejected writes never duplicate or remove orders');
  }finally{auth.readJson=oldRead;auth.writeJson=oldWrite;}
 });
 
@@ -85,6 +89,7 @@ test('Both forms expose scoped cross-view actions, not an anonymous global list'
  const inner=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
  const outer=fs.readFileSync(new URL('../assets/urgent-order-report.html',import.meta.url),'utf8');
  assert.match(inner,/externalTrackingLink/);
+ assert.match(inner,/externalShareExistingLink/);
  assert.match(inner,/data-share-external/);
  assert.match(inner,/action:'share-external'|api\('share-external'/);
  assert.match(outer,/canRequestDeletion===false/);
@@ -96,7 +101,7 @@ test('Cross-view interface labels are translated in all six supported languages'
   'crossviewExistingLinkLabel','crossviewExistingLinkHelp','crossviewShareResultLabel',
   'crossviewCopyLink','crossviewShareWarning','crossviewShareAction',
   'crossviewLinkedLabel','crossviewShareConfirm','crossviewShareSuccess',
-  'crossviewLinkCopied','crossviewLinkManualCopy','crossviewLinkedNoDelete'
+  'crossviewLinkCopied','crossviewLinkManualCopy','crossviewLinkedNoDelete','crossviewReuseExistingLinkLabel'
  ];
  for(const lang of ['de','en','pl','es','fr','it']){
   const pack=JSON.parse(fs.readFileSync(new URL('../assets/i18n/'+lang+'.json',import.meta.url),'utf8'));
