@@ -2768,5 +2768,6 @@
   "urgentOrderV2.crossviewShareSuccess": "External tracking link created. Copy and share it securely now.",
   "urgentOrderV2.crossviewLinkCopied": "External tracking link copied.",
   "urgentOrderV2.crossviewLinkManualCopy": "Select the link and copy it manually.",
-  "urgentOrderV2.crossviewLinkedNoDelete": "This order was shared internally. Delete it from the internal website."
+  "urgentOrderV2.crossviewLinkedNoDelete": "This order was shared internally. Delete it from the internal website.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Existing external tracking link for sharing (optional)"
 }
