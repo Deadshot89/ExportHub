@@ -110,3 +110,9 @@ test('Oberfläche: Hinweis „in Azure gesichert, SharePoint-Kopie fehlt“ in s
     assert.match(part.slice(0, 4000), /savedAzureOnly:'/, l);
   }
 });
+
+test('AVIS: Microsoft Graph REF list includes the exact byte size needed for SHA matching',()=>{
+ const graph=fs.readFileSync('api/shared/reference-folder-upload.js','utf8');
+ assert.match(graph,/select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime'/);
+ assert.match(graph,/files\.push\(\{id,name:text\(item\.name\),size:/);
+});
