@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const actor={id:'CS-1',name:'Customer Service'};
 const logistics={id:'OPS-1',rights:{shipmentoverview:{level:'edit'}}};
 function base(extra={}){
- return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
+ return {orderNumber:'SO300200003002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
   orderType:'DIRECT_OUTBOUND',directOutbound:{
    arrivalAt:'2026-11-09T08:30',arrivalMode:'TRUCK',arrivalProvider:'Example Freight',
    dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true
@@ -29,9 +29,9 @@ test('Urgent Order supports planned inbound and immediate express shipment',()=>
  // Inbound/express details remain in the order data, but the staff
  // requested a short, personal DU mail instead of an operational data dump.
  assert.match(en.body,/Hi,\n\nIssue: The inbound truck will arrive late/);
- assert.match(en.body,/Sales order: SO3002\nItem: ART-101/);
+ assert.match(en.body,/Sales order: SO300200003002\nItem: ART-101/);
  assert.match(de.body,/Hallo,\n\nProblem: Der Wareneingang ist verspätet/);
- assert.match(de.body,/Auftrag: SO3002\nArtikel: ART-101/);
+ assert.match(de.body,/Auftrag: SO300200003002\nArtikel: ART-101/);
  assert.doesNotMatch(en.body,/Expected arrival:|Outbound service:|EXPRESS|P1/);
  assert.doesNotMatch(de.body,/Geplante Ankunft:|Versandart:|EXPRESS|P1/);
 });
