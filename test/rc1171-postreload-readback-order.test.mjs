@@ -27,7 +27,7 @@ test('RC1171: new runtime after reload must use independent Azure readback, not 
   const verify=source.slice(remoteRead,overview);
   assert.match(verify,/fetch\('\/api\/exporthub-state\?mode=read&full=1'/);
   assert.match(verify,/credentials:'same-origin',cache:'no-store'/);
-  assert.match(verify,/Authorization:'Bearer '\+token/);
+  assert.match(verify,/'Authorization':'Bearer '\+token/);
   assert.match(verify,/'X-ExportHUB-Environment':'testservice'/);
   assert.match(verify,/sh\._e2eRunId===runId/);
   assert.match(verify,/expect\(persisted\.status\)\.toBe\(200\)/);
