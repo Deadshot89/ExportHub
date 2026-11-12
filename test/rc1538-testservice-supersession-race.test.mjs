@@ -52,7 +52,7 @@ test('RC1538: GET-LIST-POST race treats only already-completed 409 as idempotent
 
 test('RC1538: successful cancellation is still reported correctly',async()=>{
  const {lines}=await scenario({status:204,message:''});
- assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
+ assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('Cancel-Annahme erhalten.')));
 });
 
 test('RC1538: unrelated 409 does not hide a permission/logic problem',async()=>{
@@ -71,7 +71,7 @@ test('RC1538: 409 not yet queued is retried, not falsely counted as cancelled',a
  ]});
  assert.equal(calls.filter(x=>x.method==='POST').length,2);
  assert.equal(calls.filter(x=>x.method==='GET'&&x.url.endsWith('/actions/runs/123')).length,1);
- assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
+ assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('Cancel-Annahme erhalten.')));
 });
 
 test('RC1538: old run finished during 409 race is not retried',async()=>{
