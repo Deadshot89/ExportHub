@@ -191,8 +191,8 @@ function clearExternalTrackingSecrets(){
  const linked=$('newOrder').elements.externalTrackingLink;
  if(linked)linked.value='';
 }
-function clearUrgentPrivateView(resetDraft=false){
- clearExternalTrackingSecrets();
+function clearUrgentPrivateView(resetDraft=false,preservePendingLink=false){
+ if(!preservePendingLink)clearExternalTrackingSecrets();
  orders=[];canManage=false;viewerId='';
  $('orders').replaceChildren();
  $('internalOpenCount').textContent='0';$('internalClosedCount').textContent='0';
@@ -536,7 +536,9 @@ async function refresh(){
   render();
  }catch(e){
   if(epoch!==urgentRefreshEpoch)return;
-  clearUrgentPrivateView(false);
+  // Keep a just-issued secret visible through temporary read/network failures;
+  // never retain it across an explicit logout, account switch, 401 or 403.
+  clearUrgentPrivateView(false,e.status!==401&&e.status!==403);
   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
   $('createButton').disabled=true;$('saveProfile').disabled=true;
   const authMessage=e.status===401?localizedLoginRequired():e.message;
