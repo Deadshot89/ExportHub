@@ -124,7 +124,7 @@ function renderedPills(active,openKey){
  const bell={hidden:true,classList:{toggle(_name,value){bell.active=value}},
   querySelector:()=>({hidden:true,textContent:''}),setAttribute(){}};
  const m={start,sections:items,notifications,shipment:null};
- const context={scheduled:true,openKey,lastSig:'',current:null,
+ const context={w:{__EXPORTHUB_WARNING_SUMMARY__:{total:0}},scheduled:true,openKey,lastSig:'',current:null,
   bar:{hidden:false,querySelector:()=>brand},pills,mega,bell,cta:{hidden:true},
   on:()=>true,ensureBar:()=>true,model:()=>m,
   sigOf:()=>openKey||'closed',viewOf:el=>el.view||'',labelOf:el=>el.name||'',
