@@ -127,6 +127,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allLevels">Alle Stufen</option><option value="P1">P1 – Sondertransport</option><option value="P2">P2 – Express-Lieferung</option><option value="P3">P3 – Backlog</option><option value="P4">P4 – Auftrag von heute</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="" data-i18n="urgentOrderV2.allDeliveries">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directShortDelivery">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="Waved">Waved</option><option value="In Progress">In Progress</option><option value="Problem">Problem</option><option value="Loaded">Loaded</option><option value="Shipped">Shipped</option><option value="Invoiced">Invoiced</option><option value="exception">Check required</option></select></div>
 <div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
+<label class="field"><span data-i18n="urgentOrderV2.crossviewReuseExistingLinkLabel">Existing external tracking link for sharing (optional)</span><input id="externalShareExistingLink" type="text" autocomplete="off" maxlength="600" placeholder="https://.../urgent-order#access=uro_..."></label>
 <div class="message" id="externalShareResult" role="status" hidden>
  <label class="field"><span data-i18n="urgentOrderV2.crossviewShareResultLabel">External tracking link – share only with authorized people</span>
  <input id="externalShareUrl" type="text" autocomplete="off" readonly>
@@ -448,7 +449,7 @@ function render(){
    if(!window.confirm(localeV2('crossviewShareConfirm','This private link allows access without login. Share only with authorized people. Continue?')))return;
    button.disabled=true;
    try{
-    const result=await api('share-external',{id:order.id});
+    const result=await api('share-external',{id:order.id,externalTrackingLink:$('externalShareExistingLink').value.trim()});
     const url=urgentPublicOrigin()+'/urgent-order#access='+encodeURIComponent(result.accessToken);
     $('externalShareUrl').value=url;
     $('externalShareResult').hidden=false;
