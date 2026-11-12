@@ -42,7 +42,9 @@ jobs:
       - name: Playwright installieren
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          # Chromium muss wirklich starten; Browser-Tests dürfen nicht umgangen werden.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Vollständige Navigation lokal im echten Browser prüfen
         env:
