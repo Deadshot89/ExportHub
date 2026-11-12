@@ -325,6 +325,26 @@ async function execute(req,user,refs){
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
 }
+// Dispatch only after the ETag-protected Urgent Order write has completed.
+// Push failures must never turn a successfully saved order into an API error.
+let urgentP1Notifier=null;
+async function postSaveP1(action,result,refs,options={}){
+ if(action!=='create'||!result||!result.order||result.order.priority!=='P1')return{sent:0};
+ const notify=options.notify||(
+  urgentP1Notifier||(urgentP1Notifier=require('../web-push/index.js').createUrgentP1Notifier())
+ );
+ let timer;
+ try{
+  return await Promise.race([
+   Promise.resolve().then(()=>notify(refs.environment,{id:result.order.id,orderNumber:result.order.orderNumber,priority:'P1'})),
+   new Promise(resolve=>{timer=setTimeout(()=>resolve({sent:0,timeout:true}),5000)})
+  ]);
+ }catch(e){
+  if(options.log&&typeof options.log.warn==='function')options.log.warn('urgent-p1-push-failed',String(e&&e.code||'SEND_FAILED'));
+  return{sent:0,failed:true};
+ }finally{if(timer)clearTimeout(timer)}
+}
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
@@ -332,6 +352,7 @@ module.exports=async function(context,req){
   const current=await withReadRetry(async()=>await auth.validateSession(req));
   const ref=storage(req);
   const result=await execute(req,current.user,ref);
+  await postSaveP1(body(req).action,result,ref,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   // A temporary storage/network failure without our own problem status is a
@@ -359,5 +380,6 @@ module.exports.readDocument=async function(refs){return normalize((await readDoc
 module.exports.readPackingCatalog=readPackingCatalog;
 module.exports.withReadRetry=withReadRetry;
 module.exports.write=write;
+module.exports.postSaveP1=postSaveP1;
 module.exports.empty=empty;
 module.exports.normalize=normalize;
