@@ -93,6 +93,17 @@ function extractDocumentReferences(value){
 function normalizedPdfName(originalName,extractedText){
   const original=String(originalName==null?'':originalName);
   if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
+  // An invoice can cite a DNC packing slip. Its own SIDE number wins
+  // only when an explicit invoice heading is present; never infer from DNC.
+  const header=String(extractedText||'').slice(0,2200);
+  const isInvoice=/\b(?:invoice\s*(?:number|no\.?|nr\.?)|commercial\s*invoice|proforma\s*invoice|rechnungs(?:nummer|nr\.?))\b/i.test(header);
+  if(isInvoice){
+    const sideRefs=extractDocumentReferences(extractedText).filter(x=>x.type==='SIDE');
+    const unique=Array.from(new Set(sideRefs.map(x=>x.canonical)));
+    if(unique.length!==1)return{name:original,renamed:false,reference:null,reason:'invoice-unresolved'};
+    const name=unique[0]+'.pdf';
+    return{name,renamed:name!==original,reference:unique[0],reason:'side'};
+  }
   // DNC is a delivery-note identifier; incidental SIDE numbers in the PDF
   // must not override a unique DNC already present in the filename.
   const contentRefs=extractDocumentReferences(extractedText),filenameRefs=extractDocumentReferences(original);
