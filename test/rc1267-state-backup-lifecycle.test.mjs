@@ -42,10 +42,11 @@ class MemoryBlob{
   }
 }
 class MemoryContainer{
-  constructor({tamperRead=false}={}){this.rows=new Map();this.tamperRead=tamperRead}
+  constructor({tamperRead=false}={}){this.rows=new Map();this.tamperRead=tamperRead;this.listOptions=[]}
   getBlockBlobClient(name){return new MemoryBlob(this,name)}
   async *listBlobsFlat(options={}){
     this.listCalls=(this.listCalls||0)+1;
+    this.listOptions.push({...options});
     if(this.listFails)throw Object.assign(new Error('not authorized'),{statusCode:403});
     for(const [name,row] of this.rows){
       if(options.prefix&&name.startsWith(options.prefix)){
@@ -114,6 +115,23 @@ test('RC1624: identisches TESTSERVICE Daily am selben UTC-Tag verwendet verifizi
   assert.equal(repeat.sha256,initial.sha256);
   assert.equal(container.rows.size,1,'kein zweiter Upload/keine neue Blob-Version');
   assert.ok(container.listCalls>=2,'Metadaten werden immer direkt in Azure geprüft');
+});
+
+test('RC1981: TESTSERVICE Daily-Backup sucht nur aktuelle Blobs statt historische Versionen zu listen',async()=>{
+  const container=new MemoryContainer(),current={revision:12,state:{shipments:[{ref:'TEST-ONLY'}]}};
+  const first=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current,at:'2026-11-12T01:17:00.000Z'});
+  const second=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current,at:'2026-11-12T09:00:00.000Z'});
+  assert.equal(second.reusedVerifiedExisting,true,'intakte gleiche Tagessicherung bleibt wiederverwendbar');
+  assert.equal(second.backupBlob,first.backupBlob);
+  assert.equal(container.rows.size,1,'kein weiterer Upload');
+  assert.equal(container.listOptions.length,2);
+  for(const options of container.listOptions){
+    assert.equal(options.prefix,'testservice/state-backups/daily/2026/11/12/');
+    assert.equal(options.includeMetadata,true,'Metadatenverifikation bleibt erhalten');
+    assert.notEqual(options.includeVersions,true,'historische Blob-Versionen dürfen die LIST-Abfrage nicht vergrößern');
+    assert.notEqual(options.includeSnapshots,true);
+    assert.notEqual(options.includeDeleted,true);
+  }
 });
 
 test('RC1624: geänderter TESTSERVICE Daily-State erzeugt zusätzliche vollständige Sicherung',async()=>{
