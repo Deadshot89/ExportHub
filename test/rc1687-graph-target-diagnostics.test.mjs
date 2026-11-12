@@ -262,19 +262,19 @@ test('P0 #999: both explicit IDs HTTP 400 trigger redacted, read-only user-path 
   await fakeRequests((call,n)=>{
     if(n===1)return token();
     if(n===2){
-      assert.match(call.path,/\\/drives\\/rc1687-private-drive\\/items\\/rc1687-private-folder\\?/);
+      assert.match(call.path,/\/drives\/rc1687-private-drive\/items\/rc1687-private-folder\?/);
       return {status:400,body:{error:{code:'BadRequest',message:'SECRET EXACT FOLDER'}}};
     }
     if(n===3){
-      assert.match(call.path,/\\/drives\\/rc1687-private-drive\\?\\$select=id/);
+      assert.match(call.path,/\/drives\/rc1687-private-drive\?\$select=id/);
       return {status:400,body:{error:{code:'BadRequest',message:'SECRET EXACT DRIVE'}}};
     }
     if(n===4){
-      assert.match(call.path,/\\/users\\/rc1687-private%40example.invalid\\/drive\\?\\$select=id/);
+      assert.match(call.path,/\/users\/rc1687-private%40example.invalid\/drive\?\$select=id/);
       return {body:{id:'different-private-drive'}};
     }
     if(n===5){
-      assert.match(call.path,/\\/users\\/rc1687-private%40example.invalid\\/drive\\/root:\\/003%20Export\\/ExportHub\\/Abliefernachweise\\?/);
+      assert.match(call.path,/\/users\/rc1687-private%40example.invalid\/drive\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?/);
       return {body:{id:'different-private-folder',folder:{},parentReference:{driveId:'different-private-drive'}}};
     }
     throw Error('Unexpected request in read-only comparison: '+call.path);
