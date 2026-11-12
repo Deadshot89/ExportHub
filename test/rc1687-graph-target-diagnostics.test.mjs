@@ -255,3 +255,66 @@ test('RC1954: Graph HTTP 400 folder with unreadable drive preserves both failure
     assert.equal(redacted.includes('rc1687-private-drive'),false);
   });
 });
+
+
+test('P0 #999: both explicit IDs HTTP 400 trigger redacted, read-only user-path comparison',async()=>{
+  const drive=fresh();
+  await fakeRequests((call,n)=>{
+    if(n===1)return token();
+    if(n===2){
+      assert.match(call.path,/\\/drives\\/rc1687-private-drive\\/items\\/rc1687-private-folder\\?/);
+      return {status:400,body:{error:{code:'BadRequest',message:'SECRET EXACT FOLDER'}}};
+    }
+    if(n===3){
+      assert.match(call.path,/\\/drives\\/rc1687-private-drive\\?\\$select=id/);
+      return {status:400,body:{error:{code:'BadRequest',message:'SECRET EXACT DRIVE'}}};
+    }
+    if(n===4){
+      assert.match(call.path,/\\/users\\/rc1687-private%40example.invalid\\/drive\\?\\$select=id/);
+      return {body:{id:'different-private-drive'}};
+    }
+    if(n===5){
+      assert.match(call.path,/\\/users\\/rc1687-private%40example.invalid\\/drive\\/root:\\/003%20Export\\/ExportHub\\/Abliefernachweise\\?/);
+      return {body:{id:'different-private-folder',folder:{},parentReference:{driveId:'different-private-drive'}}};
+    }
+    throw Error('Unexpected request in read-only comparison: '+call.path);
+  },async calls=>{
+    const result=await drive.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false,'Alternative user folder must NOT mark configured target healthy');
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_FOLDER_FAILED');
+    assert.equal(result.configuredUserPathMatchesExplicitIds,false);
+    assert.deepEqual(result.checks.map(x=>x.stage),[
+      'app-token','target-resolver','resolved-drive-read',
+      'configured-user-drive-read','configured-user-folder-path','resolved-folder-read'
+    ]);
+    assert.equal(result.checks[2].httpStatus,400);
+    assert.equal(result.checks[4].status,'ok');
+    assert.equal(result.checks.at(-1).httpStatus,400);
+    assert.ok(calls.every(x=>['GET','POST'].includes(x.method)),'diagnostic must never upload');
+    assert.equal(calls.filter(x=>x.method==='GET').length,4);
+    const summary=JSON.stringify(result);
+    for(const value of ['SECRET','rc1687-private-drive','rc1687-private-folder','different-private-drive','different-private-folder','rc1687-private@example.invalid'])
+      assert.equal(summary.includes(value),false,'private values must not leave diagnostic');
+  });
+});
+
+test('P0 #999: missing configured user/path cannot trigger speculative Graph target changes',async()=>{
+  const drive=fresh();
+  delete process.env.EXPORTHUB_POD_DRIVE_USER;
+  delete process.env.EXPORTHUB_POD_FOLDER;
+  await fakeRequests((call,n)=>{
+    if(n===1)return token();
+    if(n===2||n===3)return {status:400,body:{error:{code:'BadRequest',message:'SECRET'}}};
+    throw Error('Unconfigured user path must not be probed: '+call.path);
+  },async calls=>{
+    const result=await drive.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_FOLDER_FAILED');
+    assert.equal('configuredUserPathMatchesExplicitIds' in result,false);
+    assert.deepEqual(result.checks.map(x=>x.stage),[
+      'app-token','target-resolver','resolved-drive-read','resolved-folder-read'
+    ]);
+    assert.equal(calls.length,3);
+    assert.ok(calls.every(x=>['POST','GET'].includes(x.method)));
+  });
+});
