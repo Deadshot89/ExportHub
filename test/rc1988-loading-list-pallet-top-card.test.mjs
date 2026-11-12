@@ -27,6 +27,8 @@ test('RC1988: visible header balance follows ledger sign, never this shipment pa
  assert.deepEqual(plain(p.rc1988PalletTopCardData(sh,{balance:0})),{amount:'0 Europaletten',beneficiary:'Konto ausgeglichen'});
  assert.deepEqual(plain(p.rc1988PalletTopCardData(sh,null)),{amount:'–',beneficiary:'Kontostand nicht verfügbar'});
  assert.deepEqual(plain(p.rc1988PalletTopCardData(sh,{balance:NaN})),{amount:'–',beneficiary:'Kontostand nicht verfügbar'});
+ assert.deepEqual(plain(p.rc1988PalletTopCardData(sh,{balance:null})),{amount:'–',beneficiary:'Kontostand nicht verfügbar'});
+ assert.deepEqual(plain(p.rc1988PalletTopCardData(sh,{balance:''})),{amount:'–',beneficiary:'Kontostand nicht verfügbar'});
  assert.equal(p.rc1988PalletTopCardData({rows:[{type:'Karton',count:2}]},{balance:12}),null);
 });
 test('RC1988: third header card is wired before pickup summary, with no new ledger writes',()=>{
