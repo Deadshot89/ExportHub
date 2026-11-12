@@ -116,3 +116,36 @@ test('AVIS: Microsoft Graph REF list includes the exact byte size needed for SHA
  assert.match(graph,/select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime'/);
  assert.match(graph,/files\.push\(\{id,name:text\(item\.name\),size:/);
 });
+
+test('AVIS: verified duplicate proof is reused only for the same Graph file revision',async()=>{
+ const name='Rechnung_AB12CD_20261112-100000_SIDE000123456.pdf';
+ const bytes=Buffer.from('immutable-pdf-copy-for-duplicate-verification');
+ const sha=createHash('sha256').update(bytes).digest('hex');
+ const azure=[{id:'refdoc:'+'c'.repeat(32),name,size:bytes.length,sha256:sha}];
+ let revision='2026-11-12T10:00:00Z',reads=0;
+ const sharepoint={
+  async listFiles(){return[{id:'graph-revision-99',name,size:bytes.length,lastModifiedDateTime:revision}]},
+  async readFile(){reads++;return{buffer:bytes}}
+ };
+ const stored={list:async()=>azure};
+ const first=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ const second=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ assert.equal(first.length,1);assert.equal(second.length,1);
+ assert.equal(reads,1,'a byte-verified, unchanged Graph version avoids repeated downloads');
+ revision='2026-11-12T10:00:01Z';
+ const updated=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ assert.equal(updated.length,1);
+ assert.equal(reads,2,'a new Graph modification timestamp requires re-verification');
+});
+test('AVIS: no timestamp means no cached proof, even when both bytes matched before',async()=>{
+ const name='Lieferschein_AB12CD_20261112-100100_DNC000123456.pdf';
+ const bytes=Buffer.from('another-pdf-with-no-graph-revision');
+ const sha=createHash('sha256').update(bytes).digest('hex');
+ let reads=0;
+ const graph={listFiles:async()=>[{id:'graph-revision-missing',name,size:bytes.length}],
+  readFile:async()=>{reads++;return{buffer:bytes}}};
+ const azure={list:async()=>[{id:'refdoc:'+'d'.repeat(32),name,size:bytes.length,sha256:sha}]};
+ await docsMod.load(graph,'AB12CD','testservice',null,azure);
+ await docsMod.load(graph,'AB12CD','testservice',null,azure);
+ assert.equal(reads,2);
+});
