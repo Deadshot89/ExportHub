@@ -96,7 +96,7 @@ const RC1835_ACADEMY_EXAMS_STYLE_TAG='<link id="exporthub-rc1835-academy-exams-s
 const RC1835_ACADEMY_EXAMS_SCRIPT_TAG='<script id="exporthub-rc1835-academy-exams-script" defer src="/assets/rc1835-academy-exams.js?v=1835"></script>';
 const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
 const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
-const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1630"></script>';
+const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=20261112"></script>';
 const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="/assets/customer-folder-redesign.css?v=2">';
 // Früher Haken direkt nach <head>: muss vor den Menü-Handlern (RC325, Window-Capture) liegen, damit die Rückfrage bei
 // ungespeicherten Änderungen im Kundenordner vor dem Seitenwechsel greift. Die Logik selbst liegt in customer-folder-redesign.js.
@@ -259,7 +259,7 @@ function patchRc1579Menu(html,file){
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_STYLE_TAG,'exporthub-rc1579-menu-style');
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_I18N_TAG,'exporthub-rc1579-menu-i18n');
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_SCRIPT_TAG,'exporthub-rc1579-menu-script');
-  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1630'))throw new Error(file+': RC1579 Menü fehlt');
+  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=20261112'))throw new Error(file+': RC1579 Menü fehlt');
   return html;
 }
 

@@ -49,7 +49,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+        run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs e2e/specs/rc1820-full-navigation.spec.mjs
 
       - name: RC1592 Main-Vertrag vor zweiter Druckprüfung simulieren
         run: |
