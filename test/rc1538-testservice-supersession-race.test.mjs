@@ -16,7 +16,7 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,confirmForce=true,mainHeads=[]}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,forceMessage='Cannot force cancel queued run',confirmForce=true,mainHeads=[]}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
  let forceRequested=false,mainReadCount=0;
  const fetch=async(address,options={})=>{
@@ -34,7 +34,7 @@ async function scenario({status=409,message='Cannot cancel a workflow run that i
   }
   if(address.endsWith('/actions/runs/123/force-cancel')){
    forceRequested=true;
-   return reply(forceStatus,forceStatus===409?{message:'Cannot force cancel queued run'}:{});
+   return reply(forceStatus,forceStatus===409?{message:forceMessage}:{});
   }
   if(address.endsWith('/actions/runs/123'))
    return reply(200,{head_sha:pollSha,status:forceRequested&&confirmForce?'completed':pollStatus,created_at:pollCreatedAt});
@@ -109,6 +109,37 @@ test('RC1538: force-cancel 409 remains a hard failure',async()=>{
   message:'Cannot cancel a workflow run that has not been queued yet.',
   pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
   forceStatus:409
+ }),/GitHub API 409/);
+});
+
+test('RC1538: force-cancel 409 only clears a race after same-SHA completed readback',async()=>{
+ const {lines,calls}=await scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:true
+ });
+ assert.equal(calls.filter(x=>x.url.endsWith('/force-cancel')&&x.method==='POST').length,1);
+ assert.ok(calls.some(x=>x.method==='GET'&&x.url.endsWith('/actions/runs/123')));
+ assert.ok(lines.some(x=>x.includes('inzwischen abgeschlossen; kein Abbruch nötig')));
+ assert.equal(lines.some(x=>x.includes('force-cancel durch GitHub abgeschlossen bestätigt')),false);
+});
+
+test('RC1538: force-cancel 409 with still-queued old run remains a hard block',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:false
+ }),/force-cancel 409 for 123; old run remains queued, cancellation unconfirmed/);
+});
+
+test('RC1538: unrelated force-cancel 409 remains a hard failure',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Unrelated permission conflict',
+  confirmForce:true
  }),/GitHub API 409/);
 });
 
