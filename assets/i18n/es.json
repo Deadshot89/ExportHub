@@ -2756,5 +2756,17 @@
   "urgentOrderV2.issueRegenerate": "Vuelve a generar el borrador del correo.",
   "urgentOrderV2.issueTooLong": "La descripción del problema y las plantillas seleccionadas no pueden superar los 2000 caracteres.",
   "urgentOrderV2.shippingNotReady": "Solo disponible cuando se hayan enviado todas las posiciones.",
-  "urgentOrderV2.mailShippingPreparing": "Preparando la confirmación de envío."
+  "urgentOrderV2.mailShippingPreparing": "Preparando la confirmación de envío.",
+  "urgentOrderV2.crossviewExistingLinkLabel": "Vincular a un enlace externo de seguimiento existente (opcional)",
+  "urgentOrderV2.crossviewExistingLinkHelp": "Úsalo solo si el pedido debe aparecer en el mismo enlace privado. El correo de CS debe coincidir.",
+  "urgentOrderV2.crossviewShareResultLabel": "Enlace externo de seguimiento – compartir solo con personas autorizadas",
+  "urgentOrderV2.crossviewCopyLink": "Copiar enlace",
+  "urgentOrderV2.crossviewShareWarning": "Copia y comparte este enlace secreto de forma segura ahora. No se podrá recuperar después.",
+  "urgentOrderV2.crossviewShareAction": "Compartir mediante enlace externo",
+  "urgentOrderV2.crossviewLinkedLabel": "Vinculado a un enlace externo privado de seguimiento.",
+  "urgentOrderV2.crossviewShareConfirm": "Este enlace privado permite consultar el pedido sin iniciar sesión. Compártelo solo con personas autorizadas. ¿Continuar?",
+  "urgentOrderV2.crossviewShareSuccess": "Enlace externo de seguimiento creado. Cópialo y compártelo de forma segura ahora.",
+  "urgentOrderV2.crossviewLinkCopied": "Enlace externo de seguimiento copiado.",
+  "urgentOrderV2.crossviewLinkManualCopy": "Selecciona el enlace y cópialo manualmente.",
+  "urgentOrderV2.crossviewLinkedNoDelete": "Este pedido se compartió internamente. Solo se puede eliminar desde el sitio interno."
 }
