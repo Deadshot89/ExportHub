@@ -56,7 +56,7 @@ test('RC2022: stale/missing ACK cannot be manufactured by a no-op',()=>{
   const runtime={...verifiedRuntime(),...props};
   assert.equal(callNoChange(runtime,3),true);
   assert.equal(runtime.lastSavedGeneration,3);
-  assert.equal(runtime.lastServerSaveAckGeneration,props.lastServerSaveAckGeneration??1,
+  assert.equal(runtime.lastServerSaveAckGeneration,Object.prototype.hasOwnProperty.call(props,'lastServerSaveAckGeneration')?props.lastServerSaveAckGeneration:1,
     'A no-op must never manufacture an unverified server ACK');
  }
 });
