@@ -77,7 +77,10 @@ test('Anonymous reporter front-end and API provide scoped tracking, not public g
  const script=html.match(/<script>([\s\S]*?)<\/script>/);
  assert.ok(script);assert.doesNotThrow(()=>new vm.Script(script[1]));
  assert.equal(apiCfg.bindings[0].route,'urgent-order-public');
- assert.match(pub,/crypto\.randomBytes\(32\)/);
+ const capabilityHelper=fs.readFileSync(new URL('../api/shared/urgent-reporter-capability.js',import.meta.url),'utf8');
+ assert.match(pub,/const credential=reporter\.issue;/);
+ assert.match(capabilityHelper,/crypto\.randomBytes\(32\)/);
+ assert.match(capabilityHelper,/crypto\.createHash\('sha256'\)/);
  assert.match(pub,/groupByToken/);
  // Scope by reporter AND exclude soft-deleted requests; the API's capability isolation remains unchanged.
  assert.match(pub,/\.filter\(o=>!o\.deletedAt&&o\.reporterId===group\.id\)/);

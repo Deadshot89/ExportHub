@@ -133,6 +133,7 @@ test('Urgent internal view clears bearer secrets and ignores out-of-order sessio
   return html.slice(from,to);
  };
  const clearHelpers=between('function clearExternalTrackingSecrets(){','function token(){');
+ const escapeHelper=between('function escapeHtml(v){','function priority(n){');
  const refreshFunction=between('async function refresh(){','function berlinCutoffClock(){');
  const nodes={};
  function node(id){
@@ -152,7 +153,7 @@ test('Urgent internal view clears bearer secrets and ignores out-of-order sessio
   render:()=>{},renderSavedEmails:()=>{},setMessage:()=>{},localeV2:(_k,fallback)=>fallback,
   localizedLoginRequired:()=> 'Login required',lineField:()=>{},showInternalStep:()=>{}
  });
- vm.runInContext(clearHelpers+'\n'+refreshFunction,ctx);
+ vm.runInContext(clearHelpers+'\n'+escapeHelper+'\n'+refreshFunction,ctx);
  vm.runInContext('clearUrgentPrivateView(false)',ctx);
  assert.equal(node('externalShareUrl').value,'');
  assert.equal(node('externalShareExistingLink').value,'');
