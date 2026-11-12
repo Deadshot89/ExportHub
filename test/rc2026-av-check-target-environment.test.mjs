@@ -19,7 +19,7 @@ test('P0 AV Graph readiness uses isolated TESTSERVICE target, never production f
     Object.assign(process.env, {
       EXPORTHUB_GRAPH_TENANT_ID: 'synthetic-tenant',
       EXPORTHUB_GRAPH_CLIENT_ID: 'synthetic-client',
-      EXPORTHUB_GRAPH_CLIENT_SECRET: 'synthetic-secret',
+      EXPORTHUB_GRAPH_CLIENT_SECRET: 'test',
       EXPORTHUB_TEST_REFERENCE_DRIVE_ID: 'isolated-test-drive',
       EXPORTHUB_TEST_REFERENCE_FOLDER_ID: 'isolated-test-folder'
     });
