@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Zapisano",
   "avisPortal.uploadChecking": "Trwa sprawdzanie",
   "avisPortal.noDocuments": "Obecnie nie ma udostępnionego dokumentu do pobrania.",
-  "avisPortal.noFurtherDocuments": "Obecnie nie ma innych udostępnionych dokumentów."
+  "avisPortal.noFurtherDocuments": "Obecnie nie ma innych udostępnionych dokumentów.",
+  "avisPortal.quantitiesTitle": "Ilości dostarczonych artykułów",
+  "avisPortal.quantitiesIntro": "Wyświetlane są tylko ilości jednoznacznie podane na dowodach dostawy. Liczba paczek i faktury nie są źródłami ilości.",
+  "avisPortal.quantitiesAction": "Sprawdź ilości na dowodach dostawy",
+  "avisPortal.quantitiesLoading": "Sprawdzanie dowodów dostawy …",
+  "avisPortal.quantitiesMissing": "Nie udało się jednoznacznie ustalić dostarczonych ilości artykułów.",
+  "avisPortal.quantitiesError": "Nie udało się zakończyć sprawdzania PDF.",
+  "avisPortal.quantitiesArticle": "Artykuł",
+  "avisPortal.quantitiesQuantity": "Ilość dostarczona",
+  "avisPortal.quantitiesSource": "Źródło: dowód dostawy",
+  "avisPortal.quantitiesIncomplete": "Nie udało się jednoznacznie odczytać pozostałych dokumentów."
 }
