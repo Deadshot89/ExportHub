@@ -109,13 +109,17 @@ function normalizeDeliveryGrid(html){if(!d||!d.createElement||typeof html!=='str
    ausschliesslich aus dem bestehenden RC1543-Kunden-/Speditionskonto, nie aus palletOut. */
 function rc1988HasEuroPallets(sh){
  if(!sh||typeof sh!=='object')return false;
- if([sh.palletOut,sh.euroPallets,sh.euroPalletCount].some(function(v){return Number.isFinite(Number(v))&&Number(v)>0}))return true;
- return['rows','packages','packingRows','packagingRows','colliRows'].some(function(field){
-  return arr(sh[field]).some(function(row){
-   var kind=q(row&&(row.type||row.packaging||row.verpackung||row.packageType||row.packagingType||row.name));
-   var raw=row&&(row.count!=null?row.count:(row.quantity!=null?row.quantity:(row.qty!=null?row.qty:row.amount)));
-   return /euro.*pal|eur.*pal/i.test(kind)&&(raw==null||q(raw)===''||Number(raw)>0)
-  })
+ if([sh.palletOut,sh.euroPallets,sh.euroPalletCount].some(function(v){return v!=null&&q(v)!==''&&Number.isFinite(Number(v))&&Number(v)>0}))return true;
+ // Keep the same primary row selection as shipmentRows() in loadHtml:
+ // the longest persisted pack-piece array is the authoritative print source.
+ var rows=[];
+ ['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines','packingRows'].forEach(function(field){
+  var candidate=arr(sh[field]);if(candidate.length>rows.length)rows=candidate
+ });
+ return rows.some(function(row){
+  var kind=q(row&&(row.type||row.packaging||row.verpackung||row.packagingType||row.name||row.packageType));
+  var raw=row&&(row.count!=null?row.count:(row.qty!=null?row.qty:(row.quantity!=null?row.quantity:(row.anzahl!=null?row.anzahl:row.amount))));
+  return /euro.*pal|eur.*pal/i.test(kind)&&raw!=null&&q(raw)!==''&&Number(raw)>0
  })
 }
 function rc1988PalletTopCardData(sh,account){
