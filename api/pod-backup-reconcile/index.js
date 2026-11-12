@@ -86,6 +86,11 @@ module.exports = async function(context, req) {
         configured: diagnostic.configured,
         missing: diagnostic.missing,
         targetMode: diagnostic.targetMode,
+        // Only an explicit boolean established by a read-only Graph GET may
+        // leave the signed maintenance endpoint, never user/drive/folder IDs.
+        ...(typeof diagnostic.configuredUserPathMatchesExplicitIds === 'boolean'
+          ? { configuredUserPathMatchesExplicitIds: diagnostic.configuredUserPathMatchesExplicitIds }
+          : {}),
         checks: diagnostic.checks
       });
       return;
