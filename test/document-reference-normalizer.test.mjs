@@ -154,7 +154,7 @@ test('AVIS invoice: invoice with a delivery-note DNC is not renamed into a secon
 
 test('AVIS detects real SIDE invoice layout when a DNC packing-slip reference is also printed',()=>{
   const api=load();
-  const content='Invoice\\nInvoice Number SIDE000012345\\nQty Shipped 25 EA\\nQuantity: 25 Packing slip No.: DNC0000001234';
+  const content=['Invoice','Invoice Number SIDE000012345','Qty Shipped 25 EA','Quantity: 25 Packing slip No.: DNC0000001234'].join(String.fromCharCode(10));
   assert.equal(api.detectDocumentKind('scan.pdf',content),'rechnung');
   const out=api.normalizedPdfName('DNC0000001234.pdf',content);
   assert.equal(out.name,'Rechnung_DNC0000001234.pdf');
