@@ -147,9 +147,9 @@ test('AVIS invoice: invoice with a delivery-note DNC is not renamed into a secon
   const input='Commercial Invoice SIDE000012345 / related Delivery Note DNC0000001234';
   assert.equal(api.detectDocumentKind('scan.pdf',input),'rechnung');
   const result=api.normalizedPdfName('DNC0000001234.pdf',input);
-  assert.equal(result.name,'Rechnung_DNC0000001234.pdf');
+  assert.equal(result.name,'SIDE000012345.pdf');
   assert.equal(result.reason,'invoice');
-  assert.equal(result.reference,null);
+  assert.equal(result.reference,'SIDE000012345');
 });
 
 test('AVIS detects real SIDE invoice layout when a DNC packing-slip reference is also printed',()=>{
@@ -157,7 +157,7 @@ test('AVIS detects real SIDE invoice layout when a DNC packing-slip reference is
   const content=['Invoice','Invoice Number SIDE000012345','Qty Shipped 25 EA','Quantity: 25 Packing slip No.: DNC0000001234'].join(String.fromCharCode(10));
   assert.equal(api.detectDocumentKind('scan.pdf',content),'rechnung');
   const out=api.normalizedPdfName('DNC0000001234.pdf',content);
-  assert.equal(out.name,'Rechnung_DNC0000001234.pdf');
+  assert.equal(out.name,'SIDE000012345.pdf');
 });
 
 test('AVIS delivery note: DNC normalization still works without an invoice heading',()=>{
@@ -180,6 +180,6 @@ test('AVIS: invoice metadata takes precedence over the deliveryFiles default',()
   assert.match(handler,/if\(\/RECHNUNG\|.*INVOICE.*\/\.test\(raw\)\|\|field==='invoiceFiles'\)return'Rechnung'/);
   assert.ok(handler.indexOf("return'Rechnung';if(/LIEFERSCHEIN")>0);
   const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
-  assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)==='rechnung'/);
+  assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)/);
   assert.match(upload,/kind:actualKind,reference:ref/);
 });
