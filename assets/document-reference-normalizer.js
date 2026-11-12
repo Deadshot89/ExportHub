@@ -28,11 +28,11 @@
   function detectDocumentKind(fileName,extractedText){
     const name=String(fileName==null?'':fileName);
     const body=String(extractedText==null?'':extractedText);
-    if(/(?:^|[\\s_.-])(?:rechnung|invoice|proforma)(?=[\\s_.-]|$)/i.test(name))return'rechnung';
-    if(/salespackingslip|(?:^|[\\s_.-])(?:lieferschein|delivery[\\s_.-]?note)(?=[\\s_.-]|$)/i.test(name))return'lieferschein';
-    if(/\\b(?:commercial[\\s-]+invoice|proforma[\\s-]+invoice)\\b/i.test(body))return'rechnung';
-    const invoiceNumber=/\\b(?:rechnungs(?:nummer|nr\\.?|nummer\\s*[:#])|invoice\\s*(?:number|no\\.?|nr\\.?|#))\\b/i.test(body);
-    const delivery=/\\b(?:delivery[\\s-]+note|lieferschein|packing[\\s-]+slip)\\b/i.test(body);
+    if(/(?:^|[\s_.-])(?:rechnung|invoice|proforma)(?=[\s_.-]|$)/i.test(name))return'rechnung';
+    if(/salespackingslip|(?:^|[\s_.-])(?:lieferschein|delivery[\s_.-]?note)(?=[\s_.-]|$)/i.test(name))return'lieferschein';
+    if(/\b(?:commercial[\s-]+invoice|proforma[\s-]+invoice)\b/i.test(body))return'rechnung';
+    const invoiceNumber=/\b(?:rechnungs(?:nummer|nr\.?|nummer\s*[:#])|invoice\s*(?:number|no\.?|nr\.?|#))\b/i.test(body);
+    const delivery=/\b(?:delivery[\s-]+note|lieferschein|packing[\s-]+slip)\b/i.test(body);
     if(invoiceNumber&&!delivery)return'rechnung';
     if(delivery&&!invoiceNumber)return'lieferschein';
     return'';
@@ -45,8 +45,8 @@
     // paperwork; conflicting or multiple DNCs must not be guessed.
     // Do not turn a customer invoice into a second DNC delivery note.
     if(detectDocumentKind(original,extractedText)==='rechnung'){
-      const base=original.replace(/\\.pdf$/i,'');
-      const renamed=/^(?:rechnung|invoice|proforma)(?:[\\s_.-]|$)/i.test(base)?original:'Rechnung_'+base+'.pdf';
+      const base=original.replace(/\.pdf$/i,'');
+      const renamed=/^(?:rechnung|invoice|proforma)(?:[\s_.-]|$)/i.test(base)?original:'Rechnung_'+base+'.pdf';
       return{name:renamed,renamed:renamed!==original,reference:null,reason:'invoice'};
     }
     const contentRefs=extractDocumentReferences(extractedText);
