@@ -182,18 +182,34 @@ function normalizeInlineDocumentName(file,parsed){
 async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
  const first=normalizeInlineDocumentName(file,parsed);
  const name=text(file&&(file.name||file.fileName||file.filename));
- if(first.documentReference||!/\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
+ if(!/\.pdf$/i.test(name)||!['application/pdf','application/x-pdf'].includes(parsed.mimeType))return first;
  const fastResult=pdfReferences.normalizedPdfName(name,pdfReferences.extractPdfText(parsed.buffer));
  if(fastResult.reason==='ambiguous')return first;
+ // A fast DNC match cannot rule out an invoice: its own SIDE and heading may
+ // use D365 CID/ToUnicode glyphs that the lightweight reader cannot decode.
+ if(first.documentReferenceType==='SIDE')return first;
  try{
   const extractor=typeof options.pdfTextExtractor==='function'?options.pdfTextExtractor:
     require('./customer-avis-document-content').extractPdfText;
-  const recognized=pdfReferences.normalizedPdfName(name,await extractor(parsed.buffer));
-  if(!recognized.renamed||!recognized.reference)return first;
+  const extracted=await extractor(parsed.buffer);
+  const heading=String(extracted||'').slice(0,2200);
+  const invoiceHeading=/\b(?:invoice\s*(?:number|no\.?|nr\.?)|commercial\s*invoice|proforma\s*invoice|rechnungs(?:nummer|nr\.?))\b/i.test(heading);
+  const recognized=pdfReferences.normalizedPdfName(name,extracted);
+  if(recognized.reason==='invoice-unresolved'){
+   // Strong invoice heading without a unique SIDE: no fabricated DNC invoice.
+   const safe=Object.assign({},file,{documentType:'Rechnung'});
+   delete safe.documentReference;
+   delete safe.documentReferenceType;
+   return safe;
+  }
+  if(!recognized.reference||!recognized.renamed)return first;
+  if(first.documentReference&&first.documentReference!==recognized.reference&&
+      !(recognized.reason==='side'&&invoiceHeading))return first;
   return Object.assign({},first,{
    originalName:file.originalName||name,name:recognized.name,
    documentReference:recognized.reference,
-   documentReferenceType:recognized.reason==='side'?'SIDE':'DNC'
+   documentReferenceType:recognized.reason==='side'?'SIDE':'DNC',
+   ...(recognized.reason==='side'&&invoiceHeading?{documentType:'Rechnung'}:{})
   });
  }catch(_){return first}
 }
