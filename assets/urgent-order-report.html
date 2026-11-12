@@ -406,6 +406,7 @@ async function nextWizardStep(){
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
 function closed(o){return !!(o.progress&&Array.isArray(o.progress.steps)&&o.progress.steps.some(s=>s.key==='completed'&&s.state==='done'))||!!(o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced'))}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function progressT(key,fallback){try{const i=window.ExportHUBI18n,name='urgentProgress.'+key;const value=i&&i.t(name,null,i.language());return value&&value!==name?value:fallback;}catch(_){return fallback;}}
 function statusText(code){return code==='Gemischt'||code==='Mixed'?'Mixed':STATUS.includes(code)?code:'Unknown';}
 function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
 function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
@@ -435,14 +436,14 @@ function render(){
   node.querySelectorAll('[data-progress-step]').forEach(button=>button.addEventListener('click',async ev=>{
    ev.preventDefault();ev.stopPropagation();
    if(button.dataset.progressStep!=='received')return;
-   if(!window.confirm(localeV2('receiptConfirm','Bestätigst du, dass der Wareneingang für diesen Auftrag tatsächlich eingebucht ist?')))return;
+   if(!window.confirm(progressT('receiptConfirm','Bestätigst du, dass der Wareneingang für diesen Auftrag tatsächlich eingebucht ist?')))return;
    button.disabled=true;
    try{
     const result=await api('confirm-received',{accessToken:secret,id:o.id});
     const idx=orders.findIndex(x=>x.id===o.id);if(idx>=0)orders[idx]=result.order;
     const wasOpen=node.open;render();
     if(wasOpen){const found=[...$('orders').querySelectorAll('details')].find(x=>x.dataset.urgentId===o.id);if(found)found.open=true;}
-    showMessage(localeV2('receiptSaved','Wareneingang bestätigt. Die Logistik sieht eine Benachrichtigung.'),'ok');
+    showMessage(progressT('receiptSaved','Wareneingang bestätigt. Die Logistik sieht eine Benachrichtigung.'),'ok');
    }catch(error){button.disabled=false;showMessage(error.message,'error');}
   }));
   const deleteButton=node.querySelector('[data-delete-order]');
