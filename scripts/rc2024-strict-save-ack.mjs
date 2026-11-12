@@ -8,7 +8,8 @@ const AFTER=[
  " Array.isArray(stateDelta&&stateDelta.customers)&&stateDelta.customers.length>0&&",
  " authoritative&&authoritative.clientSaveAck!==true&&isObject(authoritative.state)&&",
  " criticalSaveDeltaConfirmed(authoritative.state,stateDelta)&&",
- " syncedCollectionsContainDelta(authoritative.state,stateDelta)",
+ " syncedCollectionsContainDelta(authoritative.state,stateDelta)&&",
+ " Object.keys(stateDelta).every(function(key){return Object.prototype.hasOwnProperty.call(SYNC_COLLECTION_KEYS,key)||sameValue(authoritative.state[key],stateDelta[key])})",
  ");if(!confirmed){runtime.dirty=true;runtime.pendingSave=true;"
 ].join('');
 export function patchRc2024StrictSaveAckHtml(source,file='index.html'){

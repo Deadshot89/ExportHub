@@ -25,8 +25,15 @@ const hasDelta=(remote,delta,name)=>{
 };
 const matchingCollections=(remote,delta)=>
  Object.keys(delta||{}).filter(k=>Array.isArray(delta[k])).every(k=>hasDelta(remote,delta,k));
+const collectionsStart=original.indexOf('const SYNC_COLLECTION_KEYS=');
+const collectionsEnd=original.indexOf(';',collectionsStart);
+assert.ok(collectionsStart>=0&&collectionsEnd>collectionsStart,'Actual collection key registry exists');
+const SYNC_COLLECTION_KEYS=vm.runInNewContext(
+ '('+original.slice(collectionsStart+'const SYNC_COLLECTION_KEYS='.length,collectionsEnd)+')'
+);
+const sameValue=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const contextBase={
- Array,isObject,
+ Array,Object,isObject,SYNC_COLLECTION_KEYS,sameValue,
  criticalSaveDeltaConfirmed:(remote,delta)=>hasDelta(remote,delta,'customers'),
  syncedCollectionsContainDelta:matchingCollections
 };
@@ -58,6 +65,23 @@ test('RC2024: customer and shipment fallback requires independent complete remot
  assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}]}}}),false);
  assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}],shipments:[{id:'S1'}]}}}),true);
  assert.equal(confirmed({stateDelta:{customers:[{id:'C1'}]},authoritative:{state:{customers:[{id:'C1'}]}}}),true);
+});
+
+test('RC2024: customer fallback must independently confirm metadata tombstones and scalar changes',()=>{
+ const customers=[{id:'C1'}],shipments=[{id:'S1'}];
+ const meta={fields:{},tombstones:[{collection:'shipments',id:'S-DELETED',deletedAt:'2026-11-12T09:00:00Z'}]};
+ const stateDelta={customers,shipments,_teamSyncMeta:meta,lastManualSync:'2026-11-12T09:00:00Z'};
+ const fullyVerified={customers,shipments,_teamSyncMeta:meta,lastManualSync:stateDelta.lastManualSync};
+ for(const state of [
+  {customers,shipments},
+  {customers,shipments,_teamSyncMeta:{fields:{},tombstones:[]}},
+  {customers,shipments,_teamSyncMeta:meta},
+  {customers,shipments,_teamSyncMeta:meta,lastManualSync:'stale'}
+ ])assert.equal(confirmed({stateDelta,authoritative:{state}}),false,
+   'A matching customer and shipment cannot conceal unconfirmed sync metadata or scalar values');
+ assert.equal(confirmed({stateDelta,authoritative:{state:fullyVerified}}),true);
+ assert.equal(confirmed({serverAck:true,stateDelta,authoritative:null}),true,
+   'A separately verified server acknowledgement continues to cover all changed keys');
 });
 
 test('RC2024: unconfirmed changes remain dirty and pending for safe retry',()=>{
