@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Salvato",
   "avisPortal.uploadChecking": "Verifica in corso",
   "avisPortal.noDocuments": "Al momento non ci sono documenti autorizzati da scaricare.",
-  "avisPortal.noFurtherDocuments": "Al momento non ci sono altri documenti autorizzati disponibili."
+  "avisPortal.noFurtherDocuments": "Al momento non ci sono altri documenti autorizzati disponibili.",
+  "avisPortal.quantitiesTitle": "Quantità di articoli consegnati",
+  "avisPortal.quantitiesIntro": "Sono mostrate solo le quantità esplicitamente riportate sui documenti di consegna. Colli e fatture non sono usati come fonte.",
+  "avisPortal.quantitiesAction": "Verifica le quantità delle bolle di consegna",
+  "avisPortal.quantitiesLoading": "Verifica dei documenti di consegna …",
+  "avisPortal.quantitiesMissing": "Non è stato possibile determinare con certezza le quantità degli articoli consegnati.",
+  "avisPortal.quantitiesError": "Impossibile completare la verifica del PDF.",
+  "avisPortal.quantitiesArticle": "Articolo",
+  "avisPortal.quantitiesQuantity": "Quantità consegnata",
+  "avisPortal.quantitiesSource": "Fonte: bolla di consegna",
+  "avisPortal.quantitiesIncomplete": "Non è stato possibile interpretare con certezza altri documenti."
 }
