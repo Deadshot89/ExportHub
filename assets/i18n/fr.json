@@ -2768,5 +2768,6 @@
   "urgentOrderV2.crossviewShareSuccess": "Lien de suivi externe créé. Copiez-le et partagez-le de manière sécurisée maintenant.",
   "urgentOrderV2.crossviewLinkCopied": "Lien de suivi externe copié.",
   "urgentOrderV2.crossviewLinkManualCopy": "Sélectionnez le lien et copiez-le manuellement.",
-  "urgentOrderV2.crossviewLinkedNoDelete": "Cette commande a été partagée en interne. Elle ne peut être supprimée que depuis le site interne."
+  "urgentOrderV2.crossviewLinkedNoDelete": "Cette commande a été partagée en interne. Elle ne peut être supprimée que depuis le site interne.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Lien de suivi externe existant pour le partage (facultatif)"
 }
