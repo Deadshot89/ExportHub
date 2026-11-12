@@ -194,6 +194,32 @@ function createPackNotifier(overrides = {}) {
   };
 }
 
+// Only explicitly opted-in logistics users receive P1 alerts; use the separate
+// production/testservice push stores, never anonymous reporter subscriptions.
+function createUrgentP1Notifier(overrides = {}) {
+  let base = null;
+  const deps = () => base || (base = Object.assign(defaultDeps(), overrides));
+  return async function notifyUrgentP1(environment, order) {
+    if (!enabled() || !order || order.priority !== 'P1') return { sent: 0 };
+    const env = lower(environment) === 'testservice' ? 'testservice' : 'production';
+    const doc = await deps().store.read(env);
+    const targets = doc.subscriptions.filter((s) => s && s.packAllowed === true && s.categories && s.categories.urgentP1 === true);
+    if (!targets.length) return { sent: 0 };
+    const vapid = await deps().store.vapid(), nowIso = deps().now().toISOString();
+    const id = reminders.urgentP1Payload(order, env, nowIso).id;
+    // A failed device must not stop delivery attempts to other opted-in devices.
+    const results = await Promise.all(targets.map(async subscription => {
+      try {
+        const payload = reminders.urgentP1Payload(order, env, nowIso, subscription.language, id);
+        const r = await deps().send(subscription, payload, { vapid, subject: SUBJECT, ttl: 24 * 3600, urgency: 'high', topic: 'urgent-p1' });
+        return Object.assign({ id: subscription.id }, r);
+      } catch (_) { return { id: subscription.id, ok: false }; }
+    }));
+    await deps().store.mutate(env, d => { storeLib.recordResults(d, results, nowIso); });
+    return { sent: results.filter(r => r.ok).length };
+  };
+}
+
 let defaultHandler = null;
 module.exports = async function (context, req) {
   if (!defaultHandler) defaultHandler = createHandler();
@@ -203,3 +229,4 @@ module.exports = async function (context, req) {
 };
 module.exports.createHandler = createHandler;
 module.exports.createPackNotifier = createPackNotifier;
+module.exports.createUrgentP1Notifier = createUrgentP1Notifier;
