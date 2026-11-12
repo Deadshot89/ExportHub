@@ -2,32 +2,45 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {hardenCustomerSaveHtml} from '../scripts/rc1600-customer-save-readback.mjs';
+import {hardenAckMergeSaveHtml} from '../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc2024StrictSaveAckHtml} from '../scripts/rc2024-strict-save-ack.mjs';
 import {patchRc1982MetaDeltaHtml} from '../scripts/rc1982-save-meta-delta.mjs';
 
 const original=fs.readFileSync('index.html','utf8');
-const hardened=patchRc1982MetaDeltaHtml(original);
+const afterRc1600=hardenAckMergeSaveHtml(hardenCustomerSaveHtml(original));
+const hardened=patchRc1982MetaDeltaHtml(afterRc1600);
 const start=hardened.indexOf('const confirmed=serverAck||(');
 const end=hardened.indexOf(';if(!confirmed){runtime.dirty=true;runtime.pendingSave=true;',start);
-assert.ok(start>0&&end>start,'The built saver must guard false acknowledgements and preserve pending deltas');
+assert.ok(start>0&&end>start,'RC2024 built saver must preserve unconfirmed data');
 const expression=hardened.slice(start+'const confirmed='.length,end);
+
+const isObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const hasDelta=(remote,delta,name)=>{
+ if(!Array.isArray(delta?.[name])||delta[name].length===0)return true;
+ if(!Array.isArray(remote?.[name]))return false;
+ return delta[name].every(part=>remote[name].some(row=>
+  row.id===part.id&&Object.entries(part).every(([k,v])=>JSON.stringify(row[k])===JSON.stringify(v))
+ ));
+};
+const matchingCollections=(remote,delta)=>
+ Object.keys(delta||{}).filter(k=>Array.isArray(delta[k])).every(k=>hasDelta(remote,delta,k));
 const contextBase={
- Array,
- isObject:value=>value!==null&&typeof value==='object'&&!Array.isArray(value),
- criticalSaveDeltaConfirmed:()=>true,
- syncedCollectionsContainDelta:()=>true
+ Array,isObject,
+ criticalSaveDeltaConfirmed:(remote,delta)=>hasDelta(remote,delta,'customers'),
+ syncedCollectionsContainDelta:matchingCollections
 };
 function confirmed({serverAck=false,stateDelta={shipments:[{id:'S1'}]},authoritative={state:{shipments:[{id:'S1'}]}}}={}){
  const ctx={...contextBase,serverAck,stateDelta,authoritative};
  return Boolean(vm.runInNewContext(expression,ctx));
 }
 
-test('RC2024: valid Azure server ACK still approves actual changes',()=>{
+test('RC2024: verified Azure server ACK remains sufficient for persisted changes',()=>{
  assert.equal(confirmed({serverAck:true}),true);
  assert.equal(confirmed({serverAck:true,authoritative:null}),true);
 });
 
-test('RC2024: no customer changes never imply persisted shipment, ABD or pack state',()=>{
+test('RC2024: non-customer changes do not pass without a server ACK',()=>{
  for(const key of ['shipments','savedShipments','abdRequests','packNotifications','shipmentDocuments','tasks']){
   const stateDelta={[key]:[{id:'REC-1'}]};
   assert.equal(confirmed({serverAck:false,stateDelta}),false,key+' cannot use a customer-only predicate');
@@ -36,41 +49,49 @@ test('RC2024: no customer changes never imply persisted shipment, ABD or pack st
  assert.equal(confirmed({serverAck:false,stateDelta:{_teamSyncMeta:{tombstones:[{id:'deleted'}]}}}),false);
 });
 
-test('RC2024: customer fallback needs actual remote evidence, not synthesized client copy',()=>{
+test('RC2024: customer and shipment fallback requires independent complete remote evidence',()=>{
  const stateDelta={customers:[{id:'C1'}],shipments:[{id:'S1'}]};
- assert.equal(confirmed({stateDelta,authoritative:{clientSaveAck:true,state:{}}}),false);
+ assert.equal(confirmed({stateDelta,authoritative:{clientSaveAck:true,
+  state:{customers:[{id:'C1'}],shipments:[{id:'S1'}]}}}),false);
  assert.equal(confirmed({stateDelta,authoritative:null}),false);
- assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}],shipments:[]}}}),true,
-   'A full remote result may be accepted only when the actual collection matcher confirms it');
- const ctx={...contextBase,serverAck:false,stateDelta,
-  authoritative:{state:{customers:[{id:'C1'}],shipments:[]}},syncedCollectionsContainDelta:()=>false};
- assert.equal(Boolean(vm.runInNewContext(expression,ctx)),false,'partial remote collection must fail closed');
+ assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}],shipments:[]}}}),false);
+ assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}]}}}),false);
+ assert.equal(confirmed({stateDelta,authoritative:{state:{customers:[{id:'C1'}],shipments:[{id:'S1'}]}}}),true);
+ assert.equal(confirmed({stateDelta:{customers:[{id:'C1'}]},authoritative:{state:{customers:[{id:'C1'}]}}}),true);
 });
 
-test('RC2024: failed confirmation retains local dirty delta for idempotent retry',()=>{
+test('RC2024: unconfirmed changes remain dirty and pending for safe retry',()=>{
  assert.match(hardened,/if\(!confirmed\)\{runtime\.dirty=true;runtime\.pendingSave=true;/);
  assert.doesNotMatch(hardened,/if\(!confirmed\)\{rebaseLiveStateFromRemote\(authoritative,baseBefore,currentLive\)/);
  assert.match(hardened,/e\.code='SAVE_NOT_CONFIRMED';throw e/);
- assert.match(hardened,/runtime\.lastSavedGeneration=generation;/);
- assert.ok(hardened.indexOf("if(!confirmed){")<hardened.indexOf("runtime.lastSavedGeneration=generation;"),
-   'The durable local success counter follows a positive confirmation only');
+ assert.ok(hardened.indexOf('if(!confirmed){')<hardened.indexOf('runtime.lastSavedGeneration=generation;'),
+  'local success counters may only advance after positive confirmation');
 });
 
-test('RC2024: three-environment build inherits guard and patch is idempotent/fail-closed',()=>{
- const script=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.match(script,/patchRc1982MetaDeltaHtml\(rc1718Printed\.replace\(/);
+test('RC2024: existing RC1600 shipment guard and RC1627 merge path stay intact',()=>{
+ assert.match(afterRc1600,/const confirmed=\(Array\.isArray\(stateDelta\.customers\)/);
+ assert.match(hardened,/const confirmed=serverAck\|\|\(/);
+ assert.match(hardened,/newerAfterConfirm=newer\|\|Number\(runtime.changeGeneration\|\|0\)>generation/);
+ assert.equal(patchRc2024StrictSaveAckHtml(hardened),hardened,'patch is idempotent');
+ assert.equal(patchRc1982MetaDeltaHtml(hardened),hardened);
+ assert.equal(patchRc2024StrictSaveAckHtml(original),original,'canonical source remains for RC1982 tests');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(build,/patchRc1982MetaDeltaHtml\(rc1718Printed\.replace\(/);
  const patcher=fs.readFileSync('scripts/rc1982-save-meta-delta.mjs','utf8');
  assert.match(patcher,/patchRc2024StrictSaveAckHtml\(html\.replace\(BEFORE,AFTER\)/);
- assert.equal(patchRc2024StrictSaveAckHtml(hardened),hardened);
- assert.equal(patchRc1982MetaDeltaHtml(hardened),hardened);
- assert.throws(()=>patchRc2024StrictSaveAckHtml(original.replace(
-  'const confirmed=serverAck||criticalSaveDeltaConfirmed(authoritative&&authoritative.state,stateDelta);',
-  'const confirmed=serverAck||unverifiedNewCondition(authoritative);'
- )),/RC2024 save confirmation anchor missing or ambiguous/);
+});
+
+test('RC2024: unexpected source drift fails closed, never silently bypasses build patch',()=>{
+ const unexpected=afterRc1600.replace(
+  'const confirmed=(Array.isArray(stateDelta.customers)&&stateDelta.customers.length>0)?',
+  'const confirmed=unverifiedCustomChecker()?'
+ );
+ assert.throws(()=>patchRc2024StrictSaveAckHtml(unexpected,'TESTVERSION.html'),
+  /RC2024 post-RC1600 save confirmation anchor missing or ambiguous/);
  assert.throws(()=>patchRc2024StrictSaveAckHtml('<html>Broken app without saver</html>','index.html'),
-  /RC2024 save confirmation anchor missing or ambiguous/);
- assert.throws(()=>patchRc2024StrictSaveAckHtml('<html>Broken TESTSERVICE app</html>','TESTVERSION.html'),
-  /RC2024 save confirmation anchor missing or ambiguous/);
- assert.equal(patchRc2024StrictSaveAckHtml('<html>Demo without authenticated saver</html>','demo.html'),
-  '<html>Demo without authenticated saver</html>');
+  /RC2024 post-RC1600 save confirmation anchor missing or ambiguous/);
+ assert.throws(()=>patchRc2024StrictSaveAckHtml('<html>Broken testservice app</html>','TESTVERSION.html'),
+  /RC2024 post-RC1600 save confirmation anchor missing or ambiguous/);
+ const demo='<html>Demo without authenticated saver</html>';
+ assert.equal(patchRc2024StrictSaveAckHtml(demo,'demo.html'),demo);
 });
