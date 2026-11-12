@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const reporter=require('../shared/urgent-reporter-capability');
 const packing=require('../shared/urgent-packing');
 const mailTranslation=require('../shared/urgent-mail-translation');
 const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
@@ -235,12 +236,42 @@ async function execute(req,user,refs){
  if(action==='create'){
   const catalog=p.allLines===true?null:await readPackingCatalog(refs);
   const created=model.createOrder(p,identity(user),now,catalog);
+  const requestedLink=String(p.externalTrackingLink||'').trim();
+  if(requestedLink.length>600)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Externer Link ist zu lang.',400);
+  const accessToken=requestedLink?reporter.extractToken(requestedLink):'';
+  if(requestedLink&&!accessToken)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Bitte einen gültigen externen Urgent-Order-Link einfügen.',400);
   return write(refs,doc=>{
    const previous=doc.orders.find(x=>!x.deletedAt&&x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
+   if(accessToken){
+    const group=reporter.groupByToken(doc,accessToken);
+    if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Der externe Überwachungslink gehört nicht zu dieser Umgebung oder ist ungültig.',403);
+    if(group.email!==created.email)throw model.problem('URGENT_REPORTER_EMAIL_MISMATCH','Die CS-E-Mail-Adresse muss mit dem externen Überwachungslink übereinstimmen.',403);
+    if(doc.orders.filter(x=>!x.deletedAt&&x.reporterId===group.id).length>=100)throw model.problem('URGENT_REPORTER_CAPACITY','Dieser externe Link hat die maximale Anzahl an Aufträgen erreicht.',409);
+    created.reporterId=group.id;
+    created.externalSharedFromInternal=true;
+   }
    doc.orders.push(created);
-   // Email history is browser-local; do not link the email to the login profile.
+   // No tracking tokens are stored in order documents.
    return{order:created,environment:refs.environment};
+  });
+ }
+ if(action==='share-external'){
+  const id=model.text(p.id,90);
+  const issued=reporter.issue();
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,id,user);
+   const owns=!!(user&&user.id&&model.text(order.createdBy&&order.createdBy.id,150)===model.text(user.id,150));
+   if(!model.canManage(user)&&!owns)throw model.problem('URGENT_FORBIDDEN','Nur der Melder oder die Logistik kann diesen Auftrag extern freigeben.',403);
+   if(order.reporterId)throw model.problem('URGENT_ALREADY_SHARED','Der Auftrag ist bereits einem externen Link zugeordnet. Bitte den ursprünglichen Link verwenden.',409);
+   if(doc.reporterGroups.length>=3000)throw model.problem('URGENT_CAPACITY','Die maximale Anzahl externer Überwachungslinks wurde erreicht.',503);
+   doc.reporterGroups.push({id:issued.id,tokenHash:issued.tokenHash,email:order.email,createdAt:now});
+   order.reporterId=issued.id;
+   order.externalSharedFromInternal=true;
+   order.updatedAt=now;
+   order.history=Array.isArray(order.history)?order.history:[];
+   order.history.push({at:now,actorId:model.text(user&&user.id,150),event:'external_tracking_shared'});
+   return{order,accessToken:issued.token,environment:refs.environment};
   });
  }
  if(action==='request-delete'){
