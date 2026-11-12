@@ -9,6 +9,7 @@ on:
       - 'test/rc1547-loading-list-single-page.test.mjs'
       - 'test/rc1550-pod-print-layout.test.mjs'
       - 'e2e/specs/rc1547-loading-list-single-page.spec.mjs'
+      - 'e2e/specs/rc1988-loading-list-pallet-top-card.spec.mjs'
       - 'e2e/specs/rc1550-pod-print-layout.spec.mjs'
       - 'test/rc1559-pod-real-template.test.mjs'
       - 'e2e/specs/rc1559-pod-real-template.spec.mjs'
@@ -29,6 +30,7 @@ on:
       - 'test/rc1547-loading-list-single-page.test.mjs'
       - 'test/rc1550-pod-print-layout.test.mjs'
       - 'e2e/specs/rc1547-loading-list-single-page.spec.mjs'
+      - 'e2e/specs/rc1988-loading-list-pallet-top-card.spec.mjs'
       - 'e2e/specs/rc1550-pod-print-layout.spec.mjs'
       - 'test/rc1559-pod-real-template.test.mjs'
       - 'e2e/specs/rc1559-pod-real-template.spec.mjs'
@@ -75,7 +77,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs e2e/specs/rc1561-pod-bottom-tiles.spec.mjs e2e/specs/rc1607-pod-screenshot-layout.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1988-loading-list-pallet-top-card.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs e2e/specs/rc1561-pod-bottom-tiles.spec.mjs e2e/specs/rc1607-pod-screenshot-layout.spec.mjs --project=laptop
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()
