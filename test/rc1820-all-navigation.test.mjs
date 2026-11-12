@@ -157,3 +157,51 @@ test('RC1820/RC1579: both navigation runtimes use fresh build asset versions',()
  assert.match(build,/rc1579-menu-redesign\.js\?v=20261112/);
  assert.doesNotMatch(build,/rc1579-menu-redesign\.js\?v=1630/);
 });
+
+const selectionSource=between(sidebar,'function syncSelection(){','\nfunction sync(){');
+function syncedButtons(view,{hidden=''}={}){
+ const buttons=views.map(v=>{
+  const attrs=navAttrs(v),classes=new Set(v==='shipment'?['active']:[]);
+  return {view:v,tagName:'BUTTON',attrs,hidden:v===hidden,style:{display:''},
+   classList:{contains:name=>classes.has(name),toggle(name,on){if(on)classes.add(name);else classes.delete(name);}},
+   getAttribute(name){return this.attrs[name]??null;},
+   hasAttribute(name){return Object.hasOwn(this.attrs,name);},
+   setAttribute(name,value){this.attrs[name]=String(value);},
+   removeAttribute(name){delete this.attrs[name];}
+  };
+ });
+ const find=v=>buttons.find(b=>b.view===v)||null;
+ const nav={querySelector(selector){
+  if(selector.includes('data-exporthub-urgent-nav'))return find('urgentorders');
+  if(selector.includes('data-exporthub-documents-nav'))return find('documents');
+  let m=selector.match(/data-rc1579-proxy="([^"]+)"/);
+  if(m)return find(m[1]);
+  m=selector.match(/data-(?:index321-view|view)="([^"]+)"/);
+  return m?find(m[1]):null;
+ },querySelectorAll(selector){assert.equal(selector,':scope>button');return buttons;}};
+ const d={body:{getAttribute:key=>key==='data-exporthub-view'?view:null}};
+ const SECTION_OF=Object.fromEntries(sections.flatMap(s=>s.views.map(v=>[v,s.key])));
+ const context={d,nav,SECTION_OF,q:x=>String(x??'').trim(),
+  setAttr(el,name,value){if(el.getAttribute(name)!==String(value))el.setAttribute(name,value);}};
+ vm.runInNewContext(sideFunctions+'\n'+selectionSource+'\nsyncSelection()',context,{timeout:1000});
+ return {
+  active:buttons.filter(b=>b.classList.contains('active')).map(b=>b.view),
+  current:buttons.filter(b=>b.getAttribute('aria-current')==='page').map(b=>b.view),
+  packBadge:find('packnotifications').classList.contains('is-active')
+ };
+}
+for(const section of sections){
+ for(const view of section.views){
+  test('RC1579 sidebar: '+view+' visually replaces stale Sendung selection',()=>{
+   const expected=expectedView(view),actual=syncedButtons(view);
+   assert.deepEqual(actual.active,[expected],'visible active class');
+   assert.deepEqual(actual.current,[expected],'aria-current page');
+   assert.equal(actual.packBadge,expected==='packnotifications');
+  });
+ }
+}
+test('RC1579 sidebar: a forbidden destination never becomes selected',()=>{
+ const result=syncedButtons('customers',{hidden:'customers'});
+ assert.ok(!result.active.includes('customers'));
+ assert.ok(!result.current.includes('customers'));
+});
