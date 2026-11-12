@@ -177,7 +177,7 @@ test('AVIS invoice: the operator filename is preserved when it already identifie
 
 test('AVIS: invoice metadata takes precedence over the deliveryFiles default',()=>{
   const handler=fs.readFileSync('api/customer-avis/index.js','utf8');
-  assert.match(handler,/if\(\/RECHNUNG\|.*INVOICE.*\/\.test\(raw\)\|\|field==='invoiceFiles'\)return'Rechnung'/);
+  assert.match(handler,/if\(\/RECHNUNG\|.*INVOICE.*\/\.test\(raw\)\|\|upper\(f&&f\.documentReferenceType\)==='SIDE'\|\|field==='invoiceFiles'\)return'Rechnung'/);
   assert.ok(handler.indexOf("return'Rechnung';if(/LIEFERSCHEIN")>0);
   const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
   assert.match(upload,/normalizer\.detectDocumentKind\('scan\.pdf',pdfText\)/);
