@@ -41,7 +41,7 @@ function confirm(order,key,actor,now=new Date().toISOString(),options={}){
   if(options.confirmSkipped!==true||proposed.length!==skipped.length||
     skipped.some((s,i)=>s!==proposed[i])||new Set(proposed).size!==proposed.length)
     throw problem('URGENT_PROGRESS_SKIP_CONFIRM_REQUIRED','Jeder übersprungene Schritt muss ausdrücklich bestätigt werden.',409);
-  if(text(options.skipReason,500).length<8)throw problem('URGENT_PROGRESS_SKIP_REASON_REQUIRED','Bitte den Grund für das Überspringen angeben (mindestens 8 Zeichen).');
+  if(text(options.skipReason,500).length<8)throw problem('URGENT_PROGRESS_SKIP_REASON_REQUIRED','Bitte mindestens 8 Zeichen Begründung eingeben.');
  }else if(proposed.length)throw problem('URGENT_PROGRESS_SKIP_INVALID','Es gibt keine übersprungenen Schritte zu bestätigen.');
  if(!order.progress||typeof order.progress!=='object')order.progress={steps:{}};
  if(!order.progress.steps||typeof order.progress.steps!=='object'||Array.isArray(order.progress.steps))order.progress.steps={};
