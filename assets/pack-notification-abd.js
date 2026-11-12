@@ -99,13 +99,11 @@
         if(q(actual[i]&&actual[i][key])!==q(expected[i]&&expected[i][key]))return false;
       }
     }
+    // Filename equality is NOT proof of identical invoice/ABD document bytes.
+    // These records require the normal generation-bound server ACK; the
+    // readback fallback is intentionally restricted to document-free requests.
     for(const collection of ['invoiceFiles','abdFiles']){
-      const source=arr(item[collection]),saved=arr(remote[collection]);
-      if(source.length!==saved.length)return false;
-      for(let i=0;i<source.length;i++){
-        if(q(source[i]&&(source[i].name||source[i].fileName))!==
-          q(saved[i]&&(saved[i].name||saved[i].fileName)))return false;
-      }
+      if(arr(item[collection]).length||arr(remote[collection]).length)return false;
     }
     return true;
   }
