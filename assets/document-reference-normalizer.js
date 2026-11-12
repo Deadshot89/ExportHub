@@ -23,11 +23,32 @@
     return out;
   }
 
+  // A DNC reference mentioned in an invoice is not the invoice's document type.
+  // Only classify when the filename or a recognizable document heading is clear.
+  function detectDocumentKind(fileName,extractedText){
+    const name=String(fileName==null?'':fileName);
+    const body=String(extractedText==null?'':extractedText);
+    if(/(?:^|[\\s_.-])(?:rechnung|invoice|proforma)(?=[\\s_.-]|$)/i.test(name))return'rechnung';
+    if(/salespackingslip|(?:^|[\\s_.-])(?:lieferschein|delivery[\\s_.-]?note)(?=[\\s_.-]|$)/i.test(name))return'lieferschein';
+    if(/\\b(?:commercial[\\s-]+invoice|proforma[\\s-]+invoice)\\b/i.test(body))return'rechnung';
+    const invoiceNumber=/\\b(?:rechnungs(?:nummer|nr\\.?|nummer\\s*[:#])|invoice\\s*(?:number|no\\.?|nr\\.?|#))\\b/i.test(body);
+    const delivery=/\\b(?:delivery[\\s-]+note|lieferschein|packing[\\s-]+slip)\\b/i.test(body);
+    if(invoiceNumber&&!delivery)return'rechnung';
+    if(delivery&&!invoiceNumber)return'lieferschein';
+    return'';
+  }
+
   function normalizedPdfName(originalName,extractedText){
     const original=String(originalName==null?'':originalName);
     if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
     // Keep a unique filename DNC when the PDF only mentions unrelated SIDE
     // paperwork; conflicting or multiple DNCs must not be guessed.
+    // Do not turn a customer invoice into a second DNC delivery note.
+    if(detectDocumentKind(original,extractedText)==='rechnung'){
+      const base=original.replace(/\\.pdf$/i,'');
+      const renamed=/^(?:rechnung|invoice|proforma)(?:[\\s_.-]|$)/i.test(base)?original:'Rechnung_'+base+'.pdf';
+      return{name:renamed,renamed:renamed!==original,reference:null,reason:'invoice'};
+    }
     const contentRefs=extractDocumentReferences(extractedText);
     const filenameRefs=extractDocumentReferences(original);
     const contentDncs=contentRefs.filter(ref=>ref.type==='DNC');
@@ -246,5 +267,5 @@
     }
   }
 
-  return Object.freeze({extractDocumentReferences,normalizedPdfName,printDocumentName,extractPdfTextFromBytes,normalizePdfFile});
+  return Object.freeze({extractDocumentReferences,detectDocumentKind,normalizedPdfName,printDocumentName,extractPdfTextFromBytes,normalizePdfFile});
 });
