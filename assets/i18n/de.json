@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Artikel",
   "avisPortal.quantitiesQuantity": "Gelieferte Menge",
   "avisPortal.quantitiesSource": "Quelle: Lieferschein",
-  "avisPortal.quantitiesIncomplete": "Weitere Dokumente konnten nicht eindeutig ausgewertet werden."
+  "avisPortal.quantitiesIncomplete": "Weitere Dokumente konnten nicht eindeutig ausgewertet werden.",
+  "avisPortal.uploadTitle": "PDF-Dokumente hochladen",
+  "avisPortal.uploadDocType": "Dokumentart",
+  "avisPortal.uploadSelectPdf": "PDF auswählen · max. 10 MB",
+  "avisPortal.uploadStart": "PDF prüfen & hochladen",
+  "avisPortal.uploadOptCmr": "CMR / Frachtbrief",
+  "avisPortal.uploadOptDelivery": "Lieferschein",
+  "avisPortal.uploadOptInvoice": "Rechnung / Commercial Invoice",
+  "avisPortal.uploadOptPacking": "Packliste / Packing List",
+  "avisPortal.uploadOptOther": "Sonstiges",
+  "avisPortal.docDelivery": "Lieferschein",
+  "avisPortal.docInvoice": "Rechnung",
+  "avisPortal.docPacking": "Packliste",
+  "avisPortal.docDocument": "Dokument",
+  "avisPortal.docAttachment": "Anhang",
+  "avisPortal.docNotAvailable": "Nicht verfügbar"
 }
