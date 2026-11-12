@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Article",
   "avisPortal.quantitiesQuantity": "Quantité livrée",
   "avisPortal.quantitiesSource": "Source : bon de livraison",
-  "avisPortal.quantitiesIncomplete": "D'autres documents n'ont pas pu être interprétés sans ambiguïté."
+  "avisPortal.quantitiesIncomplete": "D'autres documents n'ont pas pu être interprétés sans ambiguïté.",
+  "avisPortal.uploadTitle": "Téléverser des documents PDF",
+  "avisPortal.uploadDocType": "Type de document",
+  "avisPortal.uploadSelectPdf": "Choisir un PDF · 10 Mo max.",
+  "avisPortal.uploadStart": "Vérifier et téléverser le PDF",
+  "avisPortal.uploadOptCmr": "CMR / lettre de voiture",
+  "avisPortal.uploadOptDelivery": "Bon de livraison",
+  "avisPortal.uploadOptInvoice": "Facture / facture commerciale",
+  "avisPortal.uploadOptPacking": "Liste de colisage",
+  "avisPortal.uploadOptOther": "Autre",
+  "avisPortal.docDelivery": "Bon de livraison",
+  "avisPortal.docInvoice": "Facture",
+  "avisPortal.docPacking": "Liste de colisage",
+  "avisPortal.docDocument": "Document",
+  "avisPortal.docAttachment": "Pièce jointe",
+  "avisPortal.docNotAvailable": "Indisponible"
 }
