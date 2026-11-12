@@ -200,8 +200,22 @@ export async function settleStateSave(page,options={}){
       const runtime=clean&&clean.runtime;
       if(!clean||!runtime)return {available:false,idle:true};
       if(typeof clean.flushSave!=='function')return {available:false,idle:true,missingFlush:true};
+      // RC1171: a *pre-save draft* may have queued only local-only changes.
+      // The core saver explicitly records when it compared the persistent state
+      // and skipped a network write because no persistent data changed.
+      // Never synthesize a server ACK; only a specifically opted-in caller can
+      // accept this proof for a draft that has not been saved yet.
+      const noChangeAt=Date.parse(runtime.lastNoChangeAt||'');
+      const queuedAt=Number(runtime.lastQueueAt||0);
+      const verifiedNoPersistentChange=
+        Number(runtime.noChangeSaveSkips||0)>0&&
+        queuedAt>0&&Number.isFinite(noChangeAt)&&noChangeAt>=queuedAt&&
+        Number.isFinite(runtime.changeGeneration)&&runtime.changeGeneration>0&&
+        Number.isFinite(runtime.lastSavedGeneration)&&
+        runtime.lastSavedGeneration>=runtime.changeGeneration;
       return {
         available:true,
+        verifiedNoPersistentChange,
         saving:runtime.saving===true,
         pending:runtime.pendingSave===true,
         dirty:runtime.dirty===true,
@@ -216,7 +230,11 @@ export async function settleStateSave(page,options={}){
     });
 
     if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: '+(snapshot.missingFlush?'ExportHUBClean-flushSave nicht verfügbar':'ExportHUBClean-Runtime nicht verfügbar'));
-    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer||snapshot.unconfirmedGeneration;
+    // No-write evidence is valid ONLY when the caller explicitly permits it
+    // for a not-yet-persisted form. Real shipment saves still require Azure ACK.
+    const noWriteAllowed=options.allowVerifiedNoChange===true&&snapshot.verifiedNoPersistentChange===true;
+    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer||
+      (snapshot.unconfirmedGeneration&&!noWriteAllowed);
     if(!busy){
       if(!stableSince)stableSince=Date.now();
       if(Date.now()-stableSince>=stableMs)return snapshot;
