@@ -34,7 +34,7 @@ function isDhlFreight(value){var n=low(value).replace(/[^a-z0-9]/g,'');return n=
 function shipmentCustomer(sh){sh=sh||{};var s=state(),customers=arr(s.customers),id=low(sh.customerId),account=low(sh.customerAccount||sh.customerNumber),name=low(sh.customerName||sh.customerDisplay||sh.customerSearch);var found=customers.find(function(c){return !!((id&&low(c&&(c.id||c.customerId))===id)||(account&&low(c&&(c.account||c.customerNumber||c.kundennummer))===account)||(name&&low(c&&(c.name||c.customerName))===name))});return found||(sh.customer&&typeof sh.customer==='object'?sh.customer:{})}
 function palletPartyForShipment(sh){sh=sh||{};var c=shipmentCustomer(sh),own=q(c.name||c.customerName||c.account||c.customerNumber||sh.customerName),carrier=q(c.carrier||c.spedition||c.carrierName||sh.carrier||sh.spedition||sh.carrierName||sh.speditionName);if(isDhlFreight(own))carrier='DHL Freight';if(carrier)return{type:'carrier',key:'carrier:'+low(carrier),name:carrier};var id=q(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||sh.customerId||sh.customerAccount||sh.customerNumber),name=q(c.name||c.customerName||sh.customerName||sh.customerDisplay||sh.customerSearch);return{type:'customer',key:'customer:'+low(id||name),name:name||id||'Kunde'}}
 function shipmentSnapshotKey(sh){sh=sh||{};var value=q(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.referenceNumber||sh.shipmentReference||sh.number);if(value)return low(value);var party=palletPartyForShipment(sh);return party&&party.key?'party:'+low(party.key):''}
-function normalizePalletAccount(account){if(!account||!Number.isFinite(Number(account.balance)))return null;return{key:q(account.key),type:q(account.type),name:q(account.name),balance:Math.round(Number(account.balance))}}
+function normalizePalletAccount(account){if(!account||account.balance==null||q(account.balance)===''||!Number.isFinite(Number(account.balance)))return null;return{key:q(account.key),type:q(account.type),name:q(account.name),balance:Math.round(Number(account.balance))}}
 function palletSnapshotStorage(){try{return w.sessionStorage&&typeof w.sessionStorage.getItem==='function'?w.sessionStorage:null}catch(_){return null}}
 function readPalletSnapshotStore(){var storage=palletSnapshotStorage();if(!storage)return{};try{var parsed=JSON.parse(storage.getItem(PALLET_PRINT_SNAPSHOT_KEY)||'{}');return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{}}catch(_){return{}}}
 function writePalletSnapshotStore(store){var storage=palletSnapshotStorage();if(!storage)return false;try{storage.setItem(PALLET_PRINT_SNAPSHOT_KEY,JSON.stringify(store));return true}catch(_){return false}}
@@ -120,7 +120,7 @@ function rc1988HasEuroPallets(sh){
 }
 function rc1988PalletTopCardData(sh,account){
  if(!rc1988HasEuroPallets(sh))return null;
- if(!account||!Number.isFinite(Number(account.balance)))return{amount:'–',beneficiary:'Kontostand nicht verfügbar'};
+ if(!account||account.balance==null||q(account.balance)===''||!Number.isFinite(Number(account.balance)))return{amount:'–',beneficiary:'Kontostand nicht verfügbar'};
  var balance=Math.round(Number(account.balance)),amount=Math.abs(balance)+' Europaletten';
  return{amount:amount,beneficiary:balance>0?'Zu Gunsten Essentra':balance<0?'Zu Gunsten Kunden':'Konto ausgeglichen'}
 }
