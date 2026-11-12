@@ -22,7 +22,7 @@ async function openLoadingList(page,pickedUp){
   await page.waitForTimeout(400);
   return page.evaluate(()=>{
     const load=document.querySelector('.rc390-load');
-    const card=label=>{const l=[...load.querySelectorAll('.rc390-label')].find(x=>x.textContent.trim().startsWith(label));return l&&l.closest('.rc390-sign')};
+    const card=label=>{const l=[...load.querySelectorAll('.rc390-sign .rc390-label')].find(x=>x.textContent.trim().startsWith(label));return l&&l.closest('.rc390-sign')};
     const out={};
     for(const label of ['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto']){
       const c=card(label);
