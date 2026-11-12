@@ -72,11 +72,11 @@ for(const vp of [
     window.ExportHUBTopNavigation1820.refresh();
     await new Promise(resolve=>requestAnimationFrame(resolve));
     const root=document.querySelector('#nav'),top=document.querySelector('#rc1820TopNav');
-    const selected=[...root.querySelectorAll(':scope>button.active')].map(b=>
+    const activeButtons=[...root.querySelectorAll(':scope>button.active')].map(b=>
      b.getAttribute('data-index321-view')||b.getAttribute('data-view')||
      b.getAttribute('data-rc1579-proxy')||(b.hasAttribute('data-exporthub-urgent-nav')?'urgentorders':'')
     );
-    const current=[...root.querySelectorAll(':scope>button[aria-current="page"]')].map(b=>
+    const ariaButtons=[...root.querySelectorAll(':scope>button[aria-current="page"]')].map(b=>
      b.getAttribute('data-index321-view')||b.getAttribute('data-view')||
      b.getAttribute('data-rc1579-proxy')||(b.hasAttribute('data-exporthub-urgent-nav')?'urgentorders':'')
     );
@@ -85,15 +85,15 @@ for(const vp of [
      .map(b=>b.getAttribute('data-rc1579-section'));
     const bell=!!top.querySelector('[data-rc1820-bell].is-active');
     const openStart=[...top.querySelectorAll('[data-rc1820-go^="start|"].is-active')].length;
-    result.push({...sample,selected,current,group,header,bell,openStart});
+    result.push({...sample,activeButtons,ariaButtons,group,header,bell,openStart});
    }
    return result;
   },cases);
   expect(measured).toHaveLength(42);
   for(const row of measured){
    const hint=vp.name+' · '+row.view+' ('+row.section+')';
-   expect(row.selected,hint+' sidebar active').toEqual([row.selected]);
-   expect(row.current,hint+' aria-current').toEqual([row.selected]);
+   expect(row.activeButtons,hint+' sidebar active').toEqual([row.selected]);
+   expect(row.ariaButtons,hint+' aria-current').toEqual([row.selected]);
    expect(row.group,hint+' top section').toEqual(row.section==='start'?[]:[row.section]);
    expect(row.header,hint+' sidebar section').toEqual(row.section==='start'?[]:[row.section]);
    expect(row.bell,hint+' bell').toBe(row.view==='notifications');
