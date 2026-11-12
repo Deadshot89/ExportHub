@@ -28,9 +28,21 @@ function setup(options={}){
     }
   };
   const alerts=[],writes=[],location={href:''},actions={};
+  // Simulate a genuine server-bound generation ACK only after a successful flush.
+  const initialRuntime={changeGeneration:0,lastSavedGeneration:0,lastServerSaveAckGeneration:0};
   const clean={
-    queueSave(reason){writes.push('queue:'+reason);return Promise.resolve(true)},
-    flushSave(reason){writes.push('flush:'+reason);return Promise.resolve(options.saveOk!==false)}
+    runtime:initialRuntime,
+    queueSave(reason){
+      writes.push('queue:'+reason);
+      if(this.runtime===initialRuntime)this.runtime.changeGeneration++;
+      return Promise.resolve(true);
+    },
+    flushSave(reason){
+      writes.push('flush:'+reason);
+      if(options.saveOk!==false&&options.serverAck!==false&&this.runtime===initialRuntime)
+        this.runtime.lastServerSaveAckGeneration=this.runtime.changeGeneration;
+      return Promise.resolve(options.saveOk!==false);
+    }
   };
   const document={
     readyState:'loading',body:null,
@@ -93,6 +105,9 @@ test('Pack ABD opens Outlook only after verified save and never on unconfirmed s
   await tick();
   assert.equal(ok.location.href,'');
   assert.equal(ok.root.ExportHUBPackAbd.saveStatusText(),ok.root.ExportHUBPackI18n.t('pack.internal.abdSaving'));
+  // Resolving a local flush is not itself Azure persistence evidence.
+  ok.root.ExportHUBClean.runtime.lastServerSaveAckGeneration=
+    ok.root.ExportHUBClean.runtime.changeGeneration;
   release(true);
   await tick();
   assert.match(ok.location.href,/^mailto:/);
@@ -123,6 +138,43 @@ test('foreign Pack ownership and cancelled Pack records reject saves before modi
   }
 });
 
+
+test('RC2025: local successful flush without server ACK never reports saved or opens Outlook',async()=>{
+  const ctx=setup({serverAck:false});
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+  assert.equal(ctx.state.abdRequests.length,1,'Keep the same draft for a safe retry');
+});
+
+test('RC2025: a failed flush cannot use a stale local-only success result',async()=>{
+  const ctx=setup({saveOk:false});
+  ctx.root.ExportHUBClean.runtime={changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:3};
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+});
+
+test('RC1499: Pack ABD explicit save must set userInitiated instead of navigation defer',async()=>{
+  const ctx=setup();
+  const original=ctx.root.ExportHUBClean.flushSave;
+  let receivedOptions;
+  ctx.root.ExportHUBClean.flushSave=function(reason,options){
+    receivedOptions=options;
+    return original.call(this,reason,options);
+  };
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(receivedOptions&&receivedOptions.userInitiated,true);
+  assert.match(ctx.location.href,/^mailto:/);
+});
 
 test('RC2004: stale server ACK never marks Pack ABD saved or opens Outlook',async()=>{
   const ctx=setup();
