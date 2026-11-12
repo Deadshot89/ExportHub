@@ -239,6 +239,14 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1820 TESTSERVICE ausgelieferte Menüs prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Nur lesend: verifizierten Deployment-SHA und beide öffentlich
+          # ausgelieferten Menüskripte bitgenau mit dem Checkout vergleichen.
+          node scripts/rc1820-testservice-nav-live.mjs "$GITHUB_SHA"
+
       - name: RC1943 Dokumente erstellen Excel-Upload auf TESTSERVICE ausgeliefert
         shell: bash
         run: |
