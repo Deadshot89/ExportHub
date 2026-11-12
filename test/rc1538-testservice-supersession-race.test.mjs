@@ -11,35 +11,35 @@ const rest=content.slice(start+"node <<'NODE'\n".length);
 const stop=rest.indexOf('\n          NODE');
 assert.ok(stop>=0,'Missing RC1538 Node script terminator');
 const program=rest.slice(0,stop).split('\n').map(line=>line.replace(/^ {10}/,'')).join('\n');
-const run=new AsyncFunction('process','fetch','console',program);
+const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelReplies=[],mainHeads=[]}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),mainHeads=[]}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
- let cancelCount=0,mainReadCount=0;
+ let mainReadCount=0;
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
   if(address.endsWith('/branches/main')){
-   const head=mainHeads.length?mainHeads[Math.min(mainReadCount++,mainHeads.length-1)]:sha;
-   return reply(200,{commit:{sha:head}});
+   const current=mainHeads.length?mainHeads[Math.min(mainReadCount,mainHeads.length-1)]:sha;
+   mainReadCount++;
+   return reply(200,{commit:{sha:current}});
   }
   if(address.includes('/actions/workflows/'))return reply(200,{workflow_runs:[{id:123,head_sha:'b'.repeat(40),status:'in_progress'}]});
   if(address.endsWith('/actions/runs/123/cancel')){
-   if(url==='cancel'){
-    const chosen=cancelReplies.length
-      ?cancelReplies[Math.min(cancelCount++,cancelReplies.length-1)]
-      :{status,message};
-    return reply(chosen.status,{message:chosen.message||''});
-   }
-   throw new Error('Test setup error');
+   if(url!=='cancel')throw new Error('Test setup error');
+   const n=calls.filter(c=>c.method==='POST').length-1;
+   const response=cancelResponses?.[Math.min(n,cancelResponses.length-1)]||{status,message};
+   return reply(response.status,{message:response.message||''});
   }
+  if(address.endsWith('/actions/runs/123'))
+   return reply(200,{head_sha:pollSha,status:pollStatus});
   throw new Error('Unexpected GitHub request: '+address);
  };
  const fakeProcess={env:{GITHUB_TOKEN:'test-token',REPOSITORY:'Deadshot89/ExportHub',CURRENT_SHA:sha},exit:()=>{throw new Error('Unexpected exit')}};
  const logs={log:(...args)=>lines.push(args.join(' '))};
- await run(fakeProcess,fetch,logs);
+ await run(fakeProcess,fetch,logs,callback=>callback());
  return{lines,calls};
 }
 
@@ -55,55 +55,65 @@ test('RC1538: successful cancellation is still reported correctly',async()=>{
  assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
 });
 
-test('RC1538 P0: GitHub 409 not queued yet retries until GitHub confirms cancellation',async()=>{
- const transient='Cannot cancel a workflow run that has not been queued yet.';
- const {lines,calls}=await scenario({cancelReplies:[
-  {status:409,message:transient},
-  {status:409,message:transient},
-  {status:204,message:''}
- ]});
- assert.equal(calls.filter(x=>x.method==='POST').length,3);
- assert.ok(lines.some(line=>line.includes('noch nicht queued; Abbruch erneut prüfen')));
- assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
-});
-
-test('RC1538 P0: permanently unqueued older workflow fails closed after four bounded attempts',async()=>{
- const transient='Cannot cancel a workflow run that has not been queued yet.';
- await assert.rejects(scenario({status:409,message:transient}),/nach 4 Versuchen noch nicht abbrechbar/);
-});
-
-test('RC1538 P0: unrelated not-queued wording on a non-409 error remains fatal',async()=>{
- await assert.rejects(scenario({status:403,message:'Cannot cancel a workflow run that has not been queued yet.'}),/GitHub API 403/);
-});
-
-test('RC1538 P0: a new main arriving after LIST is never cancelled by its predecessor',async()=>{
- const original='a'.repeat(40),newMain='c'.repeat(40);
- const {lines,calls}=await scenario({mainHeads:[original,newMain]});
- assert.equal(calls.filter(x=>x.method==='POST').length,0,
-   'A superseded Main Verification must not cancel the new main run');
- assert.ok(lines.some(x=>x.includes('main hat sich vor Cancel geändert')));
- assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
-});
-
-test('RC1538 P0: new main during a 409 retry stops any further cancellation attempts',async()=>{
- const original='a'.repeat(40),newMain='c'.repeat(40);
- const transient='Cannot cancel a workflow run that has not been queued yet.';
- const {lines,calls}=await scenario({
-  mainHeads:[original,original,newMain],
-  cancelReplies:[{status:409,message:transient},{status:204,message:''}]
- });
- assert.equal(calls.filter(x=>x.method==='POST').length,1,
-   'A retry must not cancel after main has advanced');
- assert.ok(lines.some(x=>x.includes('main hat sich vor Cancel geändert')));
- assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
-});
-
 test('RC1538: unrelated 409 does not hide a permission/logic problem',async()=>{
  await assert.rejects(scenario({status:409,message:'An unrelated conflict'}),/GitHub API 409/);
 });
 
 test('RC1538: insufficient permissions remain fatal, never bypassed',async()=>{
  await assert.rejects(scenario({status:403,message:'Resource not accessible by integration'}),/GitHub API 403/);
+});
+
+
+test('RC1538: 409 not yet queued is retried, not falsely counted as cancelled',async()=>{
+ const {lines,calls}=await scenario({cancelResponses:[
+  {status:409,message:'Cannot cancel a workflow run that has not been queued yet.'},
+  {status:204}
+ ]});
+ assert.equal(calls.filter(x=>x.method==='POST').length,2);
+ assert.equal(calls.filter(x=>x.method==='GET'&&x.url.endsWith('/actions/runs/123')).length,1);
+ assert.ok(lines.some(line=>line.includes('Main Verification 123')&&line.includes('beendet.')));
+});
+
+test('RC1538: old run finished during 409 race is not retried',async()=>{
+ const {lines,calls}=await scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollStatus:'completed'
+ });
+ assert.equal(calls.filter(x=>x.method==='POST').length,1);
+ assert.ok(lines.some(line=>line.includes('inzwischen abgeschlossen; kein Abbruch nötig')));
+});
+
+test('RC1538: persistent not-yet-queued conflict remains fatal after bounded retries',async()=>{
+ await assert.rejects(
+  scenario({message:'Cannot cancel a workflow run that has not been queued yet.'}),
+  /nach 5 Versuchen noch nicht abbrechbar/
+ );
+});
+
+test('RC1538: re-read mismatch in run SHA is fatal (no cross-run cancellation)',async()=>{
+ await assert.rejects(
+  scenario({message:'Cannot cancel a workflow run that has not been queued yet.',pollSha:'c'.repeat(40)}),
+  /SHA hat sich unerwartet geändert/
+ );
+});
+
+test('RC1538 P0: main changes after LIST, do not cancel any outdated run',async()=>{
+ const initial='a'.repeat(40),next='c'.repeat(40);
+ const {calls,lines}=await scenario({mainHeads:[initial,next],status:204});
+ assert.equal(calls.filter(x=>x.method==='POST').length,0);
+ assert.ok(lines.some(line=>line.includes('main changed before cancel')));
+ assert.ok(!lines.some(line=>line.includes('123')&&line.includes('beendet.')));
+});
+
+test('RC1538 P0: main changes during 409 retry, stop before another POST',async()=>{
+ const initial='a'.repeat(40),next='c'.repeat(40);
+ const {calls,lines}=await scenario({
+  mainHeads:[initial,initial,next],
+  message:'Cannot cancel a workflow run that has not been queued yet.'
+ });
+ assert.equal(calls.filter(x=>x.method==='POST').length,1);
+ assert.ok(lines.some(line=>line.includes('main changed before cancel')));
+ assert.ok(!lines.some(line=>line.includes('123')&&line.includes('beendet.')));
 });
 
 test('RC1903: live smoke includes token and cross-origin security proofs',()=>{

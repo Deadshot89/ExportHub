@@ -113,10 +113,24 @@ function packPayload(notification, environment, nowIso = new Date().toISOString(
     items: [{ title: customer || ref || t('kindPack'), meta: details }]
   };
 }
+// P1 push deliberately carries only a sales order reference: no reporter email,
+// customer data, private notes, or access capability enters a browser notification.
+function urgentP1Payload(order, environment, nowIso = new Date().toISOString(), language = 'de', existingId) {
+  const lang=locale.normalize(language)||'de',t=(key,vars)=>locale.t(key,vars,lang);
+  const ref=short(order && order.orderNumber,40);
+  const id=existingId||messageId('urgent-p1',nowIso.replace(/Z$/,''));
+  const detail=t('urgentP1Body',{order:ref});
+  return {
+    v:1,id,kind:'urgentP1',language:lang,environment:lower(environment)==='testservice'?'testservice':'production',createdAt:nowIso,
+    title:t('urgentP1Title'),body:detail,tag:'exporthub-urgent-p1-'+short(order&&order.id,45),
+    url:INBOX_URL+'?m='+encodeURIComponent(id),open:'/',total:1,
+    items:[{title:ref,meta:t('urgentP1Title')}]
+  };
+}
 function testPayload(environment, nowIso = new Date().toISOString(), language='de') {
   const lang=locale.normalize(language)||'de',t=(key,vars)=>locale.t(key,vars,lang);
   const id = messageId('test', nowIso.replace(/Z$/, ''));
   return { v: 1, id, kind: 'test', language:lang, environment, createdAt: nowIso, title: t('serverTestTitle'), body: t('serverTestBody'), tag: 'exporthub-test', url: INBOX_URL + '?m=' + encodeURIComponent(id), open: '/', total: 0, items: [] };
 }
 
-module.exports = { PLANNER_FILES, INBOX_URL, taskPlanner, berlinNowIso, dueTaskMessages, taskPayload, packPayload, testPayload, pushKey, isActive };
+module.exports = { PLANNER_FILES, INBOX_URL, taskPlanner, berlinNowIso, dueTaskMessages, taskPayload, packPayload, urgentP1Payload, testPayload, pushKey, isActive };

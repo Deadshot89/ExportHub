@@ -231,6 +231,19 @@ function removeRunRecords(state,runId){
   });
   out[key]=next;
  }
+ // RC1985: The synthetic two-device deletion test leaves an intentional task
+ // tombstone. Remove ONLY that run's reserved E2E task ID during TESTSERVICE
+ // fixture cleanup, never a real user's confirmed task deletion.
+ const meta=out._teamSyncMeta;
+ if(meta&&Array.isArray(meta.tombstones)){
+  const syntheticId='E2E-TASK-'+runId;
+  const kept=meta.tombstones.filter(item=>!(item&&item.collection==='tasks'&&
+    item.explicitUserAction===true&&text(item.id)===syntheticId));
+  removed+=meta.tombstones.length-kept.length;
+  if(kept.length!==meta.tombstones.length){
+   out._teamSyncMeta=Object.assign({},meta,{tombstones:kept});
+  }
+ }
  return{state:out,removed};
 }
 function removePackStationRecords(state,stationIds){

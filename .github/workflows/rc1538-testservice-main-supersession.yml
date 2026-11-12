@@ -66,9 +66,8 @@ jobs:
                 try{message=JSON.parse(body).message||''}catch(_){}
                 if(message==='Cannot cancel a workflow run that is completed.')
                   return {alreadyCompleted:true};
-                // GitHub may expose an older run in LIST before its cancel
-                // endpoint considers it queued. This is a transient race,
-                // NOT a successful cancellation; retry only this exact 409.
+                // GitHub kann einen Run bereits als queued listen, bevor CANCEL erlaubt ist.
+                // Nicht als Erfolg werten: nur eng begrenzt wiederholen.
                 if(message==='Cannot cancel a workflow run that has not been queued yet.')
                   return {notQueuedYet:true};
               }
@@ -89,24 +88,29 @@ jobs:
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           let supersededDuringCancel=false;
           for(const run of older){
-            let outcome=null;
-            for(let attempt=1;attempt<=4;attempt++){
-              // A newer main may land after LIST or during 409 retries. The
-              // previous main run must never cancel a now-current deploy.
-              const current=await request(`https://api.github.com/repos/${repo}/branches/main`);
-              if(!current||!current.commit||current.commit.sha!==currentSha){
+            let outcome;
+            for(let attempt=0;attempt<5;attempt++){
+              // Re-check the moving main pointer before EVERY cancel/retry.
+              // An older supersession job must never cancel the now-current run.
+              const latestMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+              if(!latestMain||!latestMain.commit||latestMain.commit.sha!==currentSha){
                 supersededDuringCancel=true;
-                console.log(`RC1538: main hat sich vor Cancel geändert; keine weiteren Abbrüche durch ${currentSha}.`);
+                console.log(`RC1538: main changed before cancel; stop stale job for ${currentSha}.`);
                 break;
               }
               outcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/cancel`,{method:'POST'});
-              if(!outcome||outcome.notQueuedYet!==true)break;
-              // Never report an unqueued 409 as success: a stale deploy must
-              // stay blocked unless GitHub confirms cancel or completion.
+              if(!outcome||!outcome.notQueuedYet)break;
+              // Recheck before retry: der alte Run könnte inzwischen beendet sein.
+              const latest=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+              if(latest.head_sha!==run.head_sha)
+                throw new Error(`RC1538: Run ${run.id} SHA hat sich unerwartet geändert.`);
+              if(latest.status==='completed'){
+                outcome={alreadyCompleted:true};
+                break;
+              }
               if(attempt===4)
-                throw new Error(`RC1538: ältere Main Verification ${run.id} ist nach 4 Versuchen noch nicht abbrechbar.`);
-              console.log(`RC1538: ältere Main Verification ${run.id} noch nicht queued; Abbruch erneut prüfen (Versuch ${attempt}/4).`);
-              await new Promise(resolve=>setTimeout(resolve,250*attempt));
+                throw new Error(`RC1538: Run ${run.id} nach 5 Versuchen noch nicht abbrechbar (GitHub 409).`);
+              await new Promise(resolve=>setTimeout(resolve,250*(2**attempt)));
             }
             if(supersededDuringCancel)break;
             if(outcome&&outcome.alreadyCompleted)
