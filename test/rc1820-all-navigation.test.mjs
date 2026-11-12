@@ -32,6 +32,7 @@ const aliases={
 };
 const expectedView=v=>aliases[v]||v;
 function navAttrs(v){
+ if(v==='packnotifications')return {'data-pack-notifications-nav':'','data-index321-view':v,'data-view':v};
  if(v==='urgentorders')return {'data-exporthub-urgent-nav':''};
  if(['quality','it','packaging'].includes(v))return {'data-rc1579-proxy':v};
  if(v==='documents')return {'data-exporthub-documents-nav':'','data-index321-view':'documents'};
