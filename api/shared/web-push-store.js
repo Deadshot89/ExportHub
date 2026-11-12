@@ -16,7 +16,7 @@ const MAX_SUBSCRIPTIONS = 2000;
 const MAX_FAILURES = 20;
 const LEDGER_DAYS = 14;
 const MAX_RETRIES = 8;
-const CATEGORIES = ['tasks', 'pack'];
+const CATEGORIES = ['tasks', 'pack', 'urgentP1'];
 
 function text(v) { return String(v == null ? '' : v).trim(); }
 function lower(v) { return text(v).toLowerCase(); }
@@ -39,7 +39,7 @@ function categoriesOf(input, previous) {
   const base = previous && typeof previous === 'object' ? previous : {};
   const src = input && typeof input === 'object' ? input : {};
   const out = {};
-  for (const key of CATEGORIES) out[key] = src[key] !== undefined ? src[key] !== false : base[key] !== false;
+  for (const key of CATEGORIES) out[key] = src[key] !== undefined ? src[key] === true : (key === 'urgentP1' ? base[key] === true : base[key] !== false);
   return out;
 }
 function deviceLabel(value) { return text(value).replace(/[\u0000-\u001f<>]/g, '').slice(0, 80); }
