@@ -16,7 +16,7 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,confirmForce=true,mainHeads=[]}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,forceMessage='Cannot force cancel queued run',confirmForce=true,mainHeads=[],pollJobCount=0,recordLogs=null}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
  let forceRequested=false,mainReadCount=0;
  const fetch=async(address,options={})=>{
@@ -34,14 +34,16 @@ async function scenario({status=409,message='Cannot cancel a workflow run that i
   }
   if(address.endsWith('/actions/runs/123/force-cancel')){
    forceRequested=true;
-   return reply(forceStatus,forceStatus===409?{message:'Cannot force cancel queued run'}:{});
+   return reply(forceStatus,forceStatus===409?{message:forceMessage}:{});
   }
+  if(address.includes('/actions/runs/123/jobs?'))
+   return reply(200,{total_count:pollJobCount,jobs:pollJobCount?[{id:999,status:'queued'}]:[]});
   if(address.endsWith('/actions/runs/123'))
    return reply(200,{head_sha:pollSha,status:forceRequested&&confirmForce?'completed':pollStatus,created_at:pollCreatedAt});
   throw new Error('Unexpected GitHub request: '+address);
  };
  const fakeProcess={env:{GITHUB_TOKEN:'test-token',REPOSITORY:'Deadshot89/ExportHub',CURRENT_SHA:sha},exit:()=>{throw new Error('Unexpected exit')}};
- const logs={log:(...args)=>lines.push(args.join(' '))};
+ const logs={log:(...args)=>{const line=args.join(' ');lines.push(line);if(recordLogs)recordLogs.push(line);}};
  await run(fakeProcess,fetch,logs,callback=>callback());
  return{lines,calls};
 }
@@ -112,12 +114,83 @@ test('RC1538: force-cancel 409 remains a hard failure',async()=>{
  }),/GitHub API 409/);
 });
 
+test('RC1538: force-cancel 409 only clears a race after same-SHA completed readback',async()=>{
+ const {lines,calls}=await scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:true
+ });
+ assert.equal(calls.filter(x=>x.url.endsWith('/force-cancel')&&x.method==='POST').length,1);
+ assert.ok(calls.some(x=>x.method==='GET'&&x.url.endsWith('/actions/runs/123')));
+ assert.ok(lines.some(x=>x.includes('inzwischen abgeschlossen; kein Abbruch nötig')));
+ assert.equal(lines.some(x=>x.includes('force-cancel durch GitHub abgeschlossen bestätigt')),false);
+});
+
+test('RC1538: force-cancel 409 with still-queued old run remains a hard block',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:false
+ }),/force-cancel 409 for 123; old run remains queued, cancellation unconfirmed/);
+});
+
+test('RC1538: unrelated force-cancel 409 remains a hard failure',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409,forceMessage:'Unrelated permission conflict',
+  confirmForce:true
+ }),/GitHub API 409/);
+});
+
 test('RC1538: force-cancel 202 without completed readback stays red',async()=>{
  await assert.rejects(scenario({
   message:'Cannot cancel a workflow run that has not been queued yet.',
   pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
   confirmForce:false
  }),/not confirmed by GitHub/);
+});
+
+
+test('RC1538: one-hour queued 0-job ghost is diagnosed but cancellation stays RED on 409',async()=>{
+ const recordLogs=[];
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:'2025-01-01T00:00:00.000Z',
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:false,pollJobCount:0,recordLogs
+ }),/force-cancel 409 for 123; old run remains queued, cancellation unconfirmed/);
+ assert.ok(recordLogs.some(x=>x.includes('::warning::RC1538 QUEUE_GHOST')&&x.includes('NOT CANCELLED')&&x.includes('RED')));
+});
+
+test('RC1538: queued run with assigned jobs remains RED without queue-ghost classification',async()=>{
+ const recordLogs=[];
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:'2025-01-01T00:00:00.000Z',
+  forceStatus:409,forceMessage:'Cannot cancel a workflow run that has not been queued yet.',
+  confirmForce:false,pollJobCount:1,recordLogs
+ }),/force-cancel 409 for 123; old run remains queued, cancellation unconfirmed/);
+ assert.equal(recordLogs.some(x=>x.includes('QUEUE_GHOST')),false);
+});
+
+test('RC1538: accepted force-cancel without completion stays RED even for zero-job ghosts',async()=>{
+ const recordLogs=[];
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:'2025-01-01T00:00:00.000Z',
+  confirmForce:false,pollJobCount:0,recordLogs
+ }),/not confirmed by GitHub; gate remains blocked/);
+ assert.ok(recordLogs.some(x=>x.includes('QUEUE_GHOST')&&x.includes('RED')));
+});
+
+test('RC1518: RC1538 diagnostics preserve SHA isolation and TESTSERVICE stale-deploy guard',()=>{
+ const main=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ assert.match(main,/group: exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}-\$\{\{ github\.sha \}\}/);
+ assert.match(main,/RC1381 TESTSERVICE stale-deploy guard/);
+ assert.ok(main.indexOf('RC1381 TESTSERVICE stale-deploy guard')<main.indexOf('Deploy ExportHUB TESTSERVICE'));
 });
 
 test('RC1538: re-read mismatch in run SHA is fatal (no cross-run cancellation)',async()=>{
