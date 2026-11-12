@@ -123,8 +123,9 @@ test('RC1538: force-cancel 409 with old queued run and 0 jobs is an explicit UNR
 test('RC1538: force-cancel 409 stays fatal if queued jobs exist, run is active/new, or GitHub 409 differs',async()=>{
  const base={message:'Cannot cancel a workflow run that has not been queued yet.',pollCreatedAt:'2025-01-01T00:00:00.000Z',forceStatus:409};
  await assert.rejects(scenario({...base,pollJobCount:1}),/force-cancel returned 409 without confirmed/);
- await assert.rejects(scenario({...base,pollStatus:'in_progress'}),/force-cancel returned 409 without confirmed/);
- await assert.rejects(scenario({...base,pollCreatedAt:'2099-01-01T00:00:00.000Z'}),/force-cancel returned 409 without confirmed/);
+ // Active or newer queues are rejected BEFORE reaching force-cancel.
+ await assert.rejects(scenario({...base,pollStatus:'in_progress'}),/nach 5 Versuchen noch nicht abbrechbar/);
+ await assert.rejects(scenario({...base,pollCreatedAt:'2099-01-01T00:00:00.000Z'}),/nach 5 Versuchen noch nicht abbrechbar/);
  await assert.rejects(scenario({...base,forceMessage:'Other GitHub 409 conflict'}),/GitHub API 409/);
 });
 
@@ -132,7 +133,8 @@ test('RC1538: force-cancel 202 without completed readback stays red',async()=>{
  await assert.rejects(scenario({
   message:'Cannot cancel a workflow run that has not been queued yet.',
   pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
-  confirmForce:false
+  confirmForce:false,
+  pollJobCount:1
  }),/not confirmed by GitHub/);
 });
 
