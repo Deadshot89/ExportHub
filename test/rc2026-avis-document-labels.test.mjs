@@ -60,7 +60,8 @@ test('AVIS: quantity check is session-authorized, read-only and accessible after
  assert.match(html,/function bindDeliveryQuantities\(/);
  assert.match(html,/api\('\?action=delivery-quantities'\)/);
  assert.match(html,/data-i18n="avisPortal.quantitiesTitle"/);
- assert.match(html,/bindDeliveryQuantities\(\);return}setStatus/);
+ // The current quantity renderer receives the loaded AVIS data explicitly.
+ assert.match(html,/bindDeliveryQuantities\(data\);return}setStatus/);
 });
 
 test('AVIS: released invoice category takes priority, deduplication requires verified SHA',()=>{
