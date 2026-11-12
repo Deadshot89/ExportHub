@@ -577,6 +577,11 @@ test('RC2013 P0: authentifizierte Urgent-Order-API auf TESTSERVICE erreichbar',a
 
   const session=await installE2ESession(page);
   await page.goto('/assets/urgent-orders.html?embedded=1',{waitUntil:'domcontentloaded'});
+  // The actual page must finish its automatic list call and exit the error state.
+  // This assertion would fail on the reported immediate URGENT_ERROR startup.
+  await expect(page.locator('#statTotal')).not.toHaveText('–',{timeout:35_000});
+  await expect(page.locator('#access')).toBeHidden();
+  await expect(page.locator('#createButton')).toBeEnabled();
   const result=await page.evaluate(async({token})=>{
     const response=await fetch('/api/urgent-orders',{
       method:'POST',credentials:'same-origin',cache:'no-store',
