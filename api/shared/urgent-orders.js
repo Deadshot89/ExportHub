@@ -145,7 +145,12 @@ function createOrder(raw,actor,now=new Date().toISOString(),catalog=null){
   items,history:[{at:now,actorId:ownerId,event:'created'}]};
 }
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
-function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
+function canViewAll(user){
+ if(canManage(user))return true;
+ const rights=user&&user.rights&&user.rights.shipmentoverview||{};
+ return rights.view===true||rights.read===true||['view','read'].includes(String(rights.level||rights.access||'').toLowerCase());
+}
+function canRead(order,user){return canViewAll(user)||!!(user&&user.id&&text(order&&order.createdBy&&order.createdBy.id)===text(user.id));}
 function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),note=''){
  if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
@@ -339,4 +344,4 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  return mail;
 }
 
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,activeOrder,workStarted,processingOwner,deleteView,requestDeletion,startProcessing,claimDeletionHandler,resolveDeletion};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canViewAll,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,activeOrder,workStarted,processingOwner,deleteView,requestDeletion,startProcessing,claimDeletionHandler,resolveDeletion};
