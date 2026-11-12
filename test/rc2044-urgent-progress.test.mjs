@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import progress from '../api/shared/urgent-progress.js';
+import urgent from '../api/shared/urgent-orders.js';
 
 const now='2026-11-12T12:00:00.000Z';
 const reporter={id:'REPORTER:abc',name:'Customer Service'};
@@ -86,6 +87,20 @@ test('pending deletion and deleted requests cannot progress',()=>{
  assert.throws(()=>progress.confirm(a,'received',reporter,now,{canConfirmReceipt:true}),err('URGENT_DELETE_PENDING'));
  const b=order();b.deletedAt=now;
  assert.throws(()=>progress.confirm(b,'received',reporter,now,{canConfirmReceipt:true}),err('URGENT_NOT_FOUND'));
+});
+
+test('once goods receipt is confirmed, deletion needs logistics review',()=>{
+ const o=order();
+ progress.confirm(o,'received',reporter,now,{canConfirmReceipt:true});
+ const deletion=urgent.requestDeletion(o,reporter,now);
+ assert.equal(deletion.state,'pending');
+ assert.equal(o.deletedAt,undefined);
+});
+
+test('confirmed pickup protects the order from deletion even with old item statuses',()=>{
+ const o=order('STANDARD');
+ progress.confirm(o,'collected',manager,now,{canManage:true,confirmSkipped:true,skippedSteps:['abd','ready'],skipReason:'Dispatch evidence checked by warehouse'});
+ assert.throws(()=>urgent.requestDeletion(o,reporter,now),err('URGENT_DELETE_DISPATCHED'));
 });
 
 test('both UI surfaces use shared progress markup and dedicated authenticated mutation routes',()=>{
