@@ -33,7 +33,9 @@ test('RC1718: all three deployment environments receive the same fixed print pat
   assert.match(build,/import \{patchRc1718PrintIframeHtml\} from '\.\.\/\.\.\/scripts\/rc1718-qr-print-iframe-pages\.mjs'/);
   assert.match(build,/const paginated=patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
   assert.match(build,/const rc1718Printed=patchRc1718PrintIframeHtml\(paginated,file\)/);
-  assert.match(build,/fs\.writeFileSync\(target,(?:patchRc1982MetaDeltaHtml\()?rc1718Printed\.replace\(oldContacts/);
+  // RC2022 wraps the already patched A4 print output; neither stage may be omitted.
+  assert.match(build,/import \{patchRc2022NoopAckHtml\} from '\.\.\/\.\.\/scripts\/rc2022-noop-ack-generation\.mjs'/);
+  assert.match(build,/fs\.writeFileSync\(target,patchRc2022NoopAckHtml\(patchRc1982MetaDeltaHtml\(rc1718Printed\.replace\(oldContacts/);
   assert.match(build,/for\(const file of \['index\.html','TESTVERSION\.html','demo\.html'\]\)/);
   assert.throws(()=>patchRc1718PrintIframeHtml('<html></html>'),/anchor missing/,'do not silently ship an unpatched print runtime');
 });

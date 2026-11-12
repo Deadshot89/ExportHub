@@ -28,9 +28,21 @@ function setup(options={}){
     }
   };
   const alerts=[],writes=[],location={href:''},actions={};
+  // Simulate a genuine server-bound generation ACK only after a successful flush.
+  const initialRuntime={changeGeneration:0,lastSavedGeneration:0,lastServerSaveAckGeneration:0};
   const clean={
-    queueSave(reason){writes.push('queue:'+reason);return Promise.resolve(true)},
-    flushSave(reason){writes.push('flush:'+reason);return Promise.resolve(options.saveOk!==false)}
+    runtime:initialRuntime,
+    queueSave(reason){
+      writes.push('queue:'+reason);
+      if(this.runtime===initialRuntime)this.runtime.changeGeneration++;
+      return Promise.resolve(true);
+    },
+    flushSave(reason){
+      writes.push('flush:'+reason);
+      if(options.saveOk!==false&&options.serverAck!==false&&this.runtime===initialRuntime)
+        this.runtime.lastServerSaveAckGeneration=this.runtime.changeGeneration;
+      return Promise.resolve(options.saveOk!==false);
+    }
   };
   const document={
     readyState:'loading',body:null,
@@ -93,6 +105,9 @@ test('Pack ABD opens Outlook only after verified save and never on unconfirmed s
   await tick();
   assert.equal(ok.location.href,'');
   assert.equal(ok.root.ExportHUBPackAbd.saveStatusText(),ok.root.ExportHUBPackI18n.t('pack.internal.abdSaving'));
+  // Resolving a local flush is not itself Azure persistence evidence.
+  ok.root.ExportHUBClean.runtime.lastServerSaveAckGeneration=
+    ok.root.ExportHUBClean.runtime.changeGeneration;
   release(true);
   await tick();
   assert.match(ok.location.href,/^mailto:/);
@@ -123,6 +138,43 @@ test('foreign Pack ownership and cancelled Pack records reject saves before modi
   }
 });
 
+
+test('RC2025: local successful flush without server ACK never reports saved or opens Outlook',async()=>{
+  const ctx=setup({serverAck:false});
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+  assert.equal(ctx.state.abdRequests.length,1,'Keep the same draft for a safe retry');
+});
+
+test('RC2025: a failed flush cannot use a stale local-only success result',async()=>{
+  const ctx=setup({saveOk:false});
+  ctx.root.ExportHUBClean.runtime={changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:3};
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+});
+
+test('RC1499: Pack ABD explicit save must set userInitiated instead of navigation defer',async()=>{
+  const ctx=setup();
+  const original=ctx.root.ExportHUBClean.flushSave;
+  let receivedOptions;
+  ctx.root.ExportHUBClean.flushSave=function(reason,options){
+    receivedOptions=options;
+    return original.call(this,reason,options);
+  };
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(receivedOptions&&receivedOptions.userInitiated,true);
+  assert.match(ctx.location.href,/^mailto:/);
+});
 
 test('RC2004: stale server ACK never marks Pack ABD saved or opens Outlook',async()=>{
   const ctx=setup();
@@ -156,4 +208,96 @@ test('RC2004: locally saved generation never overrides a failed flush without se
   await tick();
   assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
   assert.equal(ctx.location.href,'');
+});
+
+
+function createReadbackScenario(options={}){
+  const ctx=setup();
+  ctx.root.__EXPORTHUB_DATA_ENVIRONMENT__='testservice';
+  ctx.root.ExportHUBClean.runtime={
+    authToken:options.authToken===undefined?'SYNTHETIC-TEST-TOKEN':options.authToken,
+    dataEnvironment:'testservice',
+    changeGeneration:3,lastSavedGeneration:3,lastServerSaveAckGeneration:1
+  };
+  const calls=[];
+  ctx.root.fetch=async(url,request)=>{
+    calls.push({url,request});
+    if(options.networkError)throw new Error('SYNTHETIC_NETWORK_FAILURE');
+    const body=typeof options.body==='function'?options.body(ctx):options.body;
+    return{status:options.httpStatus||200,ok:options.httpStatus===undefined||options.httpStatus===200,
+      json:async()=>body||{ok:true,environment:'testservice',state:structuredClone(ctx.state)}};
+  };
+  return{...ctx,calls};
+}
+
+test('RC1499: stale generation ACK needs independent same-origin Azure readback for exact Pack ABD',async()=>{
+  const ctx=createReadbackScenario();
+  const item=ctx.save(false,'Angefragt');
+  assert.ok(item);
+  await tick();
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaved'));
+  assert.equal(ctx.calls.length,1);
+  assert.equal(ctx.calls[0].url,'/api/exporthub-state?mode=read&full=1');
+  assert.equal(ctx.calls[0].request.method,'GET');
+  assert.equal(ctx.calls[0].request.cache,'no-store');
+  assert.equal(ctx.calls[0].request.credentials,'same-origin');
+  assert.equal(ctx.calls[0].request.headers['X-ExportHUB-Environment'],'testservice');
+  assert.equal(ctx.calls[0].request.headers.Authorization,'Bearer SYNTHETIC-TEST-TOKEN');
+  assert.match(ctx.location.href,/^mailto:/);
+});
+
+test('RC1499: readback refuses wrong environment, ownership, REF, rows, status or server errors',async()=>{
+  const mismatches=[
+    {name:'wrong-environment',body:ctx=>({ok:true,environment:'production',state:structuredClone(ctx.state)})},
+    {name:'wrong-ownership',body:ctx=>{const state=structuredClone(ctx.state);state.abdRequests[0].packNotificationId='OTHER';return{ok:true,environment:'testservice',state};}},
+    {name:'wrong-ref',body:ctx=>{const state=structuredClone(ctx.state);state.abdRequests[0].ref='WRONG';return{ok:true,environment:'testservice',state};}},
+    {name:'wrong-rows',body:ctx=>{const state=structuredClone(ctx.state);state.abdRequests[0].rows[0].weight='999';return{ok:true,environment:'testservice',state};}},
+    {name:'wrong-status',body:ctx=>{const state=structuredClone(ctx.state);state.abdRequests[0].status='OTHER';return{ok:true,environment:'testservice',state};}},
+    {name:'duplicate-owner',body:ctx=>{const state=structuredClone(ctx.state);state.abdRequests.push(structuredClone(state.abdRequests[0]));return{ok:true,environment:'testservice',state};}},
+    {name:'http-503',httpStatus:503},
+    {name:'network-error',networkError:true}
+  ];
+  for(const scenario of mismatches){
+    const ctx=createReadbackScenario(scenario);
+    const item=ctx.save(false,'Angefragt');
+    assert.ok(item,scenario.name);
+    await tick();
+    assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+      ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'),scenario.name);
+    assert.equal(ctx.location.href,'',scenario.name+' must not open Outlook');
+    assert.equal(ctx.state.abdRequests.length,1,scenario.name+' must preserve draft for retry');
+  }
+});
+
+test('RC1499: no authenticated token never substitutes local data or a forged server response',async()=>{
+  const ctx=createReadbackScenario({authToken:''});
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.calls.length,0,'No network read without session token');
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'');
+});
+
+test('RC1499: matching generation ACK does not incur an unnecessary full Azure state read',async()=>{
+  const ctx=createReadbackScenario();
+  ctx.root.ExportHUBClean.runtime.lastServerSaveAckGeneration=3;
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.calls.length,0);
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaved'));
+});
+
+
+test('RC1499: attached ABD documents require generation ACK, filename-only readback is insufficient',async()=>{
+  const ctx=createReadbackScenario();
+  ctx.state.abdDraft.invoiceFiles=[{id:'doc-synthetic',name:'synthetic.pdf',size:88}];
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.calls.length,1,'Readback attempted but must not accept equal file names alone');
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'','No Outlook for document with unproven content');
 });

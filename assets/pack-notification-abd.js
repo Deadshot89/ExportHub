@@ -81,6 +81,68 @@
     if(el.getAttribute('data-status')!==nextStatus)el.setAttribute('data-status',nextStatus);
     return true;
   }
+  // RC1499: A legitimate no-op save can advance the local generation without
+  // issuing a new Azure write. Never equate that local generation to a server
+  // ACK. Only an authenticated fresh read proving the EXACT ABD and Pack
+  // ownership may confirm the save when the generation ACK is stale.
+  function samePackAbdRecord(remote,item){
+    if(!remote||!item)return false;
+    if(q(remote.ref||remote.reference)!==q(item.ref||item.reference))return false;
+    for(const key of ['id','packNotificationId','packNotificationRef','source','linkedShipmentId',
+      'customerName','customerNumber','status','deliveryNotes']){
+      if(q(remote[key])!==q(item[key]))return false;
+    }
+    const expected=arr(item.rows),actual=arr(remote.rows);
+    if(!expected.length||actual.length!==expected.length)return false;
+    for(let i=0;i<expected.length;i++){
+      for(const key of ['id','type','count','weight']){
+        if(q(actual[i]&&actual[i][key])!==q(expected[i]&&expected[i][key]))return false;
+      }
+    }
+    // Filename equality is NOT proof of identical invoice/ABD document bytes.
+    // These records require the normal generation-bound server ACK; the
+    // readback fallback is intentionally restricted to document-free requests.
+    for(const collection of ['invoiceFiles','abdFiles']){
+      if(arr(item[collection]).length||arr(remote[collection]).length)return false;
+    }
+    return true;
+  }
+  async function authoritativePackAbdReadback(item){
+    const runtime=root.ExportHUBClean&&root.ExportHUBClean.runtime;
+    const token=q(runtime&&runtime.authToken);
+    const environment=q(root.__EXPORTHUB_DATA_ENVIRONMENT__||
+      runtime&&runtime.dataEnvironment).toLowerCase();
+    if(!token||!['testservice','production'].includes(environment)||
+      typeof root.fetch!=='function')return false;
+    const controller=typeof root.AbortController==='function'?new root.AbortController():null;
+    const timer=controller&&typeof root.setTimeout==='function'
+      ?root.setTimeout(()=>controller.abort(),25000):null;
+    try{
+      const response=await root.fetch('/api/exporthub-state?mode=read&full=1',{
+        method:'GET',credentials:'same-origin',cache:'no-store',
+        headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache',
+          'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,
+          Authorization:'Bearer '+token,'X-ExportHUB-Environment':environment},
+        ...(controller?{signal:controller.signal}:{})
+      });
+      if(!response||response.status!==200||response.ok!==true)return false;
+      const body=await response.json();
+      if(!body||body.ok!==true||q(body.environment).toLowerCase()!==environment||
+        !body.state)return false;
+      const notifications=arr(body.state.packNotifications).filter(n=>
+        q(n&&n.id)===q(item.packNotificationId)&&q(n&&n.reference)===q(item.packNotificationRef));
+      if(notifications.length!==1||
+        q(notifications[0].status).toLowerCase()==='cancelled')return false;
+      const matched=arr(body.state.abdRequests).filter(r=>
+        q(r&&r.packNotificationId)===q(item.packNotificationId));
+      return matched.length===1&&samePackAbdRecord(matched[0],item);
+    }catch(_){
+      return false;
+    }finally{
+      if(timer!==null&&typeof root.clearTimeout==='function')root.clearTimeout(timer);
+    }
+  }
+
   async function confirmSave(item,options){
     if(saveBusy)return false;
     saveBusy=true;lastSave={id:q(item&&item.id),status:'saving'};
@@ -93,17 +155,20 @@
       const queued=await Promise.resolve(clean.queueSave(reason));
       if(queued===false)throw new Error('ABD_SAVE_QUEUE_REJECTED');
       const runtime=clean.runtime||null,target=Number(runtime&&runtime.changeGeneration)||0;
-      const flushed=await Promise.resolve(clean.flushSave(reason));
+      const flushed=await Promise.resolve(clean.flushSave(reason,{userInitiated:true}));
       // RC2004 P0: a locally advanced lastSavedGeneration is not evidence of
       // Azure persistence. When the runtime exposes the authoritative server
       // acknowledgement, it must cover the exact queued generation even if
       // flushSave returned true. Never send a mail on a stale acknowledgement.
       const hasServerAck=!!runtime&&target>0&&typeof runtime.lastServerSaveAckGeneration==='number'&&
         Number.isFinite(runtime.lastServerSaveAckGeneration);
-      const acknowledged=hasServerAck
-        ? runtime.lastServerSaveAckGeneration>=target
-        : flushed===true;
-      if(!acknowledged)throw new Error('ABD_SAVE_UNCONFIRMED');
+      // A local-only flush is not proof of Azure persistence. A matching
+      // generation-bound server ACK is mandatory unless the separate
+      // authenticated readback below independently proves the exact record.
+      const acknowledged=flushed===true&&hasServerAck&&
+        runtime.lastServerSaveAckGeneration>=target;
+      if(!acknowledged&&!(await authoritativePackAbdReadback(item)))
+        throw new Error('ABD_SAVE_UNCONFIRMED');
       const n=notification(item.packNotificationId);
       const matches=arr(state().abdRequests).filter(r=>owned(r,n));
       const current=matches.length===1?matches[0]:null;
