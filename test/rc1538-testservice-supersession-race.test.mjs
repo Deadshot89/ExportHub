@@ -16,8 +16,9 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40)}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),pollCreatedAt=null,forceStatus=202,confirmForce=true}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
+ let forceRequested=false;
  const fetch=async(address,options={})=>{
   calls.push({url:address,method:options.method||'GET'});
   if(address.endsWith('/branches/main'))return reply(200,{commit:{sha}});
@@ -28,8 +29,12 @@ async function scenario({status=409,message='Cannot cancel a workflow run that i
    const response=cancelResponses?.[Math.min(n,cancelResponses.length-1)]||{status,message};
    return reply(response.status,{message:response.message||''});
   }
+  if(address.endsWith('/actions/runs/123/force-cancel')){
+   forceRequested=true;
+   return reply(forceStatus,forceStatus===409?{message:'Cannot force cancel queued run'}:{});
+  }
   if(address.endsWith('/actions/runs/123'))
-   return reply(200,{head_sha:pollSha,status:pollStatus});
+   return reply(200,{head_sha:pollSha,status:forceRequested&&confirmForce?'completed':pollStatus,created_at:pollCreatedAt});
   throw new Error('Unexpected GitHub request: '+address);
  };
  const fakeProcess={env:{GITHUB_TOKEN:'test-token',REPOSITORY:'Deadshot89/ExportHub',CURRENT_SHA:sha},exit:()=>{throw new Error('Unexpected exit')}};
@@ -83,6 +88,33 @@ test('RC1538: persistent not-yet-queued conflict remains fatal after bounded ret
   scenario({message:'Cannot cancel a workflow run that has not been queued yet.'}),
   /nach 5 Versuchen noch nicht abbrechbar/
  );
+});
+
+test('RC1538: stale queued 409 invokes force-cancel only after five failed normal attempts',async()=>{
+ const oldCreated=new Date(Date.now()-60*60*1000).toISOString();
+ const {lines,calls}=await scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:oldCreated
+ });
+ assert.equal(calls.filter(x=>x.url.endsWith('/cancel')&&x.method==='POST').length,5);
+ assert.equal(calls.filter(x=>x.url.endsWith('/force-cancel')&&x.method==='POST').length,1);
+ assert.ok(lines.some(x=>x.includes('force-cancel durch GitHub abgeschlossen bestätigt')));
+});
+
+test('RC1538: force-cancel 409 remains a hard failure',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  forceStatus:409
+ }),/GitHub API 409/);
+});
+
+test('RC1538: force-cancel 202 without completed readback stays red',async()=>{
+ await assert.rejects(scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:new Date(Date.now()-60*60*1000).toISOString(),
+  confirmForce:false
+ }),/not confirmed by GitHub/);
 });
 
 test('RC1538: re-read mismatch in run SHA is fatal (no cross-run cancellation)',async()=>{
