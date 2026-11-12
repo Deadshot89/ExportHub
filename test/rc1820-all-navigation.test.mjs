@@ -116,12 +116,16 @@ function renderedPills(active,openKey){
   key:s.key,label:s.key,el:{name:s.key},
   items:s.views.map(v=>({el:{view:v,name:v},order:301}))
  }));
- const start=sections.find(s=>s.key==='start').views.map(v=>({el:{view:v,name:v},order:101}));
+ // In the real top bar notifications live in the separate bell, not in a regular pill.
+ const start=sections.find(s=>s.key==='start').views.filter(v=>v!=='notifications').map(v=>({el:{view:v,name:v},order:101}));
+ const notifications={view:'notifications',name:'Benachrichtigungen',getAttribute:()=>null};
  const brand={classList:{toggle(_name,value){brand.active=value}},setAttribute(){}};
  const pills={innerHTML:'',setAttribute(){}},mega={innerHTML:'',hidden:true};
- const m={start,sections:items,notifications:null,shipment:null};
+ const bell={hidden:true,classList:{toggle(_name,value){bell.active=value}},
+  querySelector:()=>({hidden:true,textContent:''}),setAttribute(){}};
+ const m={start,sections:items,notifications,shipment:null};
  const context={scheduled:true,openKey,lastSig:'',current:null,
-  bar:{hidden:false,querySelector:()=>brand},pills,mega,bell:{hidden:true},cta:{hidden:true},
+  bar:{hidden:false,querySelector:()=>brand},pills,mega,bell,cta:{hidden:true},
   on:()=>true,ensureBar:()=>true,model:()=>m,
   sigOf:()=>openKey||'closed',viewOf:el=>el.view||'',labelOf:el=>el.name||'',
   isActive:el=>el.view===active,iconVars:()=>'',esc:String,tx:String};
@@ -130,7 +134,7 @@ function renderedPills(active,openKey){
   .map(m=>({area:m[2],active:m[1].split(/\s+/).includes('is-active')}));
  const startPills=[...pills.innerHTML.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-rc1820-go="start\|(\d+)"/g)]
   .map(m=>({view:start[Number(m[2])].el.view,active:m[1].split(/\s+/).includes('is-active')}));
- return {tabs,startPills,brand:brand.active};
+ return {tabs,startPills,brand:brand.active,bell:bell.active};
 }
 for(const section of sections.filter(s=>s.key!=='start')){
  test('RC1820: opening '+section.key+' exclusively highlights it, not stale Sendung',()=>{
@@ -148,7 +152,9 @@ for(const view of sections.find(s=>s.key==='start').views){
  test('RC1820: start entry '+view+' has exclusive active styling',()=>{
   const result=renderedPills(view,'');
   assert.equal(result.tabs.filter(t=>t.active).length,0);
-  assert.equal(result.startPills.filter(t=>t.active).map(t=>t.view).join(','),view);
+  assert.equal(result.startPills.filter(t=>t.active).map(t=>t.view).join(','),
+   view==='notifications'?'':view);
+  assert.equal(result.bell,view==='notifications','notification indicator only for its own view');
  });
 }
 
