@@ -81,8 +81,20 @@ function readBase64(file){return new Promise(function(resolve,reject){var r=new 
 async function uploadOne(ref,file,docKind){
   if(EXT.indexOf(extOf(file.name))<0)throw new Error(t('typeInvalid'));
   if(file.size>MAX_BYTES)throw new Error(t('tooLarge'));
+  // A strong invoice heading must override the old default "Lieferschein".
+  // Ambiguous/scanned PDFs stay manually classified; no document is guessed.
+  var actualKind=docKind;
+  if(docKind==='lieferschein'&&extOf(file.name)==='.pdf'&&typeof file.arrayBuffer==='function'){
+    var normalizer=window.ExportHubDocumentReferenceNormalizer;
+    if(normalizer&&typeof normalizer.extractPdfTextFromBytes==='function'&&typeof normalizer.detectDocumentKind==='function'){
+      try{
+        var pdfText=await normalizer.extractPdfTextFromBytes(new Uint8Array(await file.arrayBuffer()));
+        if(normalizer.detectDocumentKind('scan.pdf',pdfText)==='rechnung')actualKind='rechnung';
+      }catch(_){}
+    }
+  }
   var data=await readBase64(file);
-  var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'upload-document',kind:docKind,reference:ref,fileName:file.name,mimeType:file.type,data:data})}),body={};
+  var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'upload-document',kind:actualKind,reference:ref,fileName:file.name,mimeType:file.type,data:data})}),body={};
   try{body=await res.json()}catch(_){}
   if(!res.ok||body.ok!==true)throw new Error(q(body.message)||('HTTP '+res.status));
   var info=body.file||{};
@@ -107,7 +119,7 @@ async function uploadOne(ref,file,docKind){
    if(stored.length!==original.length||stored.some(function(byte,i){return byte!==original[i]}))
     throw new Error(t('uploadNotReadable'));
   }
-  return{id:info.id,name:info.name,size:info.size,
+  return{id:info.id,name:info.name,size:info.size,kind:actualKind,
    sharepointSaved:body.sharepointSaved===true,azureSaved:body.azureSaved===true};
 }
 async function uploadAll(){
@@ -118,7 +130,7 @@ async function uploadAll(){
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
   for(var i=0;i<files.length;i++){
     log[i]={state:'busy',text:t('busy',{name:files[i].name})};renderList();
-    try{var info=await uploadOne(ref,files[i],docKind);ok++;if(info.azureSaved)azureCopies++;if(info.sharepointSaved)sharepointCopies++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})}}
+    try{var info=await uploadOne(ref,files[i],docKind);ok++;if(info.azureSaved)azureCopies++;if(info.sharepointSaved)sharepointCopies++;log[i]={state:'ok',text:t(info.sharepointSaved===false?'savedAzureOnly':'saved',{name:files[i].name})+(info.kind!==docKind?' · '+t(info.kind):'')}}
     catch(e){log[i]={state:'error',text:t('failed',{name:files[i].name,message:q(e&&e.message||e)})}}
     renderList();
   }
