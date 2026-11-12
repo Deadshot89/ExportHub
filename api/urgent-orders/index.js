@@ -330,11 +330,11 @@ async function execute(req,user,refs){
 let urgentP1Notifier=null;
 async function postSaveP1(action,result,refs,options={}){
  if(action!=='create'||!result||!result.order||result.order.priority!=='P1')return{sent:0};
- const notify=options.notify||(
-  urgentP1Notifier||(urgentP1Notifier=require('../web-push/index.js').createUrgentP1Notifier())
- );
  let timer;
  try{
+  const notify=options.notify||(
+   urgentP1Notifier||(urgentP1Notifier=require('../web-push/index.js').createUrgentP1Notifier())
+  );
   return await Promise.race([
    Promise.resolve().then(()=>notify(refs.environment,{id:result.order.id,orderNumber:result.order.orderNumber,priority:'P1'})),
    new Promise(resolve=>{timer=setTimeout(()=>resolve({sent:0,timeout:true}),5000)})
