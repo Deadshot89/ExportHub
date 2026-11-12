@@ -101,9 +101,9 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
 <datalist id="internalUrgentEmailHistory"></datalist>
-<label class="field wide">Vorhandenen externen Überwachungslink verbinden (optional)
+<label class="field wide"><span data-i18n="urgentOrderV2.crossviewExistingLinkLabel">Link to an existing external tracking link (optional)</span>
 <input type="text" name="externalTrackingLink" autocomplete="off" maxlength="600" placeholder="https://.../urgent-order#access=uro_...">
-<span class="help">Nur verwenden, wenn dieser Auftrag auf demselben persönlichen externen Link erscheinen soll. Die CS-E-Mail-Adresse muss übereinstimmen.</span></label>
+<span class="help" data-i18n="urgentOrderV2.crossviewExistingLinkHelp">Use only to show this order under the same private tracking link. The CS email must match.</span></label>
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3 id="internalStepTwoHeading">Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
@@ -128,11 +128,11 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
 <div class="message" id="externalShareResult" role="status" hidden>
- <label class="field">Externer Überwachungslink – nur mit berechtigten Personen teilen
+ <label class="field"><span data-i18n="urgentOrderV2.crossviewShareResultLabel">External tracking link – share only with authorized people</span>
  <input id="externalShareUrl" type="text" autocomplete="off" readonly>
  </label>
- <button id="copyExternalShareUrl" type="button" class="btn alt small">Link kopieren</button>
- <span class="help">Link jetzt kopieren und sicher weitergeben. Der geheime Link kann später nicht erneut angezeigt werden.</span>
+ <button id="copyExternalShareUrl" type="button" class="btn alt small" data-i18n="urgentOrderV2.crossviewCopyLink">Copy link</button>
+ <span class="help" data-i18n="urgentOrderV2.crossviewShareWarning">Copy and securely share this secret link now. It cannot be retrieved later.</span>
 </div>
 <div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail-Verlauf</span><span>Aktionen</span></div>
 <div id="orders" aria-live="polite"><div class="empty">Aufträge werden geladen …</div></div>
@@ -439,13 +439,13 @@ function render(){
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
   const allowedToShare=!order.reporterId&&(canManage||!!(viewerId&&order.createdBy&&order.createdBy.id===viewerId));
-  const externalShare=allowedToShare?'<div class="btn-row"><button type="button" class="btn alt small" data-share-external>Für externen Link freigeben</button></div>':order.reporterId?'<p class="help">Mit einem persönlichen externen Überwachungslink verbunden.</p>':'';
+  const externalShare=allowedToShare?'<div class="btn-row"><button type="button" class="btn alt small" data-share-external>'+escapeHtml(localeV2('crossviewShareAction','Share with external link'))+'</button></div>':order.reporterId?'<p class="help">'+escapeHtml(localeV2('crossviewLinkedLabel','Linked to a private external tracking link.'))+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
   const deletionIndicator=order.deletion&&order.deletion.state==='pending'?'<span class="sub" role="status">'+escapeHtml(localeV2('deletePendingLabel',"Deletion pending"))+'</span>':'';
   details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+deletionIndicator+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+externalShare+mailHistoryMarkup(order)+deleteActionsMarkup(order)+'</div>';
   details.querySelectorAll('[data-share-external]').forEach(button=>button.addEventListener('click',async ev=>{
    ev.preventDefault();ev.stopPropagation();
-   if(!window.confirm('Dieser persönliche Link erlaubt das Lesen des Auftrags ohne Anmeldung. Nur mit berechtigten Personen teilen. Jetzt freigeben?'))return;
+   if(!window.confirm(localeV2('crossviewShareConfirm','This private link allows access without login. Share only with authorized people. Continue?')))return;
    button.disabled=true;
    try{
     const result=await api('share-external',{id:order.id});
@@ -453,7 +453,7 @@ function render(){
     $('externalShareUrl').value=url;
     $('externalShareResult').hidden=false;
     await refresh();
-    setMessage('listMessage','Externer Link für '+order.orderNumber+' erstellt. Bitte jetzt kopieren und sicher teilen.','ok');
+    setMessage('listMessage',order.orderNumber+' · '+localeV2('crossviewShareSuccess','External tracking link created. Copy and share it securely now.'),'ok');
    }catch(e){button.disabled=false;setMessage('listMessage',e.message,'error');}
   }));
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
@@ -749,8 +749,8 @@ $('newOrder').addEventListener('submit',submit);
 $('copyExternalShareUrl').addEventListener('click',async()=>{
  const url=$('externalShareUrl').value;
  if(!url)return;
- try{await navigator.clipboard.writeText(url);setMessage('listMessage','Externer Überwachungslink kopiert.','ok');}
- catch(_){$('externalShareUrl').focus();$('externalShareUrl').select();setMessage('listMessage','Link markieren und manuell kopieren.','error');}
+ try{await navigator.clipboard.writeText(url);setMessage('listMessage',localeV2('crossviewLinkCopied','External tracking link copied.'),'ok');}
+ catch(_){$('externalShareUrl').focus();$('externalShareUrl').select();setMessage('listMessage',localeV2('crossviewLinkManualCopy','Select the link and copy it manually.'),'error');}
 });
  $('packingCatalogImport').addEventListener('click',importPackingCatalog);
 $('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
