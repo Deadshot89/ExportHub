@@ -29,7 +29,7 @@ test('RC1171: new runtime after reload must use independent Azure readback, not 
   assert.match(verify,/credentials:'same-origin',cache:'no-store'/);
   assert.match(verify,/'Authorization':'Bearer '\+token/);
   assert.match(verify,/'X-ExportHUB-Environment':'testservice'/);
-  assert.match(verify,/sh\._e2eRunId===runId/);
+  assert.match(verify,/x&&x\._e2eRunId===runId/);
   assert.match(verify,/expect\(persisted\.status\)\.toBe\(200\)/);
   assert.match(verify,/expect\(persisted\.environment\)\.toBe\('testservice'\)/);
   for(const field of ['ref','customerName','locationId','rows?.length','status','pickupQrRegistered','pickupQrRegisteredAt']){
