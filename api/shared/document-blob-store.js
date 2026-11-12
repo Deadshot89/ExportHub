@@ -187,7 +187,6 @@ async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
  if(fastResult.reason==='ambiguous')return first;
  // A fast DNC match cannot rule out an invoice: its own SIDE and heading may
  // use D365 CID/ToUnicode glyphs that the lightweight reader cannot decode.
- if(first.documentReferenceType==='SIDE')return first;
  try{
   const extractor=typeof options.pdfTextExtractor==='function'?options.pdfTextExtractor:
     require('./customer-avis-document-content').extractPdfText;
@@ -202,7 +201,13 @@ async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
    delete safe.documentReferenceType;
    return safe;
   }
-  if(!recognized.reference||!recognized.renamed)return first;
+  if(!recognized.reference)return first;
+  if(!recognized.renamed){
+   // Preserve an already correct SIDE filename but attach its invoice type
+   // only when the full-text invoice heading actually proves the category.
+   return recognized.reason==='side'&&invoiceHeading?
+     Object.assign({},first,{documentType:'Rechnung'}):first;
+  }
   if(first.documentReference&&first.documentReference!==recognized.reference&&
       !(recognized.reason==='side'&&invoiceHeading))return first;
   return Object.assign({},first,{
