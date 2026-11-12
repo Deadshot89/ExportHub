@@ -124,14 +124,30 @@
       return call({ action: 'update', endpoint: sub.endpoint, categories: categories }, false).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); });
     });
   }
-  // Another user logged in on this device: move the device to that user (server checks the session).
+  // Recheck rights once per user after this P1 feature is introduced. Existing
+  // subscribed devices had no urgentP1Allowed bit and otherwise never see the toggle.
+  // A user switch must also rebind the device and reset the previous user's opt-in.
+  var p1RightsRebindBusy = false;
   function rebindIfUserChanged() {
-    var uid = currentUserId(), last = ''; try { last = w.localStorage.getItem('exporthub.webpush.user') || ''; } catch (_) {}
-    if (!uid || !sessionToken() || uid === last || permission() !== 'granted') return;
+    var uid = currentUserId(), last = '', rightsVersion = '';
+    try {
+      last = w.localStorage.getItem('exporthub.webpush.user') || '';
+      rightsVersion = w.localStorage.getItem('exporthub.webpush.p1-rights-v1') || '';
+    } catch (_) {}
+    if (!uid || !sessionToken() || permission() !== 'granted' || p1RightsRebindBusy ||
+        (uid === last && rightsVersion === uid)) return;
+    p1RightsRebindBusy = true;
     existingSubscription().then(function (sub) {
-      if (!sub) return;
-      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel(), language: uiLang() }, true).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); try { w.localStorage.setItem('exporthub.webpush.user', uid); } catch (_) {} render(); });
-    }).catch(function () {});
+      if (!sub) return null;
+      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel(), language: uiLang() }, true).then(function (r) {
+        info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription);
+        try {
+          w.localStorage.setItem('exporthub.webpush.user', uid);
+          w.localStorage.setItem('exporthub.webpush.p1-rights-v1', uid);
+        } catch (_) {}
+        render();
+      });
+    }).catch(function () {}).finally(function () { p1RightsRebindBusy = false; });
   }
 
   function statusText() {
@@ -149,7 +165,7 @@
     var buttons=sub
       ? '<button type="button" class="btn" data-eh-webpush="test"'+(info.busy?' disabled':'')+'>'+esc(tt('testButton'))+'</button><button type="button" class="ghost" data-eh-webpush="disable"'+(info.busy?' disabled':'')+'>'+esc(tt('disableButton'))+'</button>'
       : '<button type="button" class="btn" data-eh-webpush="enable"'+(ok&&!info.busy?'':' disabled')+'>'+esc(tt('enableButton'))+'</button>';
-    var toggles=sub?'<div class="eh-webpush-toggles"><label><input type="checkbox" data-eh-webpush-category="tasks"'+(cats.tasks!==false?' checked':'')+'> '+esc(tt('tasksToggle'))+'</label>'+(sub.packAllowed?'<label><input type="checkbox" data-eh-webpush-category="pack"'+(cats.pack!==false?' checked':'')+'> '+esc(tt('packToggle'))+'</label>':'')+'</div>':'';
+    var toggles=sub?'<div class="eh-webpush-toggles"><label><input type="checkbox" data-eh-webpush-category="tasks"'+(cats.tasks!==false?' checked':'')+'> '+esc(tt('tasksToggle'))+'</label>'+(sub.packAllowed?'<label><input type="checkbox" data-eh-webpush-category="pack"'+(cats.pack!==false?' checked':'')+'> '+esc(tt('packToggle'))+'</label>':'')+(sub.urgentP1Allowed?'<label><input type="checkbox" data-eh-webpush-category="urgentP1"'+(cats.urgentP1===true?' checked':'')+'> '+esc(tt('urgentP1Toggle'))+'</label>':'')+'</div>':'';
     var note=info.error?'<p class="eh-webpush-error" role="alert">'+esc(info.error)+'</p>':info.message?'<p class="eh-webpush-ok" role="status">'+esc(info.message)+'</p>':'';
     return '<section class="card" id="'+CARD_ID+'"><div class="index236-section-head"><div><h3>'+esc(tt('cardTitle'))+'</h3><p>'+esc(tt('cardIntro'))+'</p></div><strong class="eh-webpush-status'+(sub?' is-on':'')+'">'+esc(statusText())+'</strong></div>'+hint+toggles+'<div class="actions">'+buttons+'<a class="soft" href="'+INBOX+'" target="_blank" rel="noopener">'+esc(tt('openInbox'))+'</a></div>'+note+'</section>';
   }

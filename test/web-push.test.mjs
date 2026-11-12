@@ -111,7 +111,7 @@ function apiFixture(){
   const mem=memoryStore(()=>now);
   const devices={a:device(),b:device(),z:device()};
   const sent=[];let sendStatus=201,oidc=true;
-  const team={users:users.concat([{id:'u9',user:'leser',name:'Leser',rights:{}}]).map(u=>u.id==='u1'?Object.assign({rights:{shipment:{edit:true}}},u):u),state:{tasks:[{id:'t1',title:'Zollpapiere prüfen',dueDate:'2026-10-23',ownerId:'u1'}]}};
+  const team={users:users.concat([{id:'u9',user:'leser',name:'Leser',rights:{}}]).map(u=>u.id==='u1'?Object.assign({rights:{shipment:{edit:true},shipmentoverview:{edit:true}}},u):u),state:{tasks:[{id:'t1',title:'Zollpapiere prüfen',dueDate:'2026-10-23',ownerId:'u1'}]}};
   const sessions={tokA:team.users[0],tokL:team.users[3]};
   const api=require('../api/web-push/index.js');
   const deps={
@@ -122,9 +122,9 @@ function apiFixture(){
     send:(subscription,payload,options)=>webPush.sendNotification(subscription,payload,Object.assign({},options,{transport:async(url,headers,body)=>{sent.push({url,headers,body});return{status:sendStatus}}})),
     now:()=>now
   };
-  const handler=api.createHandler(deps),notifyPack=api.createPackNotifier(deps);
+  const handler=api.createHandler(deps),notifyPack=api.createPackNotifier(deps),notifyP1=api.createUrgentP1Notifier(deps);
   const call=(payload,token)=>handler({method:'POST',headers:Object.assign({host:'www.exporthub360.de'},token?{'x-exporthub-token':token}:{}),body:payload}).then(r=>({status:r.status,body:JSON.parse(r.body)}));
-  return{api,handler,notifyPack,call,mem,devices,sent,team,setNow:d=>{now=d},setStatus:s=>{sendStatus=s},setOidc:v=>{oidc=v}};
+  return{api,handler,notifyPack,notifyP1,call,mem,devices,sent,team,setNow:d=>{now=d},setStatus:s=>{sendStatus=s},setOidc:v=>{oidc=v}};
 }
 
 test('Web Push API: aktivieren, Status ohne Login, Zeitplan-Versand genau einmal',async()=>{
@@ -194,6 +194,63 @@ test('Web Push: Packmeldung geht sofort an berechtigte Geräte, Kategorie abscha
   assert.equal(p.kind,'pack');assert.equal(p.title,'Neue Packmeldung · BSH Hausgeräte');assert.match(p.body,/PK-1 · 2 Colli · 480 kg/);
   await f.call({action:'update',endpoint:subA.endpoint,categories:{pack:false}});
   assert.equal((await f.notifyPack('production',{id:'n2',reference:'PK-2'})).sent,0);
+});
+
+test('P1 Urgent Order: private opt-in, permissions and immediate per-device push',async()=>{
+  const f=apiFixture();
+  const authorized=f.devices.a.subscription('https://fcm.googleapis.com/fcm/send/p1-A');
+  const readOnly=f.devices.b.subscription('https://fcm.googleapis.com/fcm/send/p1-B');
+  const a=await f.call({action:'subscribe',subscription:authorized},'tokA');
+  assert.equal(a.status,200);
+  assert.equal(a.body.subscription.categories.urgentP1,false,'P1 alerts must be off until explicitly enabled');
+  assert.equal(a.body.subscription.urgentP1Allowed,true,'authorized manager can opt into P1');
+  await f.call({action:'subscribe',subscription:readOnly},'tokL');
+  const order={id:'order-urgent-1',orderNumber:'SO-P1-01',priority:'P1',email:'cs@company.example',accessToken:'private'};
+  assert.equal((await f.notifyP1('production',order)).sent,0,'no unsolicited push before opt-in');
+  const ok=await f.call({action:'update',endpoint:authorized.endpoint,categories:{urgentP1:true}});
+  assert.equal(ok.body.subscription.categories.urgentP1,true);
+  await f.call({action:'update',endpoint:readOnly.endpoint,categories:{urgentP1:true}});
+  assert.equal((await f.notifyP1('production',{...order,priority:'P2'})).sent,0);
+  assert.equal((await f.notifyP1('production',order)).sent,1,'only the authorized opted-in device');
+  assert.equal(f.sent.length,1);
+  const payload=decrypt(f.devices.a,f.sent[0].body);
+  assert.equal(payload.kind,'urgentP1');
+  assert.equal(payload.title,'P1 · Sondertransport gemeldet');
+  assert.match(payload.body,/SO-P1-01/);
+  assert.doesNotMatch(JSON.stringify(payload),/cs@company\.example|private/,'no reporter credentials or email in push');
+  assert.match(payload.url,/^\/assets\/web-push\/inbox\.html\?m=/);
+  assert.ok(Buffer.byteLength(JSON.stringify(payload))<webPush.MAX_PAYLOAD_BYTES);
+  f.team.users[0].rights.shipmentoverview.edit=false;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'revoked logistics permission blocks previously opted-in device');
+  f.team.users[0].rights.shipmentoverview.edit=true;
+  f.team.users[0].active=false;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'inactive user cannot receive P1 data');
+  f.team.users[0].active=true;
+  f.team.users[0].disabled=true;
+  assert.equal((await f.notifyP1('production',order)).sent,0,'disabled user receives no P1 alert');
+  f.team.users[0].disabled=false;
+  f.team.users[0].status='Deaktiviert';
+  assert.equal((await f.notifyP1('production',order)).sent,0,'deactivated user receives no P1 alert');
+  delete f.team.users[0].status;
+  await f.call({action:'update',endpoint:authorized.endpoint,categories:{urgentP1:false}});
+  assert.equal((await f.notifyP1('production',order)).sent,0,'user can disable P1 alert');
+});
+
+test('P1 Urgent Order: save hook does not block a valid order if push fails',async()=>{
+  const internal=require('../api/urgent-orders/index.js');
+  const sent=[];
+  const result={order:{id:'ord-1',orderNumber:'SO-P1-02',priority:'P1'}};
+  const notify=async(env,order)=>{sent.push({env,order});throw new Error('push unavailable')};
+  const r=await internal.postSaveP1('create',result,{environment:'testservice'},{notify});
+  assert.equal(r.failed,true);
+  assert.deepEqual(sent,[{env:'testservice',order:{id:'ord-1',orderNumber:'SO-P1-02',priority:'P1'}}]);
+  assert.equal((await internal.postSaveP1('update-status',result,{environment:'testservice'},{notify})).sent,0);
+  assert.equal((await internal.postSaveP1('create',{order:{...result.order,priority:'P2'}},{environment:'testservice'},{notify})).sent,0);
+  assert.equal(sent.length,1,'only new P1 orders generate push');
+  const publicApi=fs.readFileSync('api/urgent-order-public/index.js','utf8');
+  const staffApi=fs.readFileSync('api/urgent-orders/index.js','utf8');
+  assert.match(publicApi,/await internal\.postSaveP1\(body\(req\)\.action,result,refs/);
+  assert.match(staffApi,/await postSaveP1\(body\(req\)\.action,result,ref/);
 });
 
 test('Packmeldung: neue Meldung löst Web Push aus, Fehler im Push stören die Meldung nicht',async()=>{
