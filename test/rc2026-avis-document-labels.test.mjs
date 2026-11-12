@@ -15,7 +15,12 @@ const required=[
  'avisPortal.noDocuments','avisPortal.noFurtherDocuments',
  'avisPortal.quantitiesTitle','avisPortal.quantitiesIntro','avisPortal.quantitiesAction',
  'avisPortal.quantitiesLoading','avisPortal.quantitiesMissing','avisPortal.quantitiesError',
- 'avisPortal.quantitiesArticle','avisPortal.quantitiesQuantity','avisPortal.quantitiesSource','avisPortal.quantitiesIncomplete'
+ 'avisPortal.quantitiesArticle','avisPortal.quantitiesQuantity','avisPortal.quantitiesSource','avisPortal.quantitiesIncomplete',
+ 'avisPortal.uploadTitle','avisPortal.uploadDocType','avisPortal.uploadSelectPdf','avisPortal.uploadStart',
+ 'avisPortal.uploadOptCmr','avisPortal.uploadOptDelivery','avisPortal.uploadOptInvoice',
+ 'avisPortal.uploadOptPacking','avisPortal.uploadOptOther',
+ 'avisPortal.docDelivery','avisPortal.docInvoice','avisPortal.docPacking',
+ 'avisPortal.docDocument','avisPortal.docAttachment','avisPortal.docNotAvailable'
 ];
 
 test('AVIS document and PDF upload text has entries in all six portal languages',()=>{
@@ -65,4 +70,16 @@ test('AVIS: released invoice category takes priority, deduplication requires ver
  assert.match(api,/sha256:'\+sha256/);
  assert.match(refs,/crypto\.createHash\('sha256'\)/);
  assert.doesNotMatch(refs,/if\(seen\.has\(key\)\)continue/);
+});
+
+test('AVIS: dynamic document labels and every select option use explicit translation keys',()=>{
+ const html=fs.readFileSync('customer-avis.html','utf8');
+ for(const key of ['uploadTitle','uploadDocType','uploadSelectPdf','uploadStart',
+  'uploadOptCmr','uploadOptDelivery','uploadOptInvoice','uploadOptPacking','uploadOptOther',
+  'docDelivery','docInvoice','docPacking','documentsHeading','documentsIntro','uploadIntro']){
+  assert.ok(html.includes("'avisPortal."+key+"'"),'missing translated rendering: '+key);
+ }
+ assert.match(html,/addEventListener\('exporthub:language-changed'/);
+ assert.match(html,/Array\.from\(select\.options\|\|\[\]\)\.forEach/);
+ assert.match(html,/avisCategoryLabel\(q\(d\.category\)\)/);
 });
