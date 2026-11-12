@@ -258,8 +258,9 @@
  if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV_COUNTER__)return;
  w.__EXPORT_HUB_URGENT_NAV_COUNTER__=true;
  const d=w.document;
- let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false,authBackoffUntil=0;
+ let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false,authBackoffUntil=0,serviceBackoffUntil=0;
  const AUTH_BACKOFF_MS=5*60*1000;
+ const SERVICE_BACKOFF_MS=5*60*1000; // Retry a failed 5xx count only after a bounded cooldown.
  function ensureBadge(){
   const node=d.querySelector('[data-exporthub-urgent-nav]');
   if(!node)return null;
@@ -290,7 +291,7 @@
   const now=Date.now();
   // A 401/403 count request is not a reason to retry on every focus, state event or 45s tick.
   // Keep the badge hidden until the next bounded retry or a verified login event.
-  if(now<authBackoffUntil)return;
+  if(now<authBackoffUntil||now<serviceBackoffUntil)return;
   if(!force&&now-lastRefresh<45000)return;
   lastRefresh=now;inFlight=true;
   try{
@@ -299,8 +300,12 @@
    const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers,body:JSON.stringify({action:'counts'})});
    if(!response.ok){
-    if((response.status===401||response.status===403)&&epoch===sessionEpoch){
-     authBackoffUntil=Date.now()+AUTH_BACKOFF_MS;
+    if(epoch===sessionEpoch){
+     if(response.status===401||response.status===403)authBackoffUntil=Date.now()+AUTH_BACKOFF_MS;
+     // During a TESTSERVICE API outage, background counts must not repeatedly
+     // trigger the same failing request. The first 5xx still reaches the
+     // strict live browser gate; this only limits subsequent polling.
+     else if(response.status>=500)serviceBackoffUntil=Date.now()+SERVICE_BACKOFF_MS;
     }
     throw new Error('URGENT_COUNT_UNAVAILABLE');
    }
@@ -309,6 +314,7 @@
    if(epoch!==sessionEpoch)return;
    if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw new Error('URGENT_COUNT_INVALID');
    authBackoffUntil=0;
+   serviceBackoffUntil=0;
    const count=data.open;
    // Only authorized aggregate counts cross the network: no order/customer data.
    const current=ensureBadge();if(!current)return;
@@ -327,10 +333,10 @@
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',()=>refresh(true),{once:true});else refresh(true);
   if(w.addEventListener){
    ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(name=>w.addEventListener(name,()=>{
-    sessionEpoch++;loggedOut=false;lastRefresh=0;authBackoffUntil=0;hideBadge();refresh(true);
+    sessionEpoch++;loggedOut=false;lastRefresh=0;authBackoffUntil=0;serviceBackoffUntil=0;hideBadge();refresh(true);
    }));
    ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(name=>w.addEventListener(name,()=>{
-    sessionEpoch++;loggedOut=true;lastRefresh=0;authBackoffUntil=0;hideBadge();
+    sessionEpoch++;loggedOut=true;lastRefresh=0;authBackoffUntil=0;serviceBackoffUntil=0;hideBadge();
    }));
    // The 45s interval already keeps a successful count fresh. State-load
    // and focus bursts must not bypass that interval on every event.
