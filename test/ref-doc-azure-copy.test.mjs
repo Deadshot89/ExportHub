@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -56,13 +57,30 @@ test('Dokument-Azure-Kopie: Liste und Download führen Azure-Dokumente mit Share
 });
 
 // ---- Avis -----------------------------------------------------------------------------
-test('Avis: Azure-Dokumente erscheinen vor gleichnamigen SharePoint-Dateien, ohne Doppelte', async () => {
-  const name = 'Rechnung_AB12CD_20261107-101500_RE.pdf';
-  const azure = [{ id: 'refdoc:' + 'a'.repeat(32), name, size: 5 }];
-  const graph = [{ id: 'G1', name, size: 5 }, { id: 'G2', name: 'Lieferschein_AB12CD_20261107-101501_LS.pdf', size: 6 }];
-  const out = await docsMod.load({ listFiles: async () => graph }, 'AB12CD', 'production', null, { list: async () => azure });
-  assert.deepEqual(out.map(d => [d.category, d.refSource]), [['Rechnung', 'azure'], ['Lieferschein', 'graph']]);
-  assert.equal(out[0].refItemId, 'refdoc:' + 'a'.repeat(32));
+test('Avis: Azure/SharePoint copies collapse only after byte-identical SHA-256 verification', async () => {
+  const name='Rechnung_AB12CD_20261107-101500_RE.pdf';
+  const bytes=Buffer.from('PDF A'),sha=createHash('sha256').update(bytes).digest('hex');
+  const azure=[{id:'refdoc:'+'a'.repeat(32),name,size:bytes.length,sha256:sha}];
+  const graph=[{id:'G1',name,size:bytes.length},{id:'G2',name:'Lieferschein_AB12CD_20261107-101501_LS.pdf',size:6}];
+  const out=await docsMod.load({listFiles:async()=>graph,readFile:async()=>({buffer:bytes})},'AB12CD','production',null,{list:async()=>azure});
+  assert.deepEqual(out.map(d=>[d.category,d.refSource]),[['Rechnung','azure'],['Lieferschein','graph']]);
+  assert.equal(out[0].refItemId,'refdoc:'+'a'.repeat(32));
+});
+
+test('Avis: same filename with different size or content remains two separate files',async()=>{
+ const name='Lieferschein_AB12CD_20261107-101500_DNC000123456.pdf';
+ const bytes=Buffer.from('content A'),other=Buffer.from('content B');
+ const hash=createHash('sha256').update(bytes).digest('hex');
+ const azure=[{id:'refdoc:'+'b'.repeat(32),name,size:bytes.length,sha256:hash}];
+ const differentSize=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:bytes.length+1}],readFile:async()=>({buffer:bytes})},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(differentSize.length,2);
+ const differentContent=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:other.length}],readFile:async()=>({buffer:other})},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(differentContent.length,2);
+ const failure=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:bytes.length}],readFile:async()=>{throw Error('offline')}},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(failure.length,2);
 });
 
 test('Avis: ist SharePoint ausgefallen, bleiben die Azure-Dokumente sichtbar; umgekehrt ebenso', async () => {
