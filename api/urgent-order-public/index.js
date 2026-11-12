@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
+const progress=require('../shared/urgent-progress');
 const packing=require('../shared/urgent-packing');
 const apiI18n=require('../shared/i18n');
 const guard=new Map();
@@ -28,6 +29,7 @@ function publicOrder(order){
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
+  progress:progress.view(order,true),
   deletion:{state:model.deleteView(order).state,started:model.deleteView(order).started,
     requestedAt:model.deleteView(order).requestedAt},
   items:(order.items||[]).map(x=>({
@@ -63,6 +65,20 @@ async function publicAction(req,refs){
   const doc=await internal.readDocument(refs),group=groupByToken(doc,p.accessToken);
   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Invalid or missing tracking link.',403);
   return{orders:doc.orders.filter(o=>!o.deletedAt&&o.reporterId===group.id).map(publicOrder).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),environment:refs.environment};
+ }
+ if(action==='confirm-received'){
+  checkRate(req,'confirm-received');
+  const id=txt(p.id,90),accessToken=p.accessToken;
+  return internal.write(refs,doc=>{
+   const group=groupByToken(doc,accessToken);
+   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Ungültiger Überwachungslink.',403);
+   const order=doc.orders.find(o=>o&&o.id===id&&o.reporterId===group.id&&!o.deletedAt);
+   if(!order)throw model.problem('URGENT_NOT_FOUND','Anfrage nicht gefunden.',404);
+   if(order.orderType!=='DIRECT_OUTBOUND')throw model.problem('URGENT_PROGRESS_STEP_INVALID','Bei dieser Anfrage ist kein Wareneingang vorgesehen.',409);
+   // Only the exact linked reporter can confirm receipt, not any arbitrary email.
+   progress.confirm(order,'received',{id:'REPORTER:'+group.id,name:'Customer Service'},new Date().toISOString(),{canConfirmReceipt:true});
+   return{order:publicOrder(order)};
+  });
  }
  if(action==='request-delete'){
   checkRate(req,'request-delete');
