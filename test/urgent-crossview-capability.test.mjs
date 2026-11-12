@@ -123,3 +123,55 @@ test('Urgent internal session switches clear confidential orders, draft content 
  assert.match(html,/const epoch=\+\+urgentRefreshEpoch/);
  assert.match(html,/if\(epoch!==urgentRefreshEpoch\)return/);
 });
+
+test('Urgent internal view clears bearer secrets and ignores out-of-order session responses',async()=>{
+ const vm=(await import('node:vm')).default;
+ const html=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
+ const between=(start,end)=>{
+  const from=html.indexOf(start),to=html.indexOf(end,from);
+  assert.ok(from>0&&to>from,'runtime extraction markers found');
+  return html.slice(from,to);
+ };
+ const clearHelpers=between('function clearExternalTrackingSecrets(){','function token(){');
+ const refreshFunction=between('async function refresh(){','function berlinCutoffClock(){');
+ const nodes={};
+ function node(id){
+  if(!nodes[id]){
+   nodes[id]={value:'previous-secret',textContent:'previous-data',hidden:false,disabled:false,innerHTML:'',
+    elements:{externalTrackingLink:{value:'previous-secret'}},
+    replaceChildren(){this.childrenCleared=true;this.innerHTML='';},
+    addEventListener(){},reset(){this.resetCalled=true;}};
+  }
+  return nodes[id];
+ }
+ const pending=[];
+ const ctx=vm.createContext({
+  $:node,orders:[{id:'previous'}],viewerId:'previous-user',canManage:true,modalOrder:'previous',
+  modalKind:'problem',draftNeedsRegenerate:true,urgentRefreshEpoch:0,
+  api:async()=>new Promise(resolve=>pending.push(resolve)),
+  render:()=>{},renderSavedEmails:()=>{},setMessage:()=>{},localeV2:(_k,fallback)=>fallback,
+  localizedLoginRequired:()=> 'Login required',lineField:()=>{},showInternalStep:()=>{}
+ });
+ vm.runInContext(clearHelpers+'\n'+refreshFunction,ctx);
+ vm.runInContext('clearUrgentPrivateView(false)',ctx);
+ assert.equal(node('externalShareUrl').value,'');
+ assert.equal(node('externalShareExistingLink').value,'');
+ assert.equal(node('newOrder').elements.externalTrackingLink.value,'');
+ assert.equal(node('externalShareResult').hidden,true);
+ assert.equal(node('orders').childrenCleared,true);
+ assert.equal(vm.runInContext('orders.length',ctx),0);
+ assert.equal(vm.runInContext('canManage',ctx),false);
+ assert.equal(vm.runInContext('viewerId',ctx),'');
+ const older=vm.runInContext('refresh()',ctx);
+ const newer=vm.runInContext('refresh()',ctx);
+ assert.equal(pending.length,2);
+ pending[1]({orders:[{id:'current-session-order'}],currentUserId:'current-user',
+  canManage:true,canImportPackingCatalog:false});
+ await newer;
+ pending[0]({orders:[{id:'stale-previous-user-order'}],currentUserId:'previous-user',
+  canManage:true,canImportPackingCatalog:false});
+ await older;
+ assert.equal(vm.runInContext('orders[0].id',ctx),'current-session-order');
+ assert.equal(vm.runInContext('viewerId',ctx),'current-user');
+ assert.equal(vm.runInContext('urgentRefreshEpoch',ctx),2);
+});
