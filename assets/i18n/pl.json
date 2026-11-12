@@ -2768,5 +2768,6 @@
   "urgentOrderV2.crossviewShareSuccess": "Utworzono zewnętrzny link śledzenia. Skopiuj go i bezpiecznie udostępnij.",
   "urgentOrderV2.crossviewLinkCopied": "Skopiowano zewnętrzny link śledzenia.",
   "urgentOrderV2.crossviewLinkManualCopy": "Zaznacz link i skopiuj go ręcznie.",
-  "urgentOrderV2.crossviewLinkedNoDelete": "To zlecenie udostępniono wewnętrznie. Usunięcie jest możliwe tylko na stronie wewnętrznej."
+  "urgentOrderV2.crossviewLinkedNoDelete": "To zlecenie udostępniono wewnętrznie. Usunięcie jest możliwe tylko na stronie wewnętrznej.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Istniejący zewnętrzny link śledzenia do udostępnienia (opcjonalnie)"
 }
