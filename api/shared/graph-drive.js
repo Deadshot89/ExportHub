@@ -1239,12 +1239,53 @@ async function diagnoseTarget(options) {
     // just the redacted status; never emit tenant, drive ID, or Graph message.
     // Keep the original folder failure as the final diagnostic stage.
     if (result.targetMode === 'explicit-ids') {
+      let driveBadRequest = false;
       try {
         const drive = await graphGet(token, '/drives/' + encodeURIComponent(target.driveId) + '?$select=id');
         if (text(drive.body && drive.body.id)) success('resolved-drive-read');
         else failure('resolved-drive-read', { code: 'GRAPH_DRIVE_ID_MISSING', statusCode: 502 });
       } catch (driveError) {
+        driveBadRequest = Number(driveError && driveError.statusCode || 0) === 400;
         failure('resolved-drive-read', driveError);
+      }
+
+      // P0 #999: A 400 for BOTH configured Graph IDs may indicate stale or
+      // malformed IDs. Check the ALREADY configured user/path separately,
+      // using this same application token and GET only. Never switch the
+      // upload target or reveal identities, paths, item IDs or Graph text.
+      if (Number(error && error.statusCode || 0) === 400 && driveBadRequest &&
+          text(cfg.user) && text(cfg.folder)) {
+        try {
+          const userDrive = await graphGet(token,
+            '/users/' + encodeURIComponent(cfg.user) + '/drive?$select=id');
+          if (text(userDrive.body && userDrive.body.id)) success('configured-user-drive-read');
+          else failure('configured-user-drive-read', { code: 'GRAPH_DRIVE_ID_MISSING', statusCode: 502 });
+        } catch (userError) {
+          failure('configured-user-drive-read', userError);
+        }
+        for (const [index, candidate] of candidateFolders(cfg.folder).slice(0, 3).entries()) {
+          const stage = index === 0 ? 'configured-user-folder-path'
+            : 'configured-user-folder-path-alternative-' + (index + 1);
+          try {
+            const folder = await graphGet(token,
+              '/users/' + encodeURIComponent(cfg.user) + '/drive/root:/' +
+              encodedPath(candidate) + '?$select=id,folder,parentReference');
+            if (!text(folder.body && folder.body.id) || !folder.body.folder) {
+              failure(stage, { code: 'GRAPH_FOLDER_NOT_A_FOLDER', statusCode: 409 });
+              continue;
+            }
+            success(stage);
+            // Report only whether the existing IDs match. A readable user path
+            // is NOT permission to redirect PODs or claim a backup succeeded.
+            result.configuredUserPathMatchesExplicitIds =
+              text(folder.body.parentReference && folder.body.parentReference.driveId) ===
+                text(target.driveId) &&
+              text(folder.body.id) === text(target.folderId);
+            break;
+          } catch (pathError) {
+            failure(stage, pathError);
+          }
+        }
       }
     }
     failure('resolved-folder-read', error);
