@@ -40,3 +40,20 @@ test('AVIS: DNC remains a delivery note if SIDE is only an incidental related do
  const refs=require('../api/shared/pdf-document-reference.js');
  assert.equal(refs.normalizedPdfName('scanner.pdf','Delivery Note DNC000123456 SIDE000012345').name,'DNC000123456.pdf');
 });
+
+test('AVIS: invoice title alone blocks quantities despite a packing-slip DNC reference',()=>{
+ const invoice=['Invoice','SIDE000012345','Packing slip No.: DNC000123456',
+ 'Part Number Description Qty Shipped Unit','10291603 SAMPLE CAP 25 EA'].join('\n');
+ const r=parse(invoice,'DNC000123456.pdf');
+ assert.equal(r.status,'unavailable');assert.deepEqual(r.positions,[]);
+});
+test('AVIS: packing-slip number mentioned without a delivery note heading is not enough',()=>{
+ const text=['Packing slip No.: DNC000123456',
+ 'Part Number Description Qty Shipped Unit','10291603 SAMPLE CAP 25 EA'].join('\n');
+ assert.equal(parse(text,'DNC000123456.pdf').status,'unavailable');
+});
+test('AVIS: an explicitly headed delivery note remains eligible for shipped quantities',()=>{
+ const document=['Delivery Note DNC000123456',
+ 'Part Number Description Qty Shipped Unit','10291603 SAMPLE CAP 25 EA'].join('\n');
+ assert.deepEqual(parse(document,'DNC000123456.pdf').positions.map(x=>x.quantity),[25]);
+});
