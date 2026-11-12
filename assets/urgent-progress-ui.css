@@ -1,0 +1,23 @@
+/* Urgent Order – order-only progress timeline, light/dark and mobile friendly */
+.urgent-milestones{margin:12px 0 20px;padding:18px;border:1px solid var(--line,#d2deed);border-radius:16px;background:color-mix(in srgb,var(--card,var(--surface,#fff)) 94%,#6aa9fa 6%);color:var(--ink,#17324c)}
+.up-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:15px;font-weight:800;margin-bottom:10px}
+.up-track{width:100%;height:8px;background:color-mix(in srgb,currentColor 12%,transparent);border-radius:99px;overflow:hidden}
+.up-track>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2682e9,#42b9a5);transition:width .2s ease}
+.up-steps{padding:0;margin:16px 0 0;list-style:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.up-step{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;font-size:11px;color:var(--muted,#63758c);padding:10px 5px;border:1px solid var(--line,#d2deed);border-radius:12px}
+.up-step strong{font-size:12px;line-height:1.35;color:var(--ink,#17324c);overflow-wrap:anywhere}
+.up-dot{display:grid;place-items:center;width:28px;height:28px;font-size:12px;border-radius:50%;background:color-mix(in srgb,currentColor 12%,transparent);border:1px solid currentColor}
+.up-done .up-dot{background:#c7f3e4;border-color:#51b79a;color:#086a51}
+.up-skipped .up-dot{background:#fff0ce;border-color:#d99e35;color:#8b5c09}
+.up-current{border-color:#66a5ff;background:color-mix(in srgb,#6daeff 10%,transparent)}
+.up-status{font-weight:700}.up-time{font-size:10px;overflow-wrap:anywhere;line-height:1.35}
+.up-confirm,.up-notification button{border:1px solid #347de3;border-radius:8px;background:#2769c6;color:#fff;padding:5px 7px;font-size:11px;font-weight:700;cursor:pointer;min-height:30px}
+.up-confirm:hover,.up-notification button:hover{background:#174ea1}
+.up-confirm:focus-visible,.up-notification button:focus-visible{outline:3px solid #f4b942;outline-offset:2px}
+.up-confirm:disabled,.up-notification button:disabled{opacity:.6;cursor:wait}
+.up-notification{margin-top:12px;padding:10px;border-radius:10px;border:1px solid #e5ae5c;background:color-mix(in srgb,#f9b44e 16%,transparent);display:flex;flex-wrap:wrap;align-items:center;gap:9px;font-size:12px;font-weight:700}
+.up-note{margin:12px 0 0;font-size:11px;opacity:.78;line-height:1.5}
+@media(max-width:870px){.up-steps{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:480px){.urgent-milestones{padding:12px}.up-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.up-step strong{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.up-track>span{transition:none}}
+@media(prefers-color-scheme:dark){.up-done .up-dot{background:#164c40;color:#bdf5df}.up-skipped .up-dot{background:#5a420f;color:#ffe0a4}}
