@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Enregistré",
   "avisPortal.uploadChecking": "Vérification en cours",
   "avisPortal.noDocuments": "Aucun document autorisé n'est actuellement disponible au téléchargement.",
-  "avisPortal.noFurtherDocuments": "Aucun autre document autorisé n'est actuellement disponible."
+  "avisPortal.noFurtherDocuments": "Aucun autre document autorisé n'est actuellement disponible.",
+  "avisPortal.quantitiesTitle": "Quantités d'articles livrées",
+  "avisPortal.quantitiesIntro": "Seules les quantités explicitement indiquées sur les bons de livraison sont affichées. Les colis et les factures ne servent pas de source.",
+  "avisPortal.quantitiesAction": "Vérifier les quantités des bons de livraison",
+  "avisPortal.quantitiesLoading": "Vérification des bons de livraison …",
+  "avisPortal.quantitiesMissing": "Impossible de déterminer avec certitude les quantités d'articles livrées.",
+  "avisPortal.quantitiesError": "La vérification du PDF n'a pas pu être terminée.",
+  "avisPortal.quantitiesArticle": "Article",
+  "avisPortal.quantitiesQuantity": "Quantité livrée",
+  "avisPortal.quantitiesSource": "Source : bon de livraison",
+  "avisPortal.quantitiesIncomplete": "D'autres documents n'ont pas pu être interprétés sans ambiguïté."
 }
