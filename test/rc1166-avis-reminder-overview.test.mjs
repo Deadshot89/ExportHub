@@ -106,7 +106,22 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   const carrier=api.shipmentContacts(sh,'carrier').map(x=>x.email);
   for(const e of ['kunde@example.com','einkauf@example.com','kontakt@example.com','sendung@example.com'])assert.ok(customer.includes(e),e+' fehlt bei Kunde');
   assert.equal(customer.includes('sales@example.com'),false);
-  for(const e of ['sped@example.com','dispo@example.com','fracht@example.com','sendung-sped@example.com'])assert.ok(carrier.includes(e),e+' fehlt bei Spedition');
+  assert.deepEqual(Array.from(carrier),['sped@example.com'],'Alte Sendungs- und Kontaktverzeichnis-Adressen dürfen nicht in die aktuelle Speditionsmail zurückkehren');
+});
+
+test('RC1968 / #904: Essentra Schweden REF1968 nutzt nur die aktuelle Speditionsmail-Zuordnung',()=>{
+  const state={customers:[{
+    id:'C-1968',account:'9000000000',name:'Customer SE',
+    carrierEmail:'active-a@freight.example; active-b@freight.example',
+    carrierMail:'active-a@freight.example; active-b@freight.example; retired@freight.example',
+    speditionMail:'retired@freight.example',
+    mailRecipients:'retired@freight.example',
+    carrierContacts:[{email:'retired@freight.example'}]
+  }]};
+  const sh={id:'REF1968',reference:'REF1968',customerId:'C-1968',
+    carrierEmail:'retired@freight.example',speditionMail:'retired@freight.example'};
+  const actual=load(state).shipmentContacts(sh,'carrier').map(x=>x.email);
+  assert.deepEqual(Array.from(actual),['active-a@freight.example','active-b@freight.example']);
 });
 
 test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
@@ -152,7 +167,7 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
 
 test('RC1292: Holenstein wird aus der Avis-Erinnerungs-Empfängerliste entfernt',()=>{
   const state={customers:[{
-    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de',
+    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de; other@example.com',
     carrierContacts:[{name:'Disposition | Holenstein GmbH',email:'dispo@holenstein.de'},{name:'Andere Spedition',email:'other@example.com'}]
   }]};
   const api=load(state),sh={customerId:'P1',customerName:'Plica',carrierMail:'dispo@holenstein.de'};
