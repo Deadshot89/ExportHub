@@ -357,7 +357,7 @@ module.exports=async function(context,req){
   stage='handler';
   const result=await execute(req,current.user,ref);
   stage='post-save';
-  await postSaveP1(body(req).action,result,ref,{log:context.log});
+  await postSaveP1(requestBody(req).action,result,ref,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   const requestId=crypto.randomUUID();
