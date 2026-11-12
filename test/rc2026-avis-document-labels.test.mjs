@@ -93,3 +93,15 @@ test('AVIS: delivered DNC quantities load automatically and are cached across 15
  assert.match(html,/bindDeliveryQuantities\(data\)/);
  assert.match(html,/if\(typeof refreshAvisQuantityLabels==='function'\)refreshAvisQuantityLabels\(\)/);
 });
+
+test('AVIS: delivery_note and packing_list metadata are categorized, not shown as attachments',()=>{
+ const api=fs.readFileSync('api/customer-avis/index.js','utf8');
+ assert.match(api,/LIEFERSCHEIN\|DELIVERY\[_ -\]\?NOTE/);
+ assert.match(api,/PACKLISTE\|PACKING\[_ -\]\?LIST/);
+});
+test('AVIS: document language switch translates select, heading and file category',()=>{
+ const ui=fs.readFileSync('customer-avis.html','utf8');
+ assert.match(ui,/data-i18n="avisPortal.documentsHeading"/);
+ assert.match(ui,/data-avis-category/);
+ assert.match(ui,/doc small\[data-avis-category\]/);
+});
