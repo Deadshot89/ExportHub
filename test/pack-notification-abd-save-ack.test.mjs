@@ -237,3 +237,15 @@ test('RC1499: matching generation ACK does not incur an unnecessary full Azure s
   assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
     ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaved'));
 });
+
+
+test('RC1499: attached ABD documents require generation ACK, filename-only readback is insufficient',async()=>{
+  const ctx=createReadbackScenario();
+  ctx.state.abdDraft.invoiceFiles=[{id:'doc-synthetic',name:'synthetic.pdf',size:88}];
+  assert.ok(ctx.save(false,'Angefragt'));
+  await tick();
+  assert.equal(ctx.calls.length,1,'Readback attempted but must not accept equal file names alone');
+  assert.equal(ctx.root.ExportHUBPackAbd.saveStatusText(),
+    ctx.root.ExportHUBPackI18n.t('pack.internal.abdSaveUnconfirmed'));
+  assert.equal(ctx.location.href,'','No Outlook for document with unproven content');
+});
