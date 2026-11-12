@@ -194,3 +194,26 @@ test('AVIS: full parser never substitutes another DNC for existing fast DNC',asy
   assert.equal(out.name,'DNC000123456.pdf');
   assert.equal(out.documentReference,'DNC000123456');
 });
+
+test('AVIS: a canonical SIDE filename still gets invoice metadata from full document heading',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const bytes=plainPdf('Packing Slip SIDE000012345');
+  const out=await mod.storeInlineDocument({id:'doc-side-invoice',name:'SIDE000012345.pdf',mimeType:'application/pdf',data:dataUrl(bytes)},{
+    environment:'testservice',container:fakeContainer(),
+    pdfTextExtractor:async()=> 'Invoice Number SIDE000012345\nPacking slip No.: DNC000123456'
+  });
+  assert.equal(out.name,'SIDE000012345.pdf');
+  assert.equal(out.documentReference,'SIDE000012345');
+  assert.equal(out.documentType,'Rechnung');
+});
+test('AVIS: a SIDE packing slip with no invoice heading remains a packing slip',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const bytes=plainPdf('Packing Slip SIDE000012345');
+  const out=await mod.storeInlineDocument({id:'doc-side-packing',name:'SIDE000012345.pdf',mimeType:'application/pdf',data:dataUrl(bytes)},{
+    environment:'testservice',container:fakeContainer(),
+    pdfTextExtractor:async()=> 'Packing Slip SIDE000012345'
+  });
+  assert.equal(out.documentType,undefined);
+  assert.equal(out.name,'SIDE000012345.pdf');
+  assert.equal(out.documentReference,'SIDE000012345');
+});
