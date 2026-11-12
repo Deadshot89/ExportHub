@@ -258,20 +258,33 @@ async function execute(req,user,refs){
  }
  if(action==='share-external'){
   const id=model.text(p.id,90);
-  const issued=reporter.issue();
+  const requestedLink=String(p.externalTrackingLink||'').trim();
+  if(requestedLink.length>600)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Externer Link ist zu lang.',400);
+  const accessToken=requestedLink?reporter.extractToken(requestedLink):'';
+  if(requestedLink&&!accessToken)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Bitte einen gültigen externen Urgent-Order-Link einfügen.',400);
+  const issued=accessToken?null:reporter.issue();
   return write(refs,doc=>{
    const order=accessibleOrder(doc,id,user);
    const owns=!!(user&&user.id&&model.text(order.createdBy&&order.createdBy.id,150)===model.text(user.id,150));
    if(!model.canManage(user)&&!owns)throw model.problem('URGENT_FORBIDDEN','Nur der Melder oder die Logistik kann diesen Auftrag extern freigeben.',403);
    if(order.reporterId)throw model.problem('URGENT_ALREADY_SHARED','Der Auftrag ist bereits einem externen Link zugeordnet. Bitte den ursprünglichen Link verwenden.',409);
-   if(doc.reporterGroups.length>=3000)throw model.problem('URGENT_CAPACITY','Die maximale Anzahl externer Überwachungslinks wurde erreicht.',503);
-   doc.reporterGroups.push({id:issued.id,tokenHash:issued.tokenHash,email:order.email,createdAt:now});
-   order.reporterId=issued.id;
+   let group;
+   if(accessToken){
+    group=reporter.groupByToken(doc,accessToken);
+    if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Der externe Überwachungslink gehört nicht zu dieser Umgebung oder ist ungültig.',403);
+    if(group.email!==order.email)throw model.problem('URGENT_REPORTER_EMAIL_MISMATCH','Die CS-E-Mail-Adresse muss mit dem externen Überwachungslink übereinstimmen.',403);
+    if(doc.orders.filter(x=>!x.deletedAt&&x.reporterId===group.id).length>=100)throw model.problem('URGENT_REPORTER_CAPACITY','Dieser externe Link hat die maximale Anzahl an Aufträgen erreicht.',409);
+   }else{
+    if(doc.reporterGroups.length>=3000)throw model.problem('URGENT_CAPACITY','Die maximale Anzahl externer Überwachungslinks wurde erreicht.',503);
+    group={id:issued.id,tokenHash:issued.tokenHash,email:order.email,createdAt:now};
+    doc.reporterGroups.push(group);
+   }
+   order.reporterId=group.id;
    order.externalSharedFromInternal=true;
    order.updatedAt=now;
    order.history=Array.isArray(order.history)?order.history:[];
    order.history.push({at:now,actorId:model.text(user&&user.id,150),event:'external_tracking_shared'});
-   return{order,accessToken:issued.token,environment:refs.environment};
+   return{order,accessToken:accessToken||issued.token,environment:refs.environment};
   });
  }
  if(action==='request-delete'){
