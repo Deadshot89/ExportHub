@@ -16,7 +16,7 @@ const run=new AsyncFunction('process','fetch','console','setTimeout',program);
 function reply(status,payload){
  return{status,ok:status>=200&&status<300,json:async()=>payload,text:async()=>JSON.stringify(payload)};
 }
-async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),mainHeads=[]}={}){
+async function scenario({status=409,message='Cannot cancel a workflow run that is completed.',url='cancel',cancelResponses=null,pollStatus='queued',pollSha='b'.repeat(40),mainHeads=[],pollCreatedAt=null,pollJobCount=0}={}){
  const sha='a'.repeat(40),lines=[],calls=[];
  let mainReadCount=0;
  const fetch=async(address,options={})=>{
@@ -33,8 +33,10 @@ async function scenario({status=409,message='Cannot cancel a workflow run that i
    const response=cancelResponses?.[Math.min(n,cancelResponses.length-1)]||{status,message};
    return reply(response.status,{message:response.message||''});
   }
+  if(address.includes('/actions/runs/123/jobs?'))
+   return reply(200,{total_count:pollJobCount,jobs:pollJobCount? [{id:999,status:'queued'}] : []});
   if(address.endsWith('/actions/runs/123'))
-   return reply(200,{head_sha:pollSha,status:pollStatus});
+   return reply(200,{head_sha:pollSha,status:pollStatus,created_at:pollCreatedAt});
   throw new Error('Unexpected GitHub request: '+address);
  };
  const fakeProcess={env:{GITHUB_TOKEN:'test-token',REPOSITORY:'Deadshot89/ExportHub',CURRENT_SHA:sha},exit:()=>{throw new Error('Unexpected exit')}};
@@ -114,6 +116,34 @@ test('RC1538 P0: main changes during 409 retry, stop before another POST',async(
  assert.equal(calls.filter(x=>x.method==='POST').length,1);
  assert.ok(lines.some(line=>line.includes('main changed before cancel')));
  assert.ok(!lines.some(line=>line.includes('123')&&line.includes('beendet.')));
+});
+
+test('RC1538: permanently stuck queued run with zero jobs is explicitly flagged, never called cancelled',async()=>{
+ const {lines,calls}=await scenario({
+  message:'Cannot cancel a workflow run that has not been queued yet.',
+  pollCreatedAt:'2025-01-01T00:00:00.000Z',pollStatus:'queued',pollJobCount:0
+ });
+ assert.equal(calls.filter(x=>x.method==='POST').length,5);
+ assert.ok(calls.some(x=>x.url.includes('/actions/runs/123/jobs?')));
+ assert.ok(lines.some(x=>x.includes('::warning::')&&x.includes('NOT CANCELLED')));
+ assert.equal(lines.some(x=>x.includes('123')&&x.includes('beendet.')),false);
+ assert.ok(lines.some(x=>x.includes('1 unresolved queue-only runs')));
+});
+
+test('RC1538: fresh queued or jobs-assigned runs stay fatal on persistent GitHub 409',async()=>{
+ const message='Cannot cancel a workflow run that has not been queued yet.';
+ await assert.rejects(scenario({message,pollCreatedAt:'2099-01-01T00:00:00.000Z',pollJobCount:0}),/nach 5 Versuchen/);
+ await assert.rejects(scenario({message,pollCreatedAt:'2025-01-01T00:00:00.000Z',pollJobCount:1}),/nach 5 Versuchen/);
+ await assert.rejects(scenario({message,pollCreatedAt:'2025-01-01T00:00:00.000Z',pollJobCount:0,pollStatus:'in_progress'}),/nach 5 Versuchen/);
+});
+
+test('RC1538: native main concurrency cancels older commits while keeping stale-deploy guard',()=>{
+ const source=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const match=source.match(/concurrency:\s*\n\s+group:\s*([^\n]+)\n\s+cancel-in-progress:\s*true/);
+ assert.ok(match,'main release must use GitHub-native cancellation');
+ assert.match(match[1],/github\.ref/);
+ assert.doesNotMatch(match[1],/github\.sha/);
+ assert.match(source,/RC1381 TESTSERVICE stale-deploy guard/);
 });
 
 test('RC1903: live smoke includes token and cross-origin security proofs',()=>{

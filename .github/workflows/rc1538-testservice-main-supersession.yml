@@ -87,6 +87,7 @@ jobs:
           const runs=Array.isArray(payload&&payload.workflow_runs)?payload.workflow_runs:[];
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           let supersededDuringCancel=false;
+          let cancelledCount=0,alreadyCompletedCount=0,queuedGhostCount=0;
           for(const run of older){
             let outcome;
             for(let attempt=0;attempt<5;attempt++){
@@ -108,16 +109,35 @@ jobs:
                 outcome={alreadyCompleted:true};
                 break;
               }
-              if(attempt===4)
+              if(attempt===4){
+                // GitHub can keep a run queued for hours while assigning ZERO
+                // jobs. Its cancel API returns 409 indefinitely in that case.
+                // This is NOT a confirmed cancellation. Only classify a
+                // strictly read-verified, >1-hour queue ghost as unresolved.
+                const ageMs=Date.now()-Date.parse(String(latest.created_at||''));
+                if(latest.status==='queued'&&Number.isFinite(ageMs)&&ageMs>60*60*1000){
+                  const jobs=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=1`);
+                  if(jobs&&jobs.total_count===0&&Array.isArray(jobs.jobs)&&jobs.jobs.length===0){
+                    outcome={uncancellableQueuedNoJobs:true};
+                    break;
+                  }
+                }
                 throw new Error(`RC1538: Run ${run.id} nach 5 Versuchen noch nicht abbrechbar (GitHub 409).`);
+              }
               await new Promise(resolve=>setTimeout(resolve,250*(2**attempt)));
             }
             if(supersededDuringCancel)break;
-            if(outcome&&outcome.alreadyCompleted)
+            if(outcome&&outcome.uncancellableQueuedNoJobs){
+              queuedGhostCount++;
+              console.log(`::warning::RC1538: older Run ${run.id} still QUEUED with 0 jobs for >1h; GitHub refuses cancel (409). NOT CANCELLED. Current-main and RC1381 stale-deploy guards remain mandatory.`);
+            }else if(outcome&&outcome.alreadyCompleted){
+              alreadyCompletedCount++;
               console.log(`RC1538: ältere Main Verification ${run.id} inzwischen abgeschlossen; kein Abbruch nötig.`);
-            else
+            }else{
+              cancelledCount++;
               console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) beendet.`);
+            }
           }
           if(!supersededDuringCancel)
-            console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications beendet; aktueller SHA ${currentSha}.`);
+            console.log(`RC1538: ${cancelledCount} cancelled, ${alreadyCompletedCount} completed, ${queuedGhostCount} unresolved queue-only runs; aktueller SHA ${currentSha}.`);
           NODE
