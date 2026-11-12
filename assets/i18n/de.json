@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Gespeichert",
   "avisPortal.uploadChecking": "Prüfung läuft",
   "avisPortal.noDocuments": "Aktuell ist noch kein freigegebenes Dokument zum Download verfügbar.",
-  "avisPortal.noFurtherDocuments": "Aktuell sind keine weiteren freigegebenen Dokumente verfügbar."
+  "avisPortal.noFurtherDocuments": "Aktuell sind keine weiteren freigegebenen Dokumente verfügbar.",
+  "avisPortal.quantitiesTitle": "Gelieferte Artikelmengen",
+  "avisPortal.quantitiesIntro": "Nur ausdrücklich im Lieferschein belegte Mengen werden angezeigt. Colli und Rechnungen werden nicht als Mengenquelle verwendet.",
+  "avisPortal.quantitiesAction": "Mengen aus Lieferscheinen prüfen",
+  "avisPortal.quantitiesLoading": "Lieferscheine werden geprüft …",
+  "avisPortal.quantitiesMissing": "Keine eindeutig belegte gelieferte Artikelmenge ermittelbar.",
+  "avisPortal.quantitiesError": "Die PDF-Prüfung konnte nicht abgeschlossen werden.",
+  "avisPortal.quantitiesArticle": "Artikel",
+  "avisPortal.quantitiesQuantity": "Gelieferte Menge",
+  "avisPortal.quantitiesSource": "Quelle: Lieferschein",
+  "avisPortal.quantitiesIncomplete": "Weitere Dokumente konnten nicht eindeutig ausgewertet werden."
 }
