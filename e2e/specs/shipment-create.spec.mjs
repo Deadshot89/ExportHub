@@ -164,7 +164,11 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   // Reale Serverpersistenz nach Reload prüfen.
   await page.reload({waitUntil:'domcontentloaded'});
   await waitReady(page);
-  await settleStateSave(page,{timeout:30_000});
+  // RC1171: Reload creates a fresh local runtime without a new Azure write.
+  // Its ACK generation is not evidence of the PREVIOUS page's saved data.
+  // Do not force another save here: verify the exact persisted shipment with
+  // the independent authenticated Azure state-read below, fail-closed on any
+  // missing/mismatched server record. All pre-reload save drains stay strict.
 
   const persisted=await page.evaluate(async({token,runId,ref})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
