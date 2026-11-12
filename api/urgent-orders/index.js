@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const progress=require('../shared/urgent-progress');
 const packing=require('../shared/urgent-packing');
 const mailTranslation=require('../shared/urgent-mail-translation');
 const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
@@ -206,7 +207,7 @@ async function execute(req,user,refs){
   let open=0,closed=0;
   for(const order of doc.orders){
    if(!model.activeOrder(order)||!model.canRead(order,user))continue;
-   if(model.isClosed(order))closed++;else open++;
+   if(model.isClosed(order)||progress.view(order).completed)closed++;else open++;
   }
   return{open,closed,total:open+closed,environment:refs.environment};
  }
@@ -279,6 +280,28 @@ async function execute(req,user,refs){
   // Retired: never create a new login-linked email profile, including from
   // legacy clients. Existing historical records remain untouched.
   throw model.problem('URGENT_PROFILE_DEPRECATED','E-Mail-Adressen werden jetzt nur auf diesem Gerät gespeichert.',410);
+ }
+ if(action==='update-progress'){
+  const id=model.text(p.id,90),step=model.text(p.step,30);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,id,user);
+   const userId=model.text(user&&user.id,150);
+   const manager=model.canManage(user);
+   const isCreator=userId!==''&&userId===model.text(order.createdBy&&order.createdBy.id,150);
+   const milestone=progress.confirm(order,step,identity(user),now,{
+    canManage:manager,canConfirmReceipt:isCreator&&order.orderType==='DIRECT_OUTBOUND',
+    skippedSteps:p.skippedSteps,confirmSkipped:p.confirmSkipped,skipReason:p.skipReason
+   });
+   return{order,milestone};
+  });
+ }
+ if(action==='acknowledge-receipt'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf Benachrichtigungen quittieren.',403);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,model.text(p.id,90),user);
+   progress.acknowledgeReceipt(order,identity(user),now);
+   return{order};
+  });
  }
  if(action==='update-status'){
   if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Statusänderungen sind ausschließlich für die Logistik möglich.',403);
