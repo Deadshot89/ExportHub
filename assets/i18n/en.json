@@ -2776,5 +2776,15 @@
   "avisPortal.uploadStored": "Saved",
   "avisPortal.uploadChecking": "Checking",
   "avisPortal.noDocuments": "No released document is currently available for download.",
-  "avisPortal.noFurtherDocuments": "No additional released documents are currently available."
+  "avisPortal.noFurtherDocuments": "No additional released documents are currently available.",
+  "avisPortal.quantitiesTitle": "Delivered article quantities",
+  "avisPortal.quantitiesIntro": "Only quantities explicitly shown on delivery notes are displayed. Packages and invoices are not used as quantity sources.",
+  "avisPortal.quantitiesAction": "Check delivery note quantities",
+  "avisPortal.quantitiesLoading": "Checking delivery notes …",
+  "avisPortal.quantitiesMissing": "No unambiguously documented delivered article quantities could be found.",
+  "avisPortal.quantitiesError": "The PDF check could not be completed.",
+  "avisPortal.quantitiesArticle": "Article",
+  "avisPortal.quantitiesQuantity": "Delivered quantity",
+  "avisPortal.quantitiesSource": "Source: delivery note",
+  "avisPortal.quantitiesIncomplete": "Other documents could not be evaluated unambiguously."
 }
