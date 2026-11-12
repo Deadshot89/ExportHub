@@ -108,3 +108,18 @@ test('Cross-view interface labels are translated in all six supported languages'
   for(const key of keys)assert.ok(pack['urgentOrderV2.'+key],lang+' missing '+key);
  }
 });
+
+test('Urgent internal session switches clear confidential orders, draft content and bearer links',()=>{
+ const html=fs.readFileSync(new URL('../assets/urgent-orders.html',import.meta.url),'utf8');
+ assert.match(html,/function clearExternalTrackingSecrets\(\)/);
+ assert.match(html,/\$\('externalShareUrl'\)\.value=''/);
+ assert.match(html,/\$\('externalShareExistingLink'\)\.value=''/);
+ assert.match(html,/\$\('externalShareResult'\)\.hidden=true/);
+ assert.match(html,/function clearUrgentPrivateView\(resetDraft=false\)/);
+ assert.match(html,/orders=\[\];canManage=false;viewerId=''/);
+ assert.match(html,/\$\('orders'\)\.replaceChildren\(\)/);
+ assert.match(html,/window\.addEventListener\('exporthub:logout'/);
+ assert.match(html,/window\.addEventListener\('exporthub:user-changed'/);
+ assert.match(html,/const epoch=\+\+urgentRefreshEpoch/);
+ assert.match(html,/if\(epoch!==urgentRefreshEpoch\)return/);
+});
