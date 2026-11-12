@@ -47,6 +47,41 @@ async function setAvisAllowed(c,on){
   throw e
  }
 }
+var RC_AVIS_PORTAL_COPY={
+ de:{title:'AVIS-Portal für diesen Kunden',help:'Welchen Link soll der Empfänger in der AVIS-Mail erhalten?',locked:'SFL erhält verpflichtend Wonderful Forest.',error:'Das AVIS-Portal konnte nicht gespeichert werden: '},
+ en:{title:'Customer AVIS portal',help:'Which portal link should the recipient receive in the collection notice?',locked:'SFL must use Wonderful Forest.',error:'The AVIS portal could not be saved: '},
+ pl:{title:'Portal awizacji dla klienta',help:'Który link otrzyma odbiorca w wiadomości?',locked:'SFL musi korzystać z Wonderful Forest.',error:'Nie można zapisać portalu: '},
+ es:{title:'Portal de aviso del cliente',help:'¿Qué enlace debe recibir el destinatario?',locked:'SFL debe utilizar Wonderful Forest.',error:'No se pudo guardar el portal: '},
+ fr:{title:'Portail d’avis du client',help:'Quel lien le destinataire doit-il recevoir ?',locked:'SFL doit utiliser Wonderful Forest.',error:'Impossible d’enregistrer le portail : '},
+ it:{title:'Portale avvisi del cliente',help:'Quale link deve ricevere il destinatario?',locked:'SFL deve usare Wonderful Forest.',error:'Impossibile salvare il portale: '}
+};
+function avisPortalCopy(){
+ var code='de';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')code=q(w.ExportHUBI18n.language()).slice(0,2).toLowerCase()}catch(_){}
+ return RC_AVIS_PORTAL_COPY[code]||RC_AVIS_PORTAL_COPY.de
+}
+function sflCustomer(c){return [c&&c.name,c&&c.customerName,c&&c.companyName].some(function(v){return /\bSFL\b/i.test(q(v))})}
+function avisPortalFor(c){
+ if(sflCustomer(c))return 'wonderful-forest';
+ var saved=low(c&&c.avisPortal);
+ if(saved==='wonderful-forest'||saved==='exporthub360')return saved;
+ return [c&&c.name,c&&c.customerName,c&&c.companyName].some(function(v){return /\bessentra\b/i.test(q(v))})?'wonderful-forest':'exporthub360'
+}
+async function setAvisPortal(c,portal){
+ if(!c||typeof c!=='object')throw new Error(tr('customerContacts.customerRequired'));
+ if(portal!=='exporthub360'&&portal!=='wonderful-forest')throw new Error('AVIS_PORTAL_INVALID');
+ if(sflCustomer(c)&&portal!=='wonderful-forest')throw new Error('SFL_AVIS_PORTAL_REQUIRED');
+ var existed=Object.prototype.hasOwnProperty.call(c,'avisPortal'),previous=c.avisPortal,updatedAt=c.updatedAt;
+ c.avisPortal=portal;c.updatedAt=new Date().toISOString();
+ try{
+  await persist('AVIS-Portal im Kundenordner gespeichert');
+  try{w.dispatchEvent(new CustomEvent('exporthub:customer-avis-policy-updated',{detail:{customerId:customerId(c),portal:portal}}))}catch(_){}
+  return portal
+ }catch(e){
+  if(existed)c.avisPortal=previous;else delete c.avisPortal;
+  if(updatedAt===undefined)delete c.updatedAt;else c.updatedAt=updatedAt;
+  throw e
+ }
+}
 function currentCustomer(){
  var s=state(),direct=s.currentCustomer||s.selectedCustomer||null,key=q(s.currentCustomerId||s.selectedCustomerId||s.customerFolderId||s.customerFolderOpenId||(direct&&customerId(direct))).toLocaleUpperCase('de-DE');
  if(!key)return direct&&obj(direct)?direct:null;
@@ -172,7 +207,7 @@ function refreshStatusLanguage(){['sales','cc'].forEach(function(r){var el=d.que
 function ensureStyle(){
  if(d.getElementById('rc1092CustomerContactsStyle'))return;
  var s=d.createElement('style');s.id='rc1092CustomerContactsStyle';
- s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-avis-policy{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:13px 14px;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:14px;background:var(--card,#fff)}.rc1092-avis-policy h4{margin:0 0 4px}.rc1092-avis-policy p{margin:0;color:#64748b;font-size:12px;line-height:1.4}.rc1092-avis-switch{display:flex;align-items:center;gap:8px;font-weight:800;cursor:pointer}.rc1092-avis-switch input{width:20px;height:20px}.rc1092-avis-state{padding:6px 9px;border-radius:999px;font-size:11px;white-space:nowrap;background:#dcfce7;color:#166534}.rc1092-avis-state[data-enabled="0"]{background:#fee2e2;color:#991b1b}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}@media(max-width:760px){.rc1092-avis-policy{grid-template-columns:1fr}.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
+ s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-avis-policy{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:13px 14px;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:14px;background:var(--card,#fff)}.rc1092-avis-policy h4{margin:0 0 4px}.rc1092-avis-policy p{margin:0;color:#64748b;font-size:12px;line-height:1.4}.rc1092-avis-switch{display:flex;align-items:center;gap:8px;font-weight:800;cursor:pointer}.rc1092-avis-switch input{width:20px;height:20px}.rc1092-avis-state{padding:6px 9px;border-radius:999px;font-size:11px;white-space:nowrap;background:#dcfce7;color:#166534}.rc1092-avis-state[data-enabled="0"]{background:#fee2e2;color:#991b1b}.rc1092-avis-portal-setup{display:grid;gap:6px;padding:12px 14px;margin:-6px 0 14px;border:1px solid #cbd5e1;border-radius:12px;background:var(--card,#fff)}.rc1092-avis-portal-setup select{min-height:40px;width:100%;max-width:420px;border-radius:8px}.rc1092-avis-portal-setup p{margin:0;font-size:12px;color:#64748b}.rc1092-avis-portal-setup select:disabled{opacity:.7;cursor:not-allowed}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}@media(max-width:760px){.rc1092-avis-policy{grid-template-columns:1fr}.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function preserveLegacyFields(host){
@@ -193,6 +228,10 @@ function refreshAvisPolicy(c){
  if(!toggle||!c)return false;
  var enabled=avisAllowed(c);toggle.checked=enabled;toggle.setAttribute('aria-checked',enabled?'true':'false');
  if(stateEl){stateEl.textContent=tr(enabled?'customerContacts.avisEnabled':'customerContacts.avisDisabled');stateEl.setAttribute('data-enabled',enabled?'1':'0')}
+ var choice=d.querySelector('[data-rc1092-avis-portal]'),title=d.querySelector('[data-rc1092-portal-title]'),help=d.querySelector('[data-rc1092-portal-help]'),copy=avisPortalCopy();
+ if(title)title.textContent=copy.title;
+ if(help)help.textContent=sflCustomer(c)?copy.locked:copy.help;
+ if(choice){choice.value=avisPortalFor(c);choice.disabled=sflCustomer(c);choice.setAttribute('aria-label',copy.title)}
  return true
 }
 function refreshManager(c){
@@ -206,7 +245,7 @@ function refreshManager(c){
  syncLegacyFields(c);return true
 }
 function managerHtml(){
- return '<section class="rc1092-avis-policy" data-rc1092-avis-policy><div><h4 data-i18n="customerContacts.avisHeading">'+esc(tr('customerContacts.avisHeading'))+'</h4><p data-i18n="customerContacts.avisHelp">'+esc(tr('customerContacts.avisHelp'))+'</p></div><label class="rc1092-avis-switch"><input type="checkbox" data-rc1092-avis-toggle><span data-i18n="customerContacts.avisWanted">'+esc(tr('customerContacts.avisWanted'))+'</span></label><strong class="rc1092-avis-state" data-rc1092-avis-state></strong></section><div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
+ return '<section class="rc1092-avis-policy" data-rc1092-avis-policy><div><h4 data-i18n="customerContacts.avisHeading">'+esc(tr('customerContacts.avisHeading'))+'</h4><p data-i18n="customerContacts.avisHelp">'+esc(tr('customerContacts.avisHelp'))+'</p></div><label class="rc1092-avis-switch"><input type="checkbox" data-rc1092-avis-toggle><span data-i18n="customerContacts.avisWanted">'+esc(tr('customerContacts.avisWanted'))+'</span></label><strong class="rc1092-avis-state" data-rc1092-avis-state></strong></section><div class="rc1092-avis-portal-setup"><label class="field"><span data-rc1092-portal-title></span><select data-rc1092-avis-portal><option value="exporthub360">ExportHUB360</option><option value="wonderful-forest">Wonderful Forest</option></select></label><p data-rc1092-portal-help></p></div><div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
 }
 function cardHtml(r,titleKey){
  return '<section class="rc1092-contact-card" data-rc1092-card="'+r+'"><h5 data-i18n="'+titleKey+'">'+esc(tr(titleKey))+'</h5><label class="field"><span data-i18n="customerContacts.savedPerson">'+esc(tr('customerContacts.savedPerson'))+'</span><select data-rc1092-select="'+r+'"></select></label><div class="rc1092-draft-grid"><label class="field"><span data-i18n="customerContacts.name">'+esc(tr('customerContacts.name'))+'</span><input data-rc1092-name="'+r+'" autocomplete="off" data-i18n-placeholder="customerContacts.name" placeholder="'+esc(tr('customerContacts.name'))+'"></label><label class="field"><span data-i18n="customerContacts.email">'+esc(tr('customerContacts.email'))+'</span><input data-rc1092-email="'+r+'" type="email" autocomplete="off" placeholder="name@firma.de"></label></div><div class="rc1092-actions"><button type="button" class="ghost" data-rc1092-save="'+r+'" data-i18n="customerContacts.savePerson">'+esc(tr('customerContacts.savePerson'))+'</button><button type="button" class="btn" data-rc1092-add="'+r+'" data-i18n="customerContacts.addToMail">'+esc(tr('customerContacts.addToMail'))+'</button></div><div class="rc1092-status" data-rc1092-status="'+r+'"></div><div class="rc1092-current-label" data-i18n="customerContacts.addedToCustomerMail">'+esc(tr('customerContacts.addedToCustomerMail'))+'</div><div class="rc1092-mail-list" '+(r==='sales'?'id="rc1092SalesMailContacts"':'id="rc819CcContactChips"')+'></div></section>'
@@ -230,7 +269,13 @@ function bind(host){
    setAvisAllowed(c,wanted).then(function(){refreshAvisPolicy(c)}).catch(function(e){avis.checked=!wanted;refreshAvisPolicy(c);try{alert(tr('customerContacts.avisSaveFailed',{error:q(e&&e.message||e)}))}catch(_){}}).finally(function(){avis.disabled=false});
    return
   }
-  var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))
+  var portal=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-avis-portal]');
+   if(portal){
+    var current=currentCustomer(),newValue=q(portal.value);portal.disabled=true;
+    setAvisPortal(current,newValue).then(function(){refreshAvisPolicy(current)}).catch(function(e){refreshAvisPolicy(current);try{alert(avisPortalCopy().error+q(e&&e.message||e))}catch(_){}}).finally(function(){refreshAvisPolicy(current)});
+    return
+   }
+   var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))
  });
  host.addEventListener('click',function(ev){
   var save=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-save]');if(save){ev.preventDefault();run(save,save.getAttribute('data-rc1092-save'),'save');return}
@@ -279,5 +324,5 @@ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){act
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,activate)}catch(_){}});
 try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}
 
-w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1330',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,avisAllowed:avisAllowed,setAvisAllowed:setAvisAllowed,install:install});
+w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1330',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,avisAllowed:avisAllowed,setAvisAllowed:setAvisAllowed,avisPortalFor:avisPortalFor,setAvisPortal:setAvisPortal,install:install});
 })(window,document);
