@@ -212,7 +212,7 @@ function ensureItProxy(active){
  setText(proxy.querySelector('.index308-nav-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
  proxy.hidden=itAllowed().length===0;
  setAttr(proxy,'data-rc1579-active',isActive?'1':null);
- copyLook(proxy,isActive?itButton(active):null);
+ copyLook(proxy,isActive?itButton(IT_VIEWS.indexOf(currentView())>=0?currentView():active):null);
  return proxy;
 }
 function itTabs(){
@@ -268,6 +268,24 @@ function activeView(){
  return menuView(viewOf(a));
 }
 
+// Reflect the actual view in the original buttons too. The section header alone is not enough:
+ // an old Sendung button would otherwise remain visually active on the mobile/sidebar layout.
+function syncSelection(){
+ var v=menuView(currentView());
+ if(!v||!SECTION_OF[v])return;
+ var target=nav.querySelector(':scope>'+itemSel(v));
+ if(!target||target.hidden||target.style.display==='none'||target.getAttribute('aria-hidden')==='true')return;
+ nav.querySelectorAll(':scope>button').forEach(function(button){
+  var selected=button===target,was=button.classList.contains('active');
+  if(was!==selected)button.classList.toggle('active',selected);
+  if(selected)setAttr(button,'aria-current','page');
+  else if(button.getAttribute('aria-current')==='page')button.removeAttribute('aria-current');
+  // Packmeldungen uses an additional active class for the same shared menu item.
+  if(button.hasAttribute('data-pack-notifications-nav')&&button.classList.contains('is-active')!==selected)
+   button.classList.toggle('is-active',selected);
+ });
+}
+
 function sync(){
  scheduled=false;
  nav=d.getElementById('nav');if(!nav)return;
@@ -277,7 +295,8 @@ function sync(){
  try{
   ensureStyle();watch();watchView();
   if(!open)open=readOpen();
-  ensureProxy();ensureQualityLink();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
+  ensureProxy();ensureQualityLink();ensureItProxy(activeView());syncSelection();
+  var active=activeView(),activeSection=SECTION_OF[active]||'';itTabs();
   if(activeSection&&!FLAT[activeSection]&&activeSection!==lastActiveSection&&open.indexOf(activeSection)<0){open.push(activeSection);writeOpen()}
   lastActiveSection=activeSection;
   SECTIONS.forEach(function(s){
