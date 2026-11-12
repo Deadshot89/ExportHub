@@ -27,3 +27,16 @@ test('AVIS: ambiguous numeral, unlabelled values and non-positive quantities are
  assert.equal(parse('Delivery Note\nDNC000123456\nPart Number Qty Shipped\n10291603 CAP 1,000 EA').status,'unavailable');
  assert.equal(parse('Delivery Note\nDNC000123456\nPart Number Qty Shipped\n10291603 CAP 0 EA').status,'unavailable');
 });
+
+test('AVIS: server-side PDF renamer selects unique SIDE invoice instead of referenced DNC',()=>{
+ const refs=require('../api/shared/pdf-document-reference.js');
+ const text='Invoice Number SIDE000012345\nPacking slip No.: DNC000123456\nQty Shipped 25';
+ const result=refs.normalizedPdfName('DNC000123456.pdf',text);
+ assert.equal(result.name,'SIDE000012345.pdf');
+ assert.equal(result.reference,'SIDE000012345');
+ assert.equal(result.reason,'side');
+});
+test('AVIS: DNC remains a delivery note if SIDE is only an incidental related document',()=>{
+ const refs=require('../api/shared/pdf-document-reference.js');
+ assert.equal(refs.normalizedPdfName('scanner.pdf','Delivery Note DNC000123456 SIDE000012345').name,'DNC000123456.pdf');
+});
