@@ -1,3 +1,5 @@
+import {patchRc2024StrictSaveAckHtml} from './rc2024-strict-save-ack.mjs';
+
 // RC1982 P0: The browser delta writer currently sends the whole _teamSyncMeta
 // object for every single shipment-history write, even when it is unchanged.
 // The server already retains persisted metadata (field clocks and tombstones)
@@ -9,7 +11,7 @@ const FALLBACK_AFTER="if(!out._teamSyncMeta&&isObject(current._teamSyncMeta)&&!s
 export function patchRc1982MetaDeltaHtml(source,file='index.html'){
   const html=String(source);
   const done=html.includes(AFTER)&&html.includes(FALLBACK_AFTER);
-  if(done)return html;
+  if(done)return patchRc2024StrictSaveAckHtml(html,file);
   if(html.includes(AFTER)!==html.includes(FALLBACK_AFTER))throw new Error(file+': RC1982 partially applied');
   for(const [needle,label] of [[BEFORE,'metadata branch'],[FALLBACK_BEFORE,'metadata fallback']]){
     if(html.split(needle).length-1!==1){
@@ -17,5 +19,5 @@ export function patchRc1982MetaDeltaHtml(source,file='index.html'){
       throw new Error(file+': RC1982 '+label+' anchor missing or ambiguous');
     }
   }
-  return html.replace(BEFORE,AFTER).replace(FALLBACK_BEFORE,FALLBACK_AFTER);
+  return patchRc2024StrictSaveAckHtml(html.replace(BEFORE,AFTER).replace(FALLBACK_BEFORE,FALLBACK_AFTER),file);
 }

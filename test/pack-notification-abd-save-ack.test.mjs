@@ -28,9 +28,22 @@ function setup(options={}){
     }
   };
   const alerts=[],writes=[],location={href:''},actions={};
+  // Mock a true server ACK only after a successful Azure flush. A local
+  // flush result without a matching generation must never imply persistence.
+  const initialRuntime={changeGeneration:0,lastSavedGeneration:0,lastServerSaveAckGeneration:0};
   const clean={
-    queueSave(reason){writes.push('queue:'+reason);return Promise.resolve(true)},
-    flushSave(reason){writes.push('flush:'+reason);return Promise.resolve(options.saveOk!==false)}
+    runtime:initialRuntime,
+    queueSave(reason){
+      writes.push('queue:'+reason);
+      if(this.runtime===initialRuntime)this.runtime.changeGeneration++;
+      return Promise.resolve(true);
+    },
+    flushSave(reason){
+      writes.push('flush:'+reason);
+      if(options.saveOk!==false&&this.runtime===initialRuntime)
+        this.runtime.lastServerSaveAckGeneration=this.runtime.changeGeneration;
+      return Promise.resolve(options.saveOk!==false);
+    }
   };
   const document={
     readyState:'loading',body:null,
@@ -93,6 +106,8 @@ test('Pack ABD opens Outlook only after verified save and never on unconfirmed s
   await tick();
   assert.equal(ok.location.href,'');
   assert.equal(ok.root.ExportHUBPackAbd.saveStatusText(),ok.root.ExportHUBPackI18n.t('pack.internal.abdSaving'));
+  // Model the independent Azure ACK before resolving the successful flush.
+  ok.root.ExportHUBClean.runtime.lastServerSaveAckGeneration=ok.root.ExportHUBClean.runtime.changeGeneration;
   release(true);
   await tick();
   assert.match(ok.location.href,/^mailto:/);
