@@ -19,8 +19,14 @@ function number(s){
 function parse(text,filename=''){
  const raw=String(text||'').replace(/\r/g,'').slice(0,250000);
  const lines=raw.split('\n').map(v=>v.trim()).filter(Boolean);
- const head=lines.slice(0,35).join(' ').slice(0,2000);
- if(!DOC.test(head)||INVOICE.test(head))return{status:'unavailable',reason:'not-delivery-note',positions:[]};
+ const firstLines=lines.slice(0,35),head=firstLines.join(' ').slice(0,2000);
+ // "Packing slip No.: DNC..." on an invoice is a cross-reference, not proof
+ // that the PDF itself is a delivery note. Do not display invoice quantities.
+ const invoiceHeading=INVOICE.test(head)||firstLines.some(line=>
+    /^(?:invoice|rechnung|facture|factura|faktura)(?:\\b|\\s*[:#])/i.test(line));
+ const deliveryHeading=firstLines.some(line=>
+    /^(?:delivery[\\s-]*note|packing[\\s-]*slip|lieferschein)\\b(?!\\s*(?:no\\.?|nr\\.?|number)\\b)/i.test(line));
+ if(!deliveryHeading||invoiceHeading)return{status:'unavailable',reason:'not-delivery-note',positions:[]};
  const refs=new Set();let match;DNC.lastIndex=0;
  while((match=DNC.exec(raw)))refs.add('DNC'+match[1]);
  if(!refs.size){DNC.lastIndex=0;while((match=DNC.exec(String(filename||''))))refs.add('DNC'+match[1]);}
