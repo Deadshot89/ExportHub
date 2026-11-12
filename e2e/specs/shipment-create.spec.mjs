@@ -178,7 +178,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
     const data=await response.json().catch(()=>({}));
     const list=Array.isArray(data&&data.state&&data.state.shipments)?data.state.shipments:[];
     const sh=list.find(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
-    return{status:response.status,found:sh?{
+    return{status:response.status,environment:String(data&&data.environment||''),found:sh?{
       ref:String(sh.ref||sh.reference||'').toUpperCase(),
       customerName:String(sh.customerName||sh.customer?.name||''),
       locationId:String(sh.locationId||sh.selectedLocationId||''),
@@ -190,6 +190,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   },{token:session.token,runId:session.runId,ref});
 
   expect(persisted.status).toBe(200);
+  expect(persisted.environment).toBe('testservice');
   expect(persisted.found?.ref).toBe(ref);
   expect(persisted.found?.customerName).toContain('E2E TEST CUSTOMER');
   expect(persisted.found?.locationId).toBe(customer.locationId);
