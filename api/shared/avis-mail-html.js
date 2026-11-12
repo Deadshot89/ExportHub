@@ -1,7 +1,7 @@
 'use strict';
 
 const LINK_LABELS=Object.freeze({
- de:'Hier zur Avisierung klicken',
+ de:'Hier klicken zur Avisierung',
  en:'Click here to arrange pickup',
  pl:'Kliknij tutaj, aby zgłosić odbiór',
  es:'Haga clic aquí para gestionar la recogida',
