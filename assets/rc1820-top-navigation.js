@@ -192,7 +192,8 @@
  w.addEventListener('exporthub:viewchange',schedule);
  w.addEventListener('exporthub:rendered',schedule);
  w.addEventListener('exporthub:designchange',function(){lastSig='';schedule()});
- w.addEventListener('exporthub:languagechange',function(){lastSig='';schedule()});
+ // RC1934: der Übersetzer (RC1267) meldet 'exporthub:language-changed'; der alte Name bleibt als Rückfall
+ ['exporthub:languagechange','exporthub:language-changed'].forEach(function(n){w.addEventListener(n,function(){lastSig='';schedule()})});
  d.addEventListener('change',function(e){if(e.target&&e.target.id==='languageSelect'){lastSig='';setTimeout(schedule,50)}});
  w.addEventListener('resize',function(){if(openKey&&w.innerWidth<1024)close()});
  function boot(){

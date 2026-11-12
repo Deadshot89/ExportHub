@@ -136,6 +136,11 @@
    style.textContent='.exporthub-embedded-module{width:100%;min-width:0}.exporthub-embedded-frame{display:block;width:100%;height:max(680px,calc(100dvh - 170px));min-height:680px;border:0;border-radius:14px;background:#fff}#nav [data-exporthub-urgent-nav][aria-current="page"],#nav [data-rc1579-proxy="quality"][aria-current="page"]{box-shadow:inset 3px 0 0 #2563eb!important;background:rgba(37,99,235,.12)!important}@media(max-width:760px){.exporthub-embedded-frame{height:max(620px,calc(100dvh - 125px));min-height:620px;border-radius:9px}}';
    (d.head||d.documentElement).appendChild(style);
   }
+  // RC1934: alte Markierung (z. B. Packmeldungen) sofort entfernen, nicht erst beim nächsten Menü-Abgleich
+  try{Array.prototype.forEach.call(d.querySelectorAll('#nav>button.active,#nav>button.is-active,#nav>button[aria-current="page"]'),function(node){
+   if(node.matches('[data-exporthub-urgent-nav],[data-rc1579-proxy="quality"]'))return;
+   node.classList.remove('active','is-active');node.removeAttribute('aria-current');
+  })}catch(_){}
   ['[data-exporthub-urgent-nav]','[data-rc1579-proxy="quality"]'].forEach(function(selector){
    var node=d.querySelector(selector);if(!node)return;
    var active=(view==='urgentorders'&&selector==='[data-exporthub-urgent-nav]')||

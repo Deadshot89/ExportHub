@@ -153,15 +153,19 @@
       if(proxyBtn&&!proxyBtn.disabled){proxyBtn.click();schedule();}
     }
   }
+  /* RC1934: erst nach dem Übersetzer (RC1267, ebenfalls requestAnimationFrame) lesen, sonst blitzt kurz deutscher Text auf */
+  function afterTranslation(fn){var raf=window.requestAnimationFrame;if(!raf){setTimeout(fn,0);return;}raf(function(){raf(fn);});}
   function schedule(){
     if(ui.scheduled)return;ui.scheduled=true;
-    (window.requestAnimationFrame||setTimeout)(function(){ui.scheduled=false;render();});
+    afterTranslation(function(){ui.scheduled=false;render();});
   }
 
   function start(){
     var c=content();
     if(!c){setTimeout(start,300);return;}
-    new MutationObserver(schedule).observe(c,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled','data-current-status','aria-invalid']});
+    // RC1934: characterData, damit nachträglich übersetzte Texte (RC1267 setzt nodeValue) übernommen werden
+    new MutationObserver(schedule).observe(c,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','hidden','disabled','data-current-status','aria-invalid']});
+    window.addEventListener('exporthub:language-changed',function(){ui.lastSig='';schedule();});
     new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     window.addEventListener('click',onClick,true);
     document.addEventListener('input',function(ev){if(ev.target&&content()&&content().contains(ev.target))schedule();},true);

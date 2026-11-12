@@ -217,9 +217,11 @@
   }
   function onKey(ev){if(ev.key==='Escape'&&ui.selected){ui.selected='';schedule();}}
 
+  /* RC1934: erst nach dem Übersetzer (RC1267, ebenfalls requestAnimationFrame) lesen, sonst blitzt kurz deutscher Text auf */
+  function afterTranslation(fn){var raf=window.requestAnimationFrame;if(!raf){setTimeout(fn,0);return;}raf(function(){raf(fn);});}
   function schedule(){
     if(ui.scheduled)return;ui.scheduled=true;
-    (window.requestAnimationFrame||setTimeout)(function(){ui.scheduled=false;
+    afterTranslation(function(){ui.scheduled=false;
       var ae=document.activeElement;if(ae&&ae.hasAttribute&&ae.hasAttribute('data-rc1900-note'))return; // beim Tippen nicht neu zeichnen
       render();
     });
@@ -228,7 +230,9 @@
   function start(){
     var content=document.getElementById('content');
     if(!content){setTimeout(start,300);return;}
-    new MutationObserver(schedule).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','data-status-key','disabled']});
+    // RC1934: characterData, damit nachträglich übersetzte Texte (RC1267 setzt nodeValue) übernommen werden
+    new MutationObserver(schedule).observe(content,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','hidden','data-status-key','disabled']});
+    window.addEventListener('exporthub:language-changed',function(){ui.lastSig='';schedule();});
     new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
     schedule();
   }
