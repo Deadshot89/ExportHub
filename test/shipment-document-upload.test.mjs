@@ -170,7 +170,7 @@ test('RC2026 release includes document type normalizer before shipment upload',(
   const uploader='id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js';
   assert.ok(source.indexOf(typeScript)>0,'normalizer must be injected into the website');
   assert.ok(source.indexOf(uploader)>source.indexOf(typeScript),'deferred normalizer must execute before uploader');
-  assert.match(source,/'assets\\/document-reference-normalizer\\.js'/,'normalizer must ship in all three environments');
+  assert.ok(source.includes("'assets/document-reference-normalizer.js'"),'normalizer must ship in all three environments');
   const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
-  assert.match(upload,/window\\.ExportHubDocumentReferenceNormalizer/);
+  assert.ok(upload.includes('window.ExportHubDocumentReferenceNormalizer'));
 });
