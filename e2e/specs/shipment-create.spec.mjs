@@ -80,7 +80,10 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   }),{timeout:10_000}).toBe(customer.locationId);
   await expect(page.locator('#rc363BlockCustomer')).not.toContainText(/Standort fehlt|Adresse fehlt\. Sendungserstellung blockiert/i,{timeout:10_000});
 
-  await settleStateSave(page,{timeout:25_000});
+  // The customer/location form is an unsaved draft; only transient UI changes
+  // may remain. A core-saver-proven no-write is acceptable HERE, never after
+  // clicking Save Shipment (those steps retain strict Azure ACK/readback).
+  await settleStateSave(page,{timeout:25_000,allowVerifiedNoChange:true});
   const refInput=await referenceInput(page);
   await expect(refInput).toBeVisible();
   await expect(refInput).toHaveAttribute('readonly','');
