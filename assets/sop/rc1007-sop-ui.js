@@ -215,7 +215,7 @@ function mount(target,options={}){
         else if(action==='move-down')next=api.moveStep(doc,{version:doc.draftVersion,stepId,toIndex:Math.min(steps.length-1,index+1)});
         else if(action==='remove-step'){if(typeof root.confirm==='function'&&!root.confirm(`Schritt ${stepId} wirklich entfernen?`))return true;next=api.removeStep(doc,{version:doc.draftVersion,stepId});}
       }
-      if(next){replaceDocument(next);persist('RC1502 SOP-Entwurf aktualisiert');if(typeof options.onEditorChange==='function')options.onEditorChange({action,document:next,state});paint();return true;}
+      if(next){replaceDocument(next);if(options.suppressDuplicateSave!==true)persist('RC1502 SOP-Entwurf aktualisiert');if(typeof options.onEditorChange==='function')options.onEditorChange({action,document:next,state});paint();return true;}
     }catch(error){if(root.console&&root.console.error)root.console.error('RC1502 SOP-Editor',error);if(typeof options.onEditorError==='function')options.onEditorError(error);}
     return false;
   }

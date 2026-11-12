@@ -79,7 +79,7 @@ function mount(target,options={}){
       if(root.ExportHubSopTourTargets&&typeof root.ExportHubSopTourTargets.annotatePilotTargets==='function')root.ExportHubSopTourTargets.annotatePilotTargets(root.document);
       setStatus(row,{ok:false,code:'TARGET_KEY_REQUIRED'});const status=row.querySelector('.rc1502-sop-target-status');if(status){status.setAttribute('data-status','picking');status.textContent=tr('sop.target.clickHighlighted',RC1523_DE['sop.target.clickHighlighted']);}
       try{
-        api.beginTargetPick(stepId,{document:doc,version:doc.draftVersion,scope:root.document,onSelected(result){replaceDocument(bridge.state,result.document);persist('RC1502 Tourziel aktualisiert');if(typeof options.onEditorChange==='function')options.onEditorChange({action:'pick-target',document:result.document,state:bridge.state});if(typeof bridge.open==='function')bridge.open(text(result.document.number));enhance();},onError(result){setStatus(row,{ok:false,error:result.code||result.error,status:result.status});}});
+        api.beginTargetPick(stepId,{document:doc,version:doc.draftVersion,scope:root.document,onSelected(result){replaceDocument(bridge.state,result.document);if(options.suppressDuplicateSave!==true)persist('RC1502 Tourziel aktualisiert');if(typeof options.onEditorChange==='function')options.onEditorChange({action:'pick-target',document:result.document,state:bridge.state});if(typeof bridge.open==='function')bridge.open(text(result.document.number));enhance();},onError(result){setStatus(row,{ok:false,error:result.code||result.error,status:result.status});}});
       }catch(error){setStatus(row,{ok:false,error:'TARGET_NOT_FOUND'});if(typeof options.onEditorError==='function')options.onEditorError(error);}
     }
   }
