@@ -113,7 +113,7 @@ function rc1988HasEuroPallets(sh){
  // Keep the same primary row selection as shipmentRows() in loadHtml:
  // the longest persisted pack-piece array is the authoritative print source.
  var rows=[];
- ['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines','packingRows'].forEach(function(field){
+ ['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines'].forEach(function(field){
   var candidate=arr(sh[field]);if(candidate.length>rows.length)rows=candidate
  });
  return rows.some(function(row){
