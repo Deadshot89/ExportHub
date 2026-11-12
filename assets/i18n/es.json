@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Artículo",
   "avisPortal.quantitiesQuantity": "Cantidad entregada",
   "avisPortal.quantitiesSource": "Fuente: albarán",
-  "avisPortal.quantitiesIncomplete": "No se pudieron interpretar de forma inequívoca otros documentos."
+  "avisPortal.quantitiesIncomplete": "No se pudieron interpretar de forma inequívoca otros documentos.",
+  "avisPortal.uploadTitle": "Subir documentos PDF",
+  "avisPortal.uploadDocType": "Tipo de documento",
+  "avisPortal.uploadSelectPdf": "Seleccionar PDF · máx. 10 MB",
+  "avisPortal.uploadStart": "Comprobar y subir PDF",
+  "avisPortal.uploadOptCmr": "CMR / carta de porte",
+  "avisPortal.uploadOptDelivery": "Albarán de entrega",
+  "avisPortal.uploadOptInvoice": "Factura / factura comercial",
+  "avisPortal.uploadOptPacking": "Lista de empaque",
+  "avisPortal.uploadOptOther": "Otros",
+  "avisPortal.docDelivery": "Albarán de entrega",
+  "avisPortal.docInvoice": "Factura",
+  "avisPortal.docPacking": "Lista de empaque",
+  "avisPortal.docDocument": "Documento",
+  "avisPortal.docAttachment": "Archivo adjunto",
+  "avisPortal.docNotAvailable": "No disponible"
 }
