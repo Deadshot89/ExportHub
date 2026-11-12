@@ -39,7 +39,7 @@ function fixture({historyOnly=false,tamper=false}={}){
   async *listBlobsFlat(opts){
    stats.lists.push(opts);
    assert.equal(opts.includeMetadata,true);
-   assert.equal(opts.includeVersions,true);
+   assert.notEqual(opts.includeVersions,true,'keine vollständige Historien-LIST für aktuellen Daily-Reuse');
    for(const [name,row] of rows)if(name.startsWith(opts.prefix)){
     yield{name,versionId:'2026-10-22T01:17:00.0000000Z',
       isCurrentVersion:historyOnly?false:true,
