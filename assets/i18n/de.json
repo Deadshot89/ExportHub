@@ -2756,5 +2756,17 @@
   "urgentOrderV2.issueRegenerate": "Bitte E-Mail-Vorlage neu erzeugen.",
   "urgentOrderV2.issueTooLong": "Problembeschreibung mit ausgewählten Vorlagen darf maximal 2000 Zeichen enthalten.",
   "urgentOrderV2.shippingNotReady": "Erst möglich, wenn alle Positionen versendet sind.",
-  "urgentOrderV2.mailShippingPreparing": "Versandbestätigung wird vorbereitet."
+  "urgentOrderV2.mailShippingPreparing": "Versandbestätigung wird vorbereitet.",
+  "urgentOrderV2.crossviewExistingLinkLabel": "Vorhandenen externen Überwachungslink verwenden (optional)",
+  "urgentOrderV2.crossviewExistingLinkHelp": "Nur verwenden, wenn der Auftrag unter demselben persönlichen Überwachungslink erscheinen soll. Die CS-E-Mail-Adresse muss übereinstimmen.",
+  "urgentOrderV2.crossviewShareResultLabel": "Externer Überwachungslink – nur mit berechtigten Personen teilen",
+  "urgentOrderV2.crossviewCopyLink": "Link kopieren",
+  "urgentOrderV2.crossviewShareWarning": "Diesen geheimen Link jetzt kopieren und sicher weitergeben. Er kann später nicht erneut abgerufen werden.",
+  "urgentOrderV2.crossviewShareAction": "Für externen Link freigeben",
+  "urgentOrderV2.crossviewLinkedLabel": "Mit einem persönlichen externen Überwachungslink verbunden.",
+  "urgentOrderV2.crossviewShareConfirm": "Mit diesem Link kann der Auftrag ohne Anmeldung eingesehen werden. Nur mit berechtigten Personen teilen. Jetzt freigeben?",
+  "urgentOrderV2.crossviewShareSuccess": "Externer Überwachungslink erstellt. Bitte jetzt kopieren und sicher teilen.",
+  "urgentOrderV2.crossviewLinkCopied": "Externer Überwachungslink kopiert.",
+  "urgentOrderV2.crossviewLinkManualCopy": "Link markieren und manuell kopieren.",
+  "urgentOrderV2.crossviewLinkedNoDelete": "Dieser Auftrag wurde intern freigegeben. Löschen ist nur über die interne Website möglich."
 }
