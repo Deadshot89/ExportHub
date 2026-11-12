@@ -111,7 +111,7 @@ function apiFixture(){
   const mem=memoryStore(()=>now);
   const devices={a:device(),b:device(),z:device()};
   const sent=[];let sendStatus=201,oidc=true;
-  const team={users:users.concat([{id:'u9',user:'leser',name:'Leser',rights:{}}]).map(u=>u.id==='u1'?Object.assign({rights:{shipment:{edit:true}}},u):u),state:{tasks:[{id:'t1',title:'Zollpapiere prüfen',dueDate:'2026-10-23',ownerId:'u1'}]}};
+  const team={users:users.concat([{id:'u9',user:'leser',name:'Leser',rights:{}}]).map(u=>u.id==='u1'?Object.assign({rights:{shipment:{edit:true},shipmentoverview:{edit:true}}},u):u),state:{tasks:[{id:'t1',title:'Zollpapiere prüfen',dueDate:'2026-10-23',ownerId:'u1'}]}};
   const sessions={tokA:team.users[0],tokL:team.users[3]};
   const api=require('../api/web-push/index.js');
   const deps={
@@ -203,6 +203,7 @@ test('P1 Urgent Order: private opt-in, permissions and immediate per-device push
   const a=await f.call({action:'subscribe',subscription:authorized},'tokA');
   assert.equal(a.status,200);
   assert.equal(a.body.subscription.categories.urgentP1,false,'P1 alerts must be off until explicitly enabled');
+  assert.equal(a.body.subscription.urgentP1Allowed,true,'authorized manager can opt into P1');
   await f.call({action:'subscribe',subscription:readOnly},'tokL');
   const order={id:'order-urgent-1',orderNumber:'SO-P1-01',priority:'P1',email:'cs@company.example',accessToken:'private'};
   assert.equal((await f.notifyP1('production',order)).sent,0,'no unsolicited push before opt-in');
