@@ -203,10 +203,13 @@ async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
   }
   if(!recognized.reference)return first;
   if(!recognized.renamed){
-   // Preserve an already correct SIDE filename but attach its invoice type
-   // only when the full-text invoice heading actually proves the category.
-   return recognized.reason==='side'&&invoiceHeading?
-     Object.assign({},first,{documentType:'Rechnung'}):first;
+   // A canonical filename needs verified reference metadata too, not only
+   // its unchanged basename. SIDE alone still does not prove an invoice.
+   return Object.assign({},first,{
+    documentReference:recognized.reference,
+    documentReferenceType:recognized.reason==='side'?'SIDE':'DNC',
+    ...(recognized.reason==='side'&&invoiceHeading?{documentType:'Rechnung'}:{})
+   });
   }
   if(first.documentReference&&first.documentReference!==recognized.reference&&
       !(recognized.reason==='side'&&invoiceHeading))return first;
