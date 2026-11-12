@@ -18,8 +18,7 @@ export function patchRc2024StrictSaveAckHtml(source,file='index.html'){
  }
  if(html.split(BEFORE).length!==2){
   if(file==='demo.html'&&!html.includes('async function flushSave('))return html;
-  // Allow small test snippets that do not include the full saver.
-  if(!html.includes('async function flushSave('))return html;
+  // An index/TESTVERSION build without its saver is broken, not a success.
   throw new Error(file+': RC2024 save confirmation anchor missing or ambiguous');
  }
  return html.replace(BEFORE,AFTER);
