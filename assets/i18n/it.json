@@ -2786,5 +2786,20 @@
   "avisPortal.quantitiesArticle": "Articolo",
   "avisPortal.quantitiesQuantity": "Quantità consegnata",
   "avisPortal.quantitiesSource": "Fonte: bolla di consegna",
-  "avisPortal.quantitiesIncomplete": "Non è stato possibile interpretare con certezza altri documenti."
+  "avisPortal.quantitiesIncomplete": "Non è stato possibile interpretare con certezza altri documenti.",
+  "avisPortal.uploadTitle": "Carica documenti PDF",
+  "avisPortal.uploadDocType": "Tipo di documento",
+  "avisPortal.uploadSelectPdf": "Seleziona PDF · max. 10 MB",
+  "avisPortal.uploadStart": "Verifica e carica il PDF",
+  "avisPortal.uploadOptCmr": "CMR / lettera di vettura",
+  "avisPortal.uploadOptDelivery": "Bolla di consegna",
+  "avisPortal.uploadOptInvoice": "Fattura / fattura commerciale",
+  "avisPortal.uploadOptPacking": "Lista di imballaggio",
+  "avisPortal.uploadOptOther": "Altro",
+  "avisPortal.docDelivery": "Bolla di consegna",
+  "avisPortal.docInvoice": "Fattura",
+  "avisPortal.docPacking": "Lista di imballaggio",
+  "avisPortal.docDocument": "Documento",
+  "avisPortal.docAttachment": "Allegato",
+  "avisPortal.docNotAvailable": "Non disponibile"
 }
