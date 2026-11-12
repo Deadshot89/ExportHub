@@ -58,7 +58,7 @@ test('RC1820: Nur das aktuell geöffnete Mega-Menü ist hervorgehoben',()=>{
  assert.deepEqual(result.tabs.filter(tab=>tab.highlighted).map(tab=>tab.key),['shipments']);
 });
 
-const selectStart=source.indexOf(' function findActive(n){');
+const selectStart=source.indexOf(' function menuView(view){');
 const selectEnd=source.indexOf('\n function isActive(',selectStart);
 assert.ok(selectStart>=0&&selectEnd>selectStart,'Top navigation active selection function not found');
 const selectSource=source.slice(selectStart,selectEnd);

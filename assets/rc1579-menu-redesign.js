@@ -74,14 +74,14 @@ SECTION_OF.packagingmasterdata='admin';
 var DEFAULT_OPEN=['tasks','shipments'];
 var IT_VIEWS=['diagnostics','release','update'];
 
-var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null,lastUserSig=null;
+var nav=null,observer=null,viewObserver=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null,lastUserSig=null;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function packs(){return w.ExportHUBMenu1579I18n&&w.ExportHUBMenu1579I18n.packs||{}}
 function lang(){var l='';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')l=q(w.ExportHUBI18n.language()).toLowerCase()}catch(_){}if(!packs()[l]){var sel=d.getElementById('languageSelect');l=q(sel&&sel.value).toLowerCase()}return packs()[l]?l:'de'}
 function t(key,vars){var p=packs(),v=(p[lang()]||{})[key];if(v==null)v=(p.de||{})[key];v=String(v==null?key:v);if(vars)Object.keys(vars).forEach(function(k){v=v.split('{'+k+'}').join(vars[k])});return v}
 function uri(markup){return 'url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+markup+'</svg>')+'")'}
-function viewOf(el){return q(el&&el.getAttribute&&(el.getAttribute('data-index321-view')||el.getAttribute('data-view')||el.getAttribute('data-rc626-view')))}
+function viewOf(el){return q(el&&el.getAttribute&&(el.getAttribute('data-index321-view')||el.getAttribute('data-view')||el.getAttribute('data-rc626-view')||(el.hasAttribute('data-exporthub-urgent-nav')?'urgentorders':'')||el.getAttribute('data-rc1579-proxy')))}
 function shown(el){return !!el&&!el.hidden&&el.style.display!=='none'}
 
 function readOpen(){var raw=null,list=null;try{raw=w.localStorage&&w.localStorage.getItem(STORE);if(raw)list=JSON.parse(raw)}catch(_){list=null}if(!Array.isArray(list))return DEFAULT_OPEN.slice();return list.filter(function(k){return typeof k==='string'&&!FLAT[k]})}
@@ -208,11 +208,11 @@ function ensureItProxy(active){
   proxy.addEventListener('click',function(e){e.preventDefault();openIt('');try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}});
   nav.appendChild(proxy);
  }
- var label=t('it'),isActive=IT_VIEWS.indexOf(active)>=0;
+ var label=t('it'),isActive=active==='it'||IT_VIEWS.indexOf(active)>=0;
  setText(proxy.querySelector('.index308-nav-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
  proxy.hidden=itAllowed().length===0;
  setAttr(proxy,'data-rc1579-active',isActive?'1':null);
- copyLook(proxy,isActive?itButton(active):null);
+ copyLook(proxy,isActive?itButton(IT_VIEWS.indexOf(currentView())>=0?currentView():active):null);
  return proxy;
 }
 function itTabs(){
@@ -253,7 +253,38 @@ function applyRights(){
  try{if(w.ExportHUBRC325&&typeof w.ExportHUBRC325.buildMenu==='function')w.ExportHUBRC325.buildMenu()}catch(_){}
 }
 
-function activeView(){var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');return a?viewOf(a):''}
+// Shared menu state for the sidebar, mobile menu, and the top navigation.
+ // Nested views must highlight their parent; do not reuse a stale Sendung marker.
+function menuView(view){
+ var v=q(view).toLowerCase();
+ return ({diagnostics:'it',release:'it',update:'it',
+  packnotification:'packnotifications',shipmentview:'shipmentoverview',
+  packagingmasterdata:'packaging',exams:'academy'})[v]||v;
+}
+function activeView(){
+ var v=menuView(currentView()),b=null;
+ if(v){b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b)&&b.getAttribute('aria-hidden')!=='true')return v}
+ var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');
+ return menuView(viewOf(a));
+}
+
+// Reflect the actual view in the original buttons too. The section header alone is not enough:
+ // an old Sendung button would otherwise remain visually active on the mobile/sidebar layout.
+function syncSelection(){
+ var v=menuView(currentView());
+ if(!v||!SECTION_OF[v])return;
+ var target=nav.querySelector(':scope>'+itemSel(v));
+ if(!target||target.hidden||target.style.display==='none'||target.getAttribute('aria-hidden')==='true')return;
+ nav.querySelectorAll(':scope>button').forEach(function(button){
+  var selected=button===target,was=button.classList.contains('active');
+  if(was!==selected)button.classList.toggle('active',selected);
+  if(selected)setAttr(button,'aria-current','page');
+  else if(button.getAttribute('aria-current')==='page')button.removeAttribute('aria-current');
+  // Packmeldungen uses an additional active class for the same shared menu item.
+  if(button.hasAttribute('data-pack-notifications-nav')&&button.classList.contains('is-active')!==selected)
+   button.classList.toggle('is-active',selected);
+ });
+}
 
 function sync(){
  scheduled=false;
@@ -262,9 +293,10 @@ function sync(){
  applyRights();
  syncing=true;
  try{
-  ensureStyle();watch();
+  ensureStyle();watch();watchView();
   if(!open)open=readOpen();
-  ensureProxy();ensureQualityLink();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
+  ensureProxy();ensureQualityLink();ensureItProxy(activeView());syncSelection();
+  var active=activeView(),activeSection=SECTION_OF[active]||'';itTabs();
   if(activeSection&&!FLAT[activeSection]&&activeSection!==lastActiveSection&&open.indexOf(activeSection)<0){open.push(activeSection);writeOpen()}
   lastActiveSection=activeSection;
   SECTIONS.forEach(function(s){
@@ -297,6 +329,16 @@ function watch(){
  });
  observer.__nav=nav;
  observer.observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','style','aria-current']});
+}
+
+// Observe only the actual view attribute (not content mutations) to avoid render loops.
+function watchView(){
+ if(!w.MutationObserver||!d.body)return;
+ if(viewObserver&&viewObserver.__body===d.body)return;
+ if(viewObserver)viewObserver.disconnect();
+ viewObserver=new MutationObserver(schedule);
+ viewObserver.__body=d.body;
+ viewObserver.observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view']});
 }
 
 function toggle(key,force){

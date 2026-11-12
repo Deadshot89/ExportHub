@@ -44,6 +44,22 @@ Nur für **TESTSERVICE + daily** wird vor dem Upload geprüft, ob am **gleichen 
 
 Damit können identische TESTSERVICE-Zustände nach mehreren Releases am selben Tag weniger zusätzliche Sicherungsversionen erzeugen. Der tatsächliche Kosteneffekt ist erst durch die Azure-Messung belegbar; LIST/Readback können Transaktionsgebühren verursachen. Dies ist kein Nachweis für 0 € laufende Kosten.
 
+### RC1981 – TESTSERVICE-LIST auf aktuelle Tagessicherungen begrenzen
+
+Der Wiederverwendungscheck listet nur aktuelle Blobs des jeweiligen UTC-Tages
+mit Metadaten. Historische Blob-Versionen, Snapshots und gelöschte Einträge
+werden **nicht** für die Wiederverwendung benötigt und deshalb nicht mehr
+zusätzlich über LIST angefordert. Die vollständige GET-/SHA-256-/ETag-Prüfung
+der gewählten vorhandenen Sicherung bleibt unverändert. Neue Sicherungen
+werden weiterhin unverändert hochgeladen und vollständig zurückgelesen.
+
+Das verringert potenziell die LIST-Metadatenlast in stark versionierten
+TESTSERVICE-Containern. **Es reduziert weder die bereits gespeicherten
+historischen Daten noch belegt es eine konkrete Ersparnis oder 0 EUR.**
+Eine Abrechnung nach Azure-Meter (Kapazität vs. Transaktionen) ist dafür
+weiterhin notwendig. Keine Löschung, keine Produktionsänderung, keine
+Retention-Absenkung.
+
 ## Retention
 
 Die Sicherungen tragen eine Mindestaufbewahrung als Metadaten:

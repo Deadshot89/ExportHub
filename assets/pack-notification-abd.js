@@ -139,9 +139,22 @@
     return false;
   }
   function route(){
-    if(typeof root.setView==='function'){root.setView('abd');return q(state().view).toLowerCase()==='abd';}
-    if(root.ExportHUBRC325&&typeof root.ExportHUBRC325.route==='function'){
-      root.ExportHUBRC325.route('abd','pack-abd');return q(state().view).toLowerCase()==='abd';
+    // RC2019: The shared setView() renderer can mark ABD selected while
+    // falling back to the dashboard if its lazy RC626 view is not mounted.
+    // The authoritative navigation router loads RC626 and calls openAbd().
+    // Its return value is not a success flag (openAbd itself returns false).
+    const router=root.ExportHUBRC325;
+    if(router&&typeof router.route==='function'){
+      router.route('abd','pack-abd');
+      const host=root.document&&typeof root.document.getElementById==='function'&&
+        root.document.getElementById('rc626Abd');
+      return q(state().view).toLowerCase()==='abd'&&!!host;
+    }
+    // Compatibility only when the authoritative router is not installed.
+    // Never bypass a router rejection with the weaker direct setView path.
+    if(typeof root.setView==='function'){
+      root.setView('abd');
+      return q(state().view).toLowerCase()==='abd';
     }
     return false;
   }
