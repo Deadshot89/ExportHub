@@ -74,14 +74,63 @@ async function check(){
 }
 /* Poll continuously, because the user may sign in long after DOMContentLoaded. Only
    show the retry after 25 seconds of uninterrupted Azure-team-state loading. */
+
+/* RC1904 — visual-only logistics sequence. Never modifies actual startup state. */
+function decorateLogisticsLoading(){
+ try{
+  var d=w.document,p=d&&d.getElementById&&d.getElementById('cleanLoadPanel'),label=d&&d.getElementById&&d.getElementById('cleanLoadText');
+  if(!p||!label||!label.parentNode||typeof label.parentNode.insertBefore!=='function')return;
+  if(typeof p.contains==='function'&&!p.contains(label))return;
+  var current=d.getElementById('eh1904LogisticsScene');
+  if(current&&(!p.contains||p.contains(current)))return;
+  var style=d.getElementById('eh1904LogisticsStyles');
+  if(!style){
+   style=d.createElement('style');style.id='eh1904LogisticsStyles';
+   style.textContent=[
+    '#eh1904LogisticsScene{position:relative;isolation:isolate;width:min(100%,410px);height:124px;margin:8px auto 16px;overflow:hidden;border:1px solid rgba(59,130,246,.17);border-radius:18px;background:radial-gradient(ellipse at 75% 10%,rgba(90,178,255,.25),transparent 52%),radial-gradient(circle at 15% 85%,rgba(44,197,205,.14),transparent 42%),linear-gradient(145deg,#f8fbff,#edf5fc);box-shadow:inset 0 1px 0 #fff,0 8px 26px rgba(22,83,151,.10);pointer-events:none}',
+    '#eh1904LogisticsScene:before{content:"";position:absolute;inset:0;opacity:.33;background-image:radial-gradient(#7faad7 .7px,transparent .7px);background-size:13px 13px;mask-image:linear-gradient(to bottom,#000,transparent 96%)}',
+    '#eh1904LogisticsScene .eh1904-light{position:absolute;top:12px;left:18px;width:7px;height:7px;border-radius:50%;background:#35d3ac;box-shadow:0 0 0 4px rgba(53,211,172,.14),0 0 18px rgba(53,211,172,.6);animation:eh1904Pulse 1.65s ease-in-out infinite}',
+    '#eh1904LogisticsScene .eh1904-line{position:absolute;top:15px;left:37px;right:19px;height:1px;background:linear-gradient(90deg,rgba(53,211,172,.6),rgba(31,111,208,.14),transparent)}',
+    '#eh1904LogisticsScene .eh1904-building{position:absolute;left:22px;bottom:36px;width:74px;height:56px;background:linear-gradient(150deg,#a2d3f8,#4b8cc6);border:2px solid #357bb5;border-radius:5px 5px 2px 2px;box-shadow:6px 7px 14px rgba(34,82,127,.13)}',
+    '#eh1904LogisticsScene .eh1904-building:before{content:"";position:absolute;left:-8px;right:-8px;top:-9px;height:9px;background:linear-gradient(140deg,#245c96,#3679b7);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);border-radius:3px}',
+    '#eh1904LogisticsScene .eh1904-building:after{content:"";position:absolute;left:15px;right:15px;bottom:0;height:31px;border:2px solid #276a9e;border-bottom:0;border-radius:3px 3px 0 0;background:repeating-linear-gradient(180deg,#d7ebfb 0 7px,#aacce9 7px 9px)}',
+    '#eh1904LogisticsScene .eh1904-belt{position:absolute;left:24%;right:22%;bottom:38px;height:12px;border:2px solid #466c95;border-radius:12px;background:repeating-linear-gradient(90deg,#89accb 0 10px,#b4d5ec 10px 20px);background-size:40px 12px;box-shadow:0 7px 0 -3px #557eaa;animation:eh1904Roll 1.1s linear infinite}',
+    '#eh1904LogisticsScene .eh1904-parcel{position:absolute;bottom:52px;left:25%;width:27px;height:25px;border-radius:3px;background:linear-gradient(145deg,#f6ce91,#e5a852);border:1px solid #d49a51;box-shadow:2px 3px 8px rgba(107,71,27,.15);animation:eh1904Parcel 4s linear infinite}',
+    '#eh1904LogisticsScene .eh1904-parcel:before{content:"";position:absolute;top:0;bottom:0;left:10px;width:6px;background:rgba(255,245,213,.57)}',
+    '#eh1904LogisticsScene .eh1904-parcel:nth-of-type(2){animation-delay:-2s;transform:scale(.85)}',
+    '#eh1904LogisticsScene .eh1904-truck{position:absolute;right:18px;bottom:35px;width:111px;height:53px;animation:eh1904Truck 2.4s ease-in-out infinite}',
+    '#eh1904LogisticsScene .eh1904-trailer{position:absolute;left:0;bottom:8px;width:72px;height:40px;border-radius:5px 3px 2px 3px;background:linear-gradient(155deg,#2b85d8,#1858a5);border:2px solid #1b5c9f;box-shadow:inset 0 6px 8px rgba(255,255,255,.17),3px 5px 8px rgba(9,58,107,.12)}',
+    '#eh1904LogisticsScene .eh1904-trailer:before{content:"EH";position:absolute;color:#fff;font:bold 15px/1 Segoe UI,Arial,sans-serif;letter-spacing:-1px;top:11px;left:21px;opacity:.92}',
+    '#eh1904LogisticsScene .eh1904-cab{position:absolute;right:0;bottom:8px;width:40px;height:34px;border-radius:3px 9px 3px 1px;background:linear-gradient(125deg,#20b5df,#087cbd);clip-path:polygon(0 0,67% 0,100% 38%,100% 100%,0 100%)}',
+    '#eh1904LogisticsScene .eh1904-cab:before{content:"";position:absolute;top:6px;right:6px;width:18px;height:12px;background:#d8f3ff;border-radius:2px 5px 1px 1px;transform:skew(15deg)}',
+    '#eh1904LogisticsScene .eh1904-wheel{position:absolute;bottom:0;width:18px;height:18px;border:5px solid #233d59;background:#d4e7f5;border-radius:50%;box-sizing:border-box}',
+    '#eh1904LogisticsScene .eh1904-wheel.a{left:13px}#eh1904LogisticsScene .eh1904-wheel.b{right:10px}',
+    '#eh1904LogisticsScene .eh1904-road{position:absolute;bottom:25px;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,#8db9d8 14%,#8db9d8 86%,transparent)}',
+    '#eh1904LogisticsScene .eh1904-road:after{content:"";position:absolute;top:10px;left:5%;width:90%;height:2px;background:repeating-linear-gradient(90deg,rgba(65,135,188,.34) 0 24px,transparent 24px 39px)}',
+    '@keyframes eh1904Parcel{0%{left:25%;opacity:0;transform:translateY(-7px) scale(.85)}9%{opacity:1;transform:translateY(0) scale(1)}78%{opacity:1}90%,100%{left:69%;opacity:0;transform:translateY(2px) scale(.75)}}',
+    '@keyframes eh1904Roll{to{background-position:40px 0}}@keyframes eh1904Truck{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}',
+    '@keyframes eh1904Pulse{0%,100%{opacity:.65;transform:scale(.85)}50%{opacity:1;transform:scale(1.14)}}',
+    '@media(max-width:440px){#eh1904LogisticsScene{height:107px;margin:5px auto 12px}#eh1904LogisticsScene .eh1904-building{left:11px;transform:scale(.8);transform-origin:bottom left}#eh1904LogisticsScene .eh1904-truck{right:8px;transform-origin:bottom right;scale:.85}#eh1904LogisticsScene .eh1904-belt{left:22%;right:25%}}',
+    '@media(prefers-reduced-motion:reduce){#eh1904LogisticsScene *,#eh1904LogisticsScene *:before,#eh1904LogisticsScene *:after{animation:none!important;transition:none!important}#eh1904LogisticsScene .eh1904-parcel{left:46%;opacity:1;transform:none}}'
+   ].join('\n');
+   (d.head||d.body).appendChild(style);
+  }
+  var scene=d.createElement('div');scene.id='eh1904LogisticsScene';
+  scene.setAttribute('aria-hidden','true');
+  scene.innerHTML='<span class="eh1904-light"></span><span class="eh1904-line"></span><div class="eh1904-road"></div><div class="eh1904-building"></div><div class="eh1904-belt"></div><div class="eh1904-parcel"></div><div class="eh1904-parcel"></div><div class="eh1904-truck"><div class="eh1904-trailer"></div><div class="eh1904-cab"></div><div class="eh1904-wheel a"></div><div class="eh1904-wheel b"></div></div>';
+  label.parentNode.insertBefore(scene,label);
+ }catch(_){/* Decorative-only. Startup and recovery must never depend on animation. */}
+}
+
 function watch(){
+ decorateLogisticsLoading();
  if(isBroken()){
   if(!STALL_SINCE)STALL_SINCE=Date.now();
   if(Date.now()-STALL_SINCE>=25000)showStall()
  }else{STALL_SINCE=0;clearStall()}
  STALL_TIMER=w.setTimeout(watch,5000)
 }
-function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000);if(STALL_TIMER)w.clearTimeout(STALL_TIMER);watch()}
+function schedule(){decorateLogisticsLoading();if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000);if(STALL_TIMER)w.clearTimeout(STALL_TIMER);watch()}
 if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
  w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);STALL_SINCE=0;clearStall();var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
