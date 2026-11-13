@@ -11,6 +11,7 @@ import {
   assertNoHorizontalOverflow,
   installE2ESession
 } from '../helpers/exporthub-browser.mjs';
+import {collectStateSaveEvidence} from '../helpers/rc1171-save-evidence.mjs';
 
 async function e2eCustomer(page,runId){
   return page.evaluate(id=>{
@@ -134,9 +135,21 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   },session.runId);
 
   await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];window.__RC1418_LAYOUT_NODE__=document.getElementById('rc363FixedShipmentLayout');});
+  const rc1171Network=collectStateSaveEvidence(page);
   await saveButton.click();
   await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
-  await settleStateSave(page,{timeout:30_000});
+  try{
+    await settleStateSave(page,{timeout:30_000});
+  }catch(error){
+    // Keep a failed Azure save as a release blocker. Include only status and
+    // allowlisted API error codes; never include response bodies or URLs.
+    const saved=await rc1171Network.snapshot();
+    const message=String(error&&error.message||'');
+    if(!message.startsWith('Azure-'))throw error;
+    throw new Error(message+' | RC1171 State-Save-API: '+JSON.stringify(saved));
+  }finally{
+    rc1171Network.dispose();
+  }
   const layoutPreserved=await page.evaluate(()=>!!window.__RC1418_LAYOUT_NODE__&&window.__RC1418_LAYOUT_NODE__===document.getElementById('rc363FixedShipmentLayout'));
   expect(layoutPreserved,'RC1418: Speichern darf das montierte Sendungslayout nicht ersetzen').toBe(true);
 
