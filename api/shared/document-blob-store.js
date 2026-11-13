@@ -261,8 +261,21 @@ async function migrateLegacyDocuments(state,options={}){
  * Never infer a DNC/SIDE from the opaque SalesPackingSlip filename.
  * Preview is the default; only an authorized caller can persist an apply result.
  */
+function legacyDeliveryPdfCandidate(file,field){
+ const name=text(file&&(file.name||file.fileName||file.filename));
+ if(!/\.pdf$/i.test(name))return false;
+ if(/^(?:SalesPackingSlip[-_]|Lieferschein_[A-Z0-9]{6}_[0-9]{8}-[0-9]{6}_)/i.test(name))return true;
+ // Only delivery-note collections are eligible for other scanner filenames.
+ // Never rename an invoice or POD from a filename without a known DNC/SIDE.
+ return ['deliveryFiles','deliveryNotesFiles','lieferscheine'].includes(field)&&
+   pdfReferences.extractDocumentReferences(name).length===0;
+}
 async function repairLegacyBlobDocumentNames(state,options={}){
   const environment=normalizeEnvironment(options.environment);
+  const reference=text(options.reference).toUpperCase();
+  if(reference&&!/^[A-Z0-9]{6}$/.test(reference)){
+   const e=new Error('Ungültige Sendungsreferenz für die Dokumentprüfung.');e.code='INVALID_REFERENCE';e.status=400;throw e;
+  }
   const apply=options.apply===true,limit=Math.max(1,Math.min(10,Math.floor(Number(options.limit)||5)));
   const maxBytes=10*1024*1024;
   const out=clone(state)||{};
@@ -271,10 +284,17 @@ async function repairLegacyBlobDocumentNames(state,options={}){
   for(const root of ROOT_COLLECTIONS){
     for(const row of Array.isArray(body[root])?body[root]:[]){
       if(!row||typeof row!=='object')continue;
+      if(reference){
+       const rowRef=text(row.ref||row.reference||row.shipmentRef||row.referenceNumber||row.shipmentReference||row.linkedShipmentRef).toUpperCase();
+       if(rowRef!==reference)continue;
+      }
       for(const field of DOCUMENT_FIELDS){
         for(const file of Array.isArray(row[field])?row[field]:[]){
+          // Preserve the old unscoped repair contract: only legacy SalesPackingSlip.
+          // Extended scanner/REF names require an explicit shipment reference.
+          const fileName=text(file&&(file.name||file.fileName||file.filename));
           if(file&&typeof file==='object'&&file.storage==='blob'&&
-             /^SalesPackingSlip[-_].*\.pdf$/i.test(text(file.name||file.fileName||file.filename)))
+            (/^SalesPackingSlip[-_].*\.pdf$/i.test(fileName)||(reference&&legacyDeliveryPdfCandidate(file,field))))
             candidates.push(file);
         }
       }

@@ -36,12 +36,14 @@ module.exports=async function(context,req){
     throw error('ENVIRONMENT_MISMATCH','TESTSERVICE-Dokumente dürfen nur vom TESTSERVICE aus geprüft werden.',409);
    // Preview by default; only explicit apply:true from a validated admin can write.
    const apply=req&&req.body&&req.body.apply===true;
-   const result=await repairLegacyBlobDocumentNames(teamDoc.value,{environment,limit,apply});
+   const reference=text(req&&req.body&&req.body.reference).toUpperCase();
+   if(reference&&!/^[A-Z0-9]{6}$/.test(reference))throw error('INVALID_REFERENCE','Ungültige Sendungsreferenz.',400);
+   const result=await repairLegacyBlobDocumentNames(teamDoc.value,{environment,limit,apply,reference});
    if(apply&&result.repaired>0){
     const clients=await auth.clients();
     await auth.writeJson(clients.team,result.state,teamDoc.etag);
    }
-   context.res=json(200,{ok:true,action,preview:result.preview,found:result.found,
+   context.res=json(200,{ok:true,action,reference:reference||null,preview:result.preview,found:result.found,
     examined:result.examined,wouldRename:result.wouldRename,repaired:result.repaired,
     unresolved:result.unresolved,invalid:result.invalid,oversized:result.oversized,
     failed:result.failed,remaining:result.remaining,done:result.done});
