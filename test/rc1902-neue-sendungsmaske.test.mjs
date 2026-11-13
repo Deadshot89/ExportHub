@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const js=fs.readFileSync('assets/rc1902-neue-sendungsmaske.js','utf8');
 const css=fs.readFileSync('assets/rc1902-neue-sendungsmaske.css','utf8');
@@ -66,4 +67,38 @@ test('RC1935: Startklar erst bei vollständig geprüften Schritten; Pflichtfelde
     assert.ok(dict['rc1930.ready']&&dict['rc1903.open'],lang+' readiness translations');
   }
   assert.match(js,/if\(proxyBtn&&!proxyBtn\.disabled\)\{proxyBtn\.click\(\)/);
+});
+
+test('RC1935: echte Prüfung erkennt fehlende Kunden- und Colli-Angaben ohne sichtbare Warnbox',()=>{
+  const start=js.indexOf('function hasMissingDetails(b){');
+  const end=js.indexOf('\n  function blocks(){',start);
+  assert.ok(start>0&&end>start,'read-only checker source');
+  let shipment={customerId:''};
+  const check=vm.runInNewContext(js.slice(start,end)+'\nhasMissingDetails',{
+    window:{__EXPORTHUB_GET_STATE__:()=>({shipment})},
+    visible:()=>true
+  });
+  const makeBlock=(id,rows=[])=>({
+    id,
+    querySelectorAll(selector){
+      if(selector==='.rc363-owned-row')return rows;
+      return [];
+    }
+  });
+  const makeRow=(count,type)=>({
+    querySelector(selector){
+      if(selector.includes('field="count"'))return count==null?null:{value:count};
+      if(selector.includes('field="type"'))return type==null?null:{value:type};
+      return null;
+    }
+  });
+  assert.equal(check(makeBlock('rc363BlockCustomer')),true,'unselected customer');
+  shipment={customerId:'C123'};
+  assert.equal(check(makeBlock('rc363BlockCustomer')),false,'selected customer');
+  assert.equal(check(makeBlock('rc363BlockColli')),true,'no colli row');
+  assert.equal(check(makeBlock('rc363BlockColli',[makeRow('0','PAL')])),true,'zero colli');
+  assert.equal(check(makeBlock('rc363BlockColli',[makeRow('1','')])),true,'packaging missing');
+  assert.equal(check(makeBlock('rc363BlockColli',[makeRow('2','PAL')])),false,'valid colli');
+  assert.equal(check(makeBlock('rc363BlockColli',[makeRow('2','PAL'),makeRow('','')])),true,'partially filled second row');
+  assert.equal(check(makeBlock('rc363BlockMail')),false,'optional block without errors');
 });
