@@ -48,3 +48,22 @@ test('RC1902: Builder bindet Skript und Stylesheet ein',()=>{
   assert.match(builder,/'assets\/rc1902-neue-sendungsmaske\.js'/);
   assert.match(builder,/RC1902 neue Sendungsmaske fehlt/);
 });
+
+test('RC1935: Startklar erst bei vollständig geprüften Schritten; Pflichtfelder bleiben im Entwurf sichtbar offen',()=>{
+  const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
+  const capture=fs.readFileSync('assets/rc1903-neue-erfassung.js','utf8');
+  assert.match(js,/function hasMissingDetails\(b\)/);
+  assert.match(js,/shipment\.customerId/);
+  assert.match(js,/b\.id==='rc363BlockColli'/);
+  assert.match(js,/data-rc363-field="count"/);
+  assert.match(js,/data-rc363-field="type"/);
+  assert.match(js,/warn=hasMissingDetails\(b\)/);
+  assert.match(js,/hasMissingDetails:hasMissingDetails/);
+  assert.match(capture,/bar\.hasMissingDetails\(b\)/);
+  assert.match(frame,/done===steps\.length\?'rc1930\.ready':'rc1903\.open'/);
+  for(const lang of langs){
+    const dict=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    assert.ok(dict['rc1930.ready']&&dict['rc1903.open'],lang+' readiness translations');
+  }
+  assert.match(js,/if\(proxyBtn&&!proxyBtn\.disabled\)\{proxyBtn\.click\(\)/);
+});
