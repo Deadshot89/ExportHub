@@ -181,7 +181,7 @@ async function rc1982DrainSnapshot(page){
       saveElapsedMs:runtime.saving===true&&Number.isFinite(Date.parse(runtime.lastSaveStartedAt||''))?
         Math.max(0,Math.min(300000,Date.now()-Date.parse(runtime.lastSaveStartedAt))):null,
       lastSaveMs:finite(runtime.lastSaveMs),
-      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
+      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':['STATE_API_UNREACHABLE','SAVE_NOT_CONFIRMED','SAVE_CONFIRMATION_FAILED','SAVE_CONFIRMATION_PARTIAL','CONCURRENT_UPDATE','INVALID_SERVER_JSON','AZURE_SAVE_FAILED','PAYLOAD_TOO_LARGE','HTTP_408','HTTP_409','HTTP_412','HTTP_413','HTTP_425','HTTP_429','HTTP_500','HTTP_502','HTTP_503','HTTP_504','SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED','WRITE_FORBIDDEN','STATE_MODULE_WRITE_FORBIDDEN'].includes(runtime.lastSaveErrorCode)?runtime.lastSaveErrorCode:'UNRECOGNIZED'
     };
   }).catch(()=>({unavailable:true}));
 }
@@ -225,7 +225,7 @@ export async function settleStateSave(page,options={}){
           (Number.isFinite(runtime.lastSavedGeneration)&&runtime.changeGeneration>runtime.lastSavedGeneration)||
           (Number.isFinite(runtime.lastServerSaveAckGeneration)&&runtime.changeGeneration>runtime.lastServerSaveAckGeneration)
         ),
-        lastErrorCode:runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
+        lastErrorCode:['STATE_API_UNREACHABLE','SAVE_NOT_CONFIRMED','SAVE_CONFIRMATION_FAILED','SAVE_CONFIRMATION_PARTIAL','CONCURRENT_UPDATE','INVALID_SERVER_JSON','AZURE_SAVE_FAILED','PAYLOAD_TOO_LARGE','HTTP_408','HTTP_409','HTTP_412','HTTP_413','HTTP_425','HTTP_429','HTTP_500','HTTP_502','HTTP_503','HTTP_504','SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED','WRITE_FORBIDDEN','STATE_MODULE_WRITE_FORBIDDEN'].includes(runtime.lastSaveErrorCode)?runtime.lastSaveErrorCode:'UNRECOGNIZED'
       };
     });
 
