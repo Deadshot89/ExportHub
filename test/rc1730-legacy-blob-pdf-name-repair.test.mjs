@@ -85,3 +85,34 @@ test('RC1730: repair batch honors limit and preserves all other shipments',async
   assert.equal(result.remaining,1);assert.equal(result.done,false);
   assert.equal(result.state.shipments[0].deliveryFiles[1].name,legacy);
 });
+
+test('RC1972: repair preview for S3L3PV examines only that shipment and preserves other REFs',async()=>{
+ const bytes=pdf('Lieferschein DNC3019222063'),one=attachment(bytes),another={...one,id:'other-ref'};
+ const original={state:{shipments:[
+  {ref:'S3L3PV',deliveryFiles:[one]},
+  {ref:'ABC123',deliveryFiles:[another]}
+ ]}};
+ const mock=container(bytes);
+ const preview=await store.repairLegacyBlobDocumentNames(original,{environment:'testservice',reference:'S3L3PV',container:mock});
+ assert.equal(preview.found,1);assert.equal(preview.wouldRename,1);assert.equal(preview.repaired,0);
+ assert.equal(mock.reads,1);assert.deepEqual(preview.state,original);
+ const applied=await store.repairLegacyBlobDocumentNames(original,{environment:'testservice',reference:'S3L3PV',container:mock,apply:true});
+ assert.equal(applied.repaired,1);
+ assert.equal(applied.state.state.shipments[0].deliveryFiles[0].name,'DNC3019222063.pdf');
+ assert.equal(applied.state.state.shipments[1].deliveryFiles[0].name,legacy);
+ assert.deepEqual(original.state.shipments[0].deliveryFiles[0],one);
+});
+test('RC1972: scan filenames in delivery-note arrays are repairable without touching invoice PDFs',async()=>{
+ const bytes=pdf('DNC3019222063'),scan={...attachment(bytes),name:'Scanner-Upload.pdf'},invoice={...scan,id:'invoice'};
+ const original={shipments:[{ref:'S3L3PV',deliveryFiles:[scan],invoiceFiles:[invoice]}]};
+ const result=await store.repairLegacyBlobDocumentNames(original,{environment:'testservice',reference:'S3L3PV',container:container(bytes),apply:true});
+ assert.equal(result.found,1);assert.equal(result.repaired,1);
+ assert.equal(result.state.shipments[0].deliveryFiles[0].name,'DNC3019222063.pdf');
+ assert.equal(result.state.shipments[0].invoiceFiles[0].name,'Scanner-Upload.pdf');
+});
+test('RC1972: scoped repair rejects invalid REF and does not scan another REF',async()=>{
+ const bytes=pdf('DNC3019222063'),mock=container(bytes),s=stateFor(attachment(bytes));
+ const none=await store.repairLegacyBlobDocumentNames(s,{environment:'testservice',reference:'S3L3PV',container:mock});
+ assert.equal(none.found,0);assert.equal(mock.checks,0);
+ await assert.rejects(()=>store.repairLegacyBlobDocumentNames(s,{environment:'testservice',reference:'../bad',container:mock}),e=>e.code==='INVALID_REFERENCE');
+});

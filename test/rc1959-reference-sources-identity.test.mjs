@@ -118,3 +118,23 @@ test('RC1959: independent authorized Graph and Azure listings all start before t
  assert.equal(r.body.partial,false);
  assert.deepEqual(Array.from(r.body.files,f=>f.id),[graphFile.id,avFile.id,refFile.id]);
 });
+
+test('RC1972: DNC label is canonical while original Graph/REF archive names and IDs stay unchanged',async()=>{
+ const archive='Lieferschein_9WX5K6_20261113-144500_DNC3019222063.pdf';
+ const r=await exercise({graph:[{id:'G-1',name:archive,size:22}],docs:[{id:'refdoc:'+'d'.repeat(32),name:archive,size:22}]});
+ assert.equal(r.status,200);assert.equal(r.body.files.length,2);
+ for(const file of r.body.files){
+  assert.equal(file.displayName,'DNC3019222063.pdf');
+  assert.equal(file.name,archive);
+ }
+});
+test('RC1972: mismatched REF, unrecognized PDF and non-delivery archive are never guessed',async()=>{
+ const graph=[
+  {id:'G-1',name:'Lieferschein_ABC123_20261113-144500_DNC3019222063.pdf'},
+  {id:'G-2',name:'Lieferschein_9WX5K6_20261113-144500_SalesPackingSlip-SCAN.pdf'},
+  {id:'G-3',name:'Rechnung_9WX5K6_20261113-144500_DNC3019222063.pdf'}
+ ];
+ const r=await exercise({graph});
+ assert.equal(r.status,200);
+ assert.ok(r.body.files.every(file=>file.displayName===file.name));
+});

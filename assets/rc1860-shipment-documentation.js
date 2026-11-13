@@ -360,9 +360,10 @@ async function openFilePreview(ref,file,box){
  }catch(e){if(isCurrent(box,ref))status(box,q(e.message),'error',true)}
 }
 function galleryCard(box,ref,file,generation){
+ var display=q(file.displayName||file.name);
  var card=el('div','eh1860-preview-card'),opener=el('button','eh1860-preview-open');
- opener.type='button';opener.setAttribute('aria-label',tr('preview')+': '+q(file.name));opener.addEventListener('click',function(){openFilePreview(ref,file,box)});
- var frame=el('div','eh1860-preview-frame'),name=el('span','eh1860-preview-name',q(file.name));
+ opener.type='button';opener.setAttribute('aria-label',tr('preview')+': '+display);opener.addEventListener('click',function(){openFilePreview(ref,file,box)});
+ var frame=el('div','eh1860-preview-frame'),name=el('span','eh1860-preview-name',display);
  name.title=q(file.name);
  if(isPhoto(file)){
   var img=el('img');img.alt=q(file.name);img.loading='lazy';img.decoding='async';
