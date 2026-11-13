@@ -6,7 +6,7 @@ const rules=require('../shared/sop-rules');
 const service=require('../shared/sop-service');
 const {defaultStore}=require('../shared/sop-store');
 
-const ACTIONS=new Set(['list','get','create','update','submit','approve','reject','new-version','archive']);
+const ACTIONS=new Set(['list','get','create','update','submit','approve','reject','new-version','archive','import-legacy']);
 const READ_ACTIONS=new Set(['list','get']);
 const MAX_REQUEST_BYTES=2*1024*1024;
 
@@ -86,6 +86,33 @@ async function handle(context,req,deps={}) {
       const doc=await store.getDoc(environment,getId(payload));
       if (!doc) throw fail('SOP_NOT_FOUND',404);
       context.res=response(200,{ok:true,item:safeDoc(doc),environment});
+      return context.res;
+    }
+    if (action==='import-legacy') {
+      // No data read before the independent SOP administrator check.
+      if (!service.canImportLegacy(user)) throw fail('SOP_IMPORT_FORBIDDEN',403);
+      const now=typeof deps.now==='function' ? deps.now() : new Date().toISOString();
+      const existing=(await store.listDocs(environment)).map(safeDoc);
+      const plan=service.importLegacy(existing.map(item=>item.id),payload,user,now);
+      const imported=[],skipped=[...plan.skipped];
+      for (const doc of plan.docs) {
+        try {
+          const saved=await store.mutateDoc(environment,doc.id,previous=>{
+            if (previous!==null) throw fail('SOP_EXISTS',409);
+            return doc;
+          },{create:true});
+          imported.push(safeDoc(saved).id);
+        } catch (e) {
+          // Concurrent imports never replace an existing or newer document.
+          if (e && e.code==='SOP_EXISTS') {skipped.push(doc.id);continue;}
+          const code=typeof e?.code==='string'&&/^[A-Z][A-Z0-9_]{1,79}$/.test(e.code)?e.code:'STORAGE_ERROR';
+          context.res=response(503,{ok:false,code:'IMPORT_PARTIAL',cause:code,
+            imported,skipped,errors:plan.errors,failedId:doc.id,environment});
+          return context.res;
+        }
+      }
+      context.res=response(200,{ok:true,imported,skipped,errors:plan.errors,
+        importedCount:imported.length,skippedCount:skipped.length,environment});
       return context.res;
     }
     const id=getId(payload);
