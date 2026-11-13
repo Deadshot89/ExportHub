@@ -203,3 +203,26 @@ test('RC1982: diagnostic collection fails closed and never approves a save',asyn
   assert.ok(!source.includes('error:String(error&&error.message||error)'),'Save exceptions must not cross the browser boundary');
   assert.match(source,/const finalState=await rc1982DrainSnapshot\(page\)/);
 });
+
+test('P0 RC1171: classify known Azure failures without leaking backend free text',async()=>{
+ for(const code of ['SAVE_NOT_CONFIRMED','SAVE_CONFIRMATION_FAILED',
+   'SAVE_CONFIRMATION_PARTIAL','CONCURRENT_UPDATE','HTTP_429','HTTP_503',
+   'AZURE_SAVE_FAILED','STATE_API_UNREACHABLE']){
+  const result=await diagnostic({saving:false,pendingSave:true,dirty:true,
+   changeGeneration:16,lastSavedGeneration:16,lastServerSaveAckGeneration:16,
+   lastSaveErrorCode:code});
+  assert.equal(result.lastErrorCode,code,'Safe exact error classification: '+code);
+  assert.equal(result.pending,true,'Pending writes cannot be reported as complete');
+  assert.equal(result.dirty,true,'Dirty data must remain dirty');
+ }
+ for(const unsafe of ['HTTP 500 customer@example.test','CUSTOMER_PRIVATE_REFERENCE',
+   'HTTP_503\nsecret',{},null]){
+  const result=await diagnostic({lastSaveErrorCode:unsafe,
+   lastSaveErrorMessage:'private@example.test'});
+  assert.equal(result.lastErrorCode,unsafe===null?'NONE':'UNRECOGNIZED');
+  assert.doesNotMatch(JSON.stringify(result),/private@example|customer@example|CUSTOMER_PRIVATE_REFERENCE|secret/);
+ }
+ const helper=fs.readFileSync('e2e/helpers/exporthub-browser.mjs','utf8');
+ assert.match(helper,/UNRECOGNIZED/,'Unknown errors remain fail-closed and redacted');
+ assert.match(helper,/SAVE_CONFIRMATION_PARTIAL/,'Live RC1171 snapshot accepts safe exact codes');
+});
