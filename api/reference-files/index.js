@@ -6,9 +6,12 @@ const referenceFolder=require('../shared/reference-folder-upload');
 const avCheck=require('../shared/av-check');
 const avBlob=require('../shared/av-blob-store');
 const refDocBlob=require('../shared/ref-doc-blob-store');
+const deliveryItems=require('../shared/delivery-avis-items-store');
+const itemParser=require('../shared/delivery-avis-items');
 const avCheckApi=require('../av-check/index');
 const publicAccess=require('../shared/public-access-store');
 const authStore=require('../shared/auth-store');
+const rights=require('../shared/state-write-guard');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -179,9 +182,18 @@ async function reflectedAvTask(ref,environment){
  });
 }
 async function handleUpload(req){
- await validateSession(req);
+ const internal=await validateSession(req);
  const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
  const environment=publicAccess.environment(req,payload);
+ if(action==='approve-delivery-items'){
+  if(environment!==authStore.environmentFromRequest(req))
+   throw error('ENVIRONMENT_MISMATCH','Die Lieferscheinfreigabe gehört zu einer anderen Umgebung.',409);
+  if(!authStore.hasAnyEditRight(internal.user)||!rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
+   throw error('WRITE_FORBIDDEN','Für die Freigabe von Artikelpositionen fehlen Bearbeitungsrechte.',403);
+  await deliveryItems.approve(ref,environment,text(payload.documentId),text(payload.sha256),payload.rows,
+   text(internal.user&&(internal.user.name||internal.user.user||internal.user.username))||'ExportHUB');
+  return json(200,{ok:true,approved:true,reference:ref});
+ }
  if(action==='upload-av'){
   const file=avUploadFile(ref,payload),name=uniqueAvName(ref,file.name);
   // Azure is the durable primary AV copy: no Microsoft user/Graph dependency.
@@ -209,7 +221,15 @@ async function handleUpload(req){
   catch(e){sharepointFailure=e;sharepointError=text(e&&e.code)||'GRAPH_UNAVAILABLE'}
   if(!azureSaved&&!sharepointSaved)throw sharepointFailure||error('DOCUMENT_NOT_SAVED','api.reference.fileLoadFailed',502);
   const primary=azureSaved||sharepointSaved;
-  return json(200,{ok:true,reference:ref,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
+  let deliveryItemsStatus='not_applicable';
+  if(file.kind==='lieferschein'&&file.mimeType==='application/pdf'){
+   deliveryItemsStatus=azureSaved?'scan_pending':'azure_copy_missing';
+   try{
+    if(azureSaved)await deliveryItems.register(ref,environment,azureSaved,itemParser.fingerprint(file.buffer));
+    else await deliveryItems.invalidateByName(ref,environment,file.name);
+   }catch(e){deliveryItemsStatus='registration_failed';}
+  }
+  return json(200,{ok:true,reference:ref,deliveryItemsStatus,file:{id:primary.id,name:primary.name,size:primary.size,kind:file.kind,storage:azureSaved?'azure-refdoc':'sharepoint'},
    azureSaved:!!azureSaved,azureError,sharepointSaved:!!sharepointSaved,sharepointError});
  }
  throw error('ACTION_INVALID','Unbekannte Aktion.',400);
@@ -219,8 +239,19 @@ module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res=json(204,{}, {Allow:'GET, POST, OPTIONS'});return}
   if(req.method==='POST'){context.res=await handleUpload(req);return}
   if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')},{Allow:'GET, POST, OPTIONS'});return}
-  await validateSession(req);
+  const internal=await validateSession(req);
   const ref=refValue(req.query&&req.query.reference),env=publicAccess.environment(req,{});
+  if(lower(req.query&&req.query.action)==='delivery-items-review'){
+   if(!rights.canReadAny(internal.user,['shipment','shipmentoverview','documents'])||
+      !rights.canEditAny(internal.user,['shipment','shipmentoverview','documents']))
+    throw error('WRITE_FORBIDDEN','Für die Lieferscheinprüfung fehlen Bearbeitungsrechte.',403);
+   // No PDF extraction for carrier/unknown audience, even on an internal review URL.
+   if(lower(req.query&&req.query.recipientType)!=='customer'){
+    context.res=json(200,{ok:true,reference:ref,analysisSkipped:true,documents:[]});return;
+   }
+   const items=await deliveryItems.processPending(ref,env);
+   context.res=json(200,{ok:true,reference:ref,documents:items});return;
+  }
   const itemId=text(req.query&&req.query.itemId),mode=lower(req.query&&req.query.mode)==='download'?'download':'inline';
   // Read exact reference-scoped Azure AV files even if OneDrive is offline.
   if(/^avblob:/.test(itemId)){

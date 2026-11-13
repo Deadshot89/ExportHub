@@ -153,7 +153,7 @@ function patchDisabledAvis(sh){
  Object.assign(sh,values);
  var ref=explicitReference(sh),s=state(),lists=[s.shipments,s.savedShipments,s.salesSharedShipments,s.sharedShipments];
  for(var i=0;i<lists.length;i++){var list=lists[i];if(!Array.isArray(list))continue;for(var j=0;j<list.length;j++){var item=list[j];if(item&&item!==sh&&explicitReference(item)===ref)Object.assign(item,values)}}
- forgetAvisUrl(sh);
+ forgetAvisUrl(sh);delete rc1349CarrierCache[rc1349CarrierCacheKey(sh)];
  try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{enabled:false,reference:ref,version:'RC1052'}}))}catch(_){}
  return true
 }
@@ -165,6 +165,38 @@ async function disableDraftAvis(sh){
  var r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:fastAvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});
  if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));
  return patchDisabledAvis(sh)
+}
+// Separate Speditionslinks are issued by the server with avisAudience='carrier'.
+var rc1349CarrierCache=Object.create(null),rc1349CarrierPending=Object.create(null);
+function rc1349CarrierCacheKey(sh){return environmentName()+'|'+explicitReference(sh)+'|'+shipmentId(sh)}
+function carrierAvisCached(sh){return q(rc1349CarrierCache[rc1349CarrierCacheKey(sh)])}
+async function carrierAvisUrl(sh){
+ var ref=explicitReference(sh),key=rc1349CarrierCacheKey(sh);
+ if(!/^[A-Z0-9]{6}$/.test(ref)||manualDisabled(sh)||closed(sh))throw new Error(tr('avisFlow.unavailable',null,'AVIS unavailable'));
+ if(carrierAvisCached(sh))return carrierAvisCached(sh);
+ if(rc1349CarrierPending[key])return rc1349CarrierPending[key];
+ rc1349CarrierPending[key]=(async function(){
+  var payload={action:'issue-carrier',shipmentId:shipmentId(sh)||ref,reference:ref,
+   environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
+  var res=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:fastAvisHeaders(),body:JSON.stringify(payload)});
+  var data=await res.json().catch(function(){return{}});
+  if(!res.ok||data.ok!==true||data.avisAudience!=='carrier'||!data.url)
+   throw new Error(q(data.message)||tr('avisFlow.unavailable',null,'Carrier AVIS unavailable')+' ('+res.status+')');
+  // Never pick the customer's cached token when normalizing a carrier response.
+  // Require an issued 48-hex access token that exactly matches the server URL.
+  var carrierToken=q(data.token);
+  if(!/^[a-f0-9]{48}$/i.test(carrierToken)||rc1331AvisToken({},data.url)!==carrierToken||
+   carrierToken===q(sh&&(sh.customerAvisToken||sh.avisToken)))
+   throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS token'));
+  var carrierSubject=Object.assign({},sh,{customerAvisToken:carrierToken,avisToken:carrierToken});
+  var url=rc1333SafeAvisUrl(carrierSubject,data.url);
+  if(!rc1333IsSafeAvisUrl(url)||rc1331AvisToken({},url)!==carrierToken)
+   throw new Error(tr('avisFlow.unavailable',null,'Invalid carrier AVIS link'));
+  rc1349CarrierCache[key]=url;return url
+ })();
+ try{return await rc1349CarrierPending[key]}
+ finally{delete rc1349CarrierPending[key]}
 }
 async function issueDraftAvis(sh){
  if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
@@ -296,6 +328,18 @@ function avisBlock(url,reference,lang,target){
  };
  return templates[lang][carrier?'carrier':'customer'].replace(/\{\{url\}\}/g,u).replace(/\{\{ref\}\}/g,ref)
 }
+function carrierAvisForMail(sh){
+ var link=carrierAvisCached(sh);
+ if(!link)Promise.resolve(carrierAvisUrl(sh)).then(function(){syncVisibleMail()}).catch(function(){});
+ return link||''; // A pending token is never printable or mail-ready.
+}
+function carrierAvisReady(sh){
+ var link=carrierAvisForMail(sh);
+ if(link)return link;
+ var pending=new Error(tr('avisFlow.unavailable',null,'Speditionsavis-Link wird vorbereitet. Bitte erneut versuchen.'));
+ pending.code='AVIS_CARRIER_LINK_PENDING';
+ throw pending;
+}
 function standaloneAvis(sh,target,lang,url){
  lang=rc1267NormalizeLanguage(lang);target=q(target).toLowerCase()==='carrier'?'carrier':'customer';
  var greetings={de:'Sehr geehrte Damen und Herren,',en:'Dear Sir or Madam,',pl:'Szanowni Państwo,',es:'Estimados señores:',fr:'Madame, Monsieur,',it:'Gentili Signore e Signori,'};
@@ -312,6 +356,7 @@ function injectMailBody(sh,target,body,langOverride){
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(type==='own')return ownAvisMail(source,url,lang);
+ if(type==='carrier')return standaloneAvis(sh,type,lang,carrierAvisReady(sh));
  return standaloneAvis(sh,type,lang,url)
 }
 function syncVisibleMail(){
@@ -321,7 +366,9 @@ function syncVisibleMail(){
  if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
  var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
  if(mailExcluded(sh)||recipientExcluded(sh,type)){var cleaned=stripExcludedAvis(sh,type,String(body.value==null?'':body.value),rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
- var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
+ var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),carrierLink=type==='carrier'?carrierAvisForMail(sh):'';
+ if(type==='carrier'&&!carrierLink)return false; // No Outlook-ready preview with a placeholder.
+ var next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,type==='carrier'?carrierLink:url);
  if(String(body.value==null?'':body.value)===next)return false;
  visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
  return true
@@ -359,6 +406,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();if((name==='exporthub:viewchange'||name==='exporthub:rendered')&&!shipmentViewActive())return false;return scheduleDraftRefresh(name,100)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};var sh=opt.shipment||shipment()||{reference:q(opt.reference)},type=q(opt.target).toLowerCase()||'customer';return standaloneAvis(sh,type,q(opt.lang).toLowerCase()==='en'?'en':'de',type==='carrier'?carrierAvisReady(sh):q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail,carrierAvisUrl:carrierAvisUrl,carrierAvisCached:carrierAvisCached});
 window.ExportHUBRC1027Lieferavis=api;
 })();

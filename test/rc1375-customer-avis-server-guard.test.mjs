@@ -41,7 +41,8 @@ test('RC1375: explizites Kunden-Ja kann Legacy-Nein ueberschreiben',()=>{
 test('RC1375: Reminder-Mail wird vor URL und Graph-Versand blockiert',()=>{
   assert.match(reminder,/function customerAvisAllowed\(team,sh\)/);
   const customerCheck=reminder.indexOf("if(!customerAvisAllowed(current.team,shipment))");
-  const urlCheck=reminder.indexOf("const url=safeAvisUrl");
+  const urlCheck=reminder.indexOf("const url=await audienceBoundMailUrl(");
+  assert.match(reminder,/const original=safeAvisUrl\(req,rawUrl,shipment,customer\)/,'Empfängergebundener Mail-Link bleibt hostgeprüft');
   const sendCheck=reminder.indexOf("graphMail.sendHtmlMail");
   assert.ok(customerCheck>=0&&urlCheck>customerCheck,'Kundensperre muss vor AVIS-URL-Verarbeitung greifen');
   assert.ok(sendCheck>customerCheck,'Kundensperre muss vor Graph-Versand greifen');

@@ -236,6 +236,12 @@ function withClosureMailNotice(content,lang){
  if(!notice||q(content).indexOf('=== ExportHUB360 ===')>=0)return content;
  return content+'\n\n'+notice
 }
+
+async function carrierAudienceLink(sh){
+ var api=w.ExportHUBRC1027Lieferavis;
+ if(!api||typeof api.carrierAvisUrl!=='function')throw new Error('Separate carrier AVIS link is unavailable.');
+ return await api.carrierAvisUrl(sh);
+}
 async function sendReminder(sh,email,target,lang,url,mode){
  if(avisRecipientExcluded(email)){var blocked=new Error('Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.');blocked.code='AVIS_RECIPIENT_EXCLUDED';throw blocked}
  if(!/^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$/i.test(q(email)))throw new Error(tr('avisReminder.missingCustomer'));
@@ -243,7 +249,7 @@ async function sendReminder(sh,email,target,lang,url,mode){
  var gate=reminderGate(sh);
  if(!gate.enabled||gate.mode!==mode){var unavailable=new Error(tr(gate.reason==='pickup-date'?'avisReminder.pickupRecorded':'avisReminder.notReady'));unavailable.code='AVIS_DRAFT_NOT_READY';throw unavailable}
  if(closed(sh)||exception(sh)||!avisLink(sh))throw new Error(tr('avisReminder.notReady'));
- url=safeAvisLink(sh,url||avisLink(sh));
+ url=target==='carrier'?await carrierAudienceLink(sh):safeAvisLink(sh,url||avisLink(sh));
  var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=withClosureMailNotice(mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),lang),cc=draftCc(sh,email);
  var href='mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&cc='+encodeURIComponent(cc.join(';'))+'&body='+encodeURIComponent(content);
  var link=d.createElement('a');link.href=href;link.style.display='none';link.setAttribute('aria-hidden','true');link.setAttribute('data-rc1166-mail-draft','1');d.body.appendChild(link);
@@ -268,6 +274,7 @@ async function previewHtmlAvis(sh,email,target,lang,url,mode){
  }
  return result
 }
+
 function htmlSendLabel(lang){
  return {de:'Formatierte AVIS-Mail senden',en:'Send formatted collection notice',pl:'Wyślij sformatowane awizo',es:'Enviar aviso con formato',fr:'Envoyer l’avis mis en forme',it:'Invia avviso formattato'}[normalizeLanguage(lang)];
 }
@@ -319,11 +326,23 @@ function openDialog(sh,mode){
  dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><div class="rc1328-closure-preview" data-closure-preview role="note" hidden></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><p class="rc1166-note" data-html-hint></p><section class="rc1328-html-preview" data-html-preview-panel hidden><div class="rc1166-note" data-preview-subject></div><iframe data-preview-frame sandbox title="'+esc(tr('closureMail.htmlPreview'))+'"></iframe></section><div class="rc1166-actions"><button type="button" class="ghost" data-html-preview>'+esc(tr('closureMail.htmlPreview'))+'</button><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-html-send></button><button type="button" class="ghost" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
  d.body.appendChild(dialog);
  var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),closurePreview=dialog.querySelector('[data-closure-preview]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]'),htmlSend=dialog.querySelector('[data-html-send]'),htmlHint=dialog.querySelector('[data-html-hint]'),htmlPreview=dialog.querySelector('[data-html-preview]'),previewPanel=dialog.querySelector('[data-html-preview-panel]'),previewFrame=dialog.querySelector('[data-preview-frame]'),previewSubject=dialog.querySelector('[data-preview-subject]'),previewGeneration=0;
+ var previewRequest=0;
  function refresh(){
   previewGeneration++;
-  var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
+  var revision=++previewRequest,t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
-  text.value=withClosureMailNotice(mode==='initial'?initialBody(sh,t,l,url):body(sh,t,l,url),l);var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlPreview.disabled=!has;previewPanel.hidden=true;previewFrame.removeAttribute('srcdoc');htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>';var notice='';try{var noticeRuntime=w.ExportHUBRC1065RegistrationCC;if(noticeRuntime&&typeof noticeRuntime.closureNoticeText==='function')notice=q(noticeRuntime.closureNoticeText(l))}catch(_){}if(closurePreview){closurePreview.textContent=notice;closurePreview.hidden=!notice}
+  var previewUrl=t==='carrier'?'[…]':url;
+  text.value=withClosureMailNotice(mode==='initial'?initialBody(sh,t,l,previewUrl):body(sh,t,l,previewUrl),l);
+  var has=!!recipient.value;open.disabled=!has;htmlSend.disabled=!has;htmlPreview.disabled=!has;previewPanel.hidden=true;previewFrame.removeAttribute('srcdoc');htmlSend.textContent=htmlSendLabel(l);htmlHint.textContent=htmlSendHint(l);warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>';
+  var notice='';try{var noticeRuntime=w.ExportHUBRC1065RegistrationCC;if(noticeRuntime&&typeof noticeRuntime.closureNoticeText==='function')notice=q(noticeRuntime.closureNoticeText(l))}catch(_){}
+  if(closurePreview){closurePreview.textContent=notice;closurePreview.hidden=!notice}
+  if(t==='carrier')carrierAudienceLink(sh).then(function(carrierUrl){
+   if(revision!==previewRequest||!dialog||target.value!=='carrier')return;
+   text.value=withClosureMailNotice(mode==='initial'?initialBody(sh,t,l,carrierUrl):body(sh,t,l,carrierUrl),l);
+  }).catch(function(){
+   if(revision!==previewRequest||!dialog)return;
+   open.disabled=true;
+  });
  }
  try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')lang.value=normalizeLanguage(w.ExportHUBI18n.language())}catch(_){}
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
@@ -393,6 +412,7 @@ function renderPickupClosureWarning(card,sh){
  if(current.textContent!==message)current.textContent=message;
  return true
 }
+
 function ensureButton(card,sh){
  var url=avisLink(sh),old=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');
  if(!url){if(old)old.remove();return false}

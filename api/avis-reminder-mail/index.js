@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
+const publicAccess=require('../shared/public-access-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml,activeClosureNotices,closureNoticeHtml}=require('../shared/avis-mail-html');
 
@@ -54,6 +55,41 @@ function safeAvisUrl(req,value,sh,c){
   return out.toString()
  }
  return u.toString()
+}
+function replaceAvisToken(url,token){
+ const out=new URL(url);
+ // Never leave a customer token in query params when replacing the carrier path token.
+ out.searchParams.delete('token');out.searchParams.delete('avis');
+ if(/^\/avis\/[^/]+\/?$/i.test(out.pathname))out.pathname='/avis/'+encodeURIComponent(token);
+ else if(/\/customer-avis\.html$/i.test(out.pathname)){out.searchParams.set('token',token)}
+ else throw auth.error('AVIS_URL_INVALID','Ungültiger Avis-Link.',400);
+ return out.toString();
+}
+async function audienceBoundMailUrl(req,shipment,customer,target,rawUrl,previewOnly=false){
+ const original=safeAvisUrl(req,rawUrl,shipment,customer);
+ // Preview must be read-only: never issue access tokens or update blob indexes.
+ // A carrier preview uses a nonfunctional placeholder instead of exposing the customer link.
+ if(previewOnly)return target==='carrier'?replaceAvisToken(original,'preview-carrier-no-access'):original;
+ const environment=auth.environmentFromRequest(req);
+ const requiredAudience=target==='carrier'?'carrier':'customer';
+ const ref=text(shipment.reference||shipment.ref||shipment.shipmentRef).toUpperCase();
+ const subjectId=text(shipment.id||shipment.shipmentId||ref);
+ // Reuse only a VERIFIED carrier token for this exact subject; never trust a URL flag.
+ // This avoids issuing another permanent token for every HTML mail.
+ const parsed=new URL(original),match=parsed.pathname.match(/^\/avis\/([^/]+)\/?$/i);
+ const suppliedToken=text(parsed.searchParams.get('token')||parsed.searchParams.get('avis')||(match&&decodeURIComponent(match[1])));
+ if(/^[a-f0-9]{48}$/.test(suppliedToken)){
+  try{
+   const existing=await publicAccess.resolve(req,'avis',suppliedToken,{allowUsed:true},{environment});
+   const record=existing.record||{};
+   if(record.avisAudience===requiredAudience&&record.subjectId===subjectId&&record.reference===ref)
+    return replaceAvisToken(original,suppliedToken);
+  }catch(_){/* Missing, revoked or mismatched token: create a fresh scoped token. */}
+ }
+ const issued=await publicAccess.issue(req,'avis',
+  {subjectId,shipmentId:subjectId,reference:ref,actor:'AVIS Reminder',avisAudience:requiredAudience},
+  null,{environment});
+ return replaceAvisToken(original,issued.token);
 }
 function subject(ref,target,lang){
  lang=normalizeLanguage(lang);
@@ -256,7 +292,7 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const url=await audienceBoundMailUrl(req,shipment,customerFor(current.team,shipment),target,p.avisUrl,previewOnly),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   // Only explicitly enabled, validated shipment-closure notices are mailed.
   // Task-planner holidays are never treated as external business closures.

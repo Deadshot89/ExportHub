@@ -95,7 +95,8 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
  assert.match(api,/function avisRecipientExcluded\(v\)\{return lower\(v\)==='dispo@holenstein\.de'\}/);
  assert.match(api,/AVIS_RECIPIENT_EXCLUDED/);
  const recipientCheck=api.indexOf("if(avisRecipientExcluded(to))");
- const urlCheck=api.indexOf("const url=safeAvisUrl");
+ const urlCheck=api.indexOf("const url=await audienceBoundMailUrl(");
+ assert.match(api,/const original=safeAvisUrl\(req,rawUrl,shipment,customer\)/,'Empfängergebundene Linkprüfung muss zuerst die Host-Validierung anwenden');
  const sendCheck=api.indexOf("graphMail.sendHtmlMail");
  assert.ok(recipientCheck>=0&&urlCheck>recipientCheck,'Empfängersperre muss vor Avis-URL-Verarbeitung greifen');
  assert.ok(sendCheck>recipientCheck,'Empfängersperre muss vor Graph-Versand greifen');

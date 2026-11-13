@@ -48,7 +48,9 @@ test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
   assert.doesNotMatch(authorize,/access\.consume\(/,'Avis-Link darf beim Öffnen nicht verbraucht werden');
   assert.match(avisApi,/oneTime:false/,'API muss den Avis-Link als wiederverwendbar melden');
   assert.match(avisApi,/singleUse:false/,'Portalstatus darf keinen Avis-Einmal-Link melden');
-  assert.match(avisApi,/access\.issue\([^;]*,null,payload\)/s,'Avis-Ausstellung muss ohne feste Link-Laufzeit erfolgen');
+  assert.match(avisApi,/access\.issue\(req,'avis',issueMeta,null,issuePayload\)/,'Avis-Ausstellung bleibt unbefristet und empfängergebunden');
+  assert.match(avisApi,/issuePayload=isCarrier\?\{environment:env\}:payload/,'Speditionslink darf keinen Kundentoken übernehmen');
+  assert.match(accessStore,/sameAudience/,'Wiederverwendung darf Kunden- und Speditionslinks nicht vertauschen');
   assert.match(accessStore,/indefinite=ttlMs===null/,'Public-Access-Store muss ausdrücklich unbefristete Avis-Links unterstützen');
   assert.match(accessStore,/expiresAt=indefinite\?null:/,'Unbefristete Avis-Links dürfen kein Ablaufdatum erhalten');
   assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Bestehende aktive Avis-Links dürfen nicht an alter TTL scheitern');

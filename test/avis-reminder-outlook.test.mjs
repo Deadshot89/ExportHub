@@ -19,6 +19,12 @@ function setup({hostname='www.exporthub360.de',launchFails=false,clock=''}={}){
  const Clock=clock?class extends Date{constructor(...a){super(...(a.length?a:[clock]))}static now(){return Date.parse(clock)}}:Date;
  const sandbox={document,URL,console,Date:Clock,Intl,Map,Set,Promise,clearTimeout(){},setInterval(){},setTimeout(){return 1},location:{hostname,href:'https://'+hostname+'/'},addEventListener(){},dispatchEvent(){},CustomEvent:class{},__EXPORTHUB_GET_STATE__:()=>state,ExportHUBI18n:{t:(k)=>de[k]||k},fetch(...args){calls.push(args);throw new Error('Server mail must not be used')},ExportHUBClean:{queueSave(reason){saved.push(reason)}}};
  sandbox.window=sandbox;
+ // A carrier receives a dedicated, audience-scoped link; never the customer's token.
+ sandbox.ExportHUBRC1027Lieferavis={async carrierAvisUrl(current){
+  if(hostname.includes('-testservice.'))return 'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=carrier-audience-token&environment=testservice';
+  if(/\bessentra\b/i.test(current.customerName||''))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=carrier-audience-token';
+  return 'https://www.exporthub360.de/avis/carrier-audience-token';
+ }};
  for(const file of ['assets/rc1065-registration-cc.js','assets/rc1071-shipment-history.js','assets/rc1166-avis-reminder-overview.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox);
  return{api:sandbox.ExportHUBRC1166AvisReminder,sh,state,launches,calls,saved,events,document,window:sandbox};
 }
@@ -118,10 +124,11 @@ test('existing initial registration from the normal Outlook mail area enables th
 });
 
 test('other customers keep branded links and TESTSERVICE remains isolated in the Outlook text',async()=>{
- for(const fixture of [{hostname:'www.exporthub360.de',customerName:'Hitachi',wanted:'https://www.exporthub360.de/avis/abc?lang=de'},{hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',customerName:'Essentra Sweden',wanted:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=abc&environment=testservice&lang=de'}]){
+ for(const fixture of [{hostname:'www.exporthub360.de',customerName:'Hitachi',wanted:'https://www.exporthub360.de/avis/carrier-audience-token?lang=de'},{hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',customerName:'Essentra Sweden',wanted:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=carrier-audience-token&environment=testservice&lang=de'}]){
   const {api,sh,state,launches}=setup(fixture);sh.customerName=fixture.customerName;state.customers[0].name=fixture.customerName;
   await api.sendReminder(sh,'carrier@example.com','carrier','de',sh.customerAvisUrl,'reminder');
   assert.ok(new URL(launches[0]).searchParams.get('body').includes(fixture.wanted));
+  assert.ok(!new URL(launches[0]).searchParams.get('body').includes('/avis/abc'), 'Carrier must never reuse customer URL');
  }
 });
 

@@ -88,6 +88,7 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
   if(name==='crypto')return crypto;
   if(name==='../shared/auth-store')return auth;
   if(name==='../shared/graph-mail')return{async sendHtmlMail(value){mail=value;return{attempts:1}}};
+  if(name==='../shared/public-access-store')return{async resolve(){throw Error('Unknown synthetic token')},async issue(req,kind,meta){assert.equal(meta.avisAudience,'customer');return{token:'a'.repeat(48)}}};
   if(name==='../shared/avis-mail-html')return{renderAvisMailHtml:(body)=>body,activeClosureNotices:()=>[],closureNoticeHtml:()=>''};
   return{};
  }};
@@ -97,7 +98,7 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
  assert.equal(context.res.status,200);
  assert.equal(mail.sender,'DespatchNettetal@essentra.com');
  assert.equal(JSON.parse(context.res.body).sender,'DespatchNettetal@essentra.com');
- assert.ok(mail.body.includes(legacy));
+ assert.ok(mail.body.includes(legacy.replace('abc','a'.repeat(48))));
  assert.ok(!mail.body.includes('exporthub360.de'));
 });
 
