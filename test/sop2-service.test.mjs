@@ -113,3 +113,72 @@ test('direct changes to title, status and content without a new audit event are 
  const e=submitted();e.versions[0].status='approved';assert.throws(()=>newVersion(e,{revision:2},user(),NOW),err('HISTORY_BROKEN',409));
  const f=draft();f.versions[0].content.de.purpose='tampered';assert.throws(()=>submit(f,{revision:1,version:'1.0'},user(),NOW),err('HISTORY_BROKEN',409));
 });
+
+test('author and last editor cannot approve own version or use an administrator override',()=>{
+  const d=submitted();
+  assert.throws(()=>require('../api/shared/sop-service.js').approve(d,{revision:2,version:'1.0'},user('Anna'),NOW),err('FOUR_EYES',403));
+  const admin={user:'ANNA',role:'Administrator',rights:{}};
+  assert.throws(()=>require('../api/shared/sop-service.js').approve(d,{revision:2,version:'1.0'},admin,NOW),err('FOUR_EYES',403));
+  const fromLastEditor=updateDraft(draft(),{revision:1,version:'1.0',title:'Reviewable'},user('Lena'),NOW);
+  const submittedByAuthor=submit(fromLastEditor,{revision:2,version:'1.0'},user('Anna'),NOW);
+  assert.throws(()=>require('../api/shared/sop-service.js').approve(submittedByAuthor,{revision:3,version:'1.0'},user('Lena'),NOW),err('FOUR_EYES',403));
+});
+test('different SOP editor approves with identity and date from trusted session, not request body',()=>{
+  const {approve}=require('../api/shared/sop-service.js');
+  const source=submitted();
+  const result=approve(source,{revision:2,version:'1.0',approvedBy:'Mallory',approvedAt:'2099-01-01T00:00:00.000Z'},user('Lena'),NOW);
+  assert.equal(result.versions[0].approvedBy,'lena');
+  assert.equal(result.versions[0].approvedAt,NOW);
+  assert.equal(result.versions[0].status,'approved');
+  assert.equal(source.versions[0].status,'review');
+  assert.equal(result.events.at(-1).action,'APPROVED');
+  assert.equal(verifyChain(result.events).ok,true);
+});
+test('cannot approve an unsubmitted draft and cannot approve with read-only right',()=>{
+  const {approve}=require('../api/shared/sop-service.js');
+  assert.throws(()=>approve(draft(),{revision:1,version:'1.0'},user('Lena'),NOW),err('NOT_IN_REVIEW',409));
+  assert.throws(()=>approve(submitted(),{revision:2,version:'1.0'},reader(),NOW),err('SOP_EDIT_FORBIDDEN',403));
+});
+test('rejection requires a meaningful reason and independent editor; audit reason preserved',()=>{
+  const {reject}=require('../api/shared/sop-service.js');const source=submitted();
+  assert.throws(()=>reject(source,{revision:2,version:'1.0',reason:'no'},user('Lena'),NOW),err('REASON_REQUIRED',422));
+  assert.throws(()=>reject(source,{revision:2,version:'1.0',reason:'Please correct translation'},user('Anna'),NOW),err('FOUR_EYES',403));
+  const next=reject(source,{revision:2,version:'1.0',reason:'Please correct translation'},user('Lena'),NOW);
+  assert.equal(next.versions[0].status,'draft');
+  assert.equal(next.versions[0].author,'anna');
+  assert.equal(next.events.at(-1).data.reason,'Please correct translation');
+  assert.equal(source.versions[0].status,'review');
+});
+test('approving next version archives old approved version while retaining exactly one active',()=>{
+  const {approve}=require('../api/shared/sop-service.js');
+  const first=approve(submitted(),{revision:2,version:'1.0'},user('Lena'),NOW);
+  const followup=newVersion(first,{revision:3},user('Mira'),NOW);
+  const ready=submit(followup,{revision:4,version:'1.1'},user('Mira'),NOW);
+  const next=approve(ready,{revision:5,version:'1.1'},user('Sven'),NOW);
+  assert.deepEqual(next.versions.map(v=>v.status),['archived','approved']);
+  assert.equal(next.versions[0].approvedBy,'lena');
+  assert.equal(next.versions[0].archivedBy,'sven');
+  assert.equal(next.versions[1].approvedBy,'sven');
+  assert.equal(next.versions.filter(v=>v.status==='approved').length,1);
+  assert.equal(next.revision,6);
+  assert.equal(verifyChain(next.events).ok,true);
+});
+test('approved version can only be archived by independent SOP editor',()=>{
+  const {approve,archive}=require('../api/shared/sop-service.js');
+  const current=approve(submitted(),{revision:2,version:'1.0'},user('Lena'),NOW);
+  assert.throws(()=>archive(current,{revision:3},user('Anna'),NOW),err('FOUR_EYES',403));
+  assert.throws(()=>archive(current,{revision:3},reader(),NOW),err('SOP_EDIT_FORBIDDEN',403));
+  const done=archive(current,{revision:3,archivedBy:'Mallory'},user('Sven'),NOW);
+  assert.equal(done.versions[0].archivedBy,'sven');
+  assert.equal(done.versions[0].status,'archived');
+  assert.equal(done.events.at(-1).action,'ARCHIVED');
+  assert.throws(()=>archive(done,{revision:4},user('Sven'),NOW),err('APPROVED_VERSION_REQUIRED',409));
+});
+test('stale or damaged review state cannot be approved or rejected',()=>{
+  const {approve,reject}=require('../api/shared/sop-service.js');
+  const s=submitted();
+  assert.throws(()=>approve(s,{revision:1,version:'1.0'},user('Lena'),NOW),err('REVISION_CONFLICT',409));
+  const tampered=submitted();tampered.versions[0].status='approved';
+  assert.throws(()=>approve(tampered,{revision:2,version:'1.0'},user('Lena'),NOW),err('HISTORY_BROKEN',409));
+  assert.throws(()=>reject(tampered,{revision:2,version:'1.0',reason:'Need more checks'},user('Lena'),NOW),err('HISTORY_BROKEN',409));
+});
