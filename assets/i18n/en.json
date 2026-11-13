@@ -2756,5 +2756,10 @@
   "urgentOrderV2.issueRegenerate": "Please regenerate the email draft.",
   "urgentOrderV2.issueTooLong": "The problem description including selected templates must not exceed 2,000 characters.",
   "urgentOrderV2.shippingNotReady": "Available only once all items have been shipped.",
-  "urgentOrderV2.mailShippingPreparing": "Preparing shipping confirmation."
+  "urgentOrderV2.mailShippingPreparing": "Preparing shipping confirmation.",
+  "rc1930.customers": "Customers",
+  "rc1930.filterCustomers": "Filter customers",
+  "rc1930.noMatch": "No matches",
+  "rc1930.close": "Close",
+  "rc1930.showInList": "Show in list"
 }

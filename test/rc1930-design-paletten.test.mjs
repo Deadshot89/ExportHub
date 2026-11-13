@@ -75,7 +75,7 @@ test('RC1930: Paletten-CSS greift nur bei data-eh-palette bzw. Polar-Leiste, Red
 });
 
 test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',()=>{
-  assert.match(builder,/rc1930-design-paletten\.css\?v=1933/);
+  assert.match(builder,/rc1930-design-paletten\.css\?v=1935/);
   assert.match(builder,/'assets\/rc1930-design-paletten\.css'/);
   for(const lang of ['de','en','fr','it','es','pl']){
     const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
@@ -91,7 +91,7 @@ test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',(
 
 test('RC1930: Design-Rahmen (Glocke, Benutzermenü) löst nur Original-Knöpfe aus und ist eingebunden',()=>{
   const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
-  assert.match(builder,/rc1930-design-rahmen\.js\?v=1933/);
+  assert.match(builder,/rc1930-design-rahmen\.js\?v=1935/);
   assert.match(builder,/'assets\/rc1930-design-rahmen\.js'/);
   assert.match(builder,/RC1930 Design-Rahmen fehlt/);
   assert.match(frame,/data-view="notifications"/);
@@ -133,4 +133,30 @@ test('RC1933: alle neuen Designs mit einklappbarer Leiste, Sendung öffnet im Se
   assert.match(css,/html\[data-eh-palette\] #rc1900Overview#rc1900Overview \.rc1900-detail\{position:sticky/);
   assert.match(ov,/data-rc1900-open="'\+esc\(it\.id\)\+'" data-rc739-no-loading="1"/);
   assert.match(fs.readFileSync('assets/rc1902-neue-sendungsmaske.js','utf8'),/data-rc739-no-loading="1" data-rc1902-goto=/);
+});
+
+test('RC1935: Aufgaben, Kundenordner und Dashboard mit Liste plus Seitenfenster, alte Handler bleiben',()=>{
+  const frame=fs.readFileSync('assets/rc1930-design-rahmen.js','utf8');
+  const dash=fs.readFileSync('assets/rc1558-dashboard-overview.js','utf8');
+  // Aufgaben: vorhandenes Detailfenster wird angedockt
+  assert.match(css,/#rc1810TaskBoard#rc1810TaskBoard \.rc1810-main\.has-panel\{grid-template-columns:minmax\(0,1fr\) minmax\(340px,400px\)\}/);
+  assert.match(css,/#rc1810TaskBoard#rc1810TaskBoard \.rc1810-panel\{position:sticky/);
+  // Kundenordner: Liste liest nur die Kundenauswahl und klickt den bestehenden Knopf „Öffnen“
+  assert.match(frame,/getElementById\('rc405FolderList'\)/);
+  assert.match(frame,/querySelector\('button\[onclick\*="rc405SelectFolder"\]'\)/);
+  assert.match(frame,/search\.value=value;\s*if\(btn\)btn\.click\(\)/);
+  assert.match(frame,/getAttribute\('data-eh-view'\)==='customerfolder'/);
+  assert.doesNotMatch(frame.slice(frame.indexOf('function customers()'),frame.indexOf('function schedule()')),/innerHTML=[^']*\+/,'Kundennamen nie per innerHTML einsetzen');
+  assert.match(css,/main\.main\[data-rc1935-customers\]>#rc1935CustomerList\{grid-column:1;grid-row:2;position:sticky/);
+  // Dashboard: Kachel öffnet Seitenfenster nur mit Palette auf breiten Bildschirmen, sonst wie bisher RC1569
+  assert.match(dash,/if\(sideMode\(\)\)openSide\(k\.getAttribute\('data-rc1558-kpi'\),k\.getAttribute\('data-rc1558-route'\)\);else startDrill\(/);
+  assert.match(dash,/hasAttribute\('data-eh-palette'\)&&typeof w\.matchMedia==='function'&&w\.matchMedia\('\(min-width:1180px\)'\)\.matches/);
+  assert.match(dash,/\[data-rc1935-all\]'\)\)\{e\.preventDefault\(\);closeSide\(\);startDrill\(kpi,view\);return\}/);
+  assert.match(css,/#rc1935DashSide\{\s*position:fixed/);
+  assert.match(builder,/rc1930-design-rahmen\.js\?v=1935/);
+  assert.match(builder,/rc1930-design-paletten\.css\?v=1935/);
+  for(const lang of ['de','en','pl','es','fr','it']){
+    const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    for(const key of ['rc1930.customers','rc1930.filterCustomers','rc1930.noMatch','rc1930.close','rc1930.showInList'])assert.ok(String(pack[key]||'').trim(),lang+' '+key);
+  }
 });

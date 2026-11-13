@@ -82,8 +82,8 @@ const RC1902_FORM_SCRIPT_TAG='<script id="exporthub-rc1902-form-script" defer sr
 const RC1903_CAPTURE_STYLE_TAG='<link id="exporthub-rc1903-capture-style" rel="stylesheet" href="/assets/rc1903-neue-erfassung.css?v=1930">';
 const RC1903_CAPTURE_SCRIPT_TAG='<script id="exporthub-rc1903-capture-script" defer src="/assets/rc1903-neue-erfassung.js?v=1930"><\/script>';
 // RC1930: neue Designs Frost, Graphit, Azur, Stahl, Polar (nur html[data-eh-palette])
-const RC1930_PALETTES_STYLE_TAG='<link id="exporthub-rc1930-palettes-style" rel="stylesheet" href="/assets/rc1930-design-paletten.css?v=1933">';
-const RC1930_FRAME_SCRIPT_TAG='<script id="exporthub-rc1930-frame-script" defer src="/assets/rc1930-design-rahmen.js?v=1933"><\/script>';
+const RC1930_PALETTES_STYLE_TAG='<link id="exporthub-rc1930-palettes-style" rel="stylesheet" href="/assets/rc1930-design-paletten.css?v=1935">';
+const RC1930_FRAME_SCRIPT_TAG='<script id="exporthub-rc1930-frame-script" defer src="/assets/rc1930-design-rahmen.js?v=1935"><\/script>';
 const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=20261112p0"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
@@ -216,9 +216,9 @@ function patchRc1800PremiumDesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1903_CAPTURE_SCRIPT_TAG,'exporthub-rc1903-capture-script');
   if(!html.includes('rc1903-neue-erfassung.js?v=1930'))throw new Error(file+': RC1903 neue Erfassung fehlt');
   html=injectDeferredRuntimeInHead(html,RC1930_PALETTES_STYLE_TAG,'exporthub-rc1930-palettes-style');
-  if(!html.includes('rc1930-design-paletten.css?v=1933'))throw new Error(file+': RC1930 Design-Paletten fehlen');
+  if(!html.includes('rc1930-design-paletten.css?v=1935'))throw new Error(file+': RC1930 Design-Paletten fehlen');
   html=injectDeferredRuntimeInHead(html,RC1930_FRAME_SCRIPT_TAG,'exporthub-rc1930-frame-script');
-  if(!html.includes('rc1930-design-rahmen.js?v=1933'))throw new Error(file+': RC1930 Design-Rahmen fehlt');
+  if(!html.includes('rc1930-design-rahmen.js?v=1935'))throw new Error(file+': RC1930 Design-Rahmen fehlt');
   if(!html.includes('rc1820-top-navigation.css?v=1931')||!html.includes('rc1820-top-navigation.js?v=20261112p0'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }

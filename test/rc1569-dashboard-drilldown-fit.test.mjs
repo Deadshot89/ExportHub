@@ -36,7 +36,8 @@ test('RC1569 jede Kachel liefert genau die Datensätze, die sie zählt',()=>{
 });
 
 test('RC1569 Kachel-Klick öffnet die Funktion mit Filter, Filter wird live angewendet und wieder entfernt',()=>{
-  assert.match(runtime,/var k=target\.closest\('\[data-rc1558-kpi\]'\);if\(k\)\{e\.preventDefault\(\);startDrill\(k\.getAttribute\('data-rc1558-kpi'\),k\.getAttribute\('data-rc1558-route'\)\);return\}/);
+  // RC1935: in den neuen Designs auf breiten Bildschirmen zuerst Seitenfenster, sonst unverändert der Drill-down
+  assert.match(runtime,/var k=target\.closest\('\[data-rc1558-kpi\]'\);if\(k\)\{e\.preventDefault\(\);if\(sideMode\(\)\)openSide\(k\.getAttribute\('data-rc1558-kpi'\),k\.getAttribute\('data-rc1558-route'\)\);else startDrill\(k\.getAttribute\('data-rc1558-kpi'\),k\.getAttribute\('data-rc1558-route'\)\);return\}/);
   assert.match(runtime,/if\(view!==drill\.view\)\{if\(drill\.seen\)clearDrill\(\);return\}/,'Bereichswechsel hebt den Filter auf');
   assert.match(runtime,/runtime\.setTaskStatus\(task,'done',\{state:currentState\}\)/,'Erledigt wird über die Aufgaben-Runtime gespeichert');
   assert.match(runtime,/if\(drill&&drill\.cache&&now-drill\.cache\.at<400\)return drill\.cache\.records;/,'Filtermenge höchstens alle 400 ms neu berechnet');
