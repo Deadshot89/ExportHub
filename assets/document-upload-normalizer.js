@@ -2,6 +2,9 @@
   'use strict';
 
   const replaying=new WeakSet();
+  const selectionRevisions=new WeakMap();
+  // Stop one defective PDF parser from blocking the shipment form indefinitely.
+  const NORMALIZE_TIMEOUT_MS=3000;
 
   function text(value){return String(value==null?'':value).trim();}
   function isPdf(file){
@@ -33,10 +36,26 @@
     return cloneWithName(file,text(result.name));
   }
 
+  function normalizeWithDeadline(file){
+    if(!isPdf(file))return Promise.resolve(file);
+    if(!root||typeof root.setTimeout!=='function')return normalizeFile(file);
+    return new Promise(function(resolve){
+      let settled=false;
+      const finish=function(value){
+        if(settled)return;
+        settled=true;
+        if(typeof root.clearTimeout==='function')root.clearTimeout(timer);
+        resolve(value||file);
+      };
+      const timer=root.setTimeout(function(){finish(file)},NORMALIZE_TIMEOUT_MS);
+      Promise.resolve().then(function(){return normalizeFile(file)}).then(finish,function(){finish(file)});
+    });
+  }
+
   async function normalizeFiles(files){
-    const input=Array.from(files||[]),out=[];
-    for(const file of input)out.push(await normalizeFile(file));
-    return out;
+    const input=Array.from(files||[]);
+    // Independent PDFs can be inspected in parallel; preserve the user's order.
+    return Promise.all(input.map(normalizeWithDeadline));
   }
 
   function changed(before,after){
@@ -70,6 +89,9 @@
   async function handleChange(event){
     const input=event&&event.target;
     if(!input||text(input.type).toLowerCase()!=='file'||replaying.has(input))return false;
+    // Also invalidate an older PDF selection when the newer selection is not a PDF.
+    const revision=(selectionRevisions.get(input)||0)+1;
+    selectionRevisions.set(input,revision);
     const original=Array.from(input.files||[]);
     if(!original.length||!original.some(isPdf)||!normalizer())return false;
 
@@ -77,7 +99,9 @@
 
     let normalized=original;
     try{normalized=await normalizeFiles(original);}catch(_){normalized=original;}
+    if(selectionRevisions.get(input)!==revision)return false;
     if(changed(original,normalized))replaceInputFiles(input,normalized);
+    selectionRevisions.delete(input);
     redispatch(input);
     return true;
   }

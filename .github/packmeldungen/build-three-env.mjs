@@ -32,7 +32,7 @@ const STYLE_TAGS=[
 ];
 const DOCUMENT_SCRIPT_TAGS=[
   '<script id="exporthub-document-reference-normalizer" defer src="/assets/document-reference-normalizer.js?v=3"></script>',
-  '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=1"></script>'
+  '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=2"></script>'
 ];
 const PACK_SCRIPT_TAGS=[
   '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=4"></script>',
