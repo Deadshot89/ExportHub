@@ -46,7 +46,7 @@ test('RC1820: read-only end-to-end HTTP mirror accepts exact TESTSERVICE assets'
       assert.equal(options.method,'GET');
       assert.equal(options.redirect,'manual');
       if(url.pathname==='/api/exporthub-health')return new Response(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId:SHA}}));
-      if(url.pathname==='/TESTVERSION.html')return new Response(goodHtml);
+      if(url.pathname==='/')return new Response(goodHtml);
       const asset=MENU_ASSETS.find(x=>url.pathname==='/'+x.path);
       assert.ok(asset,`unexpected URL ${url.pathname}`);
       assert.equal(url.searchParams.get('v'),asset.version);
@@ -56,8 +56,22 @@ test('RC1820: read-only end-to-end HTTP mirror accepts exact TESTSERVICE assets'
     assert.equal(result.verified,true);
     assert.equal(result.menuAssets,2);
     assert.equal(requested.length,4);
+    assert.equal(requested[1].url.pathname,'/','HTML must use the canonical root entrypoint');
+    assert.ok(requested.every(x=>x.url.pathname!=='/TESTVERSION.html'),'Do not request canonicalized HTML path');
     assert.ok(requested.every(x=>x.options.method==='GET'));
   }finally{fs.rmSync(root,{recursive:true,force:true})}
+});
+
+test('RC1820: canonical root redirect is not silently accepted',async()=>{
+  let requests=0;
+  const fetchImpl=async (url)=>{
+    requests++;
+    if(new URL(url).pathname==='/api/exporthub-health')
+      return new Response(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId:SHA}}));
+    return new Response('',{status:301,headers:{Location:'https://login.microsoftonline.com/'}});
+  };
+  await assert.rejects(verifyPublishedMenu({expectedSha:SHA,fetchImpl}),/HTTP 301/);
+  assert.equal(requests,2,'Fail closed after the first redirect, before any menu assets are checked');
 });
 
 test('RC1820: Microsoft redirects block release proof',async()=>{
