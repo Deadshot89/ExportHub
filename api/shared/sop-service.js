@@ -4,7 +4,7 @@
 // must pass a session-validated user; the ETag store must persist this result.
 const {createHash} = require('node:crypto');
 const {appendEvent, verifyChain} = require('./hash-chain');
-const {STATUS, userKey, canEdit, validateContent} = require('./sop-rules');
+const {STATUS, userKey, canEdit, canApprove, validateContent} = require('./sop-rules');
 
 const SOP_ID = /^SOP-EH-\d{3}$/;
 const VERSION_ID = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -139,4 +139,53 @@ function newVersion(doc, input, user, now) {
   return updated(doc,[...clone(doc.versions),version],'NEW_VERSION',actor,now,{version:number,sourceVersion:approved[0].version,contentSha256:digest(content)});
 }
 
-module.exports={createDraft,updateDraft,submit,newVersion};
+
+function approve(doc, input, user, now) {
+  const actor=editor(user);
+  timestamp(now);
+  checkDocument(doc);
+  const selected=current(doc,input,STATUS.REVIEW);
+  if (!canApprove(user,selected)) throw error('FOUR_EYES',403);
+  const validation=validateContent(selected.content);
+  if (!validation.ok) throw error('CONTENT_INCOMPLETE',422,validation.errors);
+  const previouslyApproved=doc.versions.filter(v=>v.status===STATUS.APPROVED);
+  if (previouslyApproved.length>1) throw error('INVALID_DOCUMENT',409);
+  const versions=clone(doc.versions).map(v=>{
+    if (v.version===selected.version) return {...v,status:STATUS.APPROVED,approvedBy:actor,approvedAt:now,updatedAt:now};
+    if (v.status===STATUS.APPROVED) return {...v,status:STATUS.ARCHIVED,archivedBy:actor,archivedAt:now,updatedAt:now};
+    return v;
+  });
+  return updated(doc,versions,'APPROVED',actor,now,{version:selected.version,previousVersion:previouslyApproved[0]?.version||null});
+}
+function reject(doc, input, user, now) {
+  const actor=editor(user);
+  timestamp(now);
+  checkDocument(doc);
+  const selected=current(doc,input,STATUS.REVIEW);
+  if (!canApprove(user,selected)) throw error('FOUR_EYES',403);
+  if (!object(input) || typeof input.reason!=='string' || input.reason.trim().length<8 || input.reason.length>1000) {
+    throw error('REASON_REQUIRED',422);
+  }
+  const reason=input.reason.trim();
+  const versions=clone(doc.versions).map(v=>v.version===selected.version
+    ? {...v,status:STATUS.DRAFT,rejectedBy:actor,rejectedAt:now,updatedAt:now} : v);
+  return updated(doc,versions,'REJECTED',actor,now,{version:selected.version,reason});
+}
+function archive(doc, input, user, now) {
+  const actor=editor(user);
+  timestamp(now);
+  checkDocument(doc);
+  if (!object(input) || !Number.isSafeInteger(input.revision) || input.revision!==doc.revision) {
+    throw error('REVISION_CONFLICT',409);
+  }
+  const approved=doc.versions.filter(v=>v.status===STATUS.APPROVED);
+  if (approved.length!==1) throw error('APPROVED_VERSION_REQUIRED',409);
+  const selected=approved[0];
+  if (!canApprove(user,selected)) throw error('FOUR_EYES',403);
+  if (doc.versions.some(v=>v.status===STATUS.REVIEW)) throw error('ACTIVE_REVIEW_EXISTS',409);
+  const versions=clone(doc.versions).map(v=>v.version===selected.version
+    ? {...v,status:STATUS.ARCHIVED,archivedBy:actor,archivedAt:now,updatedAt:now} : v);
+  return updated(doc,versions,'ARCHIVED',actor,now,{version:selected.version});
+}
+
+module.exports={createDraft,updateDraft,submit,newVersion,approve,reject,archive,assertDocumentIntegrity:checkDocument};
