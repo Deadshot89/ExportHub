@@ -122,7 +122,7 @@ function mount(host,options){
   if(!client||typeof client.act!=='function'||typeof client.get!=='function')throw new TypeError('SOP2_EDITOR_CLIENT_REQUIRED');
   var dom=host.ownerDocument||root.document;
   if(!dom||typeof dom.createElement!=='function')throw new TypeError('SOP2_EDITOR_DOCUMENT_REQUIRED');
-  var dict=UI[language(opts.lang)],doc=opts.doc,version=versionOf(doc,opts.version);
+  var dict=UI[opts.lang===undefined||opts.lang===null?'de':language(opts.lang)],doc=opts.doc,version=versionOf(doc,opts.version);
   var sectionInputs={},stepRows=[],titleInput,statusNode,errorNode,conflictNode,conflictMeta,reasonInput,reasonLabel,buttons={};
   var baseline='',busy=false,conflicted=false,serverDoc=null,destroyed=false,pendingNotice='';
   var report={};
