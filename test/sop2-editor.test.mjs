@@ -47,7 +47,7 @@ function doc(status='draft',revision=2,author='anna',lastEditor='anna',enPurpose
   versions:[{version:'1.0',status,author,lastEditor,content:content(enPurpose)}]};
 }
 function clone(x){return JSON.parse(JSON.stringify(x));}
-function setup({sop=doc(),who=user(),server=null,act=null,confirm=null}={}){
+function setup({sop=doc(),who=user(),server=null,act=null,confirm=null,lang=undefined}={}){
  const dom=fakeDOM(),listeners={},calls=[],fetches=[];
  const root={
   document:dom.document,
@@ -76,7 +76,7 @@ function setup({sop=doc(),who=user(),server=null,act=null,confirm=null}={}){
   async get(id){fetches.push(id);return clone(server||sop);}
  };
  vm.runInNewContext(source,{window:root,document:dom.document});
- const editor=root.Sop2Editor.mount(dom.host,{doc:clone(sop),version:'1.0',user:who,client});
+ const editor=root.Sop2Editor.mount(dom.host,{doc:clone(sop),version:'1.0',user:who,client,lang});
  return {dom,root,editor,calls,fetches,listeners,client};
 }
 async function settle(){for(let n=0;n<9;n++)await Promise.resolve();}
@@ -280,4 +280,22 @@ test('CSS is scope-limited, responsive, light/dark and keyboard accessible',()=>
  assert.match(css,/@media\(prefers-color-scheme:dark\)/);
  assert.match(css,/:focus-visible/);
  assert.doesNotMatch(css,/(^|\})\s*(?:html|body|:root)\s*\{/);
+});
+
+test('editor defaults to German if caller supplies no UI locale',()=>{
+ const x=setup();
+ assert.ok(x.dom.host.textContent.includes('SOP bearbeiten'));
+ assert.ok(x.dom.host.textContent.includes('Ungespeicherte Änderungen')===false);
+ first(x.dom.host,'sop2-editor-title').input('Anderer Titel');
+ assert.ok(x.dom.host.textContent.includes('Ungespeicherte Änderungen'));
+});
+test('editor follows explicitly selected German and falls back to English for PL/FR/ES/IT',()=>{
+ const de=setup({lang:'de-DE'});
+ assert.ok(de.dom.host.textContent.includes('SOP bearbeiten'));
+ for(const lang of ['en-GB','pl-PL','fr-FR','es-ES','it-IT']){
+   const x=setup({lang});
+   assert.ok(x.dom.host.textContent.includes('Edit SOP'),lang);
+   first(x.dom.host,'sop2-editor-title').input('Other title');
+   assert.ok(x.dom.host.textContent.includes('Unsaved changes'),lang);
+ }
 });
