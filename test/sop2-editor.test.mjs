@@ -131,7 +131,7 @@ test('adding and editing a step persists DE and EN in one update with current re
 test('author and administrator cannot bypass four-eyes approval of their own SOP',()=>{
  const own=setup({sop:doc('review')});
  assert.equal(nodes(own.dom.host,'sop2-editor-approve')[0].hidden,true);
- assert.equal(own.editor.approve instanceof Function,true);
+ assert.equal(typeof own.editor.approve,'function');
  const admin={user:'ANNA',role:'Administrator',active:true,rights:{}};
  const x=setup({sop:doc('review'),who:admin});
  assert.equal(nodes(x.dom.host,'sop2-editor-approve')[0].hidden,true);
