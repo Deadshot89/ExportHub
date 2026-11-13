@@ -84,3 +84,16 @@ export function collectStateSaveEvidence(page){
     }
   };
 }
+
+/**
+ * RC1171: The save-event gate must fail with sanitized network evidence
+ * even if the event never fires. Never print user input or the rejected error.
+ */
+export async function requireShipmentSaveEvent(waitForEvent,recorder){
+  try{return await waitForEvent();}
+  catch{
+    let evidence={unavailable:true};
+    try{evidence=await recorder.snapshot()}catch{}
+    throw new Error('RC1171 P0: shipment-saved-Ereignis nicht bestätigt; Azure-Speicherung bleibt unbestätigt | State-Save-API: '+JSON.stringify(evidence));
+  }
+}

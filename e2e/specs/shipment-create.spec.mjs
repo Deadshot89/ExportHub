@@ -11,7 +11,7 @@ import {
   assertNoHorizontalOverflow,
   installE2ESession
 } from '../helpers/exporthub-browser.mjs';
-import {collectStateSaveEvidence} from '../helpers/rc1171-save-evidence.mjs';
+import {collectStateSaveEvidence,requireShipmentSaveEvent} from '../helpers/rc1171-save-evidence.mjs';
 
 // RC1171: One read-only diagnostic boundary for draft and final state saves.
 // Never turn a missing Azure ACK into success; only attach bounded sanitized data.
@@ -153,9 +153,14 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];window.__RC1418_LAYOUT_NODE__=document.getElementById('rc363FixedShipmentLayout');});
   const rc1171Network=collectStateSaveEvidence(page);
-  await saveButton.click();
-  await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
   try{
+    await saveButton.click();
+    // A missing shipment-saved event is also a hard Azure-save failure.
+    // Record only bounded HTTP metadata; never treat a click as a save ACK.
+    await requireShipmentSaveEvent(
+      ()=>expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0),
+      rc1171Network
+    );
     await rc1171SettleWithEvidence(page,rc1171Network,{timeout:30_000},'Sendung speichern');
   }finally{
     rc1171Network.dispose();

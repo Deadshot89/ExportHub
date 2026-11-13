@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {collectStateSaveEvidence,sanitizeStateSaveResponse} from '../e2e/helpers/rc1171-save-evidence.mjs';
+import {collectStateSaveEvidence,sanitizeStateSaveResponse,requireShipmentSaveEvent} from '../e2e/helpers/rc1171-save-evidence.mjs';
 
 test('RC1171: only known API error codes and HTTP statuses survive redaction',()=>{
   assert.deepEqual(sanitizeStateSaveResponse(409,'CONCURRENT_UPDATE',false),{httpStatus:409,code:'CONCURRENT_UPDATE'});
@@ -77,3 +77,40 @@ test('RC1171: an in-flight save is visible without leaking request body or URL',
 });
 
 
+
+test('RC1171: missing shipment-saved event reports sanitized in-flight save and stays red',async()=>{
+  const page=new EventEmitter();
+  const recorder=collectStateSaveEvidence(page);
+  page.emit('request',{url:()=> 'https://example.test/api/exporthub-state?mode=save&secret=PRIVATE_REF_ABCDEF',
+    postData:()=> 'customer@private.example'});
+  await assert.rejects(
+    requireShipmentSaveEvent(async()=>{throw new Error('PRIVATE_REF_ABCDEF customer@private.example')},recorder),
+    error=>{
+      assert.match(error.message,/shipment-saved-Ereignis nicht bestätigt/);
+      assert.match(error.message,/"started":1/);
+      assert.match(error.message,/"inFlight":1/);
+      assert.doesNotMatch(error.message,/PRIVATE_REF_ABCDEF|private.example|secret=/);
+      return true;
+    }
+  );
+  recorder.dispose();
+  for(const kind of ['request','response','requestfinished','requestfailed'])
+    assert.equal(page.listenerCount(kind),0);
+});
+
+test('RC1171: a confirmed shipment event proceeds without fabricating Azure ACK',async()=>{
+  const page=new EventEmitter();
+  const recorder=collectStateSaveEvidence(page);
+  assert.equal(await requireShipmentSaveEvent(async()=>42,recorder),42);
+  recorder.dispose();
+});
+
+test('RC1171: event gate is awaited before Azure drain and recorder cleanup',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const source=readFileSync(new URL('../e2e/specs/shipment-create.spec.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('const rc1171Network=collectStateSaveEvidence(page);');
+  const gate=source.indexOf('await requireShipmentSaveEvent(',start);
+  const drain=source.indexOf('await rc1171SettleWithEvidence(page,rc1171Network',start);
+  const finallyAt=source.indexOf('rc1171Network.dispose();',start);
+  assert.ok(start>0&&gate>start&&drain>gate&&finallyAt>drain);
+});
