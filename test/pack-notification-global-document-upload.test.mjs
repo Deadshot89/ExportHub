@@ -110,7 +110,8 @@ test('multiple PDFs begin normalization concurrently without reordering the file
   pending[1].resolve({name:'SIDE250071282.pdf',renamed:true});
   pending[0].resolve({name:'DNC3019222063.pdf',renamed:true});
   const files=await promise;
-  assert.deepEqual(files.map(file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.equal(files[0].name,'DNC3019222063.pdf');
+  assert.equal(files[1].name,'SIDE250071282.pdf');
 });
 
 test('a stalled PDF analysis falls back to original file rather than hanging forever',async()=>{
