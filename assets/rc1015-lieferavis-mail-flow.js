@@ -315,28 +315,16 @@ function rc1015AvisMailVariant(clean,u,reference,lang,target){
 function rc1024MailKey(sh,target,lang){return (shipmentReference(sh)||'draft')+'|'+q(target).toLowerCase()+'|'+rc1267NormalizeLanguage(lang)}
 function rc1024IsOurAvis(text){return /(?:^|\n)(?:LIEFERAVIS|COLLECTION NOTICE)(?:\s*[–-]\s*(?:ABHOLUNG|PICKUP))?\n/i.test(String(text||''))}
 function rc1015InjectMailBody(sh,target,body,langOverride){
- var source=String(body==null?'':body),type=q(target).toLowerCase()||'customer',lang=rc1267NormalizeLanguage(langOverride);
+ var source=String(body==null?'':body),type=q(target).toLowerCase()||'customer';
  if(type!=='customer'&&type!=='carrier')return base&&typeof base.injectMailBody==='function'?base.injectMailBody(sh,target,source,langOverride):source;
- if(type==='customer'&&rc1018AvisException(sh))return source;
  if(rc1291AvisMailExcluded(sh)||rc1292AvisRecipientExcluded(sh,type))return stripAvisBlocks(source);
- var key=rc1024MailKey(sh,type,lang);if(!rc1024IsOurAvis(source))mailSourceCache.set(key,source);
- if(!rc1018Enabled(sh))return source;
- var u=q(base&&base.link&&base.link(sh));if(!u)return source;
- return rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type)
+ // RC opt-in: never append the system AVIS block to user/customer mail templates.
+ // The final RC1027 wrapper replaces only an explicit {{LIEFERAVIS}} token.
+ return source
 }
 function rc1024SyncVisibleMail(){
- if(visibleMailSyncing||typeof document==='undefined')return false;
- var area=document.getElementById('rc543MailArea');if(!area)return false;
- var bodyEl=area.querySelector&&area.querySelector('textarea');if(!bodyEl)return false;
- var active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';if(type!=='customer'&&type!=='carrier')return false;
- var sh=currentShipmentForAvis();if(!sh)return false;
- var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),key=rc1024MailKey(sh,type,lang),current=String(bodyEl.value==null?'':bodyEl.value),source=mailSourceCache.get(key)||'';
- if(!source&&!rc1024IsOurAvis(current)){source=current;mailSourceCache.set(key,current)}
- if(!source)return false;
- var next=source,u=q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh)&&!rc1292AvisRecipientExcluded(sh,type))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
- if(next===current)return false;
- visibleMailSyncing=true;try{bodyEl.value=next;try{bodyEl.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{bodyEl.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleMailSyncing=false}
- return true
+ // Mail rendering is owned by mailData()/injectMailBody. Never overwrite an edited draft.
+ return false
 }
 function rc1024ScheduleVisibleMail(){
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){requestAnimationFrame(rc1024SyncVisibleMail)});else setTimeout(rc1024SyncVisibleMail,0)

@@ -97,36 +97,60 @@ Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung. Vielen Dank f�
 
 Mit freundlichen Grüßen`;
 
-test('RC1027: aktive Kundenmail besteht nur aus Lieferavis und enthält keine Sendungsdetails',()=>{
+test('RC opt-in: keine der drei Mailarten erhält ohne Platzhalter automatisch einen Avis-Link',()=>{
   const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api}=load(shipment,{reference:'7RZ5W9'});
-  const out=api.injectMailBody(shipment,'customer',expandedDetails,'de');
-  assert.match(out,/Sehr geehrte Damen und Herren/i);
-  assert.match(out,/LIEFERAVIS/i);
-  assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/server-token/i);
-  assert.match(out,/7RZ5W9/);
-  assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
-  assert.doesNotMatch(out,/innerhalb der nächsten 24 Stunden/i);
+  for(const target of ['customer','carrier','own']){
+    const out=api.injectMailBody(shipment,target,expandedDetails,'de');
+    assert.equal(out,expandedDetails,target+': Originaltext ohne automatische Ergänzung');
+  }
 });
 
-test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält keine Sendungsdetails',()=>{
-  const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
-  const {api}=load(shipment,{reference:'7RZ5W9'});
-  const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
-  assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
-  assert.match(out,/https:\/\/www\.exporthub360\.de\/avis\/server-token/i);
-  assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
+test('RC opt-in: eigene Mail ersetzt den Platzhalter exakt an seiner Stelle',()=>{
+  const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api,rc}=load(shipment,{reference:'7RZ5W9'});
+  const input='Hallo,\n\nBitte plane Laderaum ein.\n\n{{LIEFERAVIS}}\n\nAbholung ab 14:00 Uhr.\n\nViele Grüße';
+  const out=api.injectMailBody(shipment,'own',input,'de');
+  assert.match(out,/Bitte plane Laderaum ein\.\n\nHier zur Avisierung klicken: https:\/\/www\.exporthub360\.de\/avis\/server-token\?lang=de/);
+  assert.match(out,/Abholung ab 14:00 Uhr\.\n\nViele Grüße/);
+  assert.equal((out.match(/server-token/g)||[]).length,1);
+  assert.doesNotMatch(out,/\{\{LIEFERAVIS\}\}/);
+  assert.equal(rc.renderSubject('{{LIEFERAVIS}} - Separate Abholung','de'),'Lieferavis - Separate Abholung');
+  assert.equal(rc.renderSubject('{{LIEFERAVIS}} - Separate collection','en'),'Collection notice - Separate collection');
 });
 
-test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakten Lieferavis-Link',()=>{
-  const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+test('RC opt-in: veralteten automatisch angehängten Link entfernen und doppelte Platzhalter vermeiden',()=>{
+  const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api}=load(shipment,{reference:'7RZ5W9'});
-  const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
-  assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
-  assert.match(out,/Details zur Sendung:/i);
-  assert.match(out,/Lieferavis: https:\/\/www\.exporthub360\.de\/avis\/server-token\?lang=de/i);
-  assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
-  assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
+  const input='Hallo,\n\n{{LIEFERAVIS}}\n\nLieferavis: https://www.exporthub360.de/avis/old-token?lang=de\n\n{{LIEFERAVIS}}\nGruß';
+  const out=api.injectMailBody(shipment,'own',input,'de');
+  assert.equal((out.match(/server-token/g)||[]).length,1);
+  assert.doesNotMatch(out,/old-token|\{\{LIEFERAVIS\}\}/i);
+});
+
+test('RC opt-in: keine fremden URLs durch den Platzhalter einschleusen',()=>{
+  const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {rc}=load(shipment,{reference:'7RZ5W9'});
+  assert.equal(rc.composeOwnAvis({body:'{{LIEFERAVIS}}',url:'https://example.org/evil',lang:'de'}),'{{LIEFERAVIS}}');
+});
+
+test('RC opt-in: ein bereits angezeigter Link bleibt bei einer Freitextänderung an derselben Stelle',()=>{
+  const sh={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(sh,{reference:'7RZ5W9'});
+  const first=api.injectMailBody(sh,'own','Hallo\n\n{{LIEFERAVIS}}\n\nGruß','de');
+  const edited=first.replace('Hallo','Hallo zusammen');
+  const second=api.injectMailBody(sh,'own',edited,'de');
+  assert.match(second,/Hallo zusammen\n\nHier zur Avisierung klicken:/);
+  assert.equal((second.match(/server-token/g)||[]).length,1);
+});
+test('RC opt-in: nach manueller AVIS-Deaktivierung wird der im Entwurf gerenderte Link entfernt',()=>{
+  const sh={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(sh,{reference:'7RZ5W9'});
+  const first=api.injectMailBody(sh,'own','Hallo\n\n{{LIEFERAVIS}}\n\nGruß','de');
+  sh.customerAvisDisabledAt='2026-11-11T10:00:00Z';
+  const next=api.injectMailBody(sh,'own',first,'de');
+  assert.doesNotMatch(next,/www\.exporthub360\.de\/avis\/|Hier zur Avisierung klicken/);
+  assert.match(next,/Hallo[\s\S]*Gruß/);
 });
 
 test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne normalen Speicherschritt',async()=>{
@@ -172,15 +196,13 @@ test('RC1291: Würth Industrie behält das Avis technisch aktiv, erhält aber in
   }
 });
 
-test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions- und eigener Mail',()=>{
+test('RC opt-in: alle Mailarten mit ausdrücklichem Platzhalter erhalten den Link',()=>{
   const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api}=load(shipment,{reference:'7RZ5W9'});
   for(const target of ['customer','carrier','own']){
-    const out=api.injectMailBody(shipment,target,expandedDetails,'de');
-    assert.match(out,/www\.exporthub360\.de\/avis\//i,target+': normaler Kunde muss den Avis-Link behalten');
+    assert.match(api.injectMailBody(shipment,target,'Hallo\n\n{{LIEFERAVIS}}\nGruß','de'),/www\.exporthub360\.de\/avis\//i);
   }
 });
-
 
 test('RC1292: Plica-Mail an Holenstein erhält keinen Avis-Link, andere Empfänger bleiben unverändert',()=>{
   const customers=[{
@@ -199,7 +221,8 @@ test('RC1292: Plica-Mail an Holenstein erhält keinen Avis-Link, andere Empfäng
   assert.doesNotMatch(own,/(?:www\.exporthub360\.de\/avis\/|customer-avis\.html)|Lieferavis:\s*https?:\/\//i,'Eigene Mail mit Holenstein als möglichem Empfänger darf keinen Avis-Link enthalten');
 
   const customer=api.injectMailBody(shipment,'customer',expandedDetails,'de');
-  assert.match(customer,/www\.exporthub360\.de\/avis\//i,'Plica-Kundenmail an andere Adresse muss den Avis-Link behalten');
+  assert.doesNotMatch(customer,/www\.exporthub360\.de\/avis\//i,'Auch bei Plica keine automatische Einfügung');
+  assert.match(api.injectMailBody(shipment,'customer','{{LIEFERAVIS}}','de'),/www\.exporthub360\.de\/avis\//i,'Mit Platzhalter und erlaubtem Empfänger wird der Link eingefügt');
 });
 
 test('RC1292: direkte Holenstein-Adresse auf der Sendung greift ohne Kundenstamm',()=>{
