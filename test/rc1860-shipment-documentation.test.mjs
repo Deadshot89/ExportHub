@@ -259,8 +259,8 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
  assert.match(ui,/if\(data\.partial===true\)/,'Never hide partial Azure/SharePoint listing failures');
  assert.match(ui,/tr\('refPartial'\)/,'Inform employees when the REF list is incomplete');
  assert.match(ui,/referenceFolder:azureOnly===0/);
- assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs\)/,'Keep separate source identities for same-name originals');
- assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs\)/);
+ assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs,ref\)/,'Keep separate source identities for same-name originals and derive display aliases only in requested REF');
+ assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs,ref\)/);
  assert.match(api,/partial:!!\(graphError\|\|azureError\|\|docsError\)/,'Report incomplete storage sources');
  const ctx={};
  new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
