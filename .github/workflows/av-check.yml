@@ -89,8 +89,16 @@ jobs:
           done
           echo 'AV-Upload-Aufgaben: Backfill wird im nächsten Lauf fortgesetzt.' >&2
 
+      # No separate TESTSERVICE REF folder exists by explicit operator decision.
+      # Never read/write the production OneDrive/SharePoint REF root from TESTSERVICE.
+      # This notice is NOT a successful Graph/REF verification.
+      - name: TESTSERVICE REF-Originalabgleich nicht vorgesehen (kein isoliertes Ziel)
+        if: ${{ matrix.target.env == 'testservice' && (github.event_name != 'workflow_dispatch' || inputs.environment == 'both' || inputs.environment == matrix.target.env) }}
+        shell: bash
+        run: |
+          echo '::notice::TESTSERVICE REF-Originalabgleich NICHT DURCHGEFUEHRT: kein separates REF-Ziel vorgesehen. Produktions-REF-Ordner darf nicht aus TESTSERVICE gelesen oder beschrieben werden. AV-Upload-Aufgaben-Synchronisierung ist unabhaengig davon. Kein AV-Original-Nachweis.'
       - name: REF-Ordner auf Ausgangsvermerk prüfen
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.environment == 'both' || inputs.environment == matrix.target.env }}
+        if: ${{ matrix.target.env == 'production' && (github.event_name != 'workflow_dispatch' || inputs.environment == 'both' || inputs.environment == matrix.target.env) }}
         shell: bash
         env:
           BASE_URL: ${{ matrix.target.base_url }}
