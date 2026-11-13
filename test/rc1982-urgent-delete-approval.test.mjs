@@ -13,7 +13,8 @@ const worker={id:'OPS-1982',name:'Logistik',rights:{shipmentoverview:{edit:true}
 const another={id:'OPS-OTHER',name:'Anderer Bearbeiter',rights:{shipmentoverview:{edit:true}}};
 const date='2026-11-11T09:00:00.000Z';
 const payload={orderNumber:'SO198201',delivery:'DRP',priority:'P2',email:'cs@example.org',
-  requestedDispatchDate:'2026-11-12',items:[{line:'10',article:'A-1982',quantity:1,pickableStock:true,holdsClear:true}]};
+  // relativ zu heute, sonst läuft der öffentliche Anlage-Test ab dem 13.11.2026 in die Vergangenheitsprüfung
+  requestedDispatchDate:new Date(Date.now()+7*864e5).toISOString().slice(0,10),items:[{line:'10',article:'A-1982',quantity:1,pickableStock:true,holdsClear:true}]};
 function make(number='SO198201'){return model.createOrder({...payload,orderNumber:number},creator,date);}
 function error(code){return e=>e.code===code;}
 function publicReq(body){return {headers:{'x-forwarded-for':'192.0.2.28'},body};}
