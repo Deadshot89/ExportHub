@@ -55,7 +55,9 @@ export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT
   try{health=JSON.parse(healthBytes.toString('utf8'))}
   catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
   assertDeploymentIdentity(health,expectedSha);
-  const html=(await read(`/TESTVERSION.html?rc1820=${expectedSha}`)).toString('utf8');
+  // The TESTSERVICE public entrypoint is / (rewritten to TESTVERSION.html); direct /TESTVERSION.html may redirect.
+  // Continue requiring a direct HTTP 200 without redirects from the canonical entrypoint.
+  const html=(await read(`/?rc1820=${expectedSha}`)).toString('utf8');
   assertMenuHtml(html);
   for(const asset of MENU_ASSETS){
     const source=fs.readFileSync(path.join(root,asset.path));
