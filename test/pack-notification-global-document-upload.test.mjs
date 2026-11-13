@@ -11,7 +11,7 @@ class FakeDataTransfer{
   constructor(){const values=[];this.items={add:file=>values.push(file)};Object.defineProperty(this,'files',{get:()=>values});}
 }
 
-function load(){
+function load(options={}){
   const source=fs.readFileSync('assets/document-upload-normalizer.js','utf8');
   let changeHandler=null;
   const document={addEventListener(type,handler,capture){if(type==='change'&&capture===true)changeHandler=handler;}};
@@ -21,9 +21,11 @@ function load(){
     DataTransfer:FakeDataTransfer,
     Event:class{constructor(type,options={}){this.type=type;this.bubbles=!!options.bubbles;}},
     queueMicrotask:fn=>fn(),
-    setTimeout,
+    setTimeout:options.setTimeout||setTimeout,
+    clearTimeout:options.clearTimeout||clearTimeout,
     ExportHubDocumentReferenceNormalizer:{
       async normalizePdfFile(file){
+        if(options.normalizePdfFile)return options.normalizePdfFile(file);
         if(file.name==='scanner.pdf')return{name:'DNC3019222063.pdf',renamed:true,reference:'DNC3019222063',reason:'dncs'};
         return{name:file.name,renamed:false,reference:null,reason:'none'};
       }
@@ -95,4 +97,60 @@ test('production final verification applies document normalization to customer a
   assert.match(verify,/injectPackRuntime\(html,file\)/,'production finalizer must inject the document normalizer into final app HTML');
   assert.match(verify,/customer-avis\.html/,'production finalizer must include the public customer avis page');
   assert.match(verify,/injectDocumentUploadRuntime\(avisHtml,'customer-avis\.html'\)/,'customer avis must receive the upload normalizer in the final deployment output');
+});
+
+test('multiple PDFs begin normalization concurrently without reordering the files',async()=>{
+  const pending=[];
+  const {api}=load({normalizePdfFile(file){return new Promise(resolve=>pending.push({file,resolve}))}});
+  const first={name:'first.pdf',type:'application/pdf'},second={name:'second.pdf',type:'application/pdf'};
+  const promise=api.normalizeFiles([first,second]);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(pending.length,2,'second PDF must not wait for the first to finish');
+  pending[1].resolve({name:'SIDE250071282.pdf',renamed:true});
+  pending[0].resolve({name:'DNC3019222063.pdf',renamed:true});
+  const files=await promise;
+  assert.deepEqual(files.map(file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+});
+
+test('a stalled PDF analysis falls back to original file rather than hanging forever',async()=>{
+  const timers=[];
+  const {api}=load({
+    normalizePdfFile(){return new Promise(()=>{})},
+    setTimeout(fn){timers.push(fn);return timers.length},
+    clearTimeout(){}
+  });
+  const original={name:'unreadable.pdf',type:'application/pdf'};
+  const promise=api.normalizeFiles([original]);
+  assert.equal(timers.length,1,'must arm the bounded analysis timer');
+  timers[0]();
+  assert.equal((await promise)[0],original,'never fabricate a document reference on timeout');
+});
+
+test('an older slow PDF selection never overwrites a later file choice',async()=>{
+  const pending=[],dispatched=[];
+  const {changeHandler}=load({normalizePdfFile(file){return new Promise(resolve=>pending.push({file,resolve}))}});
+  const first={name:'old.pdf',type:'application/pdf'},second={name:'new.pdf',type:'application/pdf'};
+  const input={type:'file',files:[first],dispatchEvent(event){dispatched.push(event);return true}};
+  const event={target:input,stopImmediatePropagation(){}};
+  const oldRun=changeHandler(event);
+  await Promise.resolve();await Promise.resolve();
+  input.files=[second];
+  const newRun=changeHandler(event);
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(pending.length,2);
+  pending[0].resolve({name:'DNC3019222063.pdf',renamed:true});
+  await oldRun;
+  assert.equal(dispatched.length,0,'superseded selection must not replay a stale change event');
+  pending[1].resolve({name:'SIDE250071282.pdf',renamed:true});
+  await newRun;
+  assert.equal(dispatched.length,1);
+  assert.equal(input.files[0].name,'SIDE250071282.pdf');
+});
+
+test('shipment document drag-and-drop uses the same bounded PDF renaming as the file picker',()=>{
+  const source=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+  assert.match(source,/addDroppedFiles\(e\.dataTransfer&&e\.dataTransfer\.files\)/);
+  assert.match(source,/await normalizer\.normalizeFiles\(originals\)/);
+  assert.match(source,/pendingDrops>0/,'upload must not start before drag-and-drop names are settled');
 });

@@ -4,7 +4,7 @@
 // sonstige Dateien landen über /api/reference-files direkt im REF-Ordner der Sendung und
 // erscheinen danach unter "Dateien & Dokumente".
 if(window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__)return;window.__EXPORTHUB_SHIPMENT_DOC_UPLOAD__=true;
-var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,picked=[],kind='lieferschein',log=[];
+var MAX_BYTES=15*1024*1024,busy=false,scheduled=false,pendingDrops=0,picked=[],kind='lieferschein',log=[];
 var KINDS=['lieferschein','rechnung','packliste','excel','sonstiges'];
 var EXT=['.pdf','.jpg','.jpeg','.png','.xlsx','.xlsm','.xls','.csv','.docx','.doc','.txt','.msg','.eml'];
 function q(v){return String(v==null?'':v).trim()}
@@ -35,10 +35,25 @@ function panel(){var c=card();return c&&c.querySelector('[data-docup-panel]')}
 function renderList(){
   var p=panel();if(!p)return;var list=p.querySelector('[data-docup-list]');list.textContent='';
   var rows=log.length?log:picked.map(function(f){return{state:'',text:f.name+' · '+Math.max(1,Math.round(f.size/1024))+' KB'}});
+  if(pendingDrops)rows.push({state:'',text:t('analyzing')});
   rows.forEach(function(r){list.appendChild(el('li',{'data-state':r.state||''},r.text))});
-  var up=p.querySelector('[data-docup-start]');if(up)up.disabled=busy||!picked.length;
+  var up=p.querySelector('[data-docup-start]');if(up)up.disabled=busy||pendingDrops>0||!picked.length;
 }
 function addFiles(files){if(busy)return;log=[];Array.prototype.forEach.call(files||[],function(f){if(!picked.some(function(x){return x.name===f.name&&x.size===f.size}))picked.push(f)});renderList()}
+async function addDroppedFiles(files){
+  var originals=Array.from(files||[]),owner=panel();
+  if(busy||!originals.length||!owner)return;
+  pendingDrops++;renderList();
+  var normalized=originals;
+  try{
+    var normalizer=window.ExportHubDocumentUploadNormalizer;
+    if(normalizer&&typeof normalizer.normalizeFiles==='function')normalized=await normalizer.normalizeFiles(originals);
+  }catch(_){normalized=originals}
+  pendingDrops--;
+  // Do not re-add files if the user closed/replaced the upload panel meanwhile.
+  if(panel()===owner&&!busy)addFiles(normalized);
+  else renderList();
+}
 function buildPanel(){
   var p=el('div',{class:'eh-docup','data-docup-panel':'1',role:'group','aria-label':t('title')});
   p.appendChild(el('h4',{},t('title')));
@@ -53,7 +68,7 @@ function buildPanel(){
   drop.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click()}});
   drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('is-over')});
   drop.addEventListener('dragleave',function(){drop.classList.remove('is-over')});
-  drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('is-over');addFiles(e.dataTransfer&&e.dataTransfer.files)});
+  drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('is-over');addDroppedFiles(e.dataTransfer&&e.dataTransfer.files)});
   p.appendChild(input);p.appendChild(drop);
   p.appendChild(el('p',{class:'eh-docup-hint'},t('hint')));
   p.appendChild(el('ul',{class:'eh-docup-list','data-docup-list':'1','aria-live':'polite'}));
@@ -112,7 +127,7 @@ async function uploadOne(ref,file,docKind){
 }
 async function uploadAll(){
   var ref=refOf(currentShipment());
-  if(!ref||busy)return false;
+  if(!ref||busy||pendingDrops>0)return false;
   if(!picked.length){window.alert(t('noFiles'));return false}
   busy=true;var files=picked.slice(),docKind=KINDS.indexOf(kind)>=0?kind:'sonstiges',ok=0,azureCopies=0,sharepointCopies=0;
   log=files.map(function(f){return{state:'',text:f.name}});renderList();
