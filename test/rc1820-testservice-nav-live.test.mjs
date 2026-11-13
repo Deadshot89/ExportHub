@@ -46,7 +46,7 @@ test('RC1820: read-only end-to-end HTTP mirror accepts exact TESTSERVICE assets'
       assert.equal(options.method,'GET');
       assert.equal(options.redirect,'manual');
       if(url.pathname==='/api/exporthub-health')return new Response(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId:SHA}}));
-      if(url.pathname==='/TESTVERSION.html')return new Response(goodHtml);
+      if(url.pathname==='/')return new Response(goodHtml);
       const asset=MENU_ASSETS.find(x=>url.pathname==='/'+x.path);
       assert.ok(asset,`unexpected URL ${url.pathname}`);
       assert.equal(url.searchParams.get('v'),asset.version);
@@ -56,8 +56,29 @@ test('RC1820: read-only end-to-end HTTP mirror accepts exact TESTSERVICE assets'
     assert.equal(result.verified,true);
     assert.equal(result.menuAssets,2);
     assert.equal(requested.length,4);
+    assert.equal(requested[1].url.pathname,'/','menu HTML must be read through canonical TESTSERVICE entry');
+    assert.equal(requested[1].url.searchParams.get('rc1820'),SHA);
     assert.ok(requested.every(x=>x.options.method==='GET'));
+    assert.ok(requested.every(x=>x.options.redirect==='manual'));
+    assert.ok(requested.every(x=>x.url.pathname!=='/TESTVERSION.html'));
   }finally{fs.rmSync(root,{recursive:true,force:true})}
+});
+
+test('RC1820: canonical TESTSERVICE root rewrites to TESTVERSION without direct file fetch',()=>{
+  const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+  const config=JSON.parse(fs.readFileSync(path.join(root,'staticwebapp.testservice.config.json'),'utf8'));
+  const route=config.routes.find(entry=>entry.route==='/');
+  assert.equal(route?.rewrite,'/TESTVERSION.html');
+  assert.ok(route?.allowedRoles?.includes('anonymous'));
+});
+
+test('RC1820: canonical root redirect fails closed instead of masking an unverified document',async()=>{
+  const fetchImpl=async target=>{
+    if(new URL(target).pathname==='/api/exporthub-health')
+      return new Response(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId:SHA}}));
+    return new Response('',{status:301,headers:{Location:'https://login.microsoftonline.com/'}});
+  };
+  await assert.rejects(verifyPublishedMenu({expectedSha:SHA,fetchImpl}),/GET \/ HTTP 301/);
 });
 
 test('RC1820: Microsoft redirects block release proof',async()=>{
