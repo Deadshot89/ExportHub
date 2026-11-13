@@ -254,11 +254,10 @@ function mount(host,options){
   }
   function updateDocument(next,message){
     if(!object(next)||!Number.isSafeInteger(next.revision)||!integrityOk(next))throw new TypeError('INVALID_API_DOCUMENT');
-    doc=next;
-    var newVersion=versionOf(doc,version&&version.version);
+    var newVersion=versionOf(next,version&&version.version);
     if(!newVersion)throw new TypeError('INVALID_API_VERSION');
-    version=newVersion;serverDoc=null;conflicted=false;pendingNotice=message||'';
-    draw();status(pendingNotice,false);
+    doc=next;version=newVersion;serverDoc=null;conflicted=false;
+    draw();pendingNotice=message||'';status(pendingNotice,false);
   }
   function conflictWarning(){
     conflicted=true;serverDoc=null;pendingNotice=dict.conflictFetch;
@@ -295,8 +294,8 @@ function mount(host,options){
       if(err&&((err.status===409)||err.code==='REVISION_CONFLICT')){
         await conflictWarning();
       } else {
-        pendingNotice='';
-        status((err&&typeof err.code==='string'?err.code+': ':'')+dict.network,true);
+        pendingNotice=(err&&typeof err.code==='string'?err.code+': ':'')+dict.network;
+        status(pendingNotice,true);
         showErrors(err&&err.errors);
       }
       return false;
