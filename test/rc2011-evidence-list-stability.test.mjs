@@ -90,7 +90,7 @@ test('P0 evidence: initial list shows newest of 126 blobs, preserving same-shipm
  assert.equal(new Set([...first.records,...second.records,...third.records].map(x=>x.id)).size,125);
  assert.equal(db.metrics().writes,0,'Listing is strictly read-only');
  assert.ok(db.metrics().metadataPages>=4,'Must scan all metadata pages, not just the first 50');
- assert.equal(db.metrics().detailsRead,125,'Only live record summaries must be opened');
+ assert.equal(db.metrics().detailsRead,126,'Only the 125 live summaries and one tombstone are opened');
  for(const [key,bytes] of db.initialBytes)assert.ok(bytes.equals(db.initialBytes.get(key)));
 });
 
