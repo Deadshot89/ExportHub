@@ -59,6 +59,11 @@ async function handle(context,req,deps={}) {
       return context.res;
     }
     if (method!=='POST') throw fail('METHOD_NOT_ALLOWED',405);
+    // New SOP2 stays unavailable until explicitly enabled in the deployment.
+    // Test-only injection is not wired into the Azure Function entrypoint.
+    if (deps.featureEnabled!==true && process.env.EXPORTHUB_SOP2_ENABLED!=='enabled') {
+      throw fail('SOP2_DISABLED',404);
+    }
 
     // No identity, rights, or environment claimed by the browser is trusted.
     const session=await auth.validateSession(req);
