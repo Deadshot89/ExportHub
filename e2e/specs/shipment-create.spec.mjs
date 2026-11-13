@@ -153,9 +153,17 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];window.__RC1418_LAYOUT_NODE__=document.getElementById('rc363FixedShipmentLayout');});
   const rc1171Network=collectStateSaveEvidence(page);
-  await saveButton.click();
-  await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
   try{
+    await saveButton.click();
+    try{
+      await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
+    }catch(_saveEventError){
+      // RC1171: the save event can be absent when the API has timed out.
+      // Fail closed, but retain only sanitised HTTP codes and in-flight counts.
+      // Never echo Playwright's error/DOM text, URLs, tokens or shipment data.
+      const evidence=await rc1171Network.snapshot();
+      throw new Error('RC1171 shipment-saved event missing after 30s; Azure persistence unverified. State-Save-API: '+JSON.stringify(evidence));
+    }
     await rc1171SettleWithEvidence(page,rc1171Network,{timeout:30_000},'Sendung speichern');
   }finally{
     rc1171Network.dispose();
