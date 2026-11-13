@@ -1900,6 +1900,7 @@ const qualityPage=path.join(ROOT,'qualitaet.html');
 if(!fs.existsSync(qualityPage))throw new Error('CAPA Qualitätsseite qualitaet.html fehlt');
 fs.copyFileSync(qualityPage,path.join(OUT,'qualitaet.html'));
 if(!fs.existsSync(path.join(builtApi,'quality-capa','function.json')))throw new Error('CAPA API wurde nicht in den Release-Build übernommen');
+if(!fs.existsSync(path.join(builtApi,'sop-documents','function.json')))throw new Error('SOP2 API wurde nicht in den Release-Build übernommen');
 fs.mkdirSync(path.join(OUT,'assets'),{recursive:true});
 fs.copyFileSync(path.join(ROOT,'assets/rc1267-i18n.js'),path.join(OUT,'assets/rc1267-i18n.js'));
 fs.cpSync(path.join(ROOT,'assets/i18n'),path.join(OUT,'assets/i18n'),{recursive:true,force:true});
