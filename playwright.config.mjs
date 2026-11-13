@@ -5,13 +5,14 @@ const baseURL=process.env.EXPORTHUB_E2E_BASE_URL||'http://127.0.0.1:4173';
 
 export default defineConfig({
   testDir:'./e2e/specs',
-  globalSetup:'./e2e/global-setup.mjs',
+  // QA 13.11.: beide Live-Readiness-Guards ausführen (RC1514 Backend-Health, danach RC1506/RC1541 TESTSERVICE-State-Read).
+  // Vorher war globalSetup doppelt deklariert, JavaScript nutzte nur den zweiten Schlüssel und RC1514 lief nie.
+  globalSetup:['./e2e/global-setup.mjs','./e2e/helpers/testservice-readiness.mjs'],
   fullyParallel:false,
   workers:1,
   retries:0,
   timeout:45_000,
   globalTimeout:LIVE?30*60*1000:10*60*1000,
-  globalSetup:'./e2e/helpers/testservice-readiness.mjs',
   expect:{timeout:10_000},
   reporter:[
     ['list'],

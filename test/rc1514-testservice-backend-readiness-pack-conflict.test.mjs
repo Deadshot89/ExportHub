@@ -9,7 +9,7 @@ const packApi=fs.readFileSync(packApiPath,'utf8');
 const playwright=fs.readFileSync(playwrightPath,'utf8');
 
 test('RC1514: Live-Playwright startet erst nach nachweislich gesundem TESTSERVICE-State-Backend',()=>{
-  assert.match(playwright,/globalSetup\s*:\s*['"]\.\/e2e\/global-setup\.mjs['"]/,'Playwright muss den RC1514-Live-Readiness-Guard vor allen Specs ausführen');
+  assert.match(playwright,/globalSetup\s*:\s*\[\s*['"]\.\/e2e\/global-setup\.mjs['"]/,'Playwright muss den RC1514-Live-Readiness-Guard vor allen Specs ausführen');
   assert.ok(fs.existsSync(globalSetupPath),'e2e/global-setup.mjs fehlt');
   const setup=fs.readFileSync(globalSetupPath,'utf8');
   assert.match(setup,/EXPORTHUB_E2E_LIVE/,'Readiness darf nur echte Live-Browserläufe blockieren');
