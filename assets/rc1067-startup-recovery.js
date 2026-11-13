@@ -97,7 +97,7 @@ function decorateLogisticsLoading(){
     '#eh1904LogisticsScene .eh1904-belt{position:absolute;left:24%;right:22%;bottom:38px;height:12px;border:2px solid #466c95;border-radius:12px;background:repeating-linear-gradient(90deg,#89accb 0 10px,#b4d5ec 10px 20px);background-size:40px 12px;box-shadow:0 7px 0 -3px #557eaa;animation:eh1904Roll 1.1s linear infinite}',
     '#eh1904LogisticsScene .eh1904-parcel{position:absolute;bottom:52px;left:25%;width:27px;height:25px;border-radius:3px;background:linear-gradient(145deg,#f6ce91,#e5a852);border:1px solid #d49a51;box-shadow:2px 3px 8px rgba(107,71,27,.15);animation:eh1904Parcel 4s linear infinite}',
     '#eh1904LogisticsScene .eh1904-parcel:before{content:"";position:absolute;top:0;bottom:0;left:10px;width:6px;background:rgba(255,245,213,.57)}',
-    '#eh1904LogisticsScene .eh1904-parcel:nth-of-type(2){animation-delay:-2s;transform:scale(.85)}',
+    '#eh1904LogisticsScene .eh1904-parcel + .eh1904-parcel{animation-delay:-2s;transform:scale(.85)}',
     '#eh1904LogisticsScene .eh1904-truck{position:absolute;right:18px;bottom:35px;width:111px;height:53px;animation:eh1904Truck 2.4s ease-in-out infinite}',
     '#eh1904LogisticsScene .eh1904-trailer{position:absolute;left:0;bottom:8px;width:72px;height:40px;border-radius:5px 3px 2px 3px;background:linear-gradient(155deg,#2b85d8,#1858a5);border:2px solid #1b5c9f;box-shadow:inset 0 6px 8px rgba(255,255,255,.17),3px 5px 8px rgba(9,58,107,.12)}',
     '#eh1904LogisticsScene .eh1904-trailer:before{content:"EH";position:absolute;color:#fff;font:bold 15px/1 Segoe UI,Arial,sans-serif;letter-spacing:-1px;top:11px;left:21px;opacity:.92}',
