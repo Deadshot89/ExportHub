@@ -66,7 +66,8 @@ test('RC1634: new credentials are opt-in; production clients and normal token ha
  assert.match(src,/async function createSession\(user, deviceId, mustChange, environment='production'\)/);
  assert.match(src,/const target=loginStorageEnvironment\(req\)/);
  const fast=fs.readFileSync('api/shared/fast-auth-store.js','utf8');
- assert.match(fast,/const c=isolated\?await auth\.testserviceClients\(\):await clients\(\)/);
+ assert.match(fast,/const c=isolated\?await isolatedClients\(\):await clients\(\)/);
+ assert.match(fast,/isolatedClientsPromise=auth\.testserviceClients\(\)\.catch/);
  assert.match(fast,/if \(isSignedTestserviceE2E\(token\)\) return auth\.validateSession/);
 });
 
