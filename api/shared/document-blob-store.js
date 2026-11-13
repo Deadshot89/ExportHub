@@ -290,7 +290,11 @@ async function repairLegacyBlobDocumentNames(state,options={}){
       }
       for(const field of DOCUMENT_FIELDS){
         for(const file of Array.isArray(row[field])?row[field]:[]){
-          if(file&&typeof file==='object'&&file.storage==='blob'&&legacyDeliveryPdfCandidate(file,field))
+          // Preserve the old unscoped repair contract: only legacy SalesPackingSlip.
+          // Extended scanner/REF names require an explicit shipment reference.
+          const fileName=text(file&&(file.name||file.fileName||file.filename));
+          if(file&&typeof file==='object'&&file.storage==='blob'&&
+            (/^SalesPackingSlip[-_].*\.pdf$/i.test(fileName)||(reference&&legacyDeliveryPdfCandidate(file,field))))
             candidates.push(file);
         }
       }

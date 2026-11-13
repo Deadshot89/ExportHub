@@ -269,3 +269,11 @@ test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut b
    assert.ok(ctx.ExportHUBShipmentDocumentationI18n.packs[locale][key],locale+' '+key);
  }
 });
+
+test('RC1972: gallery, preview and downloads use the verified display name but retain archive identity',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ assert.match(ui,/var display=q\(file\.displayName\|\|file\.name\)/);
+ assert.equal((ui.match(/saveBlob\(blob,q\(file\.displayName\|\|file\.name\)\)/g)||[]).length,3);
+ assert.match(ui,/name\.title=q\(file\.name\)/,'Original archive filename must remain inspectable');
+ assert.match(ui,/openFilePreview\(ref,file,box\)/,'Downloads and previews retain the original file identity');
+});

@@ -116,3 +116,12 @@ test('RC1972: scoped repair rejects invalid REF and does not scan another REF',a
  assert.equal(none.found,0);assert.equal(mock.checks,0);
  await assert.rejects(()=>store.repairLegacyBlobDocumentNames(s,{environment:'testservice',reference:'../bad',container:mock}),e=>e.code==='INVALID_REFERENCE');
 });
+
+test('RC1972: unscoped legacy repair stays limited to original SalesPackingSlip candidates',async()=>{
+ const bytes=pdf('DNC3019222063');
+ const file={...attachment(bytes),name:'Scanner-Upload.pdf'};
+ const result=await store.repairLegacyBlobDocumentNames({shipments:[{ref:'S3L3PV',deliveryFiles:[file]}]},{environment:'testservice',container:container(bytes),apply:true});
+ assert.equal(result.found,0);
+ assert.equal(result.repaired,0);
+ assert.equal(result.done,true);
+});
