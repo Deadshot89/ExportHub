@@ -244,13 +244,16 @@ function legacyContent(source, translation) {
   });
   return {de:legacyLanguage(de),en:legacyLanguage(en),steps};
 }
-function importLegacy(existingIds,payload,user,now) {
-  if (!canEdit(user)||!(isGlobalAdmin(user) || (
+function canImportLegacy(user) {
+  return canEdit(user)&&!!(isGlobalAdmin(user) || (
     object(user.rights)&&object(user.rights.sop)&&(
       user.rights.sop.admin===true||user.rights.sop.functionAdmin===true||
       String(user.rights.sop.level||user.rights.sop.access||'').toLowerCase()==='admin'
     )
-  ))) throw error('SOP_IMPORT_FORBIDDEN',403);
+  ));
+}
+function importLegacy(existingIds,payload,user,now) {
+  if (!canImportLegacy(user)) throw error('SOP_IMPORT_FORBIDDEN',403);
   const actor=userKey(user);
   timestamp(now);
   if (!Array.isArray(existingIds) || !existingIds.every(x=>typeof x==='string'&&SOP_ID.test(x))) {
@@ -298,4 +301,4 @@ function importLegacy(existingIds,payload,user,now) {
   return {docs,skipped,errors};
 }
 
-module.exports={createDraft,updateDraft,submit,newVersion,approve,reject,archive,importLegacy,assertDocumentIntegrity:checkDocument};
+module.exports={createDraft,updateDraft,submit,newVersion,approve,reject,archive,importLegacy,canImportLegacy,assertDocumentIntegrity:checkDocument};
