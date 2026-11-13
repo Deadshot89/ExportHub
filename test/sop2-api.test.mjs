@@ -41,7 +41,7 @@ function fake() {
    const context={log:{warn(){}}};
    const req={method:options.method||'POST',body:options.body===undefined?{action,...payload}:options.body,
      fakeSession:user,fakeEnvironment:options.environment||'production'};
-   await api._test.handle(context,req,{store,auth,now:()=>NOW});
+   await api._test.handle(context,req,{store,auth,now:()=>NOW,featureEnabled:true});
    return {...context.res,json:context.res.body?JSON.parse(context.res.body):null};
  }
  return {call,data,calls,store,auth};
