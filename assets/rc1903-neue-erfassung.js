@@ -319,6 +319,9 @@
     return all(l,'.rc363-process-block').filter(function(b){return b.id&&b.querySelector(':scope>.rc363-process-head h2');});
   }
   function warnOf(b){
+    /* RC1935: Abschnitt und Startklar-Checkliste verwenden dieselbe Prüfung. */
+    var bar=window.rc1902NeueSendungsmaske;
+    if(bar&&typeof bar.hasMissingDetails==='function')return bar.hasMissingDetails(b);
     return all(b,'.badbox,.rc363-missing,[aria-invalid="true"]').some(function(x){return ownBlock(x,b)&&visible(x);});
   }
   function sectionHtml(b){
