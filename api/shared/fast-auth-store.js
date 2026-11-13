@@ -3,6 +3,7 @@
 const auth = require('../shared/auth-store');
 const apiI18n = require('./i18n');
 let clientsPromise = null;
+let isolatedClientsPromise = null;
 let sessionDocumentsPromise = null;
 // Only the TESTSERVICE request path uses the ETag-verified team read cache.
 // The shared production login/session blob is always fetched afresh.
@@ -17,6 +18,21 @@ async function clients(){
     });
   }
   return clientsPromise;
+}
+
+// Keep the isolated TESTSERVICE Blob client stable within this process.
+// Its identity is required by the ETag-verified team cache; creating a new
+// client on every request silently disables the large-blob read optimization.
+// A failed client initialization is not cached, so subsequent requests can
+// retry. No production credential or Blob content is cached here.
+async function isolatedClients(){
+  if(!isolatedClientsPromise){
+    isolatedClientsPromise=auth.testserviceClients().catch(error=>{
+      isolatedClientsPromise=null;
+      throw error;
+    });
+  }
+  return isolatedClientsPromise;
 }
 
 // Only the comparatively small user records are copied. Never share mutable
@@ -123,7 +139,7 @@ async function validateSession(req, options = {}){
     auth.environmentFromRequest(req)==='testservice';
   const isolated=typeof auth.loginStorageEnvironment==='function' &&
     auth.loginStorageEnvironment(req)==='testservice';
-  const c=isolated?await auth.testserviceClients():await clients();
+  const c=isolated?await isolatedClients():await clients();
   const { authDoc, teamDoc } = await readSessionDocuments(c,testserviceRequest);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
   const session = resolved.session;
