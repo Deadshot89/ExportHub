@@ -56,9 +56,9 @@ function importOnly(index){
  if(api.importPositionsOnly(items)){state(t('done'),'ok');return true}
  state(t('error'),'bad');return false
 }
-async function read(){
+async function read(selectedFile){
  if(busy||currentMode!=='invoice')return false;
- var h=host(),field=h&&h.querySelector('[data-rc1962-file]'),file=field&&field.files&&field.files[0];
+ var h=host(),field=h&&h.querySelector('[data-rc1962-file]'),file=selectedFile||(field&&field.files&&field.files[0]);
  if(!file){state(t('empty'),'bad');return false}
  if(!/\.xlsx$/i.test(file.name)||!file.size||file.size>12*1024*1024){state(t('invalid'),'bad');return false}
  reset();busy=true;render();state(t('working'),'info');
@@ -99,5 +99,7 @@ function mount(mode){
  }
  render();return true
 }
-w.ExportHUBRC1962D365LocalImport=Object.freeze({version:'RC1962',mount:mount});
+// RC1981: used only by the authenticated invoice workspace. The File remains
+// in the browser worker; no XLSX bytes are sent to an ExportHUB endpoint.
+w.ExportHUBRC1962D365LocalImport=Object.freeze({version:'RC1962',mount:mount,readSelectedFile:read});
 })(typeof window!=='undefined'?window:globalThis,typeof document!=='undefined'?document:null);

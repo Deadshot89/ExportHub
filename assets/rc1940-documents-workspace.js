@@ -19,6 +19,15 @@
   fr:{title:'Importer et analyser des fichiers',hint:'Importez PDF, Excel, CSV ou image. Vérifiez les données avant de les reprendre.',select:'Choisir des fichiers',start:'Analyser',resume:'Vérifier à nouveau',empty:'Choisissez un fichier.',checking:'Analyse en cours :',ready:'Analyse terminée. Vérifiez puis reprenez.',failed:'Échec :',useInvoice:'Vers la facture',useDelivery:'Vers le bon de livraison',positions:'Lignes',preview:'Données extraites',review:'Vérifiez toutes les données extraites.',limits:'5 fichiers max., 12 Mo chacun.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analyse sécurisée indisponible.',pending:'Le contrôle de sécurité est en cours. Cliquez sur « Vérifier à nouveau » sans sélectionner de nouveau le fichier ni recharger la page.',delayed:'Microsoft Defender ne répond pas après plus de 2 minutes. Le fichier reste bloqué. Demandez au support informatique de vérifier les balises de résultat dans Azure Storage.',selected:'Fichiers sélectionnés'},
   it:{title:'Carica e analizza file',hint:'Carica PDF, Excel, CSV o immagini. Verifica i dati prima di importarli.',select:'Scegli file',start:'Analizza file',resume:'Controlla di nuovo',empty:'Seleziona un file.',checking:'Analisi:',ready:'Analisi completata. Verifica e importa.',failed:'Errore:',useInvoice:'Nella fattura',useDelivery:'Nella bolla di consegna',positions:'Articoli',preview:'Dati estratti',review:'Verifica sempre i dati estratti.',limits:'Fino a 5 file da 12 MB.',invalid:'PDF, XLSX, CSV, TSV, TXT, JPG, PNG.',unavailable:'Analisi sicura non disponibile.',pending:'Controllo di sicurezza ancora in corso. Premi «Controlla di nuovo» senza riselezionare il file né ricaricare la pagina.',delayed:'Microsoft Defender non ha risposto dopo oltre 2 minuti. Il file resta bloccato. Chiedi al supporto IT di verificare i tag del controllo in Azure Storage.',selected:'File selezionati'}
  };
+ var localD365Labels={
+  de:{hint:'Einzelne D365-XLSX-Dateien für die Proforma werden hier ausschließlich lokal gelesen – ohne Upload und ohne Cloud-Virenscan.',single:'Bitte D365-XLSX einzeln auswählen. Andere Dateien benötigen eine eigene Sicherheitsprüfung.',ready:'D365-Excel lokal geprüft. Oben den Lieferschein auswählen und „Nur Artikelpositionen übernehmen“ klicken. Die Originaldatei wurde nicht hochgeladen.',invalid:'Kein gültiger D365-Export für den lokalen Import. Die Originaldatei wurde nicht hochgeladen.',unavailable:'Der sichere lokale D365-Importer ist nicht verfügbar. Die Datei wurde nicht hochgeladen.'},
+  en:{hint:'A single D365 XLSX for a proforma is read locally, without uploading it or performing a cloud virus scan.',single:'Select one D365 XLSX at a time. Other files need separate security scanning.',ready:'D365 Excel read locally. Select the packing slip above and choose “Import item rows only”. The original file was not uploaded.',invalid:'Not a supported D365 export for local import. The original file was not uploaded.',unavailable:'The local D365 importer is unavailable. The file was not uploaded.'},
+  pl:{hint:'Pojedynczy XLSX D365 do proformy jest odczytywany lokalnie, bez przesyłania i bez skanowania w chmurze.',single:'Wybierz jeden plik D365 XLSX. Pozostałe pliki wymagają osobnej kontroli.',ready:'D365 odczytano lokalnie. Wybierz WZ powyżej i importuj tylko pozycje. Oryginał nie został przesłany.',invalid:'Nieobsługiwany eksport D365. Oryginał nie został przesłany.',unavailable:'Lokalny importer D365 jest niedostępny. Plik nie został przesłany.'},
+  es:{hint:'Un XLSX D365 para proforma se lee localmente, sin subirlo ni escanearlo en la nube.',single:'Selecciona un solo XLSX D365. Los demás archivos requieren análisis aparte.',ready:'D365 leído localmente. Selecciona el albarán anterior e importa solo los artículos. El archivo no se ha subido.',invalid:'Exportación D365 no válida para importación local. El archivo no se ha subido.',unavailable:'El importador local de D365 no está disponible. No se ha subido el archivo.'},
+  fr:{hint:'Un XLSX D365 pour une proforma est lu localement, sans transfert ni analyse antivirus cloud.',single:'Sélectionnez un seul XLSX D365. Les autres fichiers exigent un contrôle séparé.',ready:'D365 lu localement. Sélectionnez le bon de livraison ci-dessus et importez seulement les lignes. Aucun fichier envoyé.',invalid:'Export D365 non pris en charge en local. Le fichier original n’a pas été envoyé.',unavailable:'Import local D365 indisponible. Aucun fichier envoyé.'},
+  it:{hint:'Un file XLSX D365 per proforma viene letto localmente, senza upload né scansione antivirus nel cloud.',single:'Seleziona un solo XLSX D365. Gli altri file richiedono un controllo separato.',ready:'D365 letto localmente. Seleziona il documento sopra e importa solo gli articoli. Il file non è stato caricato.',invalid:'Esportazione D365 non valida per importazione locale. Il file non è stato caricato.',unavailable:'Importatore locale D365 non disponibile. Il file non è stato caricato.'}
+ };
+ function localD365Text(key){return(localD365Labels[lang()]||localD365Labels.de)[key]}
  var chosenFiles=[],scanResults=[],scanBusy=false,scanPending=false,pendingScanFiles=[];
  function ut(key){return uploadLabels[lang()][key]}
  function uploadHost(){return d.getElementById('rc1940DocumentUpload')}
@@ -29,7 +38,7 @@
  function refreshUpload(){
   var p=uploadHost();if(!p)return;
   var h=p.querySelector('[data-rc1940-upload-heading]'),hint=p.querySelector('[data-rc1940-upload-hint]'),limits=p.querySelector('[data-rc1940-upload-limits]'),chooser=p.querySelector('[data-rc1940-choose]'),button=p.querySelector('[data-rc1940-analyze]'),selection=p.querySelector('[data-rc1940-selection]');
-  if(h)h.textContent=ut('title');if(hint)hint.textContent=ut('hint');if(limits)limits.textContent=ut('limits')+' '+ut('review');
+  if(h)h.textContent=ut('title');if(hint)hint.textContent=ut('hint')+(lastMode==='invoice'?' '+localD365Text('hint'):'');if(limits)limits.textContent=ut('limits')+' '+ut('review');
   if(chooser)chooser.textContent=ut('select');if(button){button.textContent=scanPending?ut('resume'):ut('start');button.disabled=scanBusy||!chosenFiles.length}
   if(selection)selection.textContent=chosenFiles.length?ut('selected')+': '+chosenFiles.map(function(f){return f.name}).join(', '):'';
   renderScanResults()
@@ -98,6 +107,22 @@
   if(scanBusy)return false;
   if(!chosenFiles.length){uploadStatus(ut('empty'),'bad');return false}
   if(chosenFiles.length>5||chosenFiles.some(function(f){return !/\.(pdf|xlsx|csv|tsv|txt|jpe?g|png)$/i.test(f.name)||!f.size||f.size>12*1024*1024})){uploadStatus(ut('invalid')+' '+ut('limits'),'bad');return false}
+  // RC1981: D365 XLSX is a DIFFERENT, browser-only import, not a scan verdict.
+  // Keep the full XLSX entirely inside the existing isolated local worker.
+  // Never send it to /api/abd-analysis if the local import is unsupported.
+  if(lastMode==='invoice'&&chosenFiles.some(function(f){return /\.xlsx$/i.test(f.name)})){
+   if(chosenFiles.length!==1){uploadStatus(localD365Text('single'),'bad');return false}
+   var local=w.ExportHUBRC1962D365LocalImport;
+   if(!local||typeof local.mount!=='function'||typeof local.readSelectedFile!=='function'||
+      !local.mount('invoice')){uploadStatus(localD365Text('unavailable'),'bad');return false}
+   scanBusy=true;scanPending=false;pendingScanFiles=[];scanResults=[];refreshUpload();
+   try{
+    var parsed=await local.readSelectedFile(chosenFiles[0]);
+    uploadStatus(localD365Text(parsed?'ready':'invalid'),parsed?'ok':'bad');
+    return parsed===true
+   }catch(_){uploadStatus(localD365Text('invalid'),'bad');return false}
+   finally{scanBusy=false;refreshUpload()}
+  }
   var scanner=w.ExportHUBRC1294ABDAnalysis;
   if(!scanner||typeof scanner.analyzeFile!=='function'){uploadStatus(ut('unavailable'),'bad');return false}
   // Recheck only still-pending files. Already analyzed files are NOT uploaded a second time.
