@@ -61,7 +61,7 @@ jobs:
               // Ein älterer Run kann zwischen LIST und CANCEL regulär enden.
               // Ausschließlich diesen belegten 409-Rennfall als erledigt werten.
               if(response.status===409&&options.method==='POST'&&
-                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/cancel$/.test(new URL(url).pathname)){
+                 /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/\d+\/(?:cancel|force-cancel)$/.test(new URL(url).pathname)){
                 let message='';
                 try{message=JSON.parse(body).message||''}catch(_){}
                 if(message==='Cannot cancel a workflow run that is completed.')
@@ -87,6 +87,31 @@ jobs:
           const runs=Array.isArray(payload&&payload.workflow_runs)?payload.workflow_runs:[];
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           let supersededDuringCancel=false;
+          // GitHub may expose a stuck queued run with zero assigned jobs.
+          // This is diagnostic evidence ONLY: an unconfirmed cancel stays RED.
+          async function warnUnassignedQueue(run){
+            const firstMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+            if(firstMain?.commit?.sha!==currentSha)
+              throw new Error('RC1538: main changed before zero-job diagnostics; refuse stale intervention.');
+            const readback=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+            if(readback.head_sha!==run.head_sha)
+              throw new Error(`RC1538: Run ${run.id} SHA changed during zero-job readback.`);
+            const ageMs=Date.now()-Date.parse(readback.created_at||'');
+            if(readback.status!=='queued'||!Number.isFinite(ageMs)||ageMs<60*60*1000)
+              return false;
+            const assigned=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=1`);
+            if(assigned?.total_count!==0||!Array.isArray(assigned.jobs)||assigned.jobs.length!==0)
+              return false;
+            const finalRun=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+            if(finalRun.head_sha!==run.head_sha)
+              throw new Error(`RC1538: Run ${run.id} SHA changed during zero-job confirmation.`);
+            const finalMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
+            if(finalMain?.commit?.sha!==currentSha)
+              throw new Error('RC1538: main changed after zero-job diagnostics; refuse stale intervention.');
+            if(finalRun.status!=='queued')return false;
+            console.log(`::warning::RC1538 QUEUE_GHOST: Run ${run.id} remains queued for >1h with 0 assigned jobs; GitHub cancellation unconfirmed. NOT CANCELLED. Gate remains RED; RC1381 stale-deploy guard mandatory.`);
+            return true;
+          }
           for(const run of older){
             let outcome;
             for(let attempt=0;attempt<5;attempt++){
@@ -117,7 +142,21 @@ jobs:
                 const stillMain=await request(`https://api.github.com/repos/${repo}/branches/main`);
                 if(stillMain?.commit?.sha!==currentSha)
                   throw new Error('RC1538: main changed during force-cancel guard; refuse stale intervention.');
-                await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/force-cancel`,{method:'POST'});
+                const forceOutcome=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/force-cancel`,{method:'POST'});
+                // GitHub 409 may race with the old run completing. Only a
+                // same-SHA readback with completed status resolves this race.
+                // An unresolved queued or running old job must remain RED.
+                if(forceOutcome&&(forceOutcome.notQueuedYet||forceOutcome.alreadyCompleted)){
+                  const after409=await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}`);
+                  if(after409.head_sha!==run.head_sha)
+                    throw new Error(`RC1538: Run ${run.id} SHA changed after force-cancel 409.`);
+                  if(after409.status==='completed'){
+                    outcome={alreadyCompleted:true};
+                    break;
+                  }
+                  if(after409.status==='queued')await warnUnassignedQueue(run);
+                  throw new Error(`RC1538: force-cancel 409 for ${run.id}; old run remains ${after409.status}, cancellation unconfirmed.`);
+                }
                 // A 202 is only an accepted request, NOT proof of cancellation.
                 // Do not mark the gate green until GitHub reports completion.
                 let confirmed=false;
@@ -128,8 +167,10 @@ jobs:
                     throw new Error(`RC1538: Run ${run.id} SHA changed after force-cancel.`);
                   if(after.status==='completed'){confirmed=true;break;}
                 }
-                if(!confirmed)
+                if(!confirmed){
+                  await warnUnassignedQueue(run);
                   throw new Error(`RC1538: force-cancel for ${run.id} not confirmed by GitHub; gate remains blocked.`);
+                }
                 outcome={forceCancelled:true};
                 break;
               }
