@@ -5,6 +5,7 @@
 const {createHash} = require('node:crypto');
 const {appendEvent, verifyChain} = require('./hash-chain');
 const {STATUS, userKey, canEdit, canApprove, validateContent} = require('./sop-rules');
+const {isAdmin:isGlobalAdmin} = require('./user-policy');
 
 const SOP_ID = /^SOP-EH-\d{3}$/;
 const VERSION_ID = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -188,4 +189,116 @@ function archive(doc, input, user, now) {
   return updated(doc,versions,'ARCHIVED',actor,now,{version:selected.version});
 }
 
-module.exports={createDraft,updateDraft,submit,newVersion,approve,reject,archive,assertDocumentIntegrity:checkDocument};
+
+const LEGACY_FIELDS=['responsibilities','prerequisites','checks','deviations','records'];
+const LEGACY_NOTE='importiert aus Handbuch RC1016, nicht freigegeben';
+function legacyString(value) {
+  if (typeof value==='string') return value;
+  if (object(value) && typeof value.text==='string') return value.text;
+  throw error('LEGACY_FIELD_INVALID',400);
+}
+function legacySections(value, optional=false) {
+  if (value===undefined && optional) return {};
+  if (!object(value)) throw error('LEGACY_FIELD_INVALID',400);
+  if (Object.hasOwn(value,'sections')) {
+    if (!object(value.sections)) throw error('LEGACY_FIELD_INVALID',400);
+    return value.sections;
+  }
+  return value;
+}
+function legacyLanguage(sections) {
+  const out={};
+  for (const field of ['purpose','scope']) {
+    out[field]=sections[field]===undefined ? '' : legacyString(sections[field]);
+  }
+  for (const field of LEGACY_FIELDS) {
+    const list=sections[field]===undefined ? [] : sections[field];
+    if (!Array.isArray(list)) throw error('LEGACY_FIELD_INVALID',400);
+    out[field]=list.map(legacyString);
+  }
+  return out;
+}
+function legacyStepText(step) {
+  if (typeof step==='string') return step;
+  if (object(step)) {
+    if (typeof step.text==='string') return step.text;
+    if (typeof step.de==='string') return step.de;
+  }
+  throw error('LEGACY_STEP_INVALID',400);
+}
+function legacyContent(source, translation) {
+  const de=legacySections(source);
+  const en=legacySections(translation,true);
+  const sourceSteps=de.steps===undefined?[]:de.steps;
+  const enSteps=en.steps===undefined?[]:en.steps;
+  if (!Array.isArray(sourceSteps)||!Array.isArray(enSteps)||
+      sourceSteps.length>200||enSteps.length>sourceSteps.length) throw error('LEGACY_STEPS_INVALID',400);
+  const seen=new Set();
+  const steps=sourceSteps.map((step,index)=>{
+    const original=object(step)&&typeof step.id==='string'&&/^[a-z0-9][a-z0-9_.-]{0,79}$/i.test(step.id)?step.id:'step-'+(index+1);
+    const id=seen.has(original)?'step-'+(index+1):original;
+    if (seen.has(id)) throw error('LEGACY_STEPS_INVALID',400);
+    seen.add(id);
+    const translated=enSteps[index];
+    return {id,de:legacyStepText(step),en:translated===undefined?'':legacyStepText(translated)};
+  });
+  return {de:legacyLanguage(de),en:legacyLanguage(en),steps};
+}
+function canImportLegacy(user) {
+  return canEdit(user)&&!!(isGlobalAdmin(user) || (
+    object(user.rights)&&object(user.rights.sop)&&(
+      user.rights.sop.admin===true||user.rights.sop.functionAdmin===true||
+      String(user.rights.sop.level||user.rights.sop.access||'').toLowerCase()==='admin'
+    )
+  ));
+}
+function importLegacy(existingIds,payload,user,now) {
+  if (!canImportLegacy(user)) throw error('SOP_IMPORT_FORBIDDEN',403);
+  const actor=userKey(user);
+  timestamp(now);
+  if (!Array.isArray(existingIds) || !existingIds.every(x=>typeof x==='string'&&SOP_ID.test(x))) {
+    throw error('INVALID_EXISTING_IDS',400);
+  }
+  if (!object(payload)) throw error('INVALID_IMPORT',400);
+  let bytes;
+  try {bytes=Buffer.byteLength(JSON.stringify(payload));}catch(_){throw error('INVALID_IMPORT',400);}
+  if (bytes>2*1024*1024) throw error('REQUEST_TOO_LARGE',413);
+  if (!Array.isArray(payload.items)||payload.items.length>60) throw error('IMPORT_LIMIT',400);
+  if (payload.en!==undefined&&!object(payload.en)) throw error('INVALID_IMPORT_TRANSLATIONS',400);
+  const en=payload.en||{};
+  const known=new Set(existingIds);
+  const docs=[],skipped=[],errors=[];
+  for (const source of payload.items) {
+    const number=object(source)&&typeof source.number==='string'?source.number:'';
+    if (!SOP_ID.test(number)) {
+      skipped.push(number||'(missing)');
+      errors.push({number:number||'(missing)',code:'INVALID_SOP_ID'});
+      continue;
+    }
+    if (known.has(number)) {skipped.push(number);continue;}
+    try {
+      const title=text(source.title,180,'TITLE');
+      const area=text(source.area,120,'AREA');
+      // The historic catalog has no reliable API function mapping.
+      const functionId=source.functionId===undefined?'legacy-rc1016':text(source.functionId,120,'FUNCTION_ID');
+      const content=legacyContent(source.sections,en[number]);
+      const version={version:'0.1',status:STATUS.DRAFT,author:actor,lastEditor:actor,content,createdAt:now,updatedAt:now};
+      const doc={schemaVersion:1,id:number,revision:1,title,area,functionId,versions:[version],events:[]};
+      const {events,...state}=doc;
+      doc.events=[appendEvent([],{action:'IMPORTED',actor,at:now,data:{
+        version:'0.1',source:'RC1016',sourceNumber:number,note:LEGACY_NOTE,
+        contentSha256:digest(content),stateSha256:digest(state)
+      }})];
+      checkDocument(doc);
+      docs.push(doc);
+      known.add(number);
+    } catch (cause) {
+      if (!cause||typeof cause.code!=='string'||!/^INVALID_|^LEGACY_/.test(cause.code)) throw cause;
+      skipped.push(number);
+      errors.push({number,code:cause.code});
+    }
+  }
+  return {docs,skipped,errors};
+}
+
+module.exports={createDraft,updateDraft,submit,newVersion,approve,reject,archive,importLegacy,canImportLegacy,assertDocumentIntegrity:checkDocument};
