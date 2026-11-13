@@ -137,16 +137,16 @@ function showList(keepSerial){syncGallery('');if(!keepSerial)state.serial++;stat
 }
 // DOK pagination must not invalidate an independent REF request.
 async function loadList(reset){if(state.loading&&!reset)return false;state.loading=true;const listToken=++state.listToken,serial=state.serial;if(reset){
- state.records=[];state.continuation=null;state.dokError='';
- state.legacyRecords=[];state.legacyContinuation=null;state.legacyError='';
+ // Keep last confirmed data visible until a fresh server response succeeds.
+ // REF and DOK requests are independent; a failed refresh must not erase either.
  loadLegacyList(true);
 }if(state.view==='list')status(t('loading'),false);
  try{const result=await request('GET',{action:'list',...(reset?{}:state.continuation?{continuation:state.continuation}:{})});
-  if(serial!==state.serial||listToken!==state.listToken)return false;
-  const merged=new Map([...state.records,...result.records].map(x=>[x.id,x]));
+  if(serial!==state.serial||listToken!==state.listToken||state.view!=='list')return false;
+  const merged=new Map([...(reset?[]:state.records),...(result.records||[])].map(x=>[x.id,x]));
   state.records=[...merged.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
   state.continuation=result.continuation||null;state.dokError='';
-  if(state.view==='list'&&active())showList(true);
+  if(active())showList(true);
   return true;
  }catch(e){if(listToken===state.listToken&&serial===state.serial&&state.view==='list'){state.dokError=e.message;if(active())showList(true)}return false}
  finally{if(listToken===state.listToken)state.loading=false}}

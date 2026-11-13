@@ -396,15 +396,63 @@ function listSummary(record){
    c.state==='in_pruefung'?'in_pruefung':'offen'})),
   fileCount:Array.isArray(record.files)?record.files.length:0};
 }
+// Azure enumerates DOK blob names in ASCENDING order. Sorting a single
+// 50-item storage page made recent documents invisible once the store grew.
+// Enumerate only blob metadata, sort globally by last write and fetch at most
+// 50 complete records per requested list page. Do not alter original blobs.
+function evidenceOrder(item,recordId){
+ const updated=item&&item.properties&&item.properties.lastModified;
+ const modified=updated?new Date(updated).getTime():NaN;
+ const created=Date.parse(recordId.slice(4,8)+'-'+recordId.slice(8,10)+'-'+recordId.slice(10,12)+'T00:00:00Z');
+ return Number.isFinite(modified)?modified:Number.isFinite(created)?created:0;
+}
+function evidenceCursor(value){
+ if(!value)return null;
+ const match=/^v2:(\d{1,13}):(DOK-\d{8}-[A-F0-9]{8})$/.exec(value);
+ if(!match)fail('BAD_CONTINUATION','Dokumentationsliste bitte neu laden.',400);
+ const timestamp=Number(match[1]);
+ if(!Number.isSafeInteger(timestamp))fail('BAD_CONTINUATION','Dokumentationsliste bitte neu laden.',400);
+ return{timestamp,id:match[2]};
+}
 async function list(ctx,query){
- const continuationToken=txt(query.continuation,1200)||undefined;
- const pager=ctx.container.listBlobsFlat({prefix:ctx.prefix+'records/'}).byPage({continuationToken,maxPageSize:50});
- const page=(await pager.next()).value||{};
- const names=(page.segment&&page.segment.blobItems||[]).map(x=>x.name).filter(x=>/^.*\/records\/DOK-\d{8}-[A-F0-9]{8}\.json$/.test(x));
- const records=await Promise.all(names.map(async name=>{
-  try{const rec=await getRecord(ctx,name.split('/').pop().slice(0,-5));return rec.record.deletedAt?null:listSummary(rec.record)}catch(e){if(e.code==='NOT_FOUND')return null;throw e}
- }));
- return json(200,{ok:true,records:records.filter(Boolean).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),continuation:page.continuationToken||null});
+ const cursor=evidenceCursor(txt(query.continuation,1200));
+ const prefix=ctx.prefix+'records/',found=[];
+ let continuation,pages=0;
+ do{
+  if(++pages>100)fail('LIST_UNAVAILABLE','Dokumentationsbestand zu gross; Anzeige nicht vollstaendig.',503);
+  const pager=ctx.container.listBlobsFlat({prefix})
+   .byPage({continuationToken:continuation,maxPageSize:5000});
+  const page=(await pager.next()).value||{};
+  for(const item of page.segment&&page.segment.blobItems||[]){
+   const name=String(item.name||'');
+   if(!name.startsWith(prefix))continue;
+   const filename=name.slice(prefix.length);
+   if(!/^DOK-\d{8}-[A-F0-9]{8}\.json$/.test(filename))continue;
+   const recordId=filename.slice(0,-5);
+   found.push({id:recordId,timestamp:evidenceOrder(item,recordId)});
+   if(found.length>100000)fail('LIST_UNAVAILABLE','Dokumentationsbestand zu gross; Anzeige nicht vollstaendig.',503);
+  }
+  continuation=page.continuationToken||undefined;
+ }while(continuation);
+ found.sort((a,b)=>b.timestamp-a.timestamp||b.id.localeCompare(a.id));
+ const eligible=cursor?found.filter(v=>v.timestamp<cursor.timestamp||
+  v.timestamp===cursor.timestamp&&v.id<cursor.id):found;
+ const visible=[];let consumed=0;
+ while(visible.length<50&&consumed<eligible.length){
+  // Tombstones must not cause a false "no records" first page.
+  if(consumed>=1000)fail('LIST_UNAVAILABLE','Zu viele entfernte Dokumentationen in der Liste.',503);
+  const batch=eligible.slice(consumed,consumed+50-visible.length);
+  const resolved=await Promise.all(batch.map(async item=>{
+   try{
+    const rec=await getRecord(ctx,item.id);
+    return rec.record.deletedAt?null:listSummary(rec.record);
+   }catch(e){if(e.code==='NOT_FOUND')return null;throw e}
+  }));
+  visible.push(...resolved.filter(Boolean));consumed+=batch.length;
+ }
+ const last=eligible[consumed-1];
+ const next=consumed<eligible.length&&last?'v2:'+last.timestamp+':'+last.id:null;
+ return json(200,{ok:true,records:visible,continuation:next});
 }
 // Authenticated, exact-REF lookup: independent DOK records are never matched by customer name
 // or an approximate shipment number (both can belong to another shipment).

@@ -13,6 +13,7 @@ on:
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
       - 'test/rc1934-evidence-recovery.test.mjs'
+      - 'test/rc2011-evidence-list-stability.test.mjs'
       - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
       - 'e2e/specs/rc1903-testservice-visual-proof.spec.mjs'
       - 'playwright.rc1903-testservice-visual.config.mjs'
@@ -48,7 +49,7 @@ jobs:
         run: node --test test/rc1538-testservice-supersession-race.test.mjs
 
       - name: RC1903 API and rights regression
-        run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs test/rc1934-evidence-recovery.test.mjs
+        run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs test/rc1934-evidence-recovery.test.mjs test/rc2011-evidence-list-stability.test.mjs
 
       - name: Build ExportHUB RC1112 environments
         run: |
