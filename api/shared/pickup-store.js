@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('crypto');
+const {classifyPodArchiveStorage}=require('./pod-archive-storage-mode');
 const containerDocs=require('./container-document-store');
 const {BlobServiceClient}=require('@azure/storage-blob');
 
@@ -15,6 +16,7 @@ function retryDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(
 
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
 function backupConnectionString(){return process.env.EXPORTHUB_POD_BACKUP_CONNECTION_STRING||connectionString()}
+function podArchiveStorageMode(){return classifyPodArchiveStorage(connectionString(),process.env.EXPORTHUB_POD_BACKUP_CONNECTION_STRING)}
 function secret(){return process.env.EXPORTHUB_PICKUP_SECRET||process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET||connectionString()||'exporthub-local-secret'}
 function hash(value){return crypto.createHmac('sha256',secret()).update(String(value||'')).digest('hex')}
 function safeEqualHex(a,b){try{const aa=Buffer.from(String(a||''),'hex'),bb=Buffer.from(String(b||''),'hex');return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb)}catch(_){return false}}
@@ -279,7 +281,7 @@ function mergeContainerPhotos(a,b){
 function positiveColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0}
 function physicalColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.ceil(n)):0}
 function expectedCollis(source){
- const src=source&&typeof source==='object'?source:{},lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];let best=0;
+ const src=source&&typeof source==='object'?source:{},lists=['rows','colli','collis','packages','packageRows','packagingRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];let best=0;
  for(const key of lists){if(!Array.isArray(src[key]))continue;let sum=0;for(const row of src[key]){let n=0;for(const f of rowFields){n=physicalColliCount(row&&row[f]);if(n>0)break}sum+=n}if(sum>best)best=sum}
  if(best>0)return best;
  for(const f of trusted){const n=positiveColliCount(src[f]);if(n>0)return n}
@@ -448,4 +450,4 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
  throw err('TEAM_STATE_CONFLICT','Team-State konnte nach mehreren konkurrierenden Änderungen nicht gespeichert werden.',503);
 }
 
-module.exports={RECORD_CONTAINER,POD_CONTAINER,POD_BACKUP_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,podArchiveClient,connectionString,backupConnectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,updateTeamContainerDocumentation,safeName,parseSignature,saveDriverSignature,saveCustomsDocumentsSignature,signatureUrl,realPodFiles,podBackupSummary,first,sanitizeText,addressFromSource,resolveShipmentAddress,normalizeTransportMode,transportModeOf,containerDocumentationRequired,containerPhotosOf,mergeContainerPhotos,resolveShipmentContainerConfig,abdPresent,resolveShipmentAbdConfig,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};
+module.exports={RECORD_CONTAINER,POD_CONTAINER,POD_BACKUP_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,podArchiveClient,connectionString,backupConnectionString,podArchiveStorageMode,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,updateTeamContainerDocumentation,safeName,parseSignature,saveDriverSignature,saveCustomsDocumentsSignature,signatureUrl,realPodFiles,podBackupSummary,first,sanitizeText,addressFromSource,resolveShipmentAddress,normalizeTransportMode,transportModeOf,containerDocumentationRequired,containerPhotosOf,mergeContainerPhotos,resolveShipmentContainerConfig,abdPresent,resolveShipmentAbdConfig,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};

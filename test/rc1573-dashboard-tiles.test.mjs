@@ -22,11 +22,12 @@ test('RC1573 Kacheln: Standard, Speichern pro Benutzer, unbekannte Einträge wer
   const def=ctx.readTiles();
   assert.deepEqual(Array.from(def.order),['quick','lager','abd','pallet','week']);
   assert.equal(def.on.week,false);assert.equal(def.on.lager,true);
-  ctx.writeTiles({order:['week','quick','evil','lager','abd','pallet'],on:{week:true,quick:false}});
+  assert.equal('openwork' in def.on,false,'open work now belongs in upper KPI group');
+  ctx.writeTiles({order:['week','quick','evil','lager','abd','pallet','openwork'],on:{week:true,quick:false,openwork:false}});
   assert.ok(store['exporthub.rc1573.tiles.u-1'],'pro Benutzer gespeichert');
   const back=ctx.readTiles();
   assert.deepEqual(Array.from(back.order),['week','quick','lager','abd','pallet']);
-  assert.equal(back.on.week,true);assert.equal(back.on.quick,false);assert.equal(back.on.abd,true,'fehlende Werte → Standard');
+  assert.equal(back.on.week,true);assert.equal(back.on.quick,false);assert.equal(back.on.abd,true,'fehlende Werte → Standard');assert.equal('openwork' in back.on,false,'alte untere Einstellung wird ignoriert');
 });
 
 test('RC1573 Lagerbelegung zählt nicht abgeholte Sendungen je Location, Abholwoche Mo–Fr',()=>{
@@ -58,6 +59,6 @@ test('RC1573 Ein-Seiten-Raster: bis zu fünf Kacheln je Zeile, ausgeblendete Kac
 test('RC1573 Texte für Kacheln und Diagramme in allen sechs Sprachen',()=>{
   const root={};vm.runInNewContext(i18n,{window:root,globalThis:root});
   const I=root.ExportHUBDashboardOverview1558I18n;
-  const keys=['tiles.edit','tiles.title','tiles.help','tiles.reset','tiles.done','tile.quick','tile.lager','tile.lagerDesc','tile.week','lager.sub','lager.loc0','lager.loc7','lager.bar','week.sub','week.bar'].map(k=>'dashboard.overview.'+k);
+  const keys=['tiles.edit','tiles.title','tiles.help','tiles.reset','tiles.done','tile.quick','tile.lager','tile.lagerDesc','tile.week','tile.openWork','tile.openWorkDesc','tile.openUrgent','tile.openQuality','tile.openModule','tile.unavailable','lager.sub','lager.loc0','lager.loc7','lager.bar','week.sub','week.bar'].map(k=>'dashboard.overview.'+k);
   for(const l of ['de','en','pl','es','fr','it'])for(const k of keys)assert.notEqual(I.t(k,null,l),k,l+': '+k);
 });

@@ -200,6 +200,34 @@ async function renderedPdf(sh,cause){
  return out.blob
 }
 function fileName(sh){return 'POD_'+(refOf(sh)||t('fallback'))+'_Ladeliste_unterschrieben.pdf'}
+
+/* RC1955: one visible POD entry point. Legacy duplicates are removed on render.
+   This UI change neither writes nor replaces signed archive files. */
+var RC1955_REDUNDANT='[data-rc1938-layout-copy="1"],[data-rc628-official-pod-download="1"],[data-index352-action="download-pod"]';
+function rc1955CleanUp(){
+ if(!d.querySelectorAll)return;
+ Array.from(d.querySelectorAll(RC1955_REDUNDANT)).forEach(function(button){
+  if(button&&typeof button.remove==='function')button.remove();
+ });
+}
+function rc1955Observe(){
+ rc1955CleanUp();
+ if(w.MutationObserver&&d.body){
+  var queued=false,observer=new w.MutationObserver(function(records){
+   if(queued||!records.some(function(x){return x.addedNodes&&x.addedNodes.length}))return;
+   queued=true;
+   var schedule=w.requestAnimationFrame||function(fn){w.setTimeout(fn,0)};
+   schedule(function(){queued=false;rc1955CleanUp()});
+  });
+  observer.observe(d.body,{childList:true,subtree:true});
+ }
+ if(typeof w.addEventListener==='function'){
+  ['exporthub:viewchange','exporthub:rendered','exporthub:languagechange'].forEach(function(event){
+   w.addEventListener(event,rc1955CleanUp);
+  });
+ }
+}
+
 function openPdf(blob,sh,mode,popup){
  var href=URL.createObjectURL(blob);
  if(mode==='open'){
@@ -217,8 +245,19 @@ async function handle(button){
  if(mode==='open')try{popup=w.open('','_blank');if(popup){popup.document.title=t('loadingTitle');popup.document.body.textContent=t('loadingText')}}catch(_){}
  try{
   sh=shipment(button);
-  // Prefer a verified immutable original over a delegated click which
-  // returns before the document panel's asynchronous download can fail.
+  // RC1955: "POD öffnen" renders the same in-memory A4 loading-list preview
+  // as the former print-copy button, without modifying any archived original.
+  // Missing genuine signature evidence keeps the verified original as fallback.
+  var podControl=w.ExportHUBPodRemove1740;
+  var removed=podControl&&typeof podControl.qrRemoved==='function'&&podControl.qrRemoved(sh);
+  if(mode==='open'&&!removed){
+   try{
+    var preview=await renderedPdf(sh,null);
+    openPdf(preview,sh,mode,popup);
+    return;
+   }catch(_){/* Never invent a missing or invalid driver signature. */}
+  }
+  // Hash-verified immutable originals still win over unverified document links.
   var saved=await storedSignedBlob(sh);
   if(saved){openPdf(saved,sh,mode,popup);return}
   if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
@@ -250,5 +289,7 @@ d.addEventListener('click',function(e){
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',rc1955Observe,{once:true});
+else rc1955Observe();
 w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1630',selector:SELECTOR,canonicalPdf:canonicalPdf,renderedPdf:renderedPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
 })(window,document);

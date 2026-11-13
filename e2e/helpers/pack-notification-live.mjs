@@ -32,16 +32,27 @@ async function createPackNotification(page,token,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packPackageType').selectOption({label:'Euro Palette'});
-  await page.locator('#packPackageCount').fill('2');
-  await page.locator('#packWeight').fill('680');
-  const rows=page.locator('[data-pack-package]');
+  // Exercise the *visible* Colli rows used by "Sendung erstellen".
+  // Both Euro pallets have different heights, so each is an independent line.
+  const rows=page.locator('[data-pack-entry]');
+  await expect(rows).toHaveCount(1);
+  const first=rows.first();
+  await first.locator('[data-entry-type]').selectOption({label:'Euro Palette'});
+  await first.locator('[data-entry-count]').fill('1');
+  await first.locator('[data-entry-weight]').fill('340');
+  await first.locator('[data-entry-length]').fill('120');
+  await first.locator('[data-entry-width]').fill('80');
+  await first.locator('[data-entry-height]').fill('145');
+  await page.locator('#packAddPackage').click();
   await expect(rows).toHaveCount(2);
-  for(let i=0;i<2;i++){
-    await rows.nth(i).locator('[data-dim="length"]').fill('120');
-    await rows.nth(i).locator('[data-dim="width"]').fill('80');
-    await rows.nth(i).locator('[data-dim="height"]').fill(i===0?'145':'130');
-  }
+  const second=rows.nth(1);
+  await second.locator('[data-entry-type]').selectOption({label:'Euro Palette'});
+  await second.locator('[data-entry-count]').fill('1');
+  await second.locator('[data-entry-weight]').fill('340');
+  await second.locator('[data-entry-length]').fill('120');
+  await second.locator('[data-entry-width]').fill('80');
+  await second.locator('[data-entry-height]').fill('130');
+  await expect(page.locator('#packEntryTotals')).toContainText('680');
   await page.locator('#packDocuments').setInputFiles({
     name:expected.sourceName,
     mimeType:'application/pdf',
@@ -86,7 +97,9 @@ async function createPackNotification(page,token,suffix='A'){
   await card.click();
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
-  await expect(page.locator('#packPackageCount')).toHaveValue('2');
+  await expect(page.locator('[data-pack-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-pack-entry] [data-entry-count]').first()).toHaveValue('1');
+  await expect(page.locator('[data-pack-entry] [data-entry-weight]').last()).toHaveValue('340');
   await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName);
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
@@ -207,6 +220,90 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(packDownloadBytes.length).toBeGreaterThan(40);
       expect(packDownloadBytes.subarray(0,5).toString('latin1')).toBe('%PDF-');
 
+      // RC1382: the very same real Pack notification must create a standalone
+      // ABD request without a shipment, survive Azure write/read and reopen by
+      // its original ABD ID. TESTSERVICE fixture only; never send an Outlook
+      // email or trigger a customs declaration.
+      const beforePackAbd=await page.evaluate(()=>({
+        shipments:(window.__EXPORTHUB_GET_STATE__?.().shipments||[]).length,
+        savedShipments:(window.__EXPORTHUB_GET_STATE__?.().savedShipments||[]).length
+      }));
+      await page.locator('#packNotificationDetail [data-pack-action="abd"]').first().click();
+      await expect(page.locator('#rc626Abd')).toBeVisible({timeout:20_000});
+      await expect(page.locator('#rc626Abd')).toContainText(/Packmeldung/);
+      const abdDraft=await page.evaluate(ref=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const n=(s.packNotifications||[]).find(n=>n.reference===ref),d=s.abdDraft||{};
+        return{notificationId:n?.id,source:d.source,packNotificationId:d.packNotificationId,
+          packNotificationRef:d.packNotificationRef,linkedShipmentId:d.linkedShipmentId,
+          customerName:d.customerName,ref:d.ref,rows:d.rows||[],count:(s.abdRequests||[]).filter(a=>a.packNotificationId===n?.id).length};
+      },refA);
+      expect(abdDraft.notificationId).toBeTruthy();
+      expect(abdDraft.packNotificationId).toBe(abdDraft.notificationId);
+      expect(abdDraft.packNotificationRef).toBe(refA);
+      expect(abdDraft.source).toBe('manual');
+      expect(abdDraft.linkedShipmentId||'').toBe('');
+      expect(abdDraft.count).toBe(0);
+      expect(abdDraft.ref).toMatch(/^[A-Z0-9]{6}$/);
+      expect(abdDraft.rows.length).toBeGreaterThan(0);
+      expect(Number(abdDraft.rows.reduce((sum,r)=>sum+Number(r.weight||0),0))).toBe(680);
+      expect((abdDraft.rows||[]).every(r=>String(r.type||'').trim()&&Number(r.count)>0&&Number(r.weight)>0)).toBe(true);
+      await page.locator('#rc626Abd button[onclick*="saveAbd()"]').click();
+      await expect.poll(()=>page.evaluate(id=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{},n=(s.packNotifications||[]).find(x=>x.id===id);
+        const rows=(s.abdRequests||[]).filter(x=>x.packNotificationId===id);
+        const status=window.ExportHUBPackAbd?.saveStatusText?.()||'';
+        return{rows:rows.length,linkOk:rows.length===1&&n?.reference===rows[0].packNotificationRef&&rows[0].packNotificationId===id,
+          verified:!!status&&status===(window.ExportHUBPackI18n?.t?.('pack.internal.abdSaved')||'')};
+      },abdDraft.notificationId),{timeout:35_000}).toEqual({rows:1,linkOk:true,verified:true});
+      await settleStateSave(page,{timeout:30_000});
+      const savedPackAbd=await page.evaluate(id=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const a=(s.abdRequests||[]).find(x=>x.packNotificationId===id);
+        return{id:a?.id,ref:a?.ref,linkedShipmentId:a?.linkedShipmentId,source:a?.source};
+      },abdDraft.notificationId);
+      expect(savedPackAbd.id).toBeTruthy();
+      expect(savedPackAbd.linkedShipmentId||'').toBe('');
+      expect(savedPackAbd.source).toBe('manual');
+      const afterPackAbd=await page.evaluate(()=>({
+        shipments:(window.__EXPORTHUB_GET_STATE__?.().shipments||[]).length,
+        savedShipments:(window.__EXPORTHUB_GET_STATE__?.().savedShipments||[]).length
+      }));
+      expect(afterPackAbd).toEqual(beforePackAbd);
+      await page.reload({waitUntil:'domcontentloaded'});
+      await waitReady(page);
+      await settleStateSave(page,{timeout:30_000});
+      const packAbdServer=await page.evaluate(async({token,id,ref})=>{
+        const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+          method:'GET',credentials:'same-origin',cache:'no-store',
+          headers:{Accept:'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,
+            Authorization:'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+        });
+        const body=await response.json().catch(()=>({}));
+        const s=body.state||{},n=(s.packNotifications||[]).find(x=>x.id===id);
+        const matches=(s.abdRequests||[]).filter(x=>x.packNotificationId===id);
+        return{status:response.status,found:matches.length,refCorrect:matches.length===1&&matches[0].ref===ref,
+          packRefCorrect:matches.length===1&&matches[0].packNotificationRef===n?.reference,
+          linked:matches.length===1&&n?.reference===matches[0].packNotificationRef,
+          noShipment:matches.length===1&&!matches[0].linkedShipmentId};
+      },{token:session.token,id:abdDraft.notificationId,ref:savedPackAbd.ref});
+      expect(packAbdServer).toEqual({status:200,found:1,refCorrect:true,packRefCorrect:true,linked:true,noShipment:true});
+      // Only after authenticated Azure readback may a navigation-aborted save be acknowledged.
+      expect(acknowledgeConfirmedStateSaveNavigationAbort(runtime)).toBeLessThanOrEqual(1);
+      await page.locator('[data-pack-notifications-nav]').click();
+      await expect(page.locator('#packNotificationInbox')).toBeVisible();
+      await page.locator('#packNotificationInbox [data-pack-notification-id]').filter({hasText:refA}).first().click();
+      await expect(page.locator('#packNotificationDetail')).toBeVisible();
+      await page.locator('#packNotificationDetail [data-pack-action="abd"]').first().click();
+      await expect(page.locator('#rc626Abd')).toBeVisible({timeout:20_000});
+      const resumed=await page.evaluate(id=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        return{ref:s.abdDraft?.ref,id:s.abdDraft?.id,
+          count:(s.abdRequests||[]).filter(x=>x.packNotificationId===id).length};
+      },abdDraft.notificationId);
+      expect(resumed).toEqual({ref:savedPackAbd.ref,id:savedPackAbd.id,count:1});
+      await page.locator('#rc626Abd [data-pack-abd-back]').click();
+      await expect(page.locator('#packNotificationDetail')).toBeVisible();
       await page.locator('#packNotificationDetail [data-pack-action="shipment"]').first().click();
       await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
       await expect(page.locator('#shipmentCustomerSearch')).toHaveValue(/E2E PACK CUSTOMER A/i);

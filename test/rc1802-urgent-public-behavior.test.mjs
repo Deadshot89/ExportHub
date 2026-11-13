@@ -6,7 +6,7 @@ const publicApi=require('../api/urgent-order-public/index.js');
 const internal=require('../api/urgent-orders/index.js');
 const model=require('../api/shared/urgent-orders.js');
 const required={
- orderNumber:'SO3002',delivery:'DRP',priority:'P1',email:'cs@example.org',
+ orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.org',
  orderType:'DIRECT_OUTBOUND',
  directOutbound:{arrivalAt:'2026-11-10T08:30',arrivalMode:'TRUCK',arrivalProvider:'Sample Freight',dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true},
  items:[{line:'10',article:'A-11',quantity:2,holdsClear:true,newArticle:true,articleDataCorrect:true,processCompliant:true}]
@@ -126,4 +126,16 @@ test('public endpoint reports safe service codes without leaking Azure SDK error
   assert.equal(validation.result.code,'URGENT_EMAIL_INVALID');
   assert.match(validation.result.message,/E-Mail-Adresse/);
  }finally{internal.storage=storage;}
+});
+
+test('Azure forwards comma-separated hosts without treating the valid TESTSERVICE entry as unknown',()=>{
+ const testHost='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ const direct='worker.azurewebsites.net';
+ assert.equal(internal.resolveStorageEnvironment({headers:{host:direct,'x-forwarded-host':testHost+', gateway.azurewebsites.net'}},'testservice'),'testservice');
+ assert.equal(internal.resolveStorageEnvironment({headers:{host:testHost+', gateway.azurewebsites.net'}},'testservice'),'testservice');
+ assert.equal(internal.safeHostDiagnostic({headers:{host:direct,'x-forwarded-host':testHost+', gateway.azurewebsites.net'}}).forwarded,'testservice');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:'unknown-preview.azurestaticapps.net, '+testHost}},'testservice'),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:direct,'x-forwarded-host':'unknown-preview.azurestaticapps.net, '+testHost}},'testservice'),e=>e.code==='URGENT_HOST_UNTRUSTED');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:direct,origin:'https://'+testHost}},''),e=>e.code==='URGENT_HOST_UNTRUSTED','browser Origin never replaces server deployment evidence');
+ assert.throws(()=>internal.resolveStorageEnvironment({headers:{host:direct,'x-forwarded-host':testHost+', gateway.azurewebsites.net'}},'production'),e=>e.code==='URGENT_ENVIRONMENT_MISMATCH');
 });

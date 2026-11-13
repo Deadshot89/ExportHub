@@ -42,7 +42,9 @@ jobs:
       - name: Playwright installieren
         run: |
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          # Chromium muss wirklich starten; Browser-Tests dürfen nicht umgangen werden.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: Vollständige Navigation lokal im echten Browser prüfen
         env:
@@ -50,6 +52,12 @@ jobs:
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+
+      - name: RC1820 Alle Menüeinträge Desktop Tablet Smartphone prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1820-full-navigation.spec.mjs --project=laptop
 
       - name: RC1592 Main-Vertrag vor zweiter Druckprüfung simulieren
         run: |

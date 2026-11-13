@@ -8,7 +8,7 @@ const orders=require('../api/shared/urgent-orders.js');
 const user={id:'CS-17',name:'Customer Service'};
 const logistics={id:'LOG-1',role:'Export',rights:{shipmentoverview:{edit:true}}};
 function input(overrides={}){
- return{orderNumber:'SO3002',delivery:'DRP',priority:'P1',email:'Example@Company.com',language:'en',items:[{line:'10',article:'ART-100',quantity:12,minibag:false,pickableStock:true,holdsClear:true},{line:'20',article:'ART-200',quantity:3,minibag:true,pickableStock:true,holdsClear:true,minibagLeadtime:true}],...overrides};
+ return{orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'Example@Company.com',language:'en',items:[{line:'10',article:'ART-100',quantity:12,minibag:false,pickableStock:true,holdsClear:true},{line:'20',article:'ART-200',quantity:3,minibag:true,pickableStock:true,holdsClear:true,minibagLeadtime:true}],...overrides};
 }
 function order(o={}){return orders.createOrder(input(o),user,'2026-11-04T10:00:00.000Z');}
 test('CS can report SO3002 with multiple validated Lines, separate quantities and statuses',()=>{

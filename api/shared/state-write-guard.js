@@ -17,6 +17,7 @@ const DIRECT_RIGHTS = Object.freeze({
   taskMigrationMeta: ['tasks'],
   taskWeek: ['tasks'],
   taskMasterRC848: ['tasks'],
+  taskManagedDisabled: ['tasks'],
   taskMasterSourceVersion: ['tasks'],
   taskMasterUpdatedAt: ['tasks'],
   taskStatusLedger: ['tasks'],
@@ -295,9 +296,17 @@ function requiredModulesForKey(key) {
   return DIRECT_RIGHTS[key] || DOCUMENT_AWARE[key] || null;
 }
 
+function changesAdminOnlyClosureSettings(effect, key) {
+  if (key !== 'settings' || !effect.changed) return false;
+  const before = isObject(effect.before) ? effect.before.closureNotices : undefined;
+  const after = isObject(effect.after) ? effect.after.closureNotices : undefined;
+  return changed(before, after);
+}
+
 function keyChangeAllowed(serverState, incomingState, user, key) {
   const effect = effectiveKeyChange(serverState, incomingState, key);
   if (!effect.changed) return false;
+  if (changesAdminOnlyClosureSettings(effect, key) && !isAdmin(user)) return false;
   const direct = DIRECT_RIGHTS[key];
   if (direct) return canEditAny(user, direct);
   const domain = DOCUMENT_AWARE[key];
@@ -361,6 +370,10 @@ function sanitizeUnmappedNoise(serverState, incomingState, user) {
 function assertKeyChangeAllowed(serverState, incomingState, user, key) {
   const effect = effectiveKeyChange(serverState, incomingState, key);
   if (!effect.changed) return;
+  // The public-facing holiday notice changes what customers and carriers are
+  // told. Only global admins may authorize these dates, regardless of the
+  // general settings module's edit right.
+  if (changesAdminOnlyClosureSettings(effect, key) && !isAdmin(user)) forbidden('settings.closureNotices', ['settings']);
 
   const direct = DIRECT_RIGHTS[key];
   if (direct) {

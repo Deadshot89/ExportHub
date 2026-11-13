@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import vm from 'node:vm';
+import {hashFile} from '../.github/asset-fingerprint/fingerprint-assets.mjs';
+import {requireGuestRuntimeRef} from '../scripts/rc1903-guest-runtime-gate.mjs';
 import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
@@ -63,8 +67,35 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(builder,/'assets\/shipment-evidence\.css'/);
  assert.ok(builder.includes("'assets/shipment-evidence-guest.js'"));
  const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
- assert.match(guest,/data-eh1903-guest-open/);
- assert.match(guest,/guestOpen/);
+ assert.doesNotThrow(()=>new Function(guest),'Public form JavaScript must be parsable before browser tests');
+ assert.match(guest,/eh1903-photo-grid/,'Public gallery must render inside documentation');
+ assert.match(guest,/public-file/,'Guest image must use token-protected public-file API');
+ assert.match(guest,/dataset\.evidencePhotoDialog/,'Guest image must open in-page');
+ assert.match(guest,/URL\.revokeObjectURL/,'Guest preview object URLs must be released');
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ assert.doesNotThrow(()=>new Function(staff),'Internal photo gallery script must parse');
+ assert.match(staff,/eh1903-photo-grid/,'Internal gallery must render in shipment documentation');
+ assert.match(staff,/fileRequest\(id,file\)/,'Internal gallery must use authenticated file endpoint');
+ assert.match(staff,/downloadEvidence/,'Internal gallery needs a direct download');
+ assert.match(staff,/URL\.revokeObjectURL/,'Internal preview object URLs must be released');
+ const styles=fs.readFileSync('assets/shipment-evidence.css','utf8');
+ assert.match(styles,/\.eh1903-photo-frame\{[^}]*height:126px/,'Thumbnail must stay compact');
+
+ assert.doesNotMatch(guest,/ensureLoginEntry|data-eh1903-guest-open/);
+ assert.match(guest,/eh1903-guest-root/);
+ assert.match(guest,/STORAGE='exporthub-shipment-evidence-own-v2'/);
+ assert.ok(fs.readFileSync('assets/sendungsdokumentation.html','utf8').includes('id="eh1903-guest-root"'));
+ assert.match(guest,/guestIntro/);
+ assert.match(guest,/public-submit/);
+ assert.doesNotMatch(guest,/public-save/);
+ const prod=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+ const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ for(const cfg of [prod,testservice]){
+  const route=cfg.routes.find(v=>v.route==='/sendungsdokumentation');
+  assert.equal(route?.rewrite,'/assets/sendungsdokumentation.html');
+  assert.deepEqual(route.allowedRoles,['anonymous']);
+  assert.equal(route.headers['Referrer-Policy'],'no-referrer');
+ }
  assert.match(guest,/public-create/);
  assert.match(guest,/public-upload/);
  assert.match(ui,/data-exporthub-evidence-nav/);
@@ -76,9 +107,78 @@ test('RC1903: Build bindet eigene Navigation und API getrennt vom Sendungsprozes
  assert.match(ui,/expectedId&&expectedId!==originalId/);
  assert.match(ui,/node\.classList\.add\('active'\)/);
  assert.match(ui,/async function scanAll\(\)/);
- assert.match(ui,/const ok=await loadList\(false\)/);
+ // Full search must walk DOK first, then the authenticated historical REF archive.
+ assert.match(ui,/const ok=state\.continuation\?await loadList\(false\):await loadLegacyList\(false\)/);
+ assert.match(ui,/while\(run===state\.searchRun&&state\.view==='list'&&active\(\)&&\(state\.continuation\|\|state\.legacyContinuation\)\)/);
+ assert.match(ui,/if\(token!==state\.legacyRequestToken\|\|serial!==state\.serial\|\|state\.view!=='list'\)return false/);
  assert.match(ui,/state\.searchRun\+\+/);
  assert.equal(conf.bindings[0].route,'shipment-evidence');
+});
+test('RC1931: Sendungsansicht zeigt REF- und DOK-Dateien als sichere Galerie',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ const modern=fs.readFileSync('assets/rc1901-neue-sendungsansicht.js','utf8');
+ assert.doesNotThrow(()=>new Function(ui));
+ assert.match(ui,/eh1860-preview-grid/);
+ assert.match(ui,/eh1860-preview-frame/);
+ assert.match(ui,/function openFilePreview\(/);
+ assert.match(ui,/function downloadFile\(/);
+ assert.match(ui,/action:'for-reference',reference:ref/);
+ assert.match(ui,/action:'file',id:file.recordId,fileId:file.id/);
+ assert.match(ui,/IntersectionObserver/);
+ assert.match(ui,/URL\.revokeObjectURL/);
+ assert.match(ui,/isCurrent\(box,ref\)/);
+ assert.match(ui,/media\.setAttribute\('sandbox',''\)/);
+ assert.doesNotMatch(ui,/w\.open\(/,'The image/PDF preview must remain in the same page');
+ assert.match(modern,/data-rc1901-slot="docs"/);
+ assert.match(modern,/if\(proof\)adopt\(root,'docs',proof,files\)/);
+});
+test('RC1931: nur exakt verknuepfte, nicht geloeschte DOK-Nachweise aus der gesicherten API',async t=>{
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+ t.after(()=>{if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous});
+ const user={role:'Export',rights:{shipment:{level:'view',read:true}}};
+ t.mock.method(auth,'validateSession',async()=>({user,session:{environment:'production'}}));
+ t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
+ const docs=[
+  {id:'DOK-20261108-11111111',fields:{exporthubRef:'ABC123',customer:'Kunde A'},files:[{id:'f1',name:'Versandfoto_A.jpg',kind:'foto',mime:'image/jpeg',size:200}]},
+  {id:'DOK-20261108-22222222',fields:{exporthubRef:'XYZ999',customer:'Kunde B'},files:[{id:'f2',name:'Privat.pdf',mime:'application/pdf',size:200}]},
+  {id:'DOK-20261108-33333333',fields:{shipmentNumber:'ABC123',customer:'Kunde A'},files:[{id:'f3',name:'Nicht_verknuepft.pdf'}]},
+  {id:'DOK-20261108-44444444',fields:{exporthubRef:'ABC123'},deletedAt:'2026-11-08',files:[{id:'f4',name:'Geloescht.pdf'}]}
+ ];
+ const stored=new Map(docs.map(r=>[r.id,Buffer.from(JSON.stringify({...r,revision:1}))]));
+ let calls=0;
+ t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
+  getContainerClient:()=>({
+   listBlobsFlat:()=>({byPage:({continuationToken})=>({next:async()=>{
+    calls++;
+    const page=continuationToken?docs.slice(2):docs.slice(0,2);
+    return {value:{segment:{blobItems:page.map(v=>({name:'shipment-evidence/v1/records/'+v.id+'.json'}))},continuationToken:continuationToken?null:'page2'}};
+   }})}),
+   getBlockBlobClient:name=>({
+    download:async()=>{
+     const id=(name.match(/DOK-\d{8}-[A-F0-9]{8}/)||[])[0];
+     if(!id||!stored.has(id)){const e=new Error('Missing');e.statusCode=404;throw e}
+     return {etag:'"test"',readableStreamBody:Readable.from([stored.get(id)])};
+    }
+   })
+  })
+ }));
+ const ctx={};
+ await doc(ctx,{method:'GET',query:{action:'for-reference',reference:'abc123'},headers:{}});
+ assert.equal(ctx.res.status,200,ctx.res.body);
+ const body=JSON.parse(ctx.res.body);
+ assert.equal(body.reference,'ABC123');
+ assert.equal(body.records.length,1);
+ assert.equal(body.records[0].id,'DOK-20261108-11111111');
+ assert.equal(body.records[0].files[0].name,'Versandfoto_A.jpg');
+ assert.equal(body.records[0].fields,undefined,'Only file metadata is returned');
+ assert.equal(body.incomplete,false);
+ assert.equal(calls,2,'Pagination must not omit later records');
+ const invalid={};
+ await doc(invalid,{method:'GET',query:{action:'for-reference',reference:'ABC-123'},headers:{}});
+ assert.equal(invalid.res.status,400);
+ assert.equal(JSON.parse(invalid.res.body).code,'BAD_LINK');
 });
 test('RC1903: TESTSERVICE-Dokumentationen landen nur unter getrenntem Test-Prefix',async t=>{
  const previous={storage:process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,isolation:process.env.EXPORTHUB_TEST_AUTH_ISOLATION};
@@ -167,7 +267,34 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
  assert.equal(complaint.status,200,complaint.body);
  const complaintRecord=JSON.parse(complaint.body).record;
  assert.equal(complaintRecord.complaints[0].state,'offen');
- const closed=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId:complaintRecord.complaints[0].id,state:'abgeschlossen'});
+ const complaintId=complaintRecord.complaints[0].id;
+ const premature=await call('POST',{action:'complaint-status',id:record.id,expectedRevision:complaintRecord.revision,complaintId,state:'abgeschlossen'});
+ assert.equal(premature.status,422,'No closure without effectiveness evidence');
+ const newFile=await call('POST',{action:'upload',id:record.id,expectedRevision:complaintRecord.revision,
+  complaintId,kind:'reklamation',fileName:'Schaden.jpg',base64:jpeg()});
+ assert.equal(newFile.status,200,newFile.body);
+ const withFile=JSON.parse(newFile.body).record;
+ const complaintFile=withFile.files.find(f=>f.complaintId===complaintId);
+ assert.ok(complaintFile);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId:'other'})).status,404);
+ assert.equal((await call('GET',{action:'file',id:record.id,fileId:complaintFile.id,complaintId})).status,200);
+ const planned=await call('POST',{action:'complaint-update',id:record.id,expectedRevision:withFile.revision,complaintId,
+  rootCause:'Versandkontrolle fehlte',correctiveAction:'Pflichtscan vor Versand',checkDate:'2026-11-07',
+  checkMethod:'Zehn Sendungen kontrolliert',checkCriteria:'Keine falschen Packstücke',
+  effectivenessEvidence:'Kontrollliste mit zehn Nachweisen'});
+ assert.equal(planned.status,200,planned.body);
+ const verified=await call('POST',{action:'complaint-update',id:record.id,
+  expectedRevision:JSON.parse(planned.body).record.revision,complaintId,effectivenessResult:'wirksam'});
+ assert.equal(verified.status,200,verified.body);
+ const verifiedRecord=JSON.parse(verified.body).record;
+ const lastAudit=verifiedRecord.history.filter(x=>x.action==='complaint-update').at(-1)?.effectivenessAudit;
+ assert.equal(lastAudit?.before.result,'offen');
+ assert.equal(lastAudit?.after.result,'wirksam');
+ assert.equal(lastAudit?.after.verifiedBy,'Mitarbeiter');
+ assert.equal(lastAudit?.after.evidence,'Kontrollliste mit zehn Nachweisen');
+ const closed=await call('POST',{action:'complaint-status',id:record.id,
+  expectedRevision:JSON.parse(verified.body).record.revision,complaintId,state:'abgeschlossen'});
  assert.equal(closed.status,200,closed.body);
  assert.equal(JSON.parse(closed.body).record.complaints[0].state,'abgeschlossen');
  const stale=await call('POST',{action:'save',id:record.id,expectedRevision:0,fields:valid});
@@ -181,20 +308,34 @@ test('RC1903: Unabhängige Speicherung, Dateireadback, Beschwerde, ETag und GET 
 
 
 test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fotos hochladen',async t=>{
- const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
+ const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,
+       oldIsolation=process.env.EXPORTHUB_TEST_AUTH_ISOLATION,
+       oldMetadataPath=process.env.EXPORTHUB_RELEASE_METADATA_PATH;
+ const metadataDir=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1903-'));
+ const metadataPath=path.join(metadataDir,'release-metadata.json');
  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
  delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;
  t.after(()=>{
   if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
   if(oldIsolation===undefined)delete process.env.EXPORTHUB_TEST_AUTH_ISOLATION;else process.env.EXPORTHUB_TEST_AUTH_ISOLATION=oldIsolation;
+  if(oldMetadataPath===undefined)delete process.env.EXPORTHUB_RELEASE_METADATA_PATH;else process.env.EXPORTHUB_RELEASE_METADATA_PATH=oldMetadataPath;
+  fs.rmSync(metadataDir,{recursive:true,force:true});
  });
  const store=new Map(),names=[],user={role:'Export',rights:{documents:{level:'edit',edit:true,read:true}}};
+ const masterCustomers=[{id:'CUST-D1001',customerNumber:'D1001',account:'D1001',name:'Bestandskunde GmbH'}];
+ t.mock.method(auth,'clientsForEnvironment',async()=>({team:{name:'team-state.json'}}));
+ t.mock.method(auth,'readJson',async()=>({value:{state:{customers:masterCustomers}}}));
+ t.mock.method(auth,'mutateTeamForEnvironment',async(environment,mutator)=>{
+  const team={state:{customers:masterCustomers}};
+  const result=await mutator(team);
+  return{team,result};
+ });
  let loggedIn=false;
  t.mock.method(auth,'validateSession',async()=>{
   if(!loggedIn){const e=new Error('Nicht angemeldet');e.code='SESSION_INVALID';e.status=401;throw e}
   return{user,session:{environment:'production'},team:{state:{shipments:[]}}}
  });
- t.mock.method(auth,'environmentFromRequest',()=> 'production');
+ t.mock.method(auth,'environmentFromRequest',(req)=>req?.headers?.['x-exporthub-environment']==='testservice'?'testservice':'production');
  t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
  t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
   getContainerClient:()=>({
@@ -221,6 +362,77 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  }
  const badOrigin=await call('POST',{action:'public-create',fields:valid},'','https://evil.example');
  assert.equal(badOrigin.status,403,badOrigin.body);
+ const unknownCustomer=await call('POST',{action:'public-customer-lookup',customerNumber:'D9999'});
+ assert.equal(unknownCustomer.status,404,unknownCustomer.body);
+ const foundCustomer=await call('POST',{action:'public-customer-lookup',customerNumber:'D1001'});
+ assert.equal(foundCustomer.status,200,foundCustomer.body);
+ assert.deepEqual(JSON.parse(foundCustomer.body).customer,{id:'CUST-D1001',number:'D1001',name:'Bestandskunde GmbH'});
+ assert.ok(!foundCustomer.body.includes('customers":['));
+ // Azure Functions may expose its internal host instead of the public SWA host.
+ // Accept only the exact TESTSERVICE Origin in the matching environment.
+ const testHost='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+ const azureProxyHeaders={host:'exporthub-functions.internal.azurewebsites.net'};
+ const deployment={buildId:'a'.repeat(40),visibleRelease:'RC1903',technicalBuild:'RC1903-ci',
+  builtAt:new Date().toISOString(),environment:'testservice'};
+ fs.writeFileSync(metadataPath,JSON.stringify(deployment));
+ process.env.EXPORTHUB_RELEASE_METADATA_PATH=metadataPath;
+ const existingCustomer=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'MASTER-123',
+  customerMode:'existing',customerNumber:'D1001',customer:'Falscher Name'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(existingCustomer.status,201,existingCustomer.body);
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customer,'Bestandskunde GmbH');
+ assert.equal(JSON.parse(existingCustomer.body).record.fields.customerId,'CUST-D1001');
+ // This reproduces the browser request: NO X-ExportHUB-Environment client header.
+ const pending=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'NEW-CUST-001',
+  customerMode:'pending',customerNumber:'NEW900',customer:'Neukunde GmbH'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(pending.status,201,pending.body);
+ const pendingRecord=JSON.parse(pending.body).record;
+ loggedIn=true;
+ const rejected=await call('POST',{action:'register-customer',id:pendingRecord.id,expectedRevision:pendingRecord.revision},'',testHost,azureProxyHeaders);
+ assert.equal(rejected.status,403,rejected.body);
+ assert.equal(JSON.parse(rejected.body).code,'CUSTOMER_WRITE_FORBIDDEN');
+ user.rights.customers={level:'edit',read:true,edit:true};
+ const adopted=await call('POST',{action:'register-customer',id:pendingRecord.id,expectedRevision:pendingRecord.revision},'',testHost,azureProxyHeaders);
+ assert.equal(adopted.status,200,adopted.body);
+ assert.equal(JSON.parse(adopted.body).record.fields.customerMode,'existing');
+ assert.equal(masterCustomers.filter(x=>x.account==='NEW900').length,1);
+ const duplicate=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'NEW-CUST-002',
+  customerMode:'pending',customerNumber:'D1001',customer:'Fake'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(duplicate.status,409,duplicate.body);
+ loggedIn=false;
+ const viaProxy=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-AZURE-PROXY'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(viaProxy.status,201,viaProxy.body);
+ assert.ok([...store.keys()].some(name=>name.startsWith('testservice/shipment-evidence/v1/records/')));
+ const proxied=JSON.parse(viaProxy.body);
+ const proxiedGet=await call('GET',{action:'public-get',id:proxied.record.id},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedGet.status,200,proxiedGet.body);
+ const proxiedUpload=await call('POST',{action:'public-upload',id:proxied.record.id,expectedRevision:proxied.record.revision,
+  kind:'foto',fileName:'Proxy-Upload.jpg',base64:jpeg()},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedUpload.status,200,proxiedUpload.body);
+ const uploadedProxyRecord=JSON.parse(proxiedUpload.body).record;
+ const proxiedSubmit=await call('POST',{action:'public-submit',id:proxied.record.id,expectedRevision:uploadedProxyRecord.revision},
+  proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(proxiedSubmit.status,200,proxiedSubmit.body);
+ const lockedProxy=await call('POST',{action:'public-upload',id:proxied.record.id,
+  expectedRevision:JSON.parse(proxiedSubmit.body).record.revision,
+  kind:'foto',fileName:'After-Submit.jpg',base64:jpeg()},proxied.publicToken,testHost,azureProxyHeaders);
+ assert.equal(lockedProxy.status,403,lockedProxy.body);
+ assert.equal(JSON.parse(lockedProxy.body).code,'PUBLIC_READ_ONLY');
+ const spoofedOrigin=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-SPOOF'},website:''},'','https://attacker.example',azureProxyHeaders);
+ assert.equal(spoofedOrigin.status,403,spoofedOrigin.body);
+ const otherSwa=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-OTHER-SWA'},website:''},'','https://different-tenant.azurestaticapps.net',azureProxyHeaders);
+ assert.equal(otherSwa.status,403,otherSwa.body);
+ // Spoofed client environment must never change verified server deployment identity.
+ fs.writeFileSync(metadataPath,JSON.stringify({...deployment,environment:'production'}));
+ const wrongEnvironment=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-PROD-ORIGIN'},website:''},'',testHost,{
+  ...azureProxyHeaders,'x-exporthub-environment':'testservice'
+ });
+ assert.equal(wrongEnvironment.status,403,wrongEnvironment.body);
+ assert.equal(JSON.parse(wrongEnvironment.body).code,'BAD_ORIGIN');
+ // Missing trusted deployment metadata must also fail closed for internal hosts.
+ fs.writeFileSync(metadataPath,JSON.stringify({environment:'testservice'}));
+ const unverified=await call('POST',{action:'public-create',fields:{...valid,shipmentNumber:'RC1903-UNVERIFIED'},website:''},'',testHost,azureProxyHeaders);
+ assert.equal(unverified.status,403,unverified.body);
+ delete process.env.EXPORTHUB_RELEASE_METADATA_PATH;
  const created=await call('POST',{action:'public-create',fields:valid,website:''});
  assert.equal(created.status,201,created.body);
  const first=JSON.parse(created.body);
@@ -245,18 +457,29 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(own.status,200,own.body);
  const returned=JSON.parse(own.body).record;
  assert.ok(!('publicAccess' in returned));
- const updated=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'1 Karton und Frachtpapiere'}},first.publicToken);
- assert.equal(updated.status,200,updated.body);
- const rev=JSON.parse(updated.body).record.revision;
- const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:rev,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
+ const deniedPublicEdit=await call('POST',{action:'public-save',id:docId,expectedRevision:returned.revision,fields:{...valid,contents:'Anders'}},first.publicToken);
+ assert.equal(deniedPublicEdit.status,401,'Öffentliche Feldänderung wird nicht mehr angeboten');
+ const deniedGuestComplaintFile=await call('POST',{action:'public-upload',id:docId,
+  expectedRevision:returned.revision,kind:'reklamation',complaintId:'fake',
+  fileName:'not-public.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(deniedGuestComplaintFile.status,403,deniedGuestComplaintFile.body);
+ assert.equal(JSON.parse(deniedGuestComplaintFile.body).code,'PUBLIC_BAD_KIND');
+ const uploaded=await call('POST',{action:'public-upload',id:docId,expectedRevision:returned.revision,kind:'foto',fileName:'Abfahrt.jpg',base64:jpeg()},first.publicToken);
  assert.equal(uploaded.status,200,uploaded.body);
- const pic=JSON.parse(uploaded.body).record.files[0];
+ const uploadedRecord=JSON.parse(uploaded.body).record;
+ const pic=uploadedRecord.files[0];
+ const submitted=await call('POST',{action:'public-submit',id:docId,expectedRevision:uploadedRecord.revision},first.publicToken);
+ assert.equal(submitted.status,200,submitted.body);
+ assert.ok(JSON.parse(submitted.body).record.submittedAt);
+ const afterSubmit=await call('POST',{action:'public-upload',id:docId,expectedRevision:JSON.parse(submitted.body).record.revision,kind:'foto',fileName:'Nachtrag.jpg',base64:jpeg()},first.publicToken);
+ assert.equal(afterSubmit.status,403,afterSubmit.body);
+ assert.equal(JSON.parse(afterSubmit.body).code,'PUBLIC_READ_ONLY');
  const file=await call('GET',{action:'public-file',id:docId,fileId:pic.id},first.publicToken);
  assert.equal(file.status,200);
  assert.ok(Buffer.isBuffer(file.body));
  const forbidden=await call('GET',{action:'public-file',id:docId,fileId:pic.id});
  assert.equal(forbidden.status,403);
- const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:rev,text:'ohne Sitzung'},first.publicToken);
+ const complaint=await call('POST',{action:'complaint',id:docId,expectedRevision:JSON.parse(submitted.body).record.revision,text:'ohne Sitzung'},first.publicToken);
  assert.equal(complaint.status,401);
  loggedIn=true;
  const staff=await call('GET',{action:'get',id:docId});
@@ -321,6 +544,23 @@ test('RC1903: ohne Login nur neue Sendung erfassen, zeitlich begrenzte eigene Fo
  assert.equal(JSON.parse(globallyBlocked.body).code,'PUBLIC_RATE_LIMIT');
  assert.ok([...store.keys()].some(key=>key.endsWith('/global.json')));
  assert.ok(![...store.keys()].some(key=>key.includes('/client-')||key.includes('/unidentified.json')));
+ // Eine normale Mitarbeiterberechtigung reicht ausdrücklich NICHT zum Löschen.
+ const nonAdminDelete=await call('POST',{action:'delete',id:docId,expectedRevision:JSON.parse(teamFile.body).record.revision});
+ assert.equal(nonAdminDelete.status,403,nonAdminDelete.body);
+ assert.equal(JSON.parse(nonAdminDelete.body).code,'ADMIN_REQUIRED');
+ user.globalAdmin=true;
+ const adminView=await call('GET',{action:'get',id:docId});
+ assert.equal(JSON.parse(adminView.body).canDelete,true);
+ const deleted=await call('POST',{action:'delete',id:docId,expectedRevision:JSON.parse(adminView.body).record.revision});
+ assert.equal(deleted.status,200,deleted.body);
+ const afterDelete=await call('GET',{action:'list'});
+ assert.ok(!JSON.parse(afterDelete.body).records.some(x=>x.id===docId));
+ assert.equal((await call('GET',{action:'get',id:docId})).status,404);
+ assert.equal((await call('GET',{action:'public-get',id:docId},first.publicToken)).status,404);
+ const retained=JSON.parse(store.get('shipment-evidence/v1/records/'+docId+'.json').bytes.toString());
+ assert.ok(retained.deletedAt);
+ assert.ok(retained.history.some(event=>event.action==='admin-delete'));
+ assert.ok([...store.keys()].some(k=>k.includes('/files/'+docId+'/')));
 });
 
 
@@ -342,4 +582,121 @@ test('RC1903: TESTSERVICE-Live-Smoke schreibt nur nach verifizierter Ziel-SHA',(
  assert.ok(workflow.indexOf('RC1553 TESTSERVICE deployment identity prüfen')<workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate'));
  assert.ok(workflow.indexOf('RC1903 Sendungsdokumentation TESTSERVICE Live-Gate')<workflow.indexOf('RC1810 Urgent Order TESTSERVICE'));
  assert.match(workflow,/git diff --name-only HEAD\^ HEAD/);
+});
+
+
+test('RC1903: beide internen Formulare blenden die vier entfernten Felder aus, ohne historische Daten zu löschen',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const match=staff.match(/const FIELDS=\[([\s\S]*?)\];/);
+ assert.ok(match,'Internal field schema must exist');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(match[1],new RegExp("\\['"+field+"'"),'Internal form must not render '+field);
+  assert.doesNotMatch(guest.match(/const FIELDS=\[([\s\S]*?)\];/)[1],new RegExp("\\['"+field+"'"),'Guest form must not render '+field);
+ }
+ assert.match(staff,/Object\.assign\(\{\},r&&r\.fields\|\|\{\},readFields\(app\)\)/,'Existing hidden values must survive staff edits');
+ assert.match(build,/shipment-evidence\.js\?v=2010/,'Staff runtime must have cache-busted version');
+});
+
+
+test('RC1903: automatische Referenznummer in beiden Formularen und korrektes Cache-Busting',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ const html=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const context={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),context);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const strings=context.window.ExportHUBEvidenceI18n[locale];
+  for(const key of ['docId','referencePending','copyReference','referenceCopied'])assert.ok(strings[key],locale+' '+key);
+ }
+ assert.equal(context.window.ExportHUBEvidenceI18n.de.docId,'Referenznummer');
+ assert.match(staff,/reference\.appendChild\(make\('strong',null,r\.id\)\)/);
+ assert.match(staff,/clipboard\.writeText\(r\.id\)/);
+ assert.match(staff,/t\('referencePending'\)/);
+ assert.match(guest,/t\('docId'\)\+': '\+record\.id/);
+ assert.match(guest,/clipboard\.writeText\(record\.id\)/);
+ assert.match(guest,/t\('referencePending'\)/);
+ assert.match(staff,/Object\.assign\(\{\},state\.record&&state\.record\.fields\|\|\{\},readFields\(currentRoot\)\)/,'Upload must not erase hidden legacy fields');
+ assert.match(build,/shipment-evidence\.js\?v=2010/);
+ assert.match(build,/i18n\/shipment-evidence\.js\?v=2010/);
+ assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(html,/i18n\/shipment-evidence\.js\?v=1908-upload/);
+ assert.match(html,/shipment-evidence-guest\.js\?v=1907/);
+});
+
+test('RC1903: live TESTSERVICE smoke rejects outdated public upload scripts',()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ const gate=fs.readFileSync('scripts/rc1903-guest-runtime-gate.mjs','utf8');
+ const guest=fs.readFileSync('assets/sendungsdokumentation.html','utf8');
+ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.ok(gate.includes(String.raw`shipment-evidence-guest\.js\?v=1907`),'Live gate must require the new runtime');
+ assert.match(live,/requireGuestRuntimeRef\(html,guestBytes,\{fingerprintRequired:true\}\)/);
+ assert.match(live,/assert\.ok\(Buffer\.from\(await asset\.arrayBuffer\(\)\)\.equals\(guestBytes\)/);
+ assert.match(live,/Public evidence page still serves a stale upload runtime/);
+ assert.match(guest,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(build,/shipment-evidence-guest\.js\?v=1907/);
+ assert.match(live,/healthData\?\.deployment\?\.buildId,sha/);
+ assert.match(live,/assert\.deepEqual\(read\.data,bytes/);
+});
+
+test('RC1903: live guest gate accepts verified fingerprints and rejects stale or unversioned runtime',()=>{
+ const bytes=fs.readFileSync('assets/shipment-evidence-guest.js');
+ const fingerprint=hashFile('assets/shipment-evidence-guest.js');
+ const asset='/assets/shipment-evidence-guest.js?v=1907';
+ const checked='<script defer src="'+asset+'&h='+fingerprint+'"></script>';
+ const publicHtml='<script defer src="'+asset+'"></script>';
+ assert.equal(requireGuestRuntimeRef(checked,bytes,{fingerprintRequired:true}),asset+'&h='+fingerprint);
+ assert.equal(requireGuestRuntimeRef(publicHtml,bytes),asset,'Standalone public page may use the same version without a build hash');
+ assert.throws(()=>requireGuestRuntimeRef(publicHtml,bytes,{fingerprintRequired:true}),/fingerprint is missing or stale/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset+'&h=0000000000"></script>',bytes),/fingerprint is stale/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset.replace('1907','1906')+'"></script>',bytes),/runtime v=1907 is absent/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="/assets/shipment-evidence-guest.js"></script>',bytes),/runtime v=1907 is absent/);
+ assert.throws(()=>requireGuestRuntimeRef('<script src="'+asset+'&h=unverified"></script>',bytes),/runtime v=1907 is absent/);
+});
+
+test('RC1903: first photo upload creates own DOK; public and staff require persisted file read-back',()=>{
+ const staff=fs.readFileSync('assets/shipment-evidence.js','utf8');
+ const guest=fs.readFileSync('assets/shipment-evidence-guest.js','utf8');
+ assert.doesNotMatch(staff,/input\.disabled=!record/,'First upload picker must stay enabled');
+ assert.match(staff,/const created=await write\('create',\{fields:current\}\)/);
+ assert.match(staff,/docId=created\.record\.id/);
+ assert.match(staff,/await request\('GET',\{action:'get',id:docId\}\)/);
+ assert.match(staff,/state\.uploading=true/);
+ assert.match(staff,/!ids\.has\(f\.id\)/);
+ assert.match(staff,/uploadUnverified/);
+ assert.match(guest,/await api\('GET','public-get',\{id:record\.id\},token\)/);
+ assert.match(guest,/!beforeIds\.has\(f\.id\)/);
+ assert.match(guest,/uploadUnverified/);
+ const ctx={window:{}};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/shipment-evidence.js','utf8'),ctx);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  const strings=ctx.window.ExportHUBEvidenceI18n[locale];
+  for(const key of ['uploadAutoCreate','uploadBusy','verifyingUpload','uploadVerified','uploadUnverified'])
+   assert.ok(strings[key],locale+' '+key);
+ }
+});
+
+test('RC2008 P0: TESTSERVICE runtime readback compares bytes exactly without exposing asset contents',async()=>{
+ const live=fs.readFileSync('scripts/rc1903-testservice-guest-live.mjs','utf8');
+ assert.doesNotMatch(live,/assert\.match\(publicHtml,/,'A failed form-root check must not print full public HTML');
+ assert.match(live,/assert\.ok\(\/id="eh1903-guest-root"\/\.test\(publicHtml\),/,'Form-root check must remain mandatory');
+ const source="assert.ok(Buffer.from(await asset.arrayBuffer()).equals(guestBytes),";
+ const start=live.indexOf(source);
+ const end=live.indexOf(");\n",start);
+ assert.ok(start>=0&&end>start,'Asset readback comparison missing');
+ const comparison=live.slice(start,end+2);
+ assert.doesNotMatch(comparison,/deepEqual|match\(/,'No raw asset buffer may be passed to an assertion failure');
+ const verify=vm.runInNewContext('(async(asset,guestBytes,ref)=>{'+comparison+'})',{Buffer,assert});
+ const good=Buffer.from('EXACT-GUEST-ASSET');
+ await verify({arrayBuffer:async()=>good},good,'/assets/shipment-evidence-guest.js?v=1907');
+ const payload=Buffer.from('SENSITIVE-SYNTHETIC-BUFFER-TEST');
+ await assert.rejects(
+  verify({arrayBuffer:async()=>payload},good,'/assets/shipment-evidence-guest.js?v=1907'),
+  error=>error.code==='ERR_ASSERTION'&&
+   /TESTSERVICE runtime bytes do not match/.test(error.message)&&
+   !String(error.stack).includes('SENSITIVE-SYNTHETIC-BUFFER-TEST'),
+  'Mismatch must fail closed without including received bytes'
+ );
 });

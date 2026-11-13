@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const actor={id:'CS-1',name:'Customer Service'};
 const logistics={id:'OPS-1',rights:{shipmentoverview:{level:'edit'}}};
 function base(extra={}){
- return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',email:'cs@example.com',language:'de',
+ return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
   orderType:'DIRECT_OUTBOUND',directOutbound:{
    arrivalAt:'2026-11-09T08:30',arrivalMode:'TRUCK',arrivalProvider:'Example Freight',
    dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true
@@ -79,7 +79,8 @@ test('Anonymous reporter front-end and API provide scoped tracking, not public g
  assert.equal(apiCfg.bindings[0].route,'urgent-order-public');
  assert.match(pub,/crypto\.randomBytes\(32\)/);
  assert.match(pub,/groupByToken/);
- assert.match(pub,/\.filter\(o=>o\.reporterId===group\.id\)/);
+ // Scope by reporter AND exclude soft-deleted requests; the API's capability isolation remains unchanged.
+ assert.match(pub,/\.filter\(o=>!o\.deletedAt&&o\.reporterId===group\.id\)/);
  assert.doesNotMatch(pub,/update-status|sendTextMail|sendMail\(/);
  for(const id of ['tabOpen','tabClosed','orderType','trackingUrl','deliveryNotePresent','asnWorking'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/location\.hash/);

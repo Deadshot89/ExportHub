@@ -7,15 +7,15 @@
   <meta name="referrer" content="no-referrer">
   <title>ExportHUB360 · Packmeldung</title>
   <link rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg">
-  <link rel="stylesheet" href="/assets/pack-notification.css?v=3">
-  <script defer src="/assets/i18n/pack-notification.js?v=3"></script>
+  <link rel="stylesheet" href="/assets/pack-notification.css?v=5">
+  <script defer src="/assets/i18n/pack-notification.js?v=4"></script>
   <script defer src="/assets/i18n/pack-notification-draft-bridge.js?v=1"></script>
   <script defer src="/assets/i18n/pack-notification-drafts.js?v=2"></script>
   <script defer src="/assets/i18n/pack-notification-draft-contract.js?v=1"></script>
   <script defer src="/assets/rc1555-packaging-store.js?v=1555"></script>
   <script defer src="/assets/packaging-catalog.js?v=1555"></script>
   <script defer src="/assets/document-reference-normalizer.js?v=3"></script>
-  <script defer src="/assets/pack-notification.js?v=10"></script>
+  <script defer src="/assets/pack-notification.js?v=12"></script>
 <link rel="stylesheet" href="/assets/rc1800-premium-standalone.css?v=1800">
 </head>
 <body>
@@ -39,8 +39,7 @@
         <button id="packNewShipment" class="pack-start" type="button">+ Neue Sendung melden</button>
         <ol class="pack-start-steps" aria-hidden="true">
           <li><span>1</span><span>Sendung</span></li>
-          <li><span>2</span><span>Maße</span></li>
-          <li><span>3</span><span>Lieferscheine</span></li>
+          <li><span>2</span><span>Lieferscheine</span></li>
         </ol>
         <div class="pack-home-head">
           <div>
@@ -61,12 +60,11 @@
         </div>
         <ol id="packProgress" class="pack-progress">
           <li data-pack-step="shipment"><button type="button" data-pack-jump="packStepShipment"><span class="pack-progress-no">1</span><span>Sendung</span></button></li>
-          <li data-pack-step="dimensions"><button type="button" data-pack-jump="packStepDimensions"><span class="pack-progress-no">2</span><span>Maße</span></button></li>
-          <li data-pack-step="documents"><button type="button" data-pack-jump="packStepDocuments"><span class="pack-progress-no">3</span><span>Lieferscheine</span></button></li>
+          <li data-pack-step="documents"><button type="button" data-pack-jump="packStepDocuments"><span class="pack-progress-no">2</span><span>Lieferscheine</span></button></li>
         </ol>
         <section id="packStepShipment" class="pack-section" data-pack-section="shipment">
           <h2><span class="pack-step-no" aria-hidden="true">1</span><span>Sendung</span></h2>
-          <div class="pack-grid pack-grid-two">
+          <div class="pack-customer-only">
             <div class="pack-customer-field">
               <label for="packCustomer">Kunde *</label>
               <input id="packCustomer" name="customer" type="text" maxlength="200" autocomplete="off" aria-autocomplete="list" aria-controls="packCustomerResults" required>
@@ -77,31 +75,25 @@
               </div>
               <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
             </div>
-            <label>Packstücktyp *
-              <select id="packPackageType" name="packageType" required>
-                <option value="">Bitte wählen</option>
-              </select>
-            </label>
-            <div class="pack-count-field">
-              <label for="packPackageCount">Anzahl Packstücke *</label>
-              <div class="pack-stepper">
-                <button id="packCountMinus" type="button" aria-label="Ein Packstück weniger">−</button>
-                <input id="packPackageCount" name="packageCount" type="number" min="1" max="99" step="1" value="1" inputmode="numeric" required>
-                <button id="packCountPlus" type="button" aria-label="Ein Packstück mehr">+</button>
-              </div>
-            </div>
-            <label>Gesamtgewicht in kg *<input id="packWeight" name="totalWeight" type="number" min="0.01" max="99999" step="0.01" inputmode="decimal" required></label>
+          </div>
+          <div class="pack-entry-intro"><strong id="packEntryTitle">Packstücke erfassen</strong><span id="packEntryHelp">Verpackung, Anzahl, Gewicht und bei Bedarf Maße je Zeile erfassen – wie bei Sendung erstellen.</span></div>
+          <div id="packEntryRows" class="pack-entry-list" aria-live="polite"></div>
+          <button id="packAddPackage" class="pack-secondary pack-add-package" type="button">+ Weitere Zeile</button>
+          <div id="packEntryTotals" class="pack-entry-totals" role="status" aria-live="polite"></div>
+          <div class="pack-legacy-summary" hidden aria-hidden="true">
+            <select id="packPackageType" name="packageType"><option value="">Bitte wählen</option></select>
+            <input id="packPackageCount" name="packageCount" type="number" value="1" tabindex="-1">
+            <input id="packWeight" name="totalWeight" type="number" tabindex="-1">
           </div>
         </section>
 
-        <section id="packStepDimensions" class="pack-section" data-pack-section="dimensions">
+        <section id="packStepDimensions" class="pack-section" data-pack-section="dimensions" hidden aria-hidden="true">
           <div class="pack-section-head"><div><h2><span class="pack-step-no" aria-hidden="true">2</span><span>Maße</span></h2><p>Länge × Breite × Höhe je Packstück in cm. Hinterlegte Grundmaße werden automatisch übernommen und können bei Bedarf korrigiert werden.</p></div><button id="packCopyDimensions" class="pack-secondary pack-copy-dimensions" type="button" hidden>Maße von Packstück 1: gleiche Verpackungsart</button></div>
           <div id="packPackageRows" class="pack-package-list"></div>
-          <button id="packAddPackage" class="pack-secondary pack-add-package" type="button">+</button>
         </section>
 
         <section id="packStepDocuments" class="pack-section" data-pack-section="documents">
-          <h2><span class="pack-step-no" aria-hidden="true">3</span><span>Lieferscheine</span> <span id="packDocumentsOptional" class="pack-optional"></span></h2>
+          <h2><span class="pack-step-no" aria-hidden="true">2</span><span>Lieferscheine</span> <span id="packDocumentsOptional" class="pack-optional"></span></h2>
           <p id="packDeliveryNotesHelp" class="pack-help">Optional: Lieferscheine als PDF, JPG oder PNG hochladen. Die Packmeldung kann auch ohne Lieferschein abgesendet werden.</p>
           <div class="pack-upload-row">
             <label class="pack-upload pack-camera" for="packCamera">

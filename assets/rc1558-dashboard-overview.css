@@ -61,6 +61,9 @@
 .rc1558-kpi[data-tone="crit"] .rc1558-kpi-value{color:var(--rc1558-crit)}
 .rc1558-kpi[data-tone="warn"]{outline:2px solid var(--rc1558-warn);outline-offset:-2px}
 .rc1558-kpi[data-tone="warn"] .rc1558-kpi-value{color:var(--rc1558-warn)}
+/* Unavailable live counts use the same restrained typography as other zero-value KPI cards. */
+.rc1558-kpi[data-unavailable="1"] .rc1558-kpi-value{color:var(--rc1558-muted);font-weight:600}
+.rc1558-kpi[data-unavailable="1"] .rc1558-icon{color:var(--rc1558-muted);opacity:.6}
 
 .rc1558-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;align-items:stretch}
 .rc1558-stack{display:grid;gap:12px;min-width:0;grid-auto-rows:minmax(0,auto)}
@@ -391,3 +394,29 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
    The SOP editor holder (its box is hidden on the dashboard, 0 px) is appended late too and added a 10 px gap row. */
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #taskplannerV2DashboardProjection,
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc46SopEditorHolder{display:none!important}
+
+
+/* RC1965/RC1911: top KPI cards are equal-width siblings, including open complaints. */
+@media(min-width:1000px){
+  .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(5,minmax(0,1fr))!important}
+}
+@media(min-width:641px) and (max-width:999px){
+  .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rc1558-kpis:has(>.rc1558-kpi:nth-child(10)){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .rc1558-kpis:has(>.rc1558-kpi:nth-child(9)){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* RC1911: eleven KPI cards use balanced rows rather than a single orphan tile. */
+@media(min-width:1100px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(6,minmax(0,1fr))}
+ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(6,minmax(0,1fr))!important}
+}
+@media(min-width:1000px) and (max-width:1099px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(min-width:641px) and (max-width:999px){
+ .rc1558-kpis:has(>.rc1558-kpi:nth-child(11)){grid-template-columns:repeat(3,minmax(0,1fr))}
+}

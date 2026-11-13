@@ -46,9 +46,9 @@ const tasks=[
 ];
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
-  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1666/);
-  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1666/);
-  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1667/);
+  assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1966/);
+  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1966/);
+  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1966/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
   const a=build.indexOf('html=patchRc1371Dashboard(html,file);');
   const b=build.indexOf('html=patchRc1558DashboardOverview(html,file);');
@@ -184,7 +184,8 @@ test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; 
   assert.match(api.renderHtml(model,{now:new Date(2026,9,17,19,0),userName:''}),/>Guten Abend</,'ohne Namen kein hängendes Komma');
   assert.equal(api.isoWeek(new Date(2026,0,1)),1);
   assert.equal(api.isoWeek(new Date(2027,0,1)),53);
-  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,7,'ein Symbol pro Kennzahl');
+  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,10,'sieben bisherige Kennzahlen plus drei gleich gestaltete Status-Kacheln einschließlich Reklamationen oben');
+  assert.match(morning,/data-rc1558-open-module="shipmentevidence"/,'Reklamationen bleiben direkt aus der Kopfzeile aufrufbar');
   const empty=api.renderHtml(api.buildModel(fakeApi([],[]),[],NOW),{now:NOW,userName:'A'});
   assert.equal((empty.match(/data-zero="1"/g)||[]).length,7);
   assert.match(empty,/rc1558-empty-icon/);

@@ -11,6 +11,16 @@ function allowed(user){
  const rights=user&&user.rights||{};
  return ['shipmentoverview','shipment','documents'].some(k=>{const r=rights[k];return !!(r&&(r.read===true||r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='read'||r.level==='edit'||r.level==='admin'))});
 }
+// Reject mismatched photo metadata before any Azure Blob read. Historical
+// records may omit photo.reference, but modern environment/ref blob paths must
+// still belong to the selected shipment REF. Do not allow a stale cross-REF
+// photo pointer to expose a different shipment's stored image.
+function photoBelongsToReference(photo,reference){
+ const declared=text(photo&&photo.reference).toUpperCase();
+ if(declared&&declared!==reference)return false;
+ const path=text(photo&&photo.blobName),canonical=path.match(/^(?:production|testservice)\/([^/]+)\//i);
+ return !canonical||canonical[1].toUpperCase()===reference;
+}
 function photosOf(sh){
  const out=Array.isArray(sh&&sh.containerPhotos)?sh.containerPhotos.slice():[];
  const subs=Array.isArray(sh&&sh.subShipments)?sh.subShipments:[];
@@ -29,7 +39,7 @@ module.exports=async function(context,req){
   if(!matches.length)throw auth.error('SHIPMENT_NOT_FOUND',apiI18n.t(req,'api.container.shipmentNotFound'),404);
   // A stale browser/team copy can keep the same photo ID as a newer saved
   // shipment. Prefer the newest uploaded photo, never the first matching ID.
-  const versions=matches.flatMap(sh=>photosOf(sh).filter(x=>(file&&text(x&&x.id)===file)||(kind&&text(x&&x.kind).toLowerCase()===kind)).map(photo=>({
+  const versions=matches.flatMap(sh=>photosOf(sh).filter(x=>photoBelongsToReference(x,reference)&&((file&&text(x&&x.id)===file)||(kind&&text(x&&x.kind).toLowerCase()===kind))).map(photo=>({
    photo,stamp:Date.parse(text(photo&&photo.uploadedAt))||Date.parse(text(sh&&sh.containerDocumentationUpdatedAt))||0
   })));
   versions.sort((a,b)=>b.stamp-a.stamp);

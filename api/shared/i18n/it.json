@@ -257,6 +257,8 @@
   "api.container.photoLabel.number": "Numero del container dall’interno",
   "api.container.photoLabel.sealed": "Container sigillato · sigillo/marcature/documenti",
   "api.fixedPickups.failed": "Non è stato possibile elaborare i ritiri fissi.",
+  "api.pickupLinks.readForbidden": "Non hai il permesso di visualizzare il calendario dei ritiri.",
+  "api.pickupLinks.loadFailed": "Impossibile caricare le associazioni dei ritiri.",
   "api.abdAnalysis.fileRequired": "Seleziona un file PDF, XLSX o CSV.",
   "api.abdAnalysis.fileType": "Per l’analisi della dichiarazione di esportazione sono ammessi solo file PDF, XLSX e CSV.",
   "api.abdAnalysis.fileTooLarge": "Il file è troppo grande. La dimensione massima è {{max}} MB.",

@@ -86,6 +86,11 @@ module.exports = async function(context, req) {
         configured: diagnostic.configured,
         missing: diagnostic.missing,
         targetMode: diagnostic.targetMode,
+        // Only an explicit boolean established by a read-only Graph GET may
+        // leave the signed maintenance endpoint, never user/drive/folder IDs.
+        ...(typeof diagnostic.configuredUserPathMatchesExplicitIds === 'boolean'
+          ? { configuredUserPathMatchesExplicitIds: diagnostic.configuredUserPathMatchesExplicitIds }
+          : {}),
         checks: diagnostic.checks
       });
       return;
@@ -104,7 +109,7 @@ module.exports = async function(context, req) {
         limit: Math.min(25, Math.max(1, Math.round(Number(payload.auditLimit || payload.limit) || 10)))
       });
       if (payload.auditOnly === true) {
-        context.res = json(audit.ok ? 200 : 409, Object.assign({ version: 'RC1440', backupMode: 'azure-archive', graphConfigured: graph.configured, auditOnly: true }, audit));
+        context.res = json(audit.ok ? 200 : 409, Object.assign({ version: 'RC1440', backupMode: 'azure-archive', archiveStorageMode: store.podArchiveStorageMode(), graphConfigured: graph.configured, auditOnly: true }, audit));
         return;
       }
     }
@@ -126,7 +131,7 @@ module.exports = async function(context, req) {
       scanPageSize: Math.min(100, Math.max(10, Math.round(Number(payload.scanPageSize) || 40))),
       minAgeMs: reference || drainAll ? 0 : 5 * 60 * 1000
     });
-    context.res = json(200, Object.assign({ version: 'RC1241', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
+    context.res = json(200, Object.assign({ version: 'RC1241', backupMode: 'azure-archive', archiveStorageMode: store.podArchiveStorageMode(), graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
   } catch (e) {
     try { context.log && context.log.error && context.log.error('RC1440 POD maintenance failed', e && e.code, e && e.message); } catch (_) {}
     context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Wartung ist fehlgeschlagen.', version: 'RC1440' });

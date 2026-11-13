@@ -55,6 +55,7 @@ ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 1
 ICONS.quality=ICONS.inspections;
 ICONS.urgentorders='<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"/>';
 ICONS.shipmentevidence=ICONS.shipmentoverview;
+ICONS.documents=ICONS.abd;
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -62,7 +63,7 @@ var SECTIONS=[
  // Urgent Order (pack-notification-nav.js, ohne data-view) steht direkt unter Packmeldungen
  {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','urgentorders','notifications']},
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
- {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentevidence','shipmentsearch','cmr','pickupcalendar']},
+ {key:'shipments',accent:'#0284c7',views:['shipment','abd','documents','shipmentoverview','shipmentevidence','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','quality','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
@@ -73,14 +74,14 @@ SECTION_OF.packagingmasterdata='admin';
 var DEFAULT_OPEN=['tasks','shipments'];
 var IT_VIEWS=['diagnostics','release','update'];
 
-var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null,lastUserSig=null;
+var nav=null,observer=null,viewObserver=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null,lastUserSig=null;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function packs(){return w.ExportHUBMenu1579I18n&&w.ExportHUBMenu1579I18n.packs||{}}
 function lang(){var l='';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')l=q(w.ExportHUBI18n.language()).toLowerCase()}catch(_){}if(!packs()[l]){var sel=d.getElementById('languageSelect');l=q(sel&&sel.value).toLowerCase()}return packs()[l]?l:'de'}
 function t(key,vars){var p=packs(),v=(p[lang()]||{})[key];if(v==null)v=(p.de||{})[key];v=String(v==null?key:v);if(vars)Object.keys(vars).forEach(function(k){v=v.split('{'+k+'}').join(vars[k])});return v}
 function uri(markup){return 'url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+markup+'</svg>')+'")'}
-function viewOf(el){return q(el&&el.getAttribute&&(el.getAttribute('data-index321-view')||el.getAttribute('data-view')||el.getAttribute('data-rc626-view')))}
+function viewOf(el){return q(el&&el.getAttribute&&(el.getAttribute('data-index321-view')||el.getAttribute('data-view')||el.getAttribute('data-rc626-view')||(el.hasAttribute('data-exporthub-urgent-nav')?'urgentorders':'')||el.getAttribute('data-rc1579-proxy')))}
 function shown(el){return !!el&&!el.hidden&&el.style.display!=='none'}
 
 function readOpen(){var raw=null,list=null;try{raw=w.localStorage&&w.localStorage.getItem(STORE);if(raw)list=JSON.parse(raw)}catch(_){list=null}if(!Array.isArray(list))return DEFAULT_OPEN.slice();return list.filter(function(k){return typeof k==='string'&&!FLAT[k]})}
@@ -111,7 +112,7 @@ function css(){
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
-function itemSel(v){if(v==='urgentorders')return '[data-exporthub-urgent-nav]';if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
+function itemSel(v){if(v==='urgentorders')return '[data-exporthub-urgent-nav]';if(v==='documents')return '[data-exporthub-documents-nav]';if(v==='quality')return '[data-rc1579-proxy="quality"]';if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
 function ensureStyle(){if(d.getElementById(STYLE_ID))return;var st=d.createElement('style');st.id=STYLE_ID;st.textContent=css();(d.head||d.documentElement).appendChild(st)}
 
 function header(s){
@@ -207,11 +208,11 @@ function ensureItProxy(active){
   proxy.addEventListener('click',function(e){e.preventDefault();openIt('');try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}});
   nav.appendChild(proxy);
  }
- var label=t('it'),isActive=IT_VIEWS.indexOf(active)>=0;
+ var label=t('it'),isActive=active==='it'||IT_VIEWS.indexOf(active)>=0;
  setText(proxy.querySelector('.index308-nav-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
  proxy.hidden=itAllowed().length===0;
  setAttr(proxy,'data-rc1579-active',isActive?'1':null);
- copyLook(proxy,isActive?itButton(active):null);
+ copyLook(proxy,isActive?itButton(IT_VIEWS.indexOf(currentView())>=0?currentView():active):null);
  return proxy;
 }
 function itTabs(){
@@ -252,7 +253,38 @@ function applyRights(){
  try{if(w.ExportHUBRC325&&typeof w.ExportHUBRC325.buildMenu==='function')w.ExportHUBRC325.buildMenu()}catch(_){}
 }
 
-function activeView(){var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');return a?viewOf(a):''}
+// Shared menu state for the sidebar, mobile menu, and the top navigation.
+ // Nested views must highlight their parent; do not reuse a stale Sendung marker.
+function menuView(view){
+ var v=q(view).toLowerCase();
+ return ({diagnostics:'it',release:'it',update:'it',
+  packnotification:'packnotifications',shipmentview:'shipmentoverview',
+  packagingmasterdata:'packaging',exams:'academy'})[v]||v;
+}
+function activeView(){
+ var v=menuView(currentView()),b=null;
+ if(v){b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b)&&b.getAttribute('aria-hidden')!=='true')return v}
+ var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');
+ return menuView(viewOf(a));
+}
+
+// Reflect the actual view in the original buttons too. The section header alone is not enough:
+ // an old Sendung button would otherwise remain visually active on the mobile/sidebar layout.
+function syncSelection(){
+ var v=menuView(currentView());
+ if(!v||!SECTION_OF[v])return;
+ var target=nav.querySelector(':scope>'+itemSel(v));
+ if(!target||target.hidden||target.style.display==='none'||target.getAttribute('aria-hidden')==='true')return;
+ nav.querySelectorAll(':scope>button').forEach(function(button){
+  var selected=button===target,was=button.classList.contains('active');
+  if(was!==selected)button.classList.toggle('active',selected);
+  if(selected)setAttr(button,'aria-current','page');
+  else if(button.getAttribute('aria-current')==='page')button.removeAttribute('aria-current');
+  // Packmeldungen uses an additional active class for the same shared menu item.
+  if(button.hasAttribute('data-pack-notifications-nav')&&button.classList.contains('is-active')!==selected)
+   button.classList.toggle('is-active',selected);
+ });
+}
 
 function sync(){
  scheduled=false;
@@ -261,9 +293,10 @@ function sync(){
  applyRights();
  syncing=true;
  try{
-  ensureStyle();watch();
+  ensureStyle();watch();watchView();
   if(!open)open=readOpen();
-  ensureProxy();ensureQualityLink();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
+  ensureProxy();ensureQualityLink();ensureItProxy(activeView());syncSelection();
+  var active=activeView(),activeSection=SECTION_OF[active]||'';itTabs();
   if(activeSection&&!FLAT[activeSection]&&activeSection!==lastActiveSection&&open.indexOf(activeSection)<0){open.push(activeSection);writeOpen()}
   lastActiveSection=activeSection;
   SECTIONS.forEach(function(s){
@@ -296,6 +329,16 @@ function watch(){
  });
  observer.__nav=nav;
  observer.observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','style','aria-current']});
+}
+
+// Observe only the actual view attribute (not content mutations) to avoid render loops.
+function watchView(){
+ if(!w.MutationObserver||!d.body)return;
+ if(viewObserver&&viewObserver.__body===d.body)return;
+ if(viewObserver)viewObserver.disconnect();
+ viewObserver=new MutationObserver(schedule);
+ viewObserver.__body=d.body;
+ viewObserver.observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view']});
 }
 
 function toggle(key,force){

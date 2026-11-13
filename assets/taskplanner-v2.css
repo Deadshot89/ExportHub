@@ -244,6 +244,28 @@ html[data-eh-design="neon"] .tpv2-reminders li{background:#10233a;color:#e5eef8}
 }
 
 
+/* RC1941: Dokumente erstellen replaces the ABD form in the DOM. Keep reminders
+   away from editable document controls and the PDF download button.
+   The compact reminder still exposes its expand and dismiss controls. */
+@supports selector(body:has(#rc1940Documents)){
+  body:has(#rc1940Documents) .tpv2-reminder-host{
+    top:96px;bottom:auto;right:16px;
+    width:min(270px,calc(100vw - 32px));
+  }
+  body:has(#rc1940Documents) .tpv2-reminder-expand{display:inline-flex}
+  body:has(#rc1940Documents) .tpv2-reminder-toast:not([data-expanded="true"]){
+    gap:0;padding:8px 12px;
+  }
+  body:has(#rc1940Documents) .tpv2-reminder-toast:not([data-expanded="true"]) ul,
+  body:has(#rc1940Documents) .tpv2-reminder-toast:not([data-expanded="true"]) > p{display:none}
+  body:has(#rc1940Documents) .tpv2-reminder-toast[data-expanded="true"]{
+    max-height:calc(100vh - 112px);overflow-y:auto;
+  }
+  html[data-eh-layout="top"] body[data-eh-layout="top"]:has(#rc1940Documents) #tpv2ReminderToast{
+    top:96px!important;bottom:auto!important;right:16px!important;
+  }
+}
+
 /* RC1771: Planungskonflikte werden nur im Planer hervorgehoben. */
 .tpv2-planner .tpv2-task-card.is-abd-exception{
   border:2px solid #d97706;

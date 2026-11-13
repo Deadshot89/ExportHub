@@ -6,6 +6,7 @@ const path=require('node:path');
 const apiI18n=require('../shared/i18n');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const model=require('../shared/urgent-orders');
+const packing=require('../shared/urgent-packing');
 const mailTranslation=require('../shared/urgent-mail-translation');
 const {isTransientStorageWriteError:isTransientStorageError}=require('../shared/state-save-retry');
 const MAX_RETRIES=8;
@@ -14,13 +15,15 @@ const MAX_RETRIES=8;
 const READ_RETRY_DELAYS_MS=[150,450];
 const PROD_BLOB='urgent-orders/v1.json';
 const TEST_BLOB='testservice/urgent-orders/v1.json';
+const PROD_PACKING_BLOB='urgent-orders/packing-catalog-v1.json';
+const TEST_PACKING_BLOB='testservice/urgent-orders/packing-catalog-v1.json';
 
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},reporterGroups:[]};}
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
 function publicSiteEnvironment(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
@@ -62,7 +65,7 @@ function serverDeploymentEnvironment(){
 }
 function isAzureInternalWorkerHost(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurewebsites.net');
@@ -72,7 +75,7 @@ function isAzureInternalWorkerHost(value){
 // even when forwarding headers or Origin imitate the official site.
 function unknownStaticWebAppHost(url){
  try{
-  const raw=String(url||'').trim();
+  const raw=String(url||'').split(',')[0].trim();
   if(!raw)return false;
   const hostname=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   return hostname.endsWith('.azurestaticapps.net')&&!publicSiteEnvironment(raw);
@@ -83,7 +86,7 @@ function unknownStaticWebAppHost(url){
 // The verified release identity remains mandatory for internal Azure worker requests.
 function safeHostClass(value){
  try{
-  const raw=String(value||'').trim();
+  const raw=String(value||'').split(',')[0].trim();
   if(!raw)return'absent';
   const host=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw).hostname.toLowerCase();
   if(host==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'canonical-production';
@@ -138,7 +141,8 @@ function storage(req){
  if(!configured)throw model.problem('URGENT_STORAGE_MISSING','Azure-Speicherung für Urgent Orders ist nicht konfiguriert.',503);
  const service=BlobServiceClient.fromConnectionString(configured);
  const container=service.getContainerClient(isolated.enabled?isolated.container:(process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data'));
- return{blob:container.getBlockBlobClient(environment==='testservice'?TEST_BLOB:PROD_BLOB),environment};
+ return{blob:container.getBlockBlobClient(environment==='testservice'?TEST_BLOB:PROD_BLOB),
+  catalogBlob:container.getBlockBlobClient(environment==='testservice'?TEST_PACKING_BLOB:PROD_PACKING_BLOB),environment};
 }
 async function write(storageRef,mutator){
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
@@ -164,6 +168,19 @@ async function withReadRetry(read){
  }
 }
 function readDoc(refs){return withReadRetry(()=>auth.readJson(refs.blob,empty(),{missingBlobOnly:true}));}
+async function readPackingCatalog(refs){
+ if(!refs.catalogBlob)return {schemaVersion:1,count:0,unknownPackSize:0,quantities:{}}; // unit tests with mocked refs
+ const data=await withReadRetry(()=>auth.readJson(refs.catalogBlob,{schemaVersion:1,count:0,unknownPackSize:0,quantities:{}},{missingBlobOnly:true}));
+ const catalog=data.value||{};
+ if(!catalog.quantities||typeof catalog.quantities!=='object'||Array.isArray(catalog.quantities))
+  throw model.problem('URGENT_PACKING_CATALOG_INVALID','Die Verpackungsgrößen sind beschädigt. Bitte die Logistik informieren.',503);
+ return catalog;
+}
+function canImportCatalog(user){
+ if(user&&user.globalAdmin===true)return true;
+ const rights=user&&user.rights&&user.rights.shipmentoverview||{};
+ return rights.admin===true||rights.functionAdmin===true||String(rights.level||rights.access||'').toLowerCase()==='admin';
+}
 // Only codes/names, never messages: storage messages may contain account details.
 function safeCode(value){const v=String(value==null?'':value);return /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(v)?v:'';}
 function failureDetails(e){
@@ -171,8 +188,8 @@ function failureDetails(e){
 }
 function identity(user){return{id:model.text(user&&user.id,150),name:model.text(user&&(user.name||user.user||user.login),150)};}
 function requestBody(req){return auth.body(req);}
-function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
-function visibleOrders(doc,user){return doc.orders.filter(x=>model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
+function findOrder(doc,id){const order=doc.orders.find(x=>x.id===id&&!x.deletedAt);if(!order)throw model.problem('URGENT_NOT_FOUND','Auftrag nicht gefunden.',404);return order;}
+function visibleOrders(doc,user){return doc.orders.filter(x=>model.activeOrder(x)&&model.canRead(x,user)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 function accessibleOrder(doc,id,user){const order=findOrder(doc,id);if(!model.canRead(order,user))throw model.problem('URGENT_FORBIDDEN','Kein Zugriff auf diesen Auftrag.',403);return order;}
 async function execute(req,user,refs){
  const p=requestBody(req),action=model.text(p.action||'list',40),now=new Date().toISOString();
@@ -180,7 +197,7 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   // Account-linked email profiles are deprecated; only the local browser's
   // non-authenticated address history supplies autocomplete suggestions.
-  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),environment:refs.environment};
+  return{orders:visibleOrders(doc,user),canManage:model.canManage(user),canImportPackingCatalog:canImportCatalog(user),currentUserId:model.text(user&&user.id,150),environment:refs.environment};
  }
  if(action==='counts'){
   // Return only authorized aggregate values. Menu polling must never transfer
@@ -188,19 +205,74 @@ async function execute(req,user,refs){
   const doc=normalize((await readDoc(refs)).value);
   let open=0,closed=0;
   for(const order of doc.orders){
-   if(!model.canRead(order,user))continue;
+   if(!model.activeOrder(order)||!model.canRead(order,user))continue;
    if(model.isClosed(order))closed++;else open++;
   }
   return{open,closed,total:open+closed,environment:refs.environment};
  }
+ if(action==='packing-preflight'){
+  const catalog=await readPackingCatalog(refs);
+  return{...packing.preflight(p.items,catalog),environment:refs.environment};
+ }
+ if(action==='packing-catalog-status'){
+  if(!canImportCatalog(user))throw model.problem('URGENT_FORBIDDEN','Keine Berechtigung zur Artikelstammdatenverwaltung.',403);
+  const catalog=await readPackingCatalog(refs);
+  return{count:catalog.count||0,unknownPackSize:catalog.unknownPackSize||0,environment:refs.environment};
+ }
+ if(action==='import-packing-catalog'){
+  if(!canImportCatalog(user))throw model.problem('URGENT_FORBIDDEN','Keine Berechtigung zur Artikelstammdatenverwaltung.',403);
+  if(!refs.catalogBlob)throw model.problem('URGENT_PACKING_STORAGE_MISSING','Der private Artikeldatenspeicher ist nicht erreichbar.',503);
+  const catalog=packing.parseCatalog(p.tsv);
+  const current=await withReadRetry(()=>auth.readJson(refs.catalogBlob,{schemaVersion:1,quantities:{}},{missingBlobOnly:true}));
+  catalog.importedAt=now;
+  const saved=await auth.writeJson(refs.catalogBlob,catalog,current.etag);
+  if(!saved||!saved.etag)throw model.problem('URGENT_PACKING_WRITE_UNVERIFIED','Die Artikelliste wurde nicht bestätigt. Bitte nicht als aktiv betrachten.',503);
+  const readback=await readPackingCatalog(refs);
+  if(readback.count!==catalog.count||readback.importedAt!==catalog.importedAt)
+   throw model.problem('URGENT_PACKING_READBACK_FAILED','Die gespeicherte Artikelliste konnte nicht bestätigt werden.',503);
+  return{count:catalog.count,unknownPackSize:catalog.unknownPackSize,environment:refs.environment};
+ }
  if(action==='create'){
-  const created=model.createOrder(p,identity(user),now);
+  const catalog=p.allLines===true?null:await readPackingCatalog(refs);
+  const created=model.createOrder(p,identity(user),now,catalog);
   return write(refs,doc=>{
-   const previous=doc.orders.find(x=>x.orderNumber===created.orderNumber);
+   const previous=doc.orders.find(x=>!x.deletedAt&&x.orderNumber===created.orderNumber);
    if(previous)throw model.problem('URGENT_ORDER_EXISTS','Diese SO-Nummer ist bereits gemeldet. Bitte die vorhandenen Positionen prüfen.',409);
    doc.orders.push(created);
    // Email history is browser-local; do not link the email to the login profile.
    return{order:created,environment:refs.environment};
+  });
+ }
+ if(action==='request-delete'){
+  const id=model.text(p.id,90);
+  return write(refs,doc=>{
+   const order=accessibleOrder(doc,id,user);
+   const deletion=model.requestDeletion(order,user,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
+  });
+ }
+ if(action==='start-processing'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf die Bearbeitung übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const processing=model.startProcessing(order,user,now);
+   return {processing,order};
+  });
+ }
+ if(action==='claim-delete-handler'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur die Logistik darf Löschanfragen übernehmen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.claimDeletionHandler(order,user,now);
+   return {order,deletion};
+  });
+ }
+ if(action==='respond-delete'){
+  if(!model.canManage(user))throw model.problem('URGENT_FORBIDDEN','Nur der zuständige Bearbeiter darf die Löschung bestätigen.',403);
+  return write(refs,doc=>{
+   const order=findOrder(doc,model.text(p.id,90));
+   const deletion=model.resolveDeletion(order,user,p.approve,now);
+   return {deletion,order:order.deletedAt?null:order,deleted:!!order.deletedAt};
   });
  }
  if(action==='save-profile'){
@@ -253,6 +325,26 @@ async function execute(req,user,refs){
  }
  throw model.problem('URGENT_ACTION_UNKNOWN','Unbekannte Urgent-Order-Aktion.');
 }
+// Dispatch only after the ETag-protected Urgent Order write has completed.
+// Push failures must never turn a successfully saved order into an API error.
+let urgentP1Notifier=null;
+async function postSaveP1(action,result,refs,options={}){
+ if(action!=='create'||!result||!result.order||result.order.priority!=='P1')return{sent:0};
+ let timer;
+ try{
+  const notify=options.notify||(
+   urgentP1Notifier||(urgentP1Notifier=require('../web-push/index.js').createUrgentP1Notifier())
+  );
+  return await Promise.race([
+   Promise.resolve().then(()=>notify(refs.environment,{id:result.order.id,orderNumber:result.order.orderNumber,priority:'P1'})),
+   new Promise(resolve=>{timer=setTimeout(()=>resolve({sent:0,timeout:true}),5000)})
+  ]);
+ }catch(e){
+  if(options.log&&typeof options.log.warn==='function')options.log.warn('urgent-p1-push-failed',String(e&&e.code||'SEND_FAILED'));
+  return{sent:0,failed:true};
+ }finally{if(timer)clearTimeout(timer)}
+}
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
@@ -260,6 +352,7 @@ module.exports=async function(context,req){
   const current=await withReadRetry(async()=>await auth.validateSession(req));
   const ref=storage(req);
   const result=await execute(req,current.user,ref);
+  await postSaveP1(requestBody(req).action,result,ref,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   // A temporary storage/network failure without our own problem status is a
@@ -269,7 +362,13 @@ module.exports=async function(context,req){
   const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
   context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  context.res=json(status,{ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')});
+  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  if(code==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
+   response.minibagArticles=e.minibagArticles||[];
+   response.minibagIndices=e.minibagIndices||[];
+  }
+  if(code==='URGENT_HOST_UNTRUSTED')response.diagnostic=safeHostDiagnostic(req);
+  context.res=json(status,response);
  }
 };
 module.exports.execute=execute;
@@ -278,7 +377,9 @@ module.exports.resolveStorageEnvironment=resolveStorageEnvironment;
 module.exports.safeHostDiagnostic=safeHostDiagnostic;
 module.exports.deploymentEnv=deploymentEnv;
 module.exports.readDocument=async function(refs){return normalize((await readDoc(refs)).value);};
+module.exports.readPackingCatalog=readPackingCatalog;
 module.exports.withReadRetry=withReadRetry;
 module.exports.write=write;
+module.exports.postSaveP1=postSaveP1;
 module.exports.empty=empty;
 module.exports.normalize=normalize;

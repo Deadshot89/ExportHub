@@ -11,7 +11,12 @@ const analysisModel=require('../shared/abd-analysis-model');
 const documentIntelligence=require('../shared/abd-document-intelligence');
 
 const CONTAINER=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
-const MAX_BYTES=Math.max(1024,Math.min(20*1024*1024,Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024)));
+// RC1980: malformed configuration must not turn MAX_BYTES into NaN.
+// NaN disables all > limit comparisons on uploads and quarantine downloads.
+const configuredMaxBytes=Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024);
+const MAX_BYTES=Number.isFinite(configuredMaxBytes)
+ ?Math.max(1024,Math.min(20*1024*1024,Math.floor(configuredMaxBytes)))
+ :12*1024*1024;
 const MAX_AGE_MS=2*60*60*1000;
 let containerPromise=null;
 
@@ -83,7 +88,28 @@ function scope(environment,current){return pdfSecurity.scopeHash('abd-analysis|'
 function uploadId(hash,kind,nonce){return hash+':'+kind+(nonce?':'+nonce:'')}
 function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|txt|tsv|jpg|png)(?::([a-f0-9]{32}))?$/);return m?{sha256:m[1],kind:m[2],nonce:m[3]||''}:null}
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+(id.nonce?'-'+id.nonce:'')+'.'+id.kind}
-async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
+async function readBuffer(blob){
+ const r=await blob.download(0),chunks=[];let total=0;
+ const stream=r&&r.readableStreamBody;
+ const mismatch=()=>error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+ if(!stream||typeof stream[Symbol.asyncIterator]!=='function')throw mismatch();
+ try{
+  for await(const part of stream){
+   // RC1980: a broken or malicious transport must not force a second large
+   // allocation before its bytes are checked against the remaining limit.
+   if(!Buffer.isBuffer(part)&&!(part instanceof Uint8Array))throw mismatch();
+   const bytes=part.byteLength;
+   if(!Number.isSafeInteger(bytes)||bytes<1||bytes>MAX_BYTES-total)throw mismatch();
+   chunks.push(Buffer.from(part));
+   total+=bytes;
+  }
+ }finally{
+  // An early limit rejection must also stop further SDK/network streaming.
+  // Never let a broken SDK destroy() replace the fail-closed verdict.
+  try{if(typeof stream.destroy==='function')stream.destroy()}catch(_){}
+ }
+ return Buffer.concat(chunks,total)
+}
 function cellText(cell){
  if(cell==null)return'';
  if(typeof cell==='string'||typeof cell==='number'||typeof cell==='boolean')return String(cell);
@@ -185,7 +211,12 @@ async function status(req,current,environment,payload){
  const encoded=text(props&&props.metadata&&props.metadata.name);let name='ABD-Datei.'+id.kind;
  try{if(encoded)name=safeName(Buffer.from(encoded,'base64url').toString('utf8'))}catch(_){}
  let analysis;
- try{analysis=await analyzeFile(await readBuffer(blob),name,id.kind)}
+ try{
+  const scannedBytes=await readBuffer(blob);
+  const actualSha256=crypto.createHash('sha256').update(scannedBytes).digest('hex');
+  if(actualSha256!==id.sha256)throw error('ABD_SCAN_CONTENT_MISMATCH','Geprüfter Dateiinhalt nicht mehr unverändert. Bitte erneut hochladen.',409);
+  analysis=await analyzeFile(scannedBytes,name,id.kind);
+ }
  catch(e){throw error(e&&e.code||'ABD_ANALYSIS_FAILED',e&&e.message||apiI18n.t(req,'api.abdAnalysis.failed'),e&&e.status||422)}
  finally{await blob.deleteIfExists().catch(()=>{})}
  return{httpStatus:200,body:{ok:true,status:'ready',provider:'Microsoft Defender for Storage',scanResult:scan.result||'',analysis}}

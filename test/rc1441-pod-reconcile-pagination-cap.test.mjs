@@ -6,7 +6,7 @@ const workflow=fs.readFileSync('.github/workflows/rc1144-pod-backup-reconcile.ym
 
 test('RC1441: POD-Reconcile kann mehr als die bisherige 500-State-Grenze vollständig scannen',()=>{
   assert.equal((workflow.match(/for batch in \$\(seq 1 200\); do/g)||[]).length,2);
-  assert.equal((workflow.match(/scanPageSize:10/g)||[]).length,2);
+  assert.equal((workflow.match(/scanPageSize:25/g)||[]).length,2);
   assert.equal((workflow.match(/Backlog nach 200 Batches noch nicht vollständig geleert/g)||[]).length,2);
   assert.doesNotMatch(workflow,/seq 1 50\b/);
 });

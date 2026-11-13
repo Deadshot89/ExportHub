@@ -22,8 +22,8 @@
   function shipmentPrefill(notification){
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
-      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
-      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&(p.packageType||p.packagingType))||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
+      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),preciseWeights:arr(n.packages).length>0&&arr(n.packages).every(p=>Number(p&&p.weight)>0),
+      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&(p.packageType||p.packagingType))||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,ldm:Number(p&&p.ldm)||0,weight:Number(p&&p.weight)>0?Number(p.weight):perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).filter(hasDocumentContent).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
   }
@@ -31,14 +31,14 @@
     const groups=[];
     for(const row of arr(prefill&&prefill.rows)){
       const last=groups[groups.length-1];
-      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;continue;}
-      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,weight:0});
+      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;last.weight+=Number(row.weight)||0;if(Number(row.ldm)>0)last.ldm=(last.ldm||0)+Number(row.ldm);continue;}
+      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,...(Number(row.ldm)>0?{ldm:Number(row.ldm)}:{}),weight:Number(row.weight)||0});
     }
-    const total=Number(prefill&&prefill.totalWeight)||0,pieces=groups.reduce((sum,g)=>sum+g.count,0);
+    const total=Number(prefill&&prefill.totalWeight)||0,scale=prefill&&prefill.preciseWeights?100:10;
     let assigned=0;
     groups.forEach((g,index)=>{
-      if(index===groups.length-1){g.weight=Math.round((total-assigned)*10)/10;return;}
-      g.weight=pieces?Math.round(total*g.count/pieces*10)/10:0;assigned+=g.weight;
+      if(index===groups.length-1){g.weight=Math.round((total-assigned)*scale)/scale;return;}
+      g.weight=Math.round(g.weight*scale)/scale;assigned+=g.weight;
     });
     return groups;
   }
@@ -193,8 +193,29 @@
       return true;
     }catch(_){return false;}
   }
+  // RC1910: "Sendung erstellen" darf einen Pack-Entwurf nicht in der
+  // schreibgeschuetzten Sendungsansicht stranden lassen. Der kanonische
+  // RC420-Editor oeffnet gespeicherte Entwuerfe unter ihrer eindeutigen REF.
+  function isShipmentDraft(sh){
+    if(!sh)return false;
+    const status=q(sh.status||sh.shipmentStatus||sh.processStatus).toLocaleLowerCase('de-DE');
+    if(/^(?:storniert|cancelled|canceled|abgeschlossen|archiviert|completed|archived)$/.test(status))return false;
+    return sh.draft===true||sh.isDraft===true||/^(?:entwurf|draft)$/.test(status);
+  }
+  function editSavedShipment(sh){
+    const target=q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.id||sh.shipmentId));if(!target)return false;
+    const editor=root.ExportHUBShipment420&&root.ExportHUBShipment420.openSavedShipment;
+    // RC455 also exposes these editor aliases for older runtimes.
+    const fallback=root.rc524EditShipment||root.rc409EditShipment;
+    try{
+      if(typeof editor==='function'){editor.call(root.ExportHUBShipment420,target);return true;}
+      if(typeof fallback==='function'){fallback(target);return true;}
+    }catch(_){}
+    return false;
+  }
   function openShipment(sh){
     const target=q(sh&&(sh.ref||sh.reference||sh.id||sh.shipmentId));if(!target)return false;
+    if(isShipmentDraft(sh)&&editSavedShipment(sh))return true;
     try{if(root.ExportHUBShipmentView&&typeof root.ExportHUBShipmentView.open==='function'){root.ExportHUBShipmentView.open(target,'tasks');return true;}}catch(_){}
     try{if(typeof root.openShipment==='function'){root.openShipment(target);return true;}}catch(_){}
     try{if(typeof root.__EXPORTHUB_OPEN_SHIPMENT__==='function'){root.__EXPORTHUB_OPEN_SHIPMENT__(target);return true;}}catch(_){}
@@ -267,7 +288,7 @@
       const select=node.querySelector('[data-rc363-field="type"] select'),type=matchPackaging(select,row.type);
       if(type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==type){api.updateRow(index,'type',type,select||node);node=nodes()[index]||node;}
       const set=(field,value)=>nativeSet(node.querySelector(`[data-rc363-field="${field}"] input`),value);
-      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');
+      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');if(row.ldm>0)set('ldm',row.ldm);
       const weight=node.querySelector('[data-rc363-field="weight"] input');
       if(api&&typeof api.updateRow==='function'){api.updateRow(index,'weight',row.weight||'',weight||node);nativeValue(weight,row.weight||'');}
       else set('weight',row.weight||'');
@@ -432,10 +453,52 @@
     if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
     setTimeout(()=>waitForShipmentForm(prefill),20);return true;
   }
+  // An editor snapshot is not yet a saved shipment. Keep the active draft
+  // instead of trying to open its generated REF in the read-only overview.
+  // Persisted rows, on the other hand, must be reopened by the canonical editor.
+  function persistedShipmentForNotification(state,notification){
+    return findShipmentForNotification({
+      shipments:arr(state&&state.shipments),
+      savedShipments:arr(state&&state.savedShipments),
+      sharedShipments:arr(state&&state.sharedShipments)
+    },notification);
+  }
+  function resumeUnsavedDraft(state,notification){
+    const prefill=shipmentPrefill(notification),draft=ownedPendingDraft(state,prefill);
+    if(!draft)return false;
+    const router=root.ExportHUBRC325;
+    if(!(router&&typeof router.route==='function')&&typeof root.setView!=='function')return false;
+    // Do not startNewShipment() and do not re-apply the initial Pack fields:
+    // both would erase the user's customer, dimensions or later edits.
+    const previousPending=pending,previousPrefill=root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__;
+    pending={notificationId:q(notification.id),prefill};
+    deferredSavedEvent=null;
+    root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
+    try{
+      if(router&&typeof router.route==='function')router.route('shipment','pack-draft-resume');
+      else root.setView('shipment');
+    }catch(_){
+      pending=previousPending;
+      root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=previousPrefill;
+      return false;
+    }
+    setTimeout(()=>{
+      if(pending&&pending.prefill===prefill){
+        keepPendingDocuments(prefill);
+        renderPendingLieferscheine(prefill);
+      }
+    },20);
+    return true;
+  }
   function begin(notificationId){
     const state=sharedState(),notification=notificationById(state,notificationId);if(!notification)return false;
-    const existing=findShipmentForNotification(state,notification);if(existing)return openShipment(existing);
     if(q(notification.status).toLowerCase()==='cancelled')return false;
+    const saved=persistedShipmentForNotification(state,notification);
+    if(saved)return openShipment(saved);
+    if(resumeUnsavedDraft(state,notification))return true;
+    // A saved link that is missing from the available state must not create
+    // another shipment; wait for the original to become readable.
+    if(q(notification.shipmentId)||q(notification.shipmentRef))return false;
     return startNew(notification);
   }
   async function onShipmentSaved(event){

@@ -162,6 +162,30 @@ function responsiveViewport(page){
   return !!(viewport&&viewport.width<=900);
 }
 
+// RC1982: Keep live-save failures fail-closed and record only non-sensitive
+// runtime booleans, generations and a sanitized machine-readable error code.
+async function rc1982DrainSnapshot(page){
+  return page.evaluate(()=>{
+    const runtime=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+    const finite=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?value:null;
+    return {
+      saving:runtime.saving===true,
+      pending:runtime.pendingSave===true,
+      dirty:runtime.dirty===true,
+      hasTimer:!!runtime.saveTimer,
+      changedGeneration:finite(runtime.changeGeneration),
+      savedGeneration:finite(runtime.lastSavedGeneration),
+      activeSaveGeneration:finite(runtime.activeSaveGeneration),
+      serverAckGeneration:finite(runtime.lastServerSaveAckGeneration),
+      networkSaveRequests:finite(runtime.network&&runtime.network.posts),
+      saveElapsedMs:runtime.saving===true&&Number.isFinite(Date.parse(runtime.lastSaveStartedAt||''))?
+        Math.max(0,Math.min(300000,Date.now()-Date.parse(runtime.lastSaveStartedAt))):null,
+      lastSaveMs:finite(runtime.lastSaveMs),
+      lastErrorCode:!runtime.lastSaveErrorCode?'NONE':runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
+    };
+  }).catch(()=>({unavailable:true}));
+}
+
 export async function settleStateSave(page,options={}){
   if(process.env.EXPORTHUB_E2E_LIVE!=='1')return {skipped:true};
   const timeout=Math.max(3000,Number(options.timeout||25_000));
@@ -175,19 +199,42 @@ export async function settleStateSave(page,options={}){
       const clean=window.ExportHUBClean;
       const runtime=clean&&clean.runtime;
       if(!clean||!runtime)return {available:false,idle:true};
+      if(typeof clean.flushSave!=='function')return {available:false,idle:true,missingFlush:true};
+      // RC1171: a *pre-save draft* may have queued only local-only changes.
+      // The core saver explicitly records when it compared the persistent state
+      // and skipped a network write because no persistent data changed.
+      // Never synthesize a server ACK; only a specifically opted-in caller can
+      // accept this proof for a draft that has not been saved yet.
+      const noChangeAt=Date.parse(runtime.lastNoChangeAt||'');
+      const queuedAt=Number(runtime.lastQueueAt||0);
+      const verifiedNoPersistentChange=
+        Number(runtime.noChangeSaveSkips||0)>0&&
+        queuedAt>0&&Number.isFinite(noChangeAt)&&noChangeAt>=queuedAt&&
+        Number.isFinite(runtime.changeGeneration)&&runtime.changeGeneration>0&&
+        Number.isFinite(runtime.lastSavedGeneration)&&
+        runtime.lastSavedGeneration>=runtime.changeGeneration;
       return {
         available:true,
+        verifiedNoPersistentChange,
         saving:runtime.saving===true,
         pending:runtime.pendingSave===true,
         dirty:runtime.dirty===true,
         hasTimer:!!runtime.saveTimer,
-        lastErrorCode:String(runtime.lastSaveErrorCode||''),
-        lastErrorMessage:String(runtime.lastSaveErrorMessage||'')
+        // A clean UI is not proof of a save if generation counters still disagree.
+        unconfirmedGeneration:Number.isFinite(runtime.changeGeneration)&&(
+          (Number.isFinite(runtime.lastSavedGeneration)&&runtime.changeGeneration>runtime.lastSavedGeneration)||
+          (Number.isFinite(runtime.lastServerSaveAckGeneration)&&runtime.changeGeneration>runtime.lastServerSaveAckGeneration)
+        ),
+        lastErrorCode:runtime.lastSaveErrorCode==='STATE_API_UNREACHABLE'?'STATE_API_UNREACHABLE':'UNRECOGNIZED'
       };
     });
 
-    if(!snapshot.available)return snapshot;
-    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer;
+    if(!snapshot.available)throw new Error('Azure-Speicherung nicht prüfbar: '+(snapshot.missingFlush?'ExportHUBClean-flushSave nicht verfügbar':'ExportHUBClean-Runtime nicht verfügbar'));
+    // No-write evidence is valid ONLY when the caller explicitly permits it
+    // for a not-yet-persisted form. Real shipment saves still require Azure ACK.
+    const noWriteAllowed=options.allowVerifiedNoChange===true&&snapshot.verifiedNoPersistentChange===true;
+    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer||
+      (snapshot.unconfirmedGeneration&&!noWriteAllowed);
     if(!busy){
       if(!stableSince)stableSince=Date.now();
       if(Date.now()-stableSince>=stableMs)return snapshot;
@@ -196,32 +243,33 @@ export async function settleStateSave(page,options={}){
     }
     stableSince=0;
 
-    if(!snapshot.saving&&(snapshot.pending||snapshot.dirty)&&!forced){
+    // A clean-looking UI is not server-confirmed when the ACK generation trails.
+    // Attempt one explicit flush, then keep requiring a matching Azure ACK.
+    if(!snapshot.saving&&(snapshot.pending||snapshot.dirty||snapshot.unconfirmedGeneration)&&!forced){
       forced=true;
-      const remaining=Math.max(1000,Math.min(18_000,deadline-Date.now()));
+      const remaining=Math.max(1000,Math.min(65_000,deadline-Date.now()));
       const result=await page.evaluate(async timeoutMs=>{
         const clean=window.ExportHUBClean;
-        if(!clean||typeof clean.flushSave!=='function')return {ok:false,error:'ExportHUB flushSave fehlt'};
+        if(!clean||typeof clean.flushSave!=='function')return {ok:false};
         let timer=0;
         try{
           return await Promise.race([
             Promise.resolve(clean.flushSave('RC1155 Browser-Gate wartet auf Azure-Speicherung',{force:true,userInitiated:true}))
               .then(ok=>({ok:ok===true})),
-            new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,timeout:true,error:'Azure-Save Drain Timeout'}),timeoutMs)})
+            new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,timeout:true}),timeoutMs)})
           ]);
-        }catch(error){
-          return {ok:false,error:String(error&&error.message||error)};
+        }catch{
+          return {ok:false};
         }finally{
           if(timer)clearTimeout(timer);
         }
       },remaining);
-      if(result&&result.timeout)throw new Error(result.error);
+      if(result&&result.timeout){const snapshot=await rc1982DrainSnapshot(page);throw new Error('Azure-Save Drain Timeout: '+JSON.stringify(snapshot));}
       if(result&&result.ok!==true){
-        const details=await page.evaluate(()=>{
-          const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
-          return String(r.lastSaveErrorCode||'')+' '+String(r.lastSaveErrorMessage||'');
-        }).catch(()=>'');
-        throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden.'+(details?' '+details:''));
+        // RC1982: A rejected save must remain a release failure. Do not print
+        // backend free-text errors: they might contain shipment or user data.
+        const snapshot=await rc1982DrainSnapshot(page);
+        throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden: '+JSON.stringify(snapshot));
       }
       continue;
     }
@@ -229,10 +277,7 @@ export async function settleStateSave(page,options={}){
     await pause(150);
   }
 
-  const finalState=await page.evaluate(()=>{
-    const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
-    return {saving:!!r.saving,pending:!!r.pendingSave,dirty:!!r.dirty,hasTimer:!!r.saveTimer,lastErrorCode:String(r.lastSaveErrorCode||''),lastErrorMessage:String(r.lastSaveErrorMessage||'')};
-  }).catch(()=>({}));
+  const finalState=await rc1982DrainSnapshot(page);
   throw new Error('Azure-Speicherung blieb vor Browser-Navigation aktiv: '+JSON.stringify(finalState));
 }
 

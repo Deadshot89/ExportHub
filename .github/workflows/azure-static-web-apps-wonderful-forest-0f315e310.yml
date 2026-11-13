@@ -41,7 +41,7 @@ concurrency:
 
 jobs:
   verify_and_deploy_testservice:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
       GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
@@ -138,7 +138,9 @@ jobs:
         run: |
           set -euo pipefail
           npm install --no-save @playwright/test@1.63.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          # A successful real Chromium launch is mandatory before any browser gate.
+          node -e "const {chromium}=require('@playwright/test'); chromium.launch({headless:true}).then(b=>b.close()).catch(e=>{console.error(e);process.exit(1)})"
 
       - name: RC1124 Lokales Browser-Gate
         id: rc1124_local_browser_gate
@@ -237,6 +239,12 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1943 Dokumente erstellen Excel-Upload auf TESTSERVICE ausgeliefert
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1943-documents-upload-live.mjs testservice "$GITHUB_SHA"
+
       - name: RC1903 Sendungsdokumentation TESTSERVICE Live-Gate vor Production-Freigabe
         shell: bash
         env:
@@ -250,6 +258,34 @@ jobs:
           else
             echo 'RC1903 unveraendert; kein anonymer Testdatensatz angelegt.'
           fi
+
+      - name: RC1903 TESTSERVICE deployed visual proof (customer and photos, no real API writes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run only for RC1903 changes or visual proof updates.
+          if git diff --name-only HEAD^ HEAD -- \
+               api/shipment-evidence/ assets/shipment-evidence.js assets/shipment-evidence-guest.js \
+               assets/shipment-evidence.css assets/i18n/shipment-evidence.js \
+               assets/sendungsdokumentation.html \
+               e2e/specs/rc1903-testservice-visual-proof.spec.mjs \
+               playwright.rc1903-testservice-visual.config.mjs \
+               .github/workflows/rc1903-shipment-evidence-browser.yml \
+               .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml \
+               | grep -q .; then
+            npx playwright test e2e/specs/rc1903-testservice-visual-proof.spec.mjs --config playwright.rc1903-testservice-visual.config.mjs
+          else
+            echo 'RC1903 unveraendert; keine zusaetzliche visuelle Live-Pruefung.'
+          fi
+
+      - name: RC1903 TESTSERVICE visual proof screenshots (synthetic data only)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-testservice-visual-proof
+          path: test-results/**/rc1903-testservice-*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: RC1810 Urgent Order TESTSERVICE 3-Reiter und API-Live-Gate
         shell: bash
@@ -406,9 +442,11 @@ jobs:
             local fixture_response fixture_status fixture_error
             local -a inventory_timeout=()
             case "$action" in
-              inventory-team|inventory-scopes|inventory-blob-policy)
-                # Fail bounded on stalled Azure LIST calls; diagnostic failures
-                # must not suppress functional E2E checks or block release.
+              inventory-team|inventory-scopes|inventory-blob-policy|diagnose-abd-defender)
+                # RC1963: bound OIDC-only storage read diagnostics, including
+                # Defender tag inventory. Azure SDK calls can stall past the
+                # in-process budget; an HTTP timeout must fail unverified,
+                # never skip scan verification or block the release indefinitely.
                 inventory_timeout=(--connect-timeout 8 --max-time 35)
                 ;;
             esac
@@ -634,6 +672,85 @@ jobs:
             fi
           else
             echo "RC1631: Multi-Container-LIST nicht verfügbar; keine Speicherfreigabe." >&2
+          fi
+
+          # RC1945: aggregate GET of existing Defender scan-result tags only.
+          # The already-verified OIDC fixture restricts this to the TESTSERVICE
+          # quarantine prefix. Never upload, rescan, download or modify a blob.
+          if defender_payload="$(fixture diagnose-abd-defender)"; then
+            if ! printf '%s' "$defender_payload" | node -e '
+              let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{
+                let v;try{v=JSON.parse(raw)}catch(_){process.exitCode=1;return}
+                if(v.ok!==true||v.action!=="diagnose-abd-defender"||v.version!=="RC1945"||
+                   v.environment!=="testservice"||v.scope!=="abd-quarantine"||
+                   v.resourceOwnershipVerified!==false||v.billingVerified!==false||
+                   v.configurationChangeApproved!==false){process.exitCode=2;return}
+                // RC1961: only a validated tri-state may leave the OIDC fixture.
+                // Never expose Azure service endpoints or account identifiers.
+                const observedAccountMatch=v.observedPortalAccountMatchesActiveBlob;
+                const knownAccount=v.knownExportHubStorageAccount;
+                const kinds=[null,"main-portal","test-central-us","test-germany-west-central","other-standard-azure"];
+                if(!(observedAccountMatch===true||observedAccountMatch===false||observedAccountMatch===null)||
+                   !kinds.includes(knownAccount)||
+                   (v.status!=="verified"&&(observedAccountMatch!==null||knownAccount!==null))||
+                   (observedAccountMatch===true&&knownAccount!=="main-portal")||
+                   (knownAccount==="main-portal"&&observedAccountMatch!==true)||
+                   (knownAccount!==null&&knownAccount!=="main-portal"&&observedAccountMatch!==false)){
+                  process.exitCode=5;return
+                }
+                const states=["clean","pending","malicious","not-scanned","error"];
+                const reasons=["unknown","configuration","client-unavailable","incomplete",
+                  "access-denied","not-found","transport-error","other"];
+                const safe=n=>Number.isSafeInteger(n)&&n>=0;
+                let report;
+                if(v.status==="verified"&&v.reason===null&&safe(v.recordCount)&&v.states&&
+                   states.every(k=>safe(v.states[k]))&&
+                   states.reduce((sum,k)=>sum+v.states[k],0)===v.recordCount&&
+                   safe(v.pendingOver120Seconds)&&safe(v.pendingOverTwoHours)&&
+                   v.pendingOverTwoHours<=v.pendingOver120Seconds&&
+                   v.pendingOver120Seconds<=v.states.pending){
+                  report={status:"verified",records:v.recordCount,states:v.states,
+                    pendingOver120Seconds:v.pendingOver120Seconds,
+                    pendingOverTwoHours:v.pendingOverTwoHours};
+                }else if(v.status==="unverified"&&reasons.includes(v.reason)&&
+                         v.recordCount===null&&v.states===null&&
+                         v.pendingOver120Seconds===null&&v.pendingOverTwoHours===null){
+                  report={status:"unverified",reason:v.reason};
+                }else{process.exitCode=3;return}
+                report.observedPortalAccountMatchesActiveBlob=observedAccountMatch;
+                report.knownExportHubStorageAccount=knownAccount;
+                console.log("RC1945 Defender-Scan-Diagnose "+JSON.stringify(report));
+                if(process.env.GITHUB_STEP_SUMMARY){
+                  require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                    "\n## RC1945 · Defender-XLSX-Scan (nur lesend)\n\n"+
+                    "TESTSERVICE Quarantäne, nur aggregierte Statuszahlen; keine Dateiinhalte oder Namen.\n\n"+
+                    "Status: "+report.status+
+                    "\n- Tatsächliches ABD-Speicherkonto entspricht Portalbefund: "+
+                    (report.observedPortalAccountMatchesActiveBlob===true?"ja":
+                     report.observedPortalAccountMatchesActiveBlob===false?"nein":"nicht verifizierbar")+
+                    "\n- Bekannter Blob-Endpunkt (nur Hostname-Klassifizierung): "+
+                    (report.knownExportHubStorageAccount==="main-portal"?"ExportHUB Hauptkonto":
+                     report.knownExportHubStorageAccount==="test-central-us"?"ExportHUB Testkonto (Central US)":
+                     report.knownExportHubStorageAccount==="test-germany-west-central"?"ExportHUB Testkonto (Deutschland)":
+                     report.knownExportHubStorageAccount==="other-standard-azure"?"anderes Azure-Speicherkonto":
+                     "nicht verifizierbar")+
+                    (report.status==="verified"?
+                      "\n- Dateien: "+report.records+
+                      "\n- Sauber: "+report.states.clean+
+                      "\n- Noch offen: "+report.states.pending+
+                      "\n- Offen über 120 s: "+report.pendingOver120Seconds+
+                      "\n- Offen über 2 h: "+report.pendingOverTwoHours+
+                      "\n- Blockiert (Malware/ungescannt/Fehler): "+
+                      (report.states.malicious+report.states["not-scanned"]+report.states.error):
+                      "\n- Ungeprüfter Grund: "+report.reason)+
+                    "\n\nKeine verifizierte Defender-Plan-Konfiguration oder Kostenfreigabe.\n");
+                }
+              });
+            '; then
+              echo "RC1945: Defender-Diagnoseantwort nicht vertrauenswürdig; keine Freigabe." >&2
+            fi
+          else
+            echo "RC1945: Defender-Tags im TESTSERVICE nicht überprüfbar; Quarantäne bleibt gesperrt." >&2
           fi
 
           cleanup() { fixture cleanup >/dev/null 2>&1 || true; }

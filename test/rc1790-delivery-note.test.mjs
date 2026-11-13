@@ -81,14 +81,16 @@ test('RC1790: only existing authenticated ABD export route can produce delivery 
  assert.match(invoiceEditor,/headers:headers\(\)/);
  assert.match(frontend,/api\.createDeliveryNote\(data\)/);
 });
-test('RC1790: editor appears inside ABD invoice workspace in all three builds',()=>{
- assert.match(frontend,/data-rc1294-invoice-panel/);
+test('RC1790: editor appears in standalone document workspace in all three builds',()=>{
+ assert.match(frontend,/data-rc1940-document-editor/);
+  assert.doesNotMatch(frontend,/data-rc1294-invoice-panel/);
  assert.match(frontend,/rc1790DocTabs/);
  assert.match(frontend,/data-rc1790-items/);
  assert.match(frontend,/data-rc1790-export/);
  assert.match(frontend,/essentra-company-logo\.png/);
  assert.match(build,/assets\/rc1790-delivery-note\.js/);
  assert.match(build,/DELIVERY_TAG/);
+  assert.match(build,/DOCUMENT_TAG/);
  assert.match(build,/const ENTRIES=\['index\.html','TESTVERSION\.html','demo\.html'\]/);
 });
 

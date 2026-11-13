@@ -29,16 +29,25 @@
  // Genau ein aktiver Punkt: eingebettete Module (Urgent Order, Fehler & Verbesserungen) setzen nur aria-current und
  // lassen das Dashboard "active"; ein echter Menüpunkt mit class active hat Vorrang (2026-11-06)
  var activeEl=null;
+ // Subviews use their parent menu entry; IT pages are collapsed into the shared IT button.
+ // Do not rely on stale class="active" during navigation or browser history changes.
+ function menuView(view){
+  var v=clean(view).toLowerCase();
+  return ({diagnostics:'it',release:'it',update:'it',
+   packnotification:'packnotifications',shipmentview:'shipmentoverview',
+   packagingmasterdata:'packaging',exams:'academy'})[v]||v;
+ }
  function findActive(n){
-  var real=null,cur=null,dash=null;
+  var real=null,cur=null,dash=null,rendered=null;
+  var view=menuView(d.body&&d.body.getAttribute('data-exporthub-view'));
   Array.prototype.forEach.call(n.children,function(el){
-   if(el.tagName!=='BUTTON')return;var v=viewOf(el);
+   if(el.tagName!=='BUTTON'||!allowed(el))return;var v=viewOf(el);
+   if(view&&v===view)rendered=el;
    if(el.classList.contains('active')){if(v==='dashboard')dash=el;else if(!real)real=el}
-   else if(el.getAttribute('aria-current')==='page'&&!cur)cur=el;
+   if(el.getAttribute('aria-current')==='page'&&!cur)cur=el;
   });
-  // Fehlerdiagnose, Release-Center und Update erscheinen als Punkt IT
-  if(real&&/^(diagnostics|release|update)$/.test(viewOf(real)))real=n.querySelector(':scope>[data-rc1579-proxy="it"]')||real;
-  return real||cur||dash;
+  function asIt(el){return el&&/^(diagnostics|release|update)$/.test(viewOf(el))?n.querySelector(':scope>[data-rc1579-proxy="it"]')||el:el}
+  return asIt(rendered)||asIt(cur)||asIt(real)||dash;
  }
  function isActive(el){return !!el&&el===activeEl}
  function iconVars(src){
@@ -137,12 +146,15 @@
   lastSig=sig;current=m;
   if(openKey&&!m.sections.some(function(s){return s.key===openKey}))openKey='';
   var html='';
+  // Beim geöffneten Mega-Menü nur dessen Reiter hervorheben. Die aktive Seite bleibt unverändert
+  // und wird beim Schließen wieder markiert (z. B. Sendung -> Kunden & Wissen).
+  var menuOpen=!!openKey;
   // Dashboard steckt im Logo (wie im Prototyp), damit alle Punkte in eine Zeile passen
   var dash=null;m.start.forEach(function(i){if(viewOf(i.el)==='dashboard')dash=i.el});
-  var brand=bar.querySelector('[data-rc1820-home]');brand.classList.toggle('is-active',!!(dash&&isActive(dash)));if(dash){brand.title=labelOf(dash);brand.setAttribute('aria-label','ExportHUB · '+labelOf(dash))}
-  m.start.forEach(function(i,idx){if(i.el===dash){html+='<button type="button" class="rc1820-pill rc1820-pill-home'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+(isActive(i.el)?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>';return}html+='<button type="button" class="rc1820-pill'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+(isActive(i.el)?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>'});
+  var brand=bar.querySelector('[data-rc1820-home]');brand.classList.toggle('is-active',!!(!menuOpen&&dash&&isActive(dash)));if(dash){brand.title=labelOf(dash);brand.setAttribute('aria-label','ExportHUB · '+labelOf(dash))}
+  m.start.forEach(function(i,idx){if(i.el===dash){html+='<button type="button" class="rc1820-pill rc1820-pill-home'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>';return}html+='<button type="button" class="rc1820-pill'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>'});
   m.sections.forEach(function(s,si){
-   var act=s.items.some(function(i){return isActive(i.el)});
+   var act=menuOpen?s.key===openKey:s.items.some(function(i){return isActive(i.el)});
    html+='<button type="button" class="rc1820-pill rc1820-pill-menu'+(act?' is-active':'')+(openKey===s.key?' is-open':'')+'" data-rc1820-section="'+esc(s.key)+'" aria-expanded="'+(openKey===s.key)+'" aria-haspopup="true" style="'+esc(iconVars(s.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(s.label)+'<span class="rc1820-chev" aria-hidden="true"></span></button>';
   });
   if(pills.__rc1820Html!==html){pills.innerHTML=html;pills.__rc1820Html=html}
@@ -177,11 +189,22 @@
  }
  new MutationObserver(function(){watch();if(!on())close();lastSig='';schedule()}).observe(d.documentElement,{attributes:true,attributeFilter:[ATTR]});
  d.addEventListener('click',function(e){if(openKey&&bar&&!bar.contains(e.target))close()},true);
+ w.addEventListener('exporthub:viewchange',schedule);
+ w.addEventListener('exporthub:rendered',schedule);
  w.addEventListener('exporthub:designchange',function(){lastSig='';schedule()});
  w.addEventListener('exporthub:languagechange',function(){lastSig='';schedule()});
  d.addEventListener('change',function(e){if(e.target&&e.target.id==='languageSelect'){lastSig='';setTimeout(schedule,50)}});
  w.addEventListener('resize',function(){if(openKey&&w.innerWidth<1024)close()});
- function boot(){watch();render(true)}
+ function boot(){
+  watch();
+  // Ein View-Wechsel kann die Körper-Ansicht aktualisieren, ohne den alten Nav-Knopf anzufassen.
+  if(d.body&&w.MutationObserver&&!d.body.__rc1820ViewWatch){
+   var observer=new w.MutationObserver(schedule);
+   observer.observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view']});
+   d.body.__rc1820ViewWatch=observer;
+  }
+  render(true);
+ }
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot);else boot();
  // #nav entsteht teils erst nach dem Login: kurz nachfassen
  var tries=0,timer=setInterval(function(){tries++;watch();schedule();if(tries>40)clearInterval(timer)},500);

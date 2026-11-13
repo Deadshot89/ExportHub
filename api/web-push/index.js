@@ -14,6 +14,7 @@ const { isAdmin } = require('../shared/user-policy');
 const webPush = require('../shared/web-push');
 const storeLib = require('../shared/web-push-store');
 const reminders = require('../shared/web-push-reminders');
+const urgentOrders = require('../shared/urgent-orders');
 const { helpers } = require('../diagnostic-autofix/index.js');
 
 const WORKFLOW = process.env.EXPORTHUB_WEB_PUSH_WORKFLOW || 'web-push-reminders.yml';
@@ -71,7 +72,7 @@ function createHandler(overrides = {}) {
   async function subscribe(req, payload, env) {
     const { user } = await deps().validateSession(req);
     const nowIso = deps().now().toISOString();
-    const record = await deps().store.mutate(env, (doc) => storeLib.upsertSubscription(doc, { subscription: payload.subscription, user, categories: payload.categories, deviceLabel: payload.deviceLabel, language: payload.language, packAllowed: packAllowed(user) }, nowIso));
+    const record = await deps().store.mutate(env, (doc) => storeLib.upsertSubscription(doc, { subscription: payload.subscription, user, categories: payload.categories, deviceLabel: payload.deviceLabel, language: payload.language, packAllowed: packAllowed(user), urgentP1Allowed: urgentOrders.canManage(user) }, nowIso));
     return { ok: true, subscribed: true, subscription: storeLib.publicSubscription(record) };
   }
   async function status(payload, env) {
@@ -107,7 +108,7 @@ function createHandler(overrides = {}) {
       const old = storeLib.findByEndpoint(doc, oldEndpoint);
       if (!old) throw error('WEB_PUSH_NOT_SUBSCRIBED', 'Dieses Gerät ist nicht angemeldet.', 404);
       storeLib.removeByEndpoint(doc, oldEndpoint);
-      return storeLib.upsertSubscription(doc, { subscription: next, user: { id: old.userId, username: old.username, name: old.displayName }, categories: old.categories, deviceLabel: old.deviceLabel, language: old.language, packAllowed: old.packAllowed === true }, nowIso);
+      return storeLib.upsertSubscription(doc, { subscription: next, user: { id: old.userId, username: old.username, name: old.displayName }, categories: old.categories, deviceLabel: old.deviceLabel, language: old.language, packAllowed: old.packAllowed === true, urgentP1Allowed: old.urgentP1Allowed === true }, nowIso);
     });
     return { ok: true, subscribed: true, subscription: storeLib.publicSubscription(record) };
   }
@@ -140,7 +141,7 @@ function createHandler(overrides = {}) {
       due.messages.forEach((m, i) => { if (delivered.has(i)) for (const key of m.ledgerKeys) d.ledger[key] = nowIso; });
       const removed = storeLib.recordResults(d, results, nowIso) + storeLib.removeIds(d, due.inactiveSubscriptionIds);
       // keep the pack right in line with the current user rights
-      for (const s of d.subscriptions) { const u = users.find((x) => text(x && x.id) === s.userId); if (u) s.packAllowed = packAllowed(u); }
+      for (const s of d.subscriptions) { const u = users.find((x) => text(x && x.id) === s.userId); if (u) { s.packAllowed = packAllowed(u); s.urgentP1Allowed = urgentOrders.canManage(u); } }
       storeLib.pruneLedger(d, nowIso);
       return { removed };
     });
@@ -194,6 +195,39 @@ function createPackNotifier(overrides = {}) {
   };
 }
 
+// Only explicitly opted-in logistics users receive P1 alerts; use the separate
+// production/testservice push stores, never anonymous reporter subscriptions.
+function createUrgentP1Notifier(overrides = {}) {
+  let base = null;
+  const deps = () => base || (base = Object.assign(defaultDeps(), overrides));
+  return async function notifyUrgentP1(environment, order) {
+    if (!enabled() || !order || order.priority !== 'P1') return { sent: 0 };
+    const env = lower(environment) === 'testservice' ? 'testservice' : 'production';
+    const doc = await deps().store.read(env);
+    // Revalidate the user against current team rights for every P1 order. A user
+    // who lost access must not receive details via an old device subscription.
+    const team = await deps().readTeam(env);
+    const authorized = new Set((Array.isArray(team && team.users) ? team.users : [])
+      .filter(user => reminders.isActive(user) && urgentOrders.canManage(user))
+      .map(user => text(user.id)));
+    const targets = doc.subscriptions.filter(s => s && authorized.has(text(s.userId)) &&
+      s.urgentP1Allowed === true && s.categories && s.categories.urgentP1 === true);
+    if (!targets.length) return { sent: 0 };
+    const vapid = await deps().store.vapid(), nowIso = deps().now().toISOString();
+    const id = reminders.urgentP1Payload(order, env, nowIso).id;
+    // A failed device must not stop delivery attempts to other opted-in devices.
+    const results = await Promise.all(targets.map(async subscription => {
+      try {
+        const payload = reminders.urgentP1Payload(order, env, nowIso, subscription.language, id);
+        const r = await deps().send(subscription, payload, { vapid, subject: SUBJECT, ttl: 24 * 3600, urgency: 'high', topic: 'urgent-p1' });
+        return Object.assign({ id: subscription.id }, r);
+      } catch (_) { return { id: subscription.id, ok: false }; }
+    }));
+    await deps().store.mutate(env, d => { storeLib.recordResults(d, results, nowIso); });
+    return { sent: results.filter(r => r.ok).length };
+  };
+}
+
 let defaultHandler = null;
 module.exports = async function (context, req) {
   if (!defaultHandler) defaultHandler = createHandler();
@@ -203,3 +237,4 @@ module.exports = async function (context, req) {
 };
 module.exports.createHandler = createHandler;
 module.exports.createPackNotifier = createPackNotifier;
+module.exports.createUrgentP1Notifier = createUrgentP1Notifier;

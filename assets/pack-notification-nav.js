@@ -258,7 +258,8 @@
  if(!w||!w.document||w.__EXPORT_HUB_URGENT_NAV_COUNTER__)return;
  w.__EXPORT_HUB_URGENT_NAV_COUNTER__=true;
  const d=w.document;
- let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false;
+ let lastRefresh=0,inFlight=false,sessionEpoch=0,loggedOut=false,authBackoffUntil=0;
+ const AUTH_BACKOFF_MS=5*60*1000;
  function ensureBadge(){
   const node=d.querySelector('[data-exporthub-urgent-nav]');
   if(!node)return null;
@@ -287,6 +288,9 @@
   // The protected eh_session cookie may authenticate the same-origin API without
   // exposing any readable token to JavaScript. Never mistake that for logged out.
   const now=Date.now();
+  // A 401/403 count request is not a reason to retry on every focus, state event or 45s tick.
+  // Keep the badge hidden until the next bounded retry or a verified login event.
+  if(now<authBackoffUntil)return;
   if(!force&&now-lastRefresh<45000)return;
   lastRefresh=now;inFlight=true;
   try{
@@ -294,11 +298,17 @@
    if(authToken)headers['X-ExportHUB-Token']=authToken;
    const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers,body:JSON.stringify({action:'counts'})});
-   if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
+   if(!response.ok){
+    if((response.status===401||response.status===403)&&epoch===sessionEpoch){
+     authBackoffUntil=Date.now()+AUTH_BACKOFF_MS;
+    }
+    throw new Error('URGENT_COUNT_UNAVAILABLE');
+   }
    const data=await response.json();
    // A previous login's asynchronous response must not overwrite a newer session.
    if(epoch!==sessionEpoch)return;
    if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw new Error('URGENT_COUNT_INVALID');
+   authBackoffUntil=0;
    const count=data.open;
    // Only authorized aggregate counts cross the network: no order/customer data.
    const current=ensureBadge();if(!current)return;
@@ -317,15 +327,17 @@
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',()=>refresh(true),{once:true});else refresh(true);
   if(w.addEventListener){
    ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(name=>w.addEventListener(name,()=>{
-    sessionEpoch++;loggedOut=false;lastRefresh=0;hideBadge();refresh(true);
+    sessionEpoch++;loggedOut=false;lastRefresh=0;authBackoffUntil=0;hideBadge();refresh(true);
    }));
    ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(name=>w.addEventListener(name,()=>{
-    sessionEpoch++;loggedOut=true;lastRefresh=0;hideBadge();
+    sessionEpoch++;loggedOut=true;lastRefresh=0;authBackoffUntil=0;hideBadge();
    }));
-   w.addEventListener('exporthub:state-loaded',()=>refresh(true));
-   w.addEventListener('focus',()=>refresh(true));
+   // The 45s interval already keeps a successful count fresh. State-load
+   // and focus bursts must not bypass that interval on every event.
+   w.addEventListener('exporthub:state-loaded',()=>refresh(false));
+   w.addEventListener('focus',()=>refresh(false));
   }
-  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(true)});
+  if(d.addEventListener)d.addEventListener('visibilitychange',()=>{if(!d.hidden)refresh(false)});
   if(typeof w.setInterval==='function')w.setInterval(()=>refresh(false),45000);
  }
  register();

@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {appEntry,waitReady} from '../helpers/exporthub-browser.mjs';
 
-test('RC1607 P0: signed original from actual loadHtml fits below four DNCs without giant image or overlapping boxes',async({page},testInfo)=>{
+test('RC1607 P0: signed original from actual loadHtml fits below ten DNCs without giant image or overlapping boxes',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Real A4 POD frame runs once in Chromium');
   test.setTimeout(100_000);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
@@ -19,8 +19,9 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
     Object.assign(sh,{
       status:'Abgeholt',freigabe:'Abgeholt',pickedUp:true,goodsDescription:'Plastic Parts',
       updatedAt:'2026-10-21T16:50:27.000Z',
-      deliveryFiles:[{name:'DNC3019223442'},{name:'DNC3019223446'},{name:'DNC3019223491'},{name:'DNC3019223538'}],
-      deliveryNotes:'DNC3019223442\nDNC3019223446\nDNC3019223491\nDNC3019223538',
+      // Ten delivery notes really occupy ten rows in a single column.
+      deliveryFiles:Array.from({length:10},(_,i)=>({name:'DNC30192234'+String(40+i)})),
+      deliveryNotes:Array.from({length:10},(_,i)=>'DNC30192234'+String(40+i)).join('\n'),
       driverName:pickup.driverName,licensePlate:pickup.licensePlate,loaderName:pickup.loaderName,
       signatureData:ink,driverSignature:ink,pickupDriverSignature:ink,signatureAvailable:true,
       pickupConfirmedAt:pickup.confirmedAt,pickupHistory:[pickup]
@@ -61,9 +62,9 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
   expect(result.error).toBe('');
   expect(result.measured,'Actual signed POD must reach isolated index352 PDF frame').toBeTruthy();
   const {footer,previous,cards,qrDisplay,notes}=result.measured;
-  for(const dnc of ['DNC3019223442','DNC3019223446','DNC3019223491','DNC3019223538']){
+  for(const dnc of Array.from({length:10},(_,i)=>'DNC30192234'+String(40+i))){
     const text=result.measured.debugText;
-    expect(text.split(dnc).length-1,'All 4 genuine document entries must render once in the signed A4: '+text).toBe(1);
+    expect(text.split(dnc).length-1,'All 10 genuine document entries must render once in the signed A4: '+text).toBe(1);
   }
   expect(qrDisplay,'QR belongs to cover, not signed loading list').toBe('none');
   expect(cards.length,'Signature, driver, date, plate, loader and pallets expected').toBe(6);

@@ -33,7 +33,21 @@ test('RC1718: all three deployment environments receive the same fixed print pat
   assert.match(build,/import \{patchRc1718PrintIframeHtml\} from '\.\.\/\.\.\/scripts\/rc1718-qr-print-iframe-pages\.mjs'/);
   assert.match(build,/const paginated=patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
   assert.match(build,/const rc1718Printed=patchRc1718PrintIframeHtml\(paginated,file\)/);
-  assert.match(build,/fs\.writeFileSync\(target,rc1718Printed\.replace\(oldContacts/);
+  assert.match(build,/fs\.writeFileSync\(target,(?:patchRc1982MetaDeltaHtml\()?rc1718Printed\.replace\(oldContacts/);
   assert.match(build,/for\(const file of \['index\.html','TESTVERSION\.html','demo\.html'\]\)/);
   assert.throws(()=>patchRc1718PrintIframeHtml('<html></html>'),/anchor missing/,'do not silently ship an unpatched print runtime');
+});
+
+test('RC1935: print iframe does not override the single-page A4 fit',()=>{
+  const patched=patchRc1718PrintIframeHtml(original);
+  const start=patched.indexOf('var RC1718_PRINT_IFRAME_CSS=');
+  const end=patched.indexOf('function documentWorkFrame(',start);
+  assert.ok(start>0&&end>start);
+  const css=vm.runInNewContext('var docStyleCache=null;\n'+patched.slice(start,end)+'\nstyleText();',{
+    document:{getElementById(){return{textContent:'.original-style{}'}}}
+  });
+  assert.match(css,/#index352OutputRoot>\.rc390-page\.rc390-load\[data-rc1547-single-page\]\{break-inside:avoid-page!important;page-break-inside:avoid!important\}/);
+  assert.doesNotMatch(css,/#index352OutputRoot>\.rc390-page\.rc390-load\{[^}]*break-inside:auto!important/);
+  assert.match(css,/#index352OutputRoot>\.rc390-load \.rc390-bottom\{position:relative!important/);
+  assert.match(css,/@page\{size:A4 portrait;margin:0\}/);
 });

@@ -19,6 +19,11 @@ on:
       - 'e2e/specs/rc1517-save-confirmation-no-rerender.spec.mjs'
       - '.github/workflows/rc1546-performance-regression.yml'
 
+# RC1958: latest commit per PR/branch only; independent PRs never cancel one another.
+concurrency:
+  group: rc1546-performance-no-rerender-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

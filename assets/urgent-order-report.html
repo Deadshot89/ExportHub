@@ -15,7 +15,7 @@ header{background:#10243a;color:#fff;padding:17px clamp(16px,2vw,40px)}.brand{fo
 .s-Open{background:#e8ebf0;color:#475467}.s-Waved{background:#dee9ff;color:#254e9d}.s-InProgress{background:#fff0ca;color:#81510b}.s-Problem{background:#ffe0e4;color:#b11f33}.s-Loaded{background:#efe5ff;color:#7745a0}.s-Shipped{background:#d7f4f1;color:#087a79}.s-Invoiced{background:#d8f2e4;color:#147142}.s-Mixed{background:#e9edf2;color:#546077}
 .btn{background:var(--blue);color:white;border:1px solid var(--blue);border-radius:9px;padding:9px 13px;font-weight:750;min-height:41px}.btn.secondary{background:white;color:var(--blue);border-color:#aac0df}.btn.danger{background:white;color:#aa2030;border-color:#e0bcc2}.btn.small{padding:6px 9px;font-size:12px;min-height:33px}.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.line{padding:12px;background:#f8fafd;border:1px solid var(--line);border-radius:12px}.line-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}.line-head strong{font-size:13px}.linecheck{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650}.linecheck input{width:17px;height:17px}
 .tracking{background:#eaf2ff;border:1px solid #b7d0ed;padding:13px;border-radius:12px;margin-bottom:17px}.tracking strong{display:block}.tracking p{margin:4px 0 8px}.tracking code{display:block;padding:8px;background:#fff;border-radius:8px;font-size:11px;overflow-wrap:anywhere}
-.message{font-size:13px;font-weight:700;min-height:18px;margin:10px 0}.message[data-state=error]{color:#a3232f}.message[data-state=ok]{color:#176944}
+.message{font-size:13px;font-weight:700;min-height:18px;margin:10px 0}.message[data-state=error]{color:#a3232f}.message[data-state=ok]{color:#176944}.message[data-state=warning]{color:#a0640b}.type-explanation[role=alert]{border-color:#e9c483;background:#fff4e1;color:#794909}
 .tabrow{display:flex;gap:8px;margin:10px 0 15px;border-bottom:1px solid var(--line);padding-bottom:10px}.tab{border:1px solid transparent;background:transparent;color:var(--sub);padding:9px 14px;font-weight:760;border-radius:9px}.tab[aria-selected=true]{background:#e8f0ff;border-color:#b9d0f0;color:#204e99}.filterbar{display:grid;grid-template-columns:minmax(120px,1fr) 120px;gap:8px;margin-bottom:13px}.filterbar input,.filterbar select{min-height:40px;border:1px solid #b3c3d8;padding:9px;border-radius:9px;background:var(--surface)}
 .order{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}.order summary{list-style:none;cursor:pointer;padding:13px}.order summary::-webkit-details-marker{display:none}.order-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:space-between}.order-head strong{font-size:15px}.order summary:hover{background:#f7faff}.order-details{background:#f8fbff;padding:12px;border-top:1px solid var(--line)}.item-row{border-top:1px solid var(--line);padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.item-row:first-of-type{border-top:0}.empty{padding:30px 15px;color:var(--sub);border:1px dashed #c5d3e5;border-radius:12px;text-align:center}.date{font-variant-numeric:tabular-nums}.counters{display:flex;gap:8px;color:var(--sub);font-size:12px;margin:0 0 10px}
 @media(max-width:1050px){.board{grid-template-columns:1fr}.panel{padding:17px}}@media(max-width:470px){.pair,.filterbar{grid-template-columns:1fr}.check{grid-template-columns:1fr}.check select{width:100%}.panel{padding:13px}}
@@ -40,6 +40,12 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 
 .urgent-hero{padding:21px 25px;margin-bottom:12px}.urgent-hero h1{font-size:clamp(26px,2.5vw,34px)}
 .workspace-nav{position:sticky;top:0;z-index:11;backdrop-filter:blur(12px);margin:9px 0 15px}.workspace-nav .workspace-tab{flex:1 1 175px}.board>.panel{padding:clamp(18px,2.7vw,28px)}
+.cutoff-choice{border:1px solid #e4c58c;background:#fff8eb;border-radius:13px;padding:16px;margin-top:13px;color:#644513}
+.cutoff-choice h3{font-size:16px;margin:0 0 8px}.cutoff-choice p{margin:0 0 14px;line-height:1.6}
+.cutoff-choice .cutoff-copy p{margin:0 0 12px}.cutoff-choice .cutoff-copy ul{margin:0 0 16px;padding-left:22px}.cutoff-choice .cutoff-copy li{margin:0 0 9px;line-height:1.6}
+.cutoff-choice .actions{gap:10px}
+@media(max-width:550px){.cutoff-choice .actions button{flex:1 1 100%}}
+@media(prefers-color-scheme:dark){.cutoff-choice{background:#392d1d;border-color:#80683f;color:#f5deb0}}
 .wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 17px;border-bottom:1px solid var(--line)}.wizard-track>span{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:750;color:var(--sub)}
 .wizard-track b{width:29px;height:29px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--page)}.wizard-track>span[aria-current="step"]{background:var(--blue);color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff25;border-color:#ffffff55}
 [data-wizard-step]{padding-top:16px}[data-wizard-step][hidden]{display:none!important}.wizard-review{border:1px solid #b4ccee;background:#eef5ff;border-radius:14px;padding:17px}.wizard-review p{line-height:1.6}.wizard-review #wizardReview{font-weight:800;color:#205287}.wizard-actions{display:flex;gap:9px;align-items:center;padding-top:16px;border-top:1px solid var(--line)}.wizard-actions>span{flex:1}
@@ -59,10 +65,13 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="board">
 <section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-wizard-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-wizard-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-wizard-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-wizard-step="1">
 <div class="pair"><label class="field"><span data-i18n="urgentOrderV2.orderNumber">Auftragsnummer *</span><input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
+<p class="help" role="note" id="urgentPriorityLegend" data-i18n="urgentOrderV2.priorityLegend">P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today\u0027s order</p>
+<div id="p1CostApprovalField" class="section" hidden><label class="linecheck"><input id="p1CostApproved" type="checkbox"> <span id="p1CostApprovalText" data-i18n="urgentOrderV2.p1ApprovalConfirm">I confirm that coverage of the special transport costs has been approved.</span></label></div>
 <div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="off" list="urgentEmailHistory" placeholder="name@firma.com"></label>
 <datalist id="urgentEmailHistory"></datalist>
 <div class="actions"><span class="muted" id="emailHistoryHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span><button type="button" class="btn secondary small" id="clearEmailHistory" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button></div>
+<label class="field"><span data-i18n="urgentOrderV2.requestedDispatchDate">Gewünschter Versandtag * (deutsche Ortszeit)</span><input id="requestedDispatchDate" name="requestedDispatchDate" type="date" required></label>
 <div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
@@ -75,13 +84,24 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
-</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3 id="urgentStepTwoHeading">Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><fieldset style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0 16px"><legend><span data-i18n="urgentOrderV2.requestScope">Request scope</span></legend><label class="linecheck"><input type="radio" name="lineScope" value="all"> <span data-i18n="urgentOrderV2.wholeOrderOption">Entire order – all lines</span></label><label class="linecheck"><input type="radio" name="lineScope" value="single" checked> <span data-i18n="urgentOrderV2.individualLinesOption">Enter individual items / lines</span></label></fieldset><div id="lines" class="stack"></div><div id="wholeOrderChecks" class="stack" hidden>
+<h4 data-i18n="urgentOrderV2.wholeOrderChecksTitle">Prüfungen für den gesamten Auftrag</h4>
+<p class="muted" data-i18n="urgentOrderV2.wholeOrderChecksHelp">Diese Angaben betreffen den Gesamtauftrag. Einzelne Artikel und Bestandspositionen gelten damit nicht als geprüft.</p>
+<div class="check" id="wholeOrderPickableRow"><label for="wholeOrderPickable" data-i18n="urgentOrderV2.wholeOrderStock">Bestand für den gesamten Auftrag auf pickbaren Lagerplätzen geprüft?</label><select id="wholeOrderPickable"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<div class="check"><label for="wholeOrderHolds" data-i18n="urgentOrderV2.wholeOrderHolds">Weder Don't Process noch Credit Hold für den gesamten Auftrag?</label><select id="wholeOrderHolds"><option value="" data-i18n="urgentOrderV2.wholeOrderNotChecked">Noch nicht geprüft</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
+<label class="field"><span data-i18n="urgentOrderV2.wholeOrderReason">Begründung bei negativer Gesamtprüfung</span><textarea id="wholeOrderReason" maxlength="1000"></textarea></label>
+</div></div>
+</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div>
+<section id="lateCutoffChoice" class="cutoff-choice" role="alert" aria-labelledby="lateCutoffHeading" hidden>
+<h3 id="lateCutoffHeading" data-i18n="urgentOrderV2.cutoffHeading">⚠️ ACHTUNG: Meldefrist für heutigen Versand beachten</h3>
+<div id="lateCutoffText" class="cutoff-copy"></div>
+<div class="actions"><button type="button" class="btn secondary" id="lateSubmitToday" data-i18n="urgentOrderV2.cutoffSubmitToday">Trotzdem melden</button><button type="button" class="btn" id="lateMoveTomorrow" data-i18n="urgentOrderV2.cutoffMoveTomorrow">Auf morgen verschieben</button></div>
+</section></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div><p class="message" id="urgentHostHelp" role="alert" hidden><span data-i18n="urgentOrderV2.untrustedHostHelp">Du bist auf dem offiziellen TESTSERVICE. Die API hat den sicheren Umgebungsnachweis abgelehnt. Der Auftrag wurde nicht gespeichert. Bitte nicht erneut senden; die Logistik prüft die Verbindung.</span> </p>
 </form></section>
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
 
-<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allPriorities">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+<div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allPriorities">Alle Prioritäten</option><option value="P1">P1 – Sondertransport</option><option value="P2">P2 – Express-Lieferung</option><option value="P3">P3 – Backlog</option><option value="P4">P4 – Auftrag von heute</option></select></div>
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
 </main>
@@ -138,7 +158,7 @@ function accessFromHash(){
 }
 function flag(select){const v=select.value;return v==='true'?true:v==='false'?false:null;}
 function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
-function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
+function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';const help=$('urgentHostHelp');if(help)help.hidden=!(kind==='error'&&String(message||'').includes('URGENT_HOST_UNTRUSTED')&&/-testservice\./i.test(location.hostname||''));}
 async function api(action,params){
  let response;
  try{response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});}
@@ -147,7 +167,22 @@ async function api(action,params){
  if(!response.ok||data.ok===false){
   const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
   const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
-  e.status=response.status;e.code=code;throw e;
+  e.status=response.status;e.code=code;e.minibagArticles=Array.isArray(data.minibagArticles)?data.minibagArticles:[];e.minibagIndices=Array.isArray(data.minibagIndices)?data.minibagIndices:[];
+  if(action==='create'&&code==='URGENT_MINIBAG_CONFIRM_REQUIRED'&&Array.isArray(params&&params.items)){
+   const articles=new Set(e.minibagArticles);
+   const indices=new Set(e.minibagIndices||[]);
+   const affected=params.items.filter((x,i)=>!x.minibag&&x.minibagReviewed!==true&&(indices.size?indices.has(i):articles.has(x.article)));
+   if(!affected.length)throw e;
+   const list=affected.map(x=>x.article+' ('+x.quantity+')').join(', ');
+   const msg=localeV2('minibagReviewPrompt','Check Minibag: {articles} is not a full standard pack. Are you sure this is not a Minibag?').replace('{articles}',list);
+   if(!window.confirm(msg)){
+    showWizardStep(2);
+    throw new Error(localeV2('minibagReviewCancel','Please check the Minibag option and quantity.'));
+   }
+   affected.forEach(x=>{x.minibagReviewed=true;});
+   return api(action,params);
+  }
+  throw e;
  }return data;
 }
 function localizeLineChoices(box){
@@ -176,6 +211,8 @@ function lineCard(){
  for(const [check,wrap] of [['newArticle','newarticle'],['minibag','minibag']]){
   box.querySelector('[data-field="'+check+'"]').addEventListener('change',e=>{const el=box.querySelector('[data-'+wrap+']');el.hidden=!e.target.checked;el.querySelectorAll('select').forEach(s=>{s.required=e.target.checked;if(!e.target.checked)s.value='';});});
  }
+ box.addEventListener('input',event=>{if(event.target.matches('[data-field="article"],[data-field="quantity"]'))delete box.dataset.packingReviewed;});
+ box.querySelector('[data-field="minibag"]').addEventListener('change',()=>{delete box.dataset.packingReviewed;});
  localizeLineChoices(box);$('lines').appendChild(box);syncType();
 }
 function syncType(){
@@ -186,7 +223,36 @@ function syncType(){
   if(['arrivalAt','arrivalMode','arrivalProvider','dispatchMethod','deliveryNotePresent','asnWorking','holdsClear'].includes(i.name))i.required=direct;
   else i.required=false;
  });
- document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});
+ document.querySelectorAll('.uo-line').forEach(box=>{const picker=box.querySelector('[data-pickable]');picker.hidden=direct;picker.querySelector('select').required=!direct;if(direct)picker.querySelector('select').value='';});syncScope();
+}
+function isAllLines(){return document.querySelector('input[name="lineScope"]:checked')?.value==='all';}
+function syncScope(){
+ const all=isAllLines(),direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('urgentStepTwoHeading').textContent=all?localeV2('wholeOrderChecksTitle','Checks for the entire order'):localeV2('individualLinesOption','Enter individual items / lines');
+ $('lines').hidden=all;$('addLine').hidden=all;
+ $('lines').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=all);
+ $('wholeOrderChecks').hidden=!all;
+ $('wholeOrderPickableRow').hidden=direct;
+ $('wholeOrderChecks').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!all||(direct&&el.id==='wholeOrderPickable'));
+}
+function wholeOrderChecks(){
+ return {pickableStock:$('orderType').value==='DIRECT_OUTBOUND'?null:flag($('wholeOrderPickable')),
+  holdsClear:flag($('wholeOrderHolds')),exceptionReason:$('wholeOrderReason').value.trim()};
+}
+function wholeChecksMarkup(order){
+ if(!order.allLines)return'';
+ const c=order.orderChecks||{};
+ const label=v=>v===true?localeV2('yes','Yes'):v===false?localeV2('no','No'):localeV2('wholeOrderNotChecked','Not yet checked');
+ return '<div class="muted" data-whole-order-checks="true"><strong>'+esc(localeV2('wholeOrderChecksTitle','Checks for the entire order'))+'</strong> · '+
+  esc(localeV2('wholeOrderStock','Has pickable stock been checked for the entire order?'))+' '+esc(label(c.pickableStock))+' · '+
+  esc(localeV2('wholeOrderHolds',"Is the entire order clear of Don't Process and Credit Hold?"))+' '+esc(label(c.holdsClear))+
+  (c.exceptionReason?'<div>'+esc(c.exceptionReason)+'</div>':'')+'</div>';
+}
+function syncP1Approval(){
+ const form=$('reportForm'),p1=form.elements.priority.value==='P1',check=$('p1CostApproved');
+ $('p1CostApprovalField').hidden=!p1;check.required=p1;if(!p1)check.checked=false;
+ $('urgentPriorityLegend').textContent=localeV2('priorityLegend','P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today');
+ $('p1CostApprovalText').textContent=localeV2('p1ApprovalConfirm','I confirm that coverage of the special transport costs has been approved.');
 }
 function items(){
  return[...document.querySelectorAll('.uo-line')].map(box=>{
@@ -196,7 +262,7 @@ function items(){
    pickableStock:flag(v('pickableStock')),holdsClear:flag(v('holdsClear')),
    newArticle:v('newArticle').checked,articleDataCorrect:v('newArticle').checked?flag(v('articleDataCorrect')):null,
    processCompliant:v('newArticle').checked?flag(v('processCompliant')):null,
-   minibag:v('minibag').checked,minibagLeadtime:v('minibag').checked?flag(v('minibagLeadtime')):null,
+   minibag:v('minibag').checked,minibagReviewed:!v('minibag').checked&&box.dataset.packingReviewed===(v('article').value.trim()+'\t'+v('quantity').value),minibagLeadtime:v('minibag').checked?flag(v('minibagLeadtime')):null,
    exceptionReason:v('exceptionReason').value.trim()
   };
  });
@@ -209,28 +275,129 @@ function directOutbound(form){
   plannedDispatchAt:x.plannedDispatchAt.value,deliveryNotePresent:flag(x.deliveryNotePresent),
   asnWorking:flag(x.asnWorking),holdsClear:flag(x.holdsClear),exceptionReason:x.exceptionReason.value.trim()};
 }
+function berlinCutoffClock(){
+ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return{date:p.year+'-'+p.month+'-'+p.day,minutes:+p.hour*60 + +p.minute};
+}
+function cutoffText(){
+ const fallback=$('reportForm').elements.language.value==='en'?"The regular reporting deadline for today's shipments is **3:15 pm** (order entry by 3:00 pm).\n\n- **Reporting after 3:15 pm?** Please choose **tomorrow** as the shipping date.\n- **Still reporting for today?** You can submit the order. If the system no longer approves it automatically, we will process it on the next working day.":"Die reguläre Meldefrist für den heutigen Versand endet um **15:15 Uhr** (Erfassung bis 15:00 Uhr).\n\n- **Sie melden nach 15:15 Uhr?** Bitte wählen Sie **morgen** als Versandtag.\n- **Trotzdem für heute melden?** Eine Übermittlung ist weiterhin möglich. Falls das System den Auftrag nicht mehr automatisch freigibt, wird er von uns am nächsten Arbeitstag bearbeitet.";
+ return localeV2('cutoffLateWarning',fallback);
+}
+// Render trusted locale text without innerHTML: bold spans and bullet items stay readable.
+function renderCutoffText(){
+ const root=$('lateCutoffText');root.replaceChildren();
+ let list=null;
+ for(const row of cutoffText().split(/\r?\n/)){
+  const line=row.trim();if(!line)continue;
+  const bullet=line.startsWith('- '),item=document.createElement(bullet?'li':'p');
+  for(const part of (bullet?line.slice(2):line).split(/(\*\*[^*]+\*\*)/g)){
+   if(!part)continue;
+   if(part.startsWith('**')&&part.endsWith('**')){
+    const strong=document.createElement('strong');strong.textContent=part.slice(2,-2);item.append(strong);
+   }else item.append(document.createTextNode(part));
+  }
+  if(bullet){if(!list){list=document.createElement('ul');root.append(list);}list.append(item);}
+  else{list=null;root.append(item);}
+ }
+}
+
+let cutoffApproved=false;
+function hideLateCutoffChoice(){
+ $('lateCutoffChoice').hidden=true;
+ $('submitOrder').hidden=false;
+}
+function showLateCutoffChoice(){
+ renderCutoffText();
+ $('lateCutoffChoice').hidden=false;
+ $('submitOrder').hidden=true;
+ $('lateMoveTomorrow').focus();
+}
+function syncCutoff(){
+ const control=$('requestedDispatchDate'),clock=berlinCutoffClock();
+ if(!control.value)control.value=clock.date;
+ control.min=clock.date;
+ const late=control.value===clock.date&&clock.minutes>15*60+15;
+ if(!late)hideLateCutoffChoice();
+ else if(!$('lateCutoffChoice').hidden)renderCutoffText();
+ return late;
+}
+function cutoffTomorrow(){
+ const [y,m,d]=berlinCutoffClock().date.split('-').map(Number);
+ return new Date(Date.UTC(y,m-1,d+1)).toISOString().slice(0,10);
+}
+function applyLateCutoffChoice(moveTomorrow){
+ if(moveTomorrow){
+  const today=berlinCutoffClock().date,tomorrow=cutoffTomorrow();
+  $('requestedDispatchDate').value=tomorrow;
+  const planned=$('reportForm').elements.plannedDispatchAt;
+  if(planned&&planned.value&&planned.value.slice(0,10)===today)planned.value=tomorrow+planned.value.slice(10);
+  syncCutoff();showWizardStep(3);
+ }else{
+  cutoffApproved=true;
+ }
+ hideLateCutoffChoice();
+ $('reportForm').requestSubmit();
+}
 function buildPayload(){
  const form=$('reportForm'),x=form.elements;
  return{accessToken:secret||'',orderNumber:x.orderNumber.value.trim(),delivery:x.delivery.value,priority:x.priority.value,
-  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
-  directOutbound:directOutbound(form),items:items()};
+  email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,requestedDispatchDate:x.requestedDispatchDate.value,
+  directOutbound:directOutbound(form),allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:x.priority.value==='P1'&&$('p1CostApproved').checked,items:isAllLines()?[]:items()};
 }
 
 let wizardStep=1;
 function showWizardStep(step){
  wizardStep=Math.max(1,Math.min(3,step));
+ if(wizardStep!==3)hideLateCutoffChoice();
  for(const block of document.querySelectorAll('[data-wizard-step]'))block.hidden=Number(block.dataset.wizardStep)!==wizardStep;
  for(const marker of document.querySelectorAll('[data-wizard-mark]')){if(Number(marker.dataset.wizardMark)===wizardStep)marker.setAttribute('aria-current','step');else marker.removeAttribute('aria-current');}
  $('wizardBack').hidden=wizardStep===1;$('wizardNext').hidden=wizardStep===3;
- if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+p.items.length+' '+localeV2('positions','Positionen')+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
+ if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+(p.allLines?(localeV2('wholeOrder','Entire order (all lines)')):p.items.length+' '+localeV2('positions','Positionen'))+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
 }
-function nextWizardStep(){
+async function checkMinibagBeforeNext(){
+ const boxes=[...document.querySelectorAll('.uo-line')],data=items();
+ const result=await api('packing-preflight',{items:data});
+ const validIndex=i=>Number.isInteger(i)&&i>=0&&i<data.length;
+ const unknown=(result.unknownIndices||[]).filter(validIndex);
+ const missing=unknown.map(i=>data[i].article||data[i].line||'#'+(i+1)).join(', ');
+ let status=localeV2('packingPreflightOk','Minibag-Prüfung: {count} Artikel anhand der Verpackungsgröße geprüft.').replace('{count}',String(result.checkedCount||0));
+ if(!result.ready)status=localeV2('packingPreflightMissing','Keine Minibag-Artikelliste geladen. Eine automatische Prüfung ist nicht möglich.');
+ else if(unknown.length)status=localeV2('packingPreflightUnknown','Keine Verpackungsgröße hinterlegt für: {articles}. Diese Positionen konnten nicht geprüft werden.').replace('{articles}',missing);
+ if(!result.ready||unknown.length){
+  const prompt=localeV2('packingPreflightUnknownConfirm','Minibag-Prüfung unvollständig. Bitte Artikelnummern prüfen. Trotzdem weitermachen?');
+  if(!window.confirm(status+'\n'+prompt))return null;
+ }
+ const review=(result.reviewIndices||[]).filter(validIndex);
+ if(review.length){
+  const list=review.map(i=>data[i].article+' ('+data[i].quantity+')').join(', ');
+  const prompt=localeV2('minibagReviewPrompt','Die Menge bei {articles} passt nicht zur vollen Verpackung. Ist das wirklich kein Minibag?').replace('{articles}',list);
+  if(!window.confirm(prompt))return null;
+  review.forEach(i=>{boxes[i].dataset.packingReviewed=data[i].article+'\t'+data[i].quantity;});
+  status=localeV2('packingPreflightConfirmed','Minibag-Mengen geprüft und deine Bestätigung gespeichert.');
+ }
+ return status;
+}
+async function nextWizardStep(){
  const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
  for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
- if(wizardStep===2){
+ if(wizardStep===2&&isAllLines()){
+  const c=wholeOrderChecks();if((c.pickableStock===false||c.holdsClear===false)&&c.exceptionReason.length<8){showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
+ }
+ if(wizardStep===2&&!isAllLines()){
   const p=buildPayload();
   if(p.items.some(x=>!x.line&&!x.article)){showMessage(localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
   if(p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8)){showMessage(localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
+ }
+ if(wizardStep===2&&!isAllLines()){
+  const button=$('wizardNext');button.disabled=true;
+  showMessage(localeV2('packingPreflightRunning','Minibag-Mengen werden geprüft …'),'');
+  try{
+   const notice=await checkMinibagBeforeNext();
+   if(notice===null){showMessage(localeV2('packingPreflightRetry','Please check the quantity or select Minibag.'),'warning');return;}
+   showMessage(notice,'ok');showWizardStep(3);
+  }catch(e){showMessage(e.message,'error');}
+  finally{button.disabled=false;}
+  return;
  }
  showMessage('','');showWizardStep(wizardStep+1);
 }
@@ -258,12 +425,33 @@ function render(){
   const node=document.createElement('details');node.className='order';
   const status=humanStatus(o);
   const lineHtml=(o.items||[]).map(x=>{
+   if(x.scope==='ALL_LINES')return '<div class="item-row"><strong>'+esc(localeV2('wholeOrder','Entire order (all lines)'))+'</strong><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>';
    const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
    return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc((o.items||[]).length)+' '+esc(localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+lineHtml+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+wholeChecksMarkup(o)+lineHtml+publicDeleteMarkup(o)+'</div>';
+  const deleteButton=node.querySelector('[data-delete-order]');
+  if(deleteButton)deleteButton.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(!window.confirm(localeV2('deletePublicPrompt',"Delete this Urgent Order? If processing has started, approval is required.")))return;
+   deleteButton.disabled=true;
+   try{
+    const result=await api('request-delete',{accessToken:secret,id:o.id});
+    await refresh();
+    showMessage(result.deleted?localeV2('deletePublicSuccess',"Request deleted."):
+      localeV2('deletePublicPendingToast',"Deletion requested. Logistics approval is required."),'ok');
+   }catch(error){deleteButton.disabled=false;showMessage(error.message,'error');}
+  });
   target.appendChild(node);
  }
+}
+function publicDeleteMarkup(order){
+ const record=order.deletion||{},pending=record.state==='pending';
+ const complete=(order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status));
+ const note=pending?'<p role="status">'+esc(localeV2('deletePublicPending',"Deletion requested – waiting for logistics approval."))+'</p>':
+  record.state==='rejected'?'<p role="status">'+esc(localeV2('deletePublicRejected',"The previous deletion request was declined."))+'</p>':'';
+ return '<div class="order-delete"><p class="muted">'+esc(localeV2('deletePublicDisclaimer',"Deletion affects the Urgent Order request, not the actual shipment."))+'</p>'+
+  note+(pending||complete?'':'<button type="button" class="btn secondary small" data-delete-order>'+esc(localeV2('deleteButton',"Delete request"))+'</button>')+'</div>';
 }
 function urgentTrackingBase(){
  const host=String(location.hostname||'').toLowerCase();
@@ -284,23 +472,29 @@ async function refresh(){
 async function submit(ev){
  ev.preventDefault();
  if(wizardStep!==3){showWizardStep(1);return;}
+ const approved=cutoffApproved;cutoffApproved=false;
+ const lateToday=syncCutoff();
  if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
+ if(p.allLines&&(p.orderChecks.pickableStock===false||p.orderChecks.holdsClear===false)&&p.orderChecks.exceptionReason.length<8){showWizardStep(2);showMessage(localeV2('wholeOrderReasonRequired','For a failed whole-order check, provide a reason of at least 8 characters.'),'error');return;}
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
  if(invalid){showMessage('Fehlgeschlagene Artikelprüfungen benötigen eine Begründung.','error');return;}
  if(p.directOutbound&&(p.directOutbound.deliveryNotePresent===false||p.directOutbound.asnWorking===false||p.directOutbound.holdsClear===false)&&p.directOutbound.exceptionReason.length<8){showMessage('Fehlgeschlagene Wareneingangsprüfung benötigt eine Begründung.','error');return;}
+ if(lateToday&&!approved){showLateCutoffChoice();return;}
+ hideLateCutoffChoice();
  $('submitOrder').disabled=true;showMessage('Anfrage wird gespeichert …','');
  try{
   const data=await api('create',p);
   rememberEmail(p.email); // Save only after successful server confirmation.
   secret=data.accessToken;
+  const late=!!(data.order.cutoff&&data.order.cutoff.lateSameDay);
   $('createdBanner').hidden=false;$('createdBanner').textContent=data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.');
   location.hash='access='+encodeURIComponent(secret);
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
-  $('reportForm').reset();$('lines').innerHTML='';lineCard();
+  $('reportForm').reset();$('lines').innerHTML='';lineCard();syncScope();syncP1Approval();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
-  syncType();showWizardStep(1);activateLink();await refresh();
+  syncType();syncCutoff();showWizardStep(1);activateLink();await refresh();
   showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
@@ -312,6 +506,12 @@ async function copyLink(){
 $('reportForm').addEventListener('submit',submit);
 $('wizardNext').addEventListener('click',nextWizardStep);$('wizardBack').addEventListener('click',()=>showWizardStep(wizardStep-1));
 $('orderType').addEventListener('change',syncType);
+$('requestedDispatchDate').addEventListener('change',syncCutoff);
+$('lateSubmitToday').addEventListener('click',()=>applyLateCutoffChoice(false));
+$('lateMoveTomorrow').addEventListener('click',()=>applyLateCutoffChoice(true));
+$('reportForm').elements.language.addEventListener('change',()=>{syncCutoff();syncP1Approval();});
+$('reportForm').elements.priority.addEventListener('change',syncP1Approval);
+document.querySelectorAll('input[name="lineScope"]').forEach(el=>el.addEventListener('change',syncScope));
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
@@ -319,9 +519,10 @@ for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
+window.addEventListener('exporthub:language-changed',syncCutoff);
 $('clearEmailHistory').addEventListener('click',clearEmailChoices);
 refreshEmailChoices();
-secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
+secret=accessFromHash();lineCard();syncType();syncScope();syncP1Approval();syncCutoff();showWizardStep(1);refresh();
 })();
 </script>
 </body>

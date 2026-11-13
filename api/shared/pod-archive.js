@@ -131,49 +131,110 @@ function palletReturnText(record) {
 // RC1602 P0: older signed pickup snapshots did not freeze delivery-note names.
 // Resolve only the matching existing shipment, read-only, before printing a POD.
 // This never changes the stored original signature, pickup record or team state.
+function podRecipientName(record){
+  // A selected customer location is a delivery *address label*, not the
+  // company name. Do not put "Hauptadresse" into the consignee heading.
+  const recipient=text(record&&record.recipient);
+  const customer=text(record&&(record.customer||record.customerName));
+  if(/^(?:hauptadresse|main address|standardadresse|default address)$/i.test(recipient)&&customer)
+    return customer;
+  return recipient||customer||'-';
+}
+// Only enrich a new server-rendered signed POD from matching existing shipment
+// evidence. Never alter the pickup snapshot, customer records or original PDF.
 async function resolvePodDeliveryNotes(record,clients,environment){
-  if(deliveryNoteNames(record).length)return record;
+  const namesAlready=deliveryNoteNames(record);
+  const needsRows=podRowsOf(record).length===0;
+  const needsCustomer=!text(record&&record.customer)&&/^(?:hauptadresse|main address|standardadresse|default address)$/i.test(text(record&&record.recipient));
+  if(namesAlready.length&&!needsRows&&!needsCustomer)return record;
   if(!clients||!clients.team||typeof clients.team.getBlockBlobClient!=='function')return record;
   let loaded;
   try{
     const blob=clients.team.getBlockBlobClient(store.teamBlobName(environment));
     loaded=await store.readJson(blob,null);
   }catch(error){
-    throw store.err('POD_DELIVERY_NOTES_READ_FAILED','Lieferscheine können nicht sicher geprüft werden. POD wurde nicht neu erzeugt.',503);
+    throw store.err('POD_DELIVERY_NOTES_READ_FAILED','Sendungsdetails können nicht sicher geprüft werden. POD wurde nicht neu erzeugt.',503);
   }
   const doc=loaded&&loaded.value||{};
   const state=doc.state&&typeof doc.state==='object'?doc.state:doc;
-  const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),sub=text(record&&record.subShipmentId);
+  const sid=text(record&&record.shipmentId);
+  const ref=text(record&&record.reference).toUpperCase();
+  const sub=text(record&&record.subShipmentId);
   if(!sid&&!ref)return record;
+  const referenceOnlyId=!!(sid&&ref&&sid.toUpperCase()===ref);
   const candidates=[...(Array.isArray(state.shipments)?state.shipments:[]),...(Array.isArray(state.savedShipments)?state.savedShipments:[])];
-  let best=[];
+  const evidence=[],matchedIds=new Set();
   for(const source of candidates){
     if(!source||typeof source!=='object')continue;
-    const sourceId=text(source.id||source.shipmentId),sourceRef=text(source.ref||source.reference||source.shipmentRef).toUpperCase();
-    const sourceSub=text(source.subShipmentId);
-    if(!(sid&&sourceId===sid)&&!(ref&&sourceRef===ref))continue;
-    if(sub&&sourceSub&&sourceSub!==sub)continue;
-    const activeFiles=files=>Array.isArray(files)?files.filter(file=>!/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/i.test(text(file&&file.status))):files;
-    const snapshot={
-      deliveryFiles:activeFiles(source.deliveryFiles),
-      deliveryNotesFiles:activeFiles(source.deliveryNotesFiles),
-      deliveryNoteFiles:activeFiles(source.deliveryNoteFiles),
-      deliveryNotes:activeFiles(source.deliveryNotes),
-      lieferscheine:activeFiles(source.lieferscheine),
-      packingSlips:activeFiles(source.packingSlips),
-      packingSlipFiles:activeFiles(source.packingSlipFiles),
-      deliveryNoteNames:source.deliveryNoteNames,
-      packingSlipNames:source.packingSlipNames
-    };
-    const names=deliveryNoteNames(snapshot);
-    if(names.length>best.length)best=names;
+    const sourceId=text(source.id||source.shipmentId);
+    const sourceRef=text(source.ref||source.reference||source.shipmentRef).toUpperCase();
+    if(ref&&sourceRef&&sourceRef!==ref)continue;
+    if(sid&&!referenceOnlyId&&sourceId&&sourceId!==sid)continue;
+    if(!((sid&&sourceId===sid)||(ref&&sourceRef===ref)))continue;
+    let matched=source;
+    if(sub){
+      if(text(source.subShipmentId)!==sub){
+        const variants=Array.isArray(source.subShipments)?
+          source.subShipments.filter(item=>text(item&&item.subShipmentId)===sub):[];
+        if(variants.length!==1)continue;
+        matched=variants[0];
+      }
+    }else if(text(source.subShipmentId)){
+      // Do not borrow the positions of one truck for the whole shipment.
+      continue;
+    }
+    evidence.push(matched);
+    if(sourceId)matchedIds.add(sourceId);
   }
-  return best.length?Object.assign({},record,{deliveryNotes:best}):record;
+  // A legacy REF-only pickup cannot choose between different source IDs.
+  if(referenceOnlyId&&matchedIds.size>1)return record;
+  if(!evidence.length)return record;
+  const patch={};
+  if(!namesAlready.length){
+    let best=[];
+    for(const source of evidence){
+      const activeFiles=files=>Array.isArray(files)?
+        files.filter(file=>!/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/i.test(text(file&&file.status))):files;
+      const snapshot={
+        deliveryFiles:activeFiles(source.deliveryFiles),
+        deliveryNotesFiles:activeFiles(source.deliveryNotesFiles),
+        deliveryNoteFiles:activeFiles(source.deliveryNoteFiles),
+        deliveryNotes:activeFiles(source.deliveryNotes),
+        lieferscheine:activeFiles(source.lieferscheine),
+        packingSlips:activeFiles(source.packingSlips),
+        packingSlipFiles:activeFiles(source.packingSlipFiles),
+        deliveryNoteNames:source.deliveryNoteNames,
+        packingSlipNames:source.packingSlipNames
+      };
+      const names=deliveryNoteNames(snapshot);
+      if(names.length>best.length)best=names;
+    }
+    if(best.length)patch.deliveryNotes=best;
+  }
+  if(needsRows){
+    const rowVersions=new Map();
+    const expected=typeof store.expectedCollis==='function'?Number(store.expectedCollis(record)):Number(record&&record.expectedColliCount||0);
+    for(const source of evidence){
+      const rows=podRowsOf(source);
+      if(!rows.length)continue;
+      const actual=typeof store.expectedCollis==='function'?Number(store.expectedCollis({rows})):0;
+      if(!expected||actual!==expected)continue;
+      rowVersions.set(JSON.stringify(rows),rows);
+    }
+    // Different historical versions must not be selected arbitrarily.
+    if(rowVersions.size===1)patch.rows=JSON.parse(JSON.stringify(rowVersions.values().next().value));
+  }
+  if(needsCustomer){
+    const customerNames=new Set(evidence.map(source=>text(source&&
+      (source.customerName||source.customer))).filter(Boolean));
+    if(customerNames.size===1)patch.customer=[...customerNames][0];
+  }
+  return Object.keys(patch).length?Object.assign({},record,patch):record;
 }
 function podRowsOf(record) {
   // Same persisted row aliases accepted by pickup-init. Keep canonical rows
   // authoritative and never reconstruct missing details from aggregate totals.
-  for (const key of ['rows', 'colli', 'collis', 'packages', 'packageRows']) {
+  for (const key of ['rows', 'colli', 'collis', 'packages', 'packageRows', 'packagingRows']) {
     if (Array.isArray(record && record[key]) && record[key].length) return record[key];
   }
   return [];
@@ -203,7 +264,7 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   card('Sendungsreferenz',value(record.reference),x+355,781,156,55);
   page.drawLine({start:{x,y:719},end:{x:x+width,y:719},thickness:1.4,color:navy});
   card('Absender',value(record.senderName,record.sender,'Essentra Components Ltd'),x,706,247,65);
-  card('Empfaenger / Kunde',value(record.recipient,record.customer),x+259,706,252,65);
+  card('Empfaenger / Kunde',podRecipientName(record),x+259,706,252,65);
   card('Transport / Anmeldung',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,629,247,56);
   card('Lieferadresse',value(record.address),x+259,629,252,56);
   const rows=podRowsOf(record);
@@ -212,6 +273,13 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   draw('POS.',x+8,y-16,8,bold);draw('VERPACKUNG',x+48,y-16,8,bold);draw('ANZAHL',x+230,y-16,8,bold);draw('GEWICHT KG',x+335,y-16,8,bold);
   y-=25;
   const overflowRows=[];
+  if(!rows.length){
+    // The total number of collis is not evidence of packaging type or weight.
+    // Show an explicit missing-details note instead of an unexplained empty table.
+    page.drawRectangle({x,y:y-25,width,height:25,borderColor:border,borderWidth:.45});
+    draw('Verpackungspositionen nicht uebermittelt - Details pruefen',x+8,y-16,8,normal,muted);
+    y-=25;
+  }
   for(const [i,row] of rows.slice(0,6).entries()){
     const r=row||{};page.drawRectangle({x,y:y-21,width,height:21,borderColor:border,borderWidth:.45});
     const packaging=value(r.type,r.packaging,r.verpackung,r.packageType,r.packagingType);
@@ -228,6 +296,34 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   card('Colli gesamt',String(typeof store.expectedCollis==='function'?store.expectedCollis(record):value(record.expectedColliCount,record.colliCount)),x,y,247,49);
   card('Colli abgeholt',String(typeof store.pickupCollectedColliCount==='function'?store.pickupCollectedColliCount(record):value(record.pickupCollectedColliCount,record.collectedPickupCollis)),x+259,y,252,49);
   y-=64;
+  // Official loading lists show delivery notes before the signed pickup tiles.
+  // Reserve finite space and move extra notes to annex pages, without changing
+  // the original signature or extending content below the A4 safety margin.
+  const deliveryNotes=deliveryNoteNames(record);
+  const overflowNotes=[];
+  if(deliveryNotes.length){
+    const colW=width/2,lineHeight=14,minSignedFooterTop=245;
+    const room=Math.max(0,y-minSignedFooterTop);
+    const rowsPerCol=Math.min(10,Math.max(0,Math.floor((room-30)/lineHeight)));
+    if(rowsPerCol>0){
+      draw('LIEFERSCHEINE / DELIVERY NOTES',x,y-7,9,bold,muted);
+      const firstY=y-24;
+      let appendixStarted=false;
+      deliveryNotes.forEach((name,index)=>{
+        if(appendixStarted||index>=rowsPerCol*2||
+           normal.widthOfTextAtSize(pdfText(name),9)>colW-14){
+          appendixStarted=true;overflowNotes.push(name);return;
+        }
+        const col=Math.floor(index/rowsPerCol),row=index%rowsPerCol;
+        draw(name,x+col*colW+4,firstY-row*lineHeight,9);
+      });
+      y-=24+Math.min(rowsPerCol,deliveryNotes.length)*lineHeight+6;
+    }else overflowNotes.push(...deliveryNotes);
+    if(overflowNotes.length){
+      draw('Weitere '+overflowNotes.length+' Lieferscheine auf Anlage',x+2,y-4,7,normal,muted);
+      y-=12;
+    }
+  }
   const top=y;
   page.drawRectangle({x,y:top-24,width,height:24,color:green,borderColor:border,borderWidth:.7});
   draw('SENDUNG ABGEHOLT',x+10,top-16,10,bold);
@@ -245,12 +341,12 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   // Never treat this shipment's palletOut as the customer's account balance.
   const palletX=x+2*(cellW+6);
   page.drawRectangle({x:palletX,y:y-SIGNATURE_CARD_HEIGHT,width:cellW,height:SIGNATURE_CARD_HEIGHT,borderColor:border,borderWidth:.7,color:rgb(1,1,1)});
-  draw('PALETTENKONTO / EUR PALLETS',palletX+8,y-13,6.3,bold,muted);
-  draw('Aktueller Stand / Balance',palletX+8,y-29,6.2,normal,muted);
-  draw(palletBalanceText(record),palletX+cellW-48,y-29,8,bold,navy);
-  draw('Eingang / Return',palletX+8,y-45,6.2,normal,muted);
+  draw('PALETTENKONTO / EUR PALLETS',palletX+8,y-13,7.1,bold,muted);
+  draw('Aktueller Stand / Balance',palletX+8,y-29,7,normal,muted);
+  draw(palletBalanceText(record),palletX+cellW-48,y-29,9,bold,navy);
+  draw('Eingang / Return',palletX+8,y-45,7,normal,muted);
   const palletReturn=palletReturnText(record);
-  if(palletReturn)draw(palletReturn,palletX+cellW-48,y-45,8,bold,navy);
+  if(palletReturn)draw(palletReturn,palletX+cellW-48,y-45,9,bold,navy);
   else page.drawLine({start:{x:palletX+cellW-48,y:y-47},end:{x:palletX+cellW-10,y:y-47},thickness:.8,color:navy});
   let image=null;
   // RC1600: image bytes, not potentially stale MIME metadata, identify the driver's original ink.
@@ -269,26 +365,8 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
   page.drawImage(image,{x:signatureX+10,y:y-SIGNATURE_CARD_HEIGHT+5,width:dims.width*scale,height:dims.height*scale});
 
-  // RC1600: never compress dozens of delivery-note lines below A4 safety margins.
-  // The driver signature and pallet card always stay together on page one.
-  const deliveryNotes=deliveryNoteNames(record);
-  const deliveryTop=y-SIGNATURE_CARD_HEIGHT-10;
-  const overflowNotes=[];
-  if(deliveryNotes.length){
-    draw('LIEFERSCHEINE / DELIVERY NOTES',x,deliveryTop,7,bold,muted);
-    const colW=width/2,firstY=deliveryTop-15,lineHeight=11.5,minY=75;
-    const rowsPerCol=Math.max(0,Math.floor((firstY-minY)/lineHeight)+1);
-    let appendixStarted=false;
-    deliveryNotes.forEach((name,index)=>{
-      // Never render a name that exceeds its column: keep it intact in the annex.
-      if(appendixStarted || index>=rowsPerCol*2 || normal.widthOfTextAtSize(pdfText(name),7.2)>colW-14){
-        appendixStarted=true;overflowNotes.push(name);return;
-      }
-      const col=Math.floor(index/rowsPerCol),row=index%rowsPerCol;
-      draw(name,x+col*colW+4,firstY-row*lineHeight,7.2);
-    });
-    if(overflowNotes.length)draw('Weitere '+overflowNotes.length+' Lieferscheine auf Anlage',x+2,61,7,normal,muted);
-  }
+  // The original signature and pallet fields stay together on the first A4
+  // sheet; additional delivery notes continue in an explicit annex.
   draw('Nachweis-ID: '+text(record.accessKey||'').slice(0,20),x,49,7,normal,muted);
   draw('Quelle: ExportHUB QR-Abholung',x+245,49,7,normal,muted);
 
@@ -792,7 +870,44 @@ async function retryArchiveBackup(accessKey, environment) {
   return { ok: true, record: drive.record || record, file: existing.file, backup: (drive.record || record).podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function retryDriveBackup(accessKey, environment) {
-  return retryArchiveBackup(accessKey, environment);
+  const got = await store.getRecord(accessKey, environment);
+  const record = got.record || {};
+  const backup = record.podBackup || {};
+  // RC1952: An optional Graph-only retry must not re-upload an already
+  // SHA-verified Azure archive or replace its original archiveSavedAt time.
+  // Missing/incomplete archives still enter the existing mandatory repair path.
+  if (backup.archiveSaved !== true || !/^[a-f0-9]{64}$/.test(text(backup.hash).toLowerCase())) {
+    return retryArchiveBackup(accessKey, environment);
+  }
+  const currentFile = automaticPod(record);
+  if (!currentFile) {
+    throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
+  }
+  // This reads the original signed bytes (or a hash-verified archival
+  // recovery) without rendering or replacing the signed document.
+  const existing = await readAutomaticPodBuffer(accessKey, environment, record);
+  if (!existing) {
+    throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
+  }
+  const originalHash = crypto.createHash('sha256').update(existing.buffer).digest('hex');
+  if (originalHash !== text(backup.hash).toLowerCase()) {
+    throw store.err('POD_ARCHIVE_INTEGRITY_FAILED', 'Der archivierte POD stimmt nicht mit dem signierten Original überein.', 409);
+  }
+  const archiveCheck = await checkAzureArchive(got.clients, record, accessKey, true);
+  if (!archiveCheck.ok) {
+    // A deleted archive requires a real archive repair, never an optimistic
+    // Graph-only success. A conflicting archive must remain blocked.
+    if (archiveCheck.repairable) return retryArchiveBackup(accessKey, environment);
+    throw store.err(archiveCheck.code || 'POD_ARCHIVE_VERIFY_FAILED',
+      archiveCheck.message || 'POD_ARCHIVE_VERIFY_FAILED', 409);
+  }
+  if (!m365Enabled() || !graphDrive.readiness().configured) {
+    return { ok: true, record, file: existing.file, backup, archiveSaved: true, driveSaved: confirmedDriveBackup(backup) };
+  }
+  const drive = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
+  const finalRecord = drive.record || record;
+  return { ok: true, record: finalRecord, file: existing.file, backup: finalRecord.podBackup || {},
+    archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function reconcilePendingBackups(environment, options) {
   options = Object.assign({ limit: 10, minAgeMs: 5 * 60 * 1000 }, options || {});
@@ -1029,7 +1144,9 @@ async function reconcilePendingBackups(environment, options) {
 
   for (const candidate of selectedCandidates) {
     try {
-      const result = await retryArchiveBackup(candidate.accessKey, environment);
+      const result = candidate.driveOnly
+        ? await retryDriveBackup(candidate.accessKey, environment)
+        : await retryArchiveBackup(candidate.accessKey, environment);
       const record = result && result.record || {};
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};

@@ -91,13 +91,16 @@ jobs:
             ok:data.diagnosticOnly===true&&data.ok===true,
             code:clean(data.code),mode:clean(data.targetMode),
             configured:data.configured===true,missing:(Array.isArray(data.missing)?data.missing:[]).map(clean).slice(0,8),
+            configuredUserPathMatch:data.configuredUserPathMatchesExplicitIds===true?'same':
+              data.configuredUserPathMatchesExplicitIds===false?'different':'unverified',
             checks};
           console.log('RC1687 Graph target diagnostic',JSON.stringify(summary));
           if(!summary.ok)console.log('::warning title=Graph POD target diagnostic::Read-only Graph target verification is pending; see redacted stages in this job.');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
             '\n### RC1687 '+environment+' Graph target (read-only)\n\n' +
             'Result: '+(summary.ok?'TARGET READABLE':'NOT VERIFIED')+'; code '+summary.code+'\n\n' +
-            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
+            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+
+            '\nConfigured path / explicit IDs: '+summary.configuredUserPathMatch+'\n');
           NODE
       - name: Offene TESTSERVICE POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
@@ -124,6 +127,8 @@ jobs:
           graph_target_failure_streak=0
           suppress_drive_backfill=0
           blocked_ambiguous_relink_batches=0
+          # RC1953: 25 metadata rows per page reduce Azure LIST/API round trips.
+          # Actual remote integrity/upload work remains capped at two actions.
           for batch in $(seq 1 200); do
             # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
             # Renew periodically using GitHub's signed token endpoint; never log the JWT
@@ -138,7 +143,7 @@ jobs:
             fi
             previous_continuation_token="$continuation_token"
             previous_relink_skip_count="$relink_skip_count"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(10,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:25,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(25,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -169,7 +174,7 @@ jobs:
                 process.stdout.write('again');
               })" "$http_code" "$batch")"
             continuation_token="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(v.nextContinuationToken||''))})")"
-            relink_skip_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(Math.max(0,Math.min(10,Math.floor(Number(v.nextRelinkSkipCount)||0)))))})")"
+            relink_skip_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(Math.max(0,Math.min(25,Math.floor(Number(v.nextRelinkSkipCount)||0)))))})")"
             if [ "$continuation_token" != "$previous_continuation_token" ]; then
               relink_skip_count=0
             fi
@@ -183,12 +188,14 @@ jobs:
               blocked_ambiguous_relink_batches=$((blocked_ambiguous_relink_batches + 1))
             fi
 
-            # Pause ONLY optional Graph retries after two consecutive target/request failures.
+            # Pause ONLY optional Graph retries after two failed Graph attempts.
+            # Graph may return BadRequest instead of GRAPH_REQUEST_FAILED; use the
+            # explicit pending count and ignore pages without a Graph attempt.
             # Required Azure archival continues; next scheduled run retries Graph.
-            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED')?'1':'0')})")"
-            if [ "$graph_target_failure" = '1' ]; then
+            graph_target_attempt_result="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());const known=codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED');const failed=known||Number(v.drivePendingCount||0)>0;const saved=Number(v.driveSavedCount||0)>0&&Number(v.drivePendingCount||0)===0;process.stdout.write(failed?'failed':saved?'saved':'none')})")"
+            if [ "$graph_target_attempt_result" = 'failed' ]; then
               graph_target_failure_streak=$((graph_target_failure_streak + 1))
-            elif [ "$suppress_drive_backfill" != '1' ]; then
+            elif [ "$graph_target_attempt_result" = 'saved' ]; then
               graph_target_failure_streak=0
             fi
             if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then
@@ -277,13 +284,16 @@ jobs:
             ok:data.diagnosticOnly===true&&data.ok===true,
             code:clean(data.code),mode:clean(data.targetMode),
             configured:data.configured===true,missing:(Array.isArray(data.missing)?data.missing:[]).map(clean).slice(0,8),
+            configuredUserPathMatch:data.configuredUserPathMatchesExplicitIds===true?'same':
+              data.configuredUserPathMatchesExplicitIds===false?'different':'unverified',
             checks};
           console.log('RC1687 Graph target diagnostic',JSON.stringify(summary));
           if(!summary.ok)console.log('::warning title=Graph POD target diagnostic::Read-only Graph target verification is pending; see redacted stages in this job.');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
             '\n### RC1687 '+environment+' Graph target (read-only)\n\n' +
             'Result: '+(summary.ok?'TARGET READABLE':'NOT VERIFIED')+'; code '+summary.code+'\n\n' +
-            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
+            checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+
+            '\nConfigured path / explicit IDs: '+summary.configuredUserPathMatch+'\n');
           NODE
       - name: Offene PRODUCTION POD-Backups nachholen
         # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
@@ -321,7 +331,7 @@ jobs:
               )"
             fi
             previous_continuation_token="$continuation_token"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:25,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -358,12 +368,14 @@ jobs:
               optional_drive_pending_batches=$((optional_drive_pending_batches + 1))
             fi
 
-            # Pause ONLY optional Graph retries after two consecutive target/request failures.
+            # Pause ONLY optional Graph retries after two failed Graph attempts.
+            # Graph may return BadRequest instead of GRAPH_REQUEST_FAILED; use the
+            # explicit pending count and ignore pages without a Graph attempt.
             # Required Azure archival continues; next scheduled run retries Graph.
-            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED')?'1':'0')})")"
-            if [ "$graph_target_failure" = '1' ]; then
+            graph_target_attempt_result="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());const known=codes.some(code=>code==='GRAPH_DIRECT_PATH_TARGET_FAILED'||code==='GRAPH_REQUEST_FAILED');const failed=known||Number(v.drivePendingCount||0)>0;const saved=Number(v.driveSavedCount||0)>0&&Number(v.drivePendingCount||0)===0;process.stdout.write(failed?'failed':saved?'saved':'none')})")"
+            if [ "$graph_target_attempt_result" = 'failed' ]; then
               graph_target_failure_streak=$((graph_target_failure_streak + 1))
-            elif [ "$suppress_drive_backfill" != '1' ]; then
+            elif [ "$graph_target_attempt_result" = 'saved' ]; then
               graph_target_failure_streak=0
             fi
             if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then

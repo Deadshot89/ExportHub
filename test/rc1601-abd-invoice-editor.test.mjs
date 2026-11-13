@@ -66,16 +66,16 @@ test('RC1601: long invoice descriptions are not silently truncated',async()=>{
  assert.match(content,/LASTWORD-CHECK-XYZ/);
 });
 test('RC1601: invoice editor avoids MutationObserver feedback loops',()=>{
- assert.ok(frontend.includes('if(button.textContent!==exportLabel)'));
+ assert.ok(frontend.includes("var oldPdf=head.querySelector('[data-rc1549-proforma]')"));
  assert.ok(frontend.includes('if(importButton.textContent!==importLabel)'));
- assert.ok(frontend.includes("if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)"));
+ assert.ok(frontend.includes("function invoicePanel(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')"));
 });
 
 test('RC1601: upload export cannot bypass complete invoice address and weight validation',()=>{
  assert.ok(frontend.includes('function readyInvoice(snapshot)'));
  assert.ok(frontend.includes('if(!q(h.senderName||h.customer)||!q(h.senderAddress)||!q(h.recipient)||!q(h.recipientAddress))return false'));
- assert.ok(frontend.includes('button.disabled=!readyInvoice(snapshot)'));
  assert.ok(frontend.includes('if(!readyInvoice(snapshot)||busy)'));
+ assert.ok(frontend.includes("format:'proforma'"));
 });
 
 test('RC1601: standard production/Testservice build includes the invoice editor',()=>{

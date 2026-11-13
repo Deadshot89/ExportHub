@@ -257,6 +257,8 @@
   "api.container.photoLabel.number": "Container number from inside",
   "api.container.photoLabel.sealed": "Sealed container · seal/markings/documents",
   "api.fixedPickups.failed": "Fixed pickups could not be processed.",
+  "api.pickupLinks.readForbidden": "You do not have permission to view the pickup calendar.",
+  "api.pickupLinks.loadFailed": "Pickup assignments could not be loaded.",
   "api.abdAnalysis.fileRequired": "Please select a PDF, XLSX or CSV file.",
   "api.abdAnalysis.fileType": "Only PDF, XLSX and CSV files are allowed for export declaration analysis.",
   "api.abdAnalysis.fileTooLarge": "The file is too large. The maximum size is {{max}} MB.",

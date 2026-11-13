@@ -929,7 +929,13 @@ function normalizeTombstones(meta) {
     if (!tombstone || !tombstone.collection || !tombstone.id) continue;
     const key = `${tombstone.collection}:${lower(tombstone.id)}`;
     const current = map.get(key);
-    if (!current || Date.parse(tombstone.deletedAt || '') >= Date.parse(current.deletedAt || '')) {
+    // A newer automatic marker must not downgrade a prior user-confirmed
+    // task deletion. Otherwise the same task ID could return on another device.
+    if (current && tombstone.collection === 'tasks' &&
+        current.explicitUserAction === true && tombstone.explicitUserAction !== true) continue;
+    if (!current || (tombstone.collection === 'tasks' &&
+        tombstone.explicitUserAction === true && current.explicitUserAction !== true) ||
+        Date.parse(tombstone.deletedAt || '') >= Date.parse(current.deletedAt || '')) {
       map.set(key, clone(tombstone));
     }
   }
@@ -973,6 +979,9 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
     const tombstone = tombstones.get(`${name}:${lower(rawId)}`);
     const shipmentCollection = name === 'shipments' || name === 'savedShipments';
     const explicitShipmentDelete = shipmentCollection && tombstone && tombstone.explicitUserAction === true;
+    // A user-confirmed task deletion is final for this task ID. A stale browser
+    // updating its old copy afterwards must never re-create the removed task.
+    if (name === 'tasks' && tombstone && tombstone.explicitUserAction === true) continue;
     if (tombstone && (!shipmentCollection || explicitShipmentDelete) && Date.parse(tombstone.deletedAt || '') >= timestamp(item)) continue;
     out.push(item);
   }
@@ -1228,6 +1237,9 @@ function pruneTombstones(state, maxAgeDays = 365) {
   if (!state || !state._teamSyncMeta) return state;
   const cutoff = Date.now() - maxAgeDays * 86400000;
   state._teamSyncMeta.tombstones = normalizeTombstones(state._teamSyncMeta).filter((item) => {
+    // Never discard an explicit task-delete marker: an offline device can
+    // reconnect after the normal retention period and reintroduce that ID.
+    if (item.collection === 'tasks' && item.explicitUserAction === true) return true;
     const time = Date.parse(item.deletedAt || '');
     return !Number.isFinite(time) || time >= cutoff;
   });

@@ -20,9 +20,9 @@ test('RC1763 packers can explicitly add multiple separately typed packing rows o
  }
  assert.equal(versions[0],versions[1],'both public pack pages must load the same client revision');
  const js=file('assets/pack-notification.js');
- assert.match(js,/data-pack-type/,'each row needs its own canonical package selector');
- assert.match(js,/data-pack-remove/,'each line can be removed');
- assert.match(js,/els\.addPackage\.addEventListener\('click'/,'button must append a row');
+ assert.match(js,/data-entry-type/,'each input line must choose a canonical package type');
+ assert.match(js,/data-entry-remove/,'each input line can be removed');
+ assert.match(js,/els\.addPackage\)els\.addPackage\.addEventListener\('click'/,'button must append a new input line');
  assert.match(js,/snapshotPackageRows\(\)/,'existing dimensions and selections must be preserved on add/remove');
  assert.match(js,/packageTypeId:entry\?entry\.id:''/,'per-line packaging master ID must reach backend');
 });

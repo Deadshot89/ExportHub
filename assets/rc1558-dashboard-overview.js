@@ -237,7 +237,7 @@ function renderHtml(model,meta){
       (route?'<button type="button" class="rc1558-link" data-rc1558-route="'+esc(route)+'">'+esc(t(linkKey))+'</button>':'')+'</div>'
   }
 
-  return'<div class="rc1558-top">'+(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+'</div></div>'+
+  return'<div class="rc1558-top">'+(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+openWorkTopKpi()+'</div></div>'+
     '<div class="rc1558-grid">'+
       '<section class="rc1558-panel rc1558-today">'+head('dashboard.overview.today.title',model.todayTotal,'shipmentoverview','dashboard.overview.today.link')+table+'</section>'+
       '<div class="rc1558-stack">'+
@@ -398,6 +398,12 @@ function bind(section){
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
     if(target.closest('[data-rc1573-edit]')){e.preventDefault();openTilePanel();return}
+    var module=target.closest('[data-rc1558-open-module]');
+    if(module){e.preventDefault();var name=module.getAttribute('data-rc1558-open-module');if(name==='shipmentevidence'){
+      if(w.ExportHUBStandaloneEvidence&&typeof w.ExportHUBStandaloneEvidence.open==='function')w.ExportHUBStandaloneEvidence.open();
+      return
+     }
+     if((name==='urgentorders'||name==='quality')&&w.ExportHUBEmbeddedModules&&typeof w.ExportHUBEmbeddedModules.open==='function')w.ExportHUBEmbeddedModules.open(name);return}
     var k=target.closest('[data-rc1558-kpi]');if(k){e.preventDefault();startDrill(k.getAttribute('data-rc1558-kpi'),k.getAttribute('data-rc1558-route'));return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
@@ -468,6 +474,100 @@ function barsHtml(items,max,kind){
       '<span class="rc1573-bar-label">'+esc(it.short)+'</span></button>'
   }).join('')+'</div>'
 }
+// This card only requests authorized aggregate counts, never order lines or QM case details.
+var openWorkCounts={urgent:null,quality:null,complaints:null};
+var openWorkLastFetch=0,openWorkInFlight=false,openWorkEpoch=0,openWorkLoggedOut=false;
+var openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};
+var OPEN_WORK_AUTH_BACKOFF_MS=5*60*1000;
+function resetOpenWorkCounts(loggedOut){
+  openWorkEpoch++;openWorkLoggedOut=!!loggedOut;openWorkCounts={urgent:null,quality:null,complaints:null};openWorkLastFetch=0;
+  openWorkAuthBackoff={urgent:0,quality:0,complaints:0,complaintsLegacy:0};
+  // A previous user's stalled request must not block a fresh authorized session.
+  openWorkInFlight=false;
+  // An earlier user's response is invalidated by epoch even when it finishes later.
+  refreshNow()
+}
+function openWorkToken(){
+  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return q(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
+  try{var session=JSON.parse(w.sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return q(session.token)}catch(_){return''}
+}
+async function requestOpenWorkCount(path,signal){
+  var kind=path==='/api/urgent-orders'?'urgent':path==='/api/shipment-evidence'?'complaints':path==='/api/shipment-documentation'?'complaintsLegacy':'quality',epoch=openWorkEpoch;
+  // 401/403 are permission failures. Retry no more than once every five minutes per module,
+  // while a new authenticated session may retry immediately.
+  if(Date.now()<openWorkAuthBackoff[kind])throw Error('COUNT_AUTH_BACKOFF');
+  var headers={'Content-Type':'application/json','Accept':'application/json'},token=openWorkToken();
+  if(token)headers['X-ExportHUB-Token']=token;
+  // Shipment evidence has a read-only GET count; Urgent and QM use their existing POST contracts.
+  var options=(kind==='complaints'||kind==='complaintsLegacy')
+    ?{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers}
+    :{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:headers,body:JSON.stringify({action:'counts'})};
+  if(kind==='complaints'||kind==='complaintsLegacy')path+='?action=counts';
+  if(signal)options.signal=signal;
+  var response=await w.fetch(path,options);
+  if(!response||!response.ok||response.redirected||response.type==='opaqueredirect'){
+    if(response&&(response.status===401||response.status===403)&&epoch===openWorkEpoch&&!openWorkLoggedOut)
+      openWorkAuthBackoff[kind]=Date.now()+OPEN_WORK_AUTH_BACKOFF_MS;
+    throw Error('COUNT_UNAVAILABLE')
+  }
+  var mime=response.headers&&response.headers.get&&response.headers.get('content-type')||'';
+  if(!mime.includes('application/json'))throw Error('COUNT_INVALID_RESPONSE');
+  var data=await response.json();
+  if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw Error('COUNT_INVALID');
+  if(epoch===openWorkEpoch&&!openWorkLoggedOut)openWorkAuthBackoff[kind]=0;
+  return data.open
+}
+// A stalled API cannot indefinitely block the other live counter or subsequent refreshes.
+async function boundedOpenWorkCount(path){
+  var controller=typeof w.AbortController==='function'?new w.AbortController():null;
+  var request=requestOpenWorkCount(path,controller?controller.signal:null);
+  if(typeof w.setTimeout!=='function')return request;
+  var handle=null;
+  var timeout=new Promise(function(_,reject){
+    handle=w.setTimeout(function(){if(controller)controller.abort();reject(Error('COUNT_TIMEOUT'))},12000)
+  });
+  try{return await Promise.race([request,timeout])}
+  finally{if(handle!==null&&typeof w.clearTimeout==='function')w.clearTimeout(handle)}
+}
+function loadOpenWorkCounts(){
+  if(openWorkLoggedOut||openWorkInFlight||!w.fetch||!w.document||w.document.hidden||!isDashboard())return;
+  var now=Date.now();if(now-openWorkLastFetch<45000)return;
+  openWorkLastFetch=now;openWorkInFlight=true;var epoch=openWorkEpoch;
+  Promise.allSettled([boundedOpenWorkCount('/api/urgent-orders'),boundedOpenWorkCount('/api/quality-capa'),boundedOpenWorkCount('/api/shipment-evidence'),boundedOpenWorkCount('/api/shipment-documentation')]).then(function(results){
+    if(epoch!==openWorkEpoch||openWorkLoggedOut)return;
+    openWorkCounts={
+      urgent:results[0].status==='fulfilled'?results[0].value:null,
+      quality:results[1].status==='fulfilled'?results[1].value:null,
+      complaints:results[2].status==='fulfilled'&&results[3].status==='fulfilled'?results[2].value+results[3].value:null
+    };
+    refreshNow();
+  }).finally(function(){
+    // Only the request belonging to the current session may release its in-flight lock.
+    if(epoch===openWorkEpoch)openWorkInFlight=false;
+    else if(!openWorkLoggedOut)loadOpenWorkCounts()
+  })
+}
+function openWorkTopKpi(){
+  // Open work uses exactly the same standalone KPI button structure as all other top tiles.
+  // Never substitute 0 for unavailable/auth-blocked counts; each button opens its own internal module.
+  return [
+    {kind:'urgent',route:'urgentorders',key:'dashboard.overview.tile.openUrgent',icon:'tasks'},
+    {kind:'quality',route:'quality',key:'dashboard.overview.tile.openQuality',icon:'documents'},
+    {kind:'complaints',route:'shipmentevidence',key:'dashboard.overview.tile.openComplaints',icon:'documents'}
+  ].map(function(item){
+    var count=openWorkCounts[item.kind],available=Number.isSafeInteger(count)&&count>=0;
+    var label=t(item.key),display=available?String(count):t('dashboard.overview.tile.unavailable');
+    var tone=available&&count>0?'warn':'neutral';
+    return'<button type="button" class="rc1558-kpi" data-tone="'+tone+'"'+
+      (available&&count===0?' data-zero="1"':'')+(available?'':' data-unavailable="1"')+
+      ' data-rc1558-open-module="'+item.route+'" aria-label="'+esc(label+': '+display)+'">'+
+      '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(label)+'</span>'+icon(item.icon)+'</span>'+
+      '<strong class="rc1558-kpi-value">'+(available?count:'–')+'</strong>'+
+      '<span class="rc1558-kpi-sub">'+esc(t(available?'dashboard.overview.tile.openModule':'dashboard.overview.tile.unavailable'))+'</span>'+
+    '</button>'
+  }).join('')
+}
+
 function tileHtml(id,shipments){
   if(id==='lager'){
     var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
@@ -486,6 +586,7 @@ function tileHtml(id,shipments){
 }
 function applyTiles(root,shipments){
   var d=w.document;if(!d||!root)return;
+  var old=root.querySelector(':scope > [data-rc1573-own="openwork"]');if(old)old.remove();
   var cfg=readTiles(),visible=cfg.order.filter(function(id){return cfg.on[id]});
   // rows of up to five tiles on a 60-column grid (5 → 12, 4 → 15, 3 → 20, 2 → 30, 1 → 60); a further row only from six tiles
   var PER_ROW=5,rows=Math.ceil(visible.length/PER_ROW)||1,span={};
@@ -509,7 +610,10 @@ function applyTiles(root,shipments){
 // own tiles live outside the overview section: route their links and bars from #content
 function bindTiles(root){
   if(!root||root.__rc1573Bound)return;root.__rc1573Bound=true;
-  root.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))})
+  root.addEventListener('click',function(e){
+    var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;
+    if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))
+  })
 }
 function openTilePanel(){
   var d=w.document;if(!d)return;var old=d.getElementById('rc1573Panel');if(old){old.remove();return}
@@ -542,6 +646,8 @@ function fit(){
   var d=w.document;if(!d||!d.body)return;
   var c=d.getElementById('content');
   var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=FIT_MIN_WIDTH;
+  // The fixed-height one-page grid has only five bottom-row slots; avoid overlap for personalized layouts with more cards.
+  if(on){var cfg=readTiles();if(cfg.order.filter(function(id){return cfg.on[id]}).length>5)on=false}
   var h=0;
   if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<FIT_MIN_HEIGHT)on=false}
   if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}
@@ -609,6 +715,7 @@ function refresh(){
   applyTiles(root,arr(state.shipments));
   bindTiles(root);
   removeDashboardLieferavis(root);
+  loadOpenWorkCounts();
   d.body.setAttribute(BODY_FLAG,'1');
   fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
@@ -627,6 +734,15 @@ function install(){
   if(typeof w.addEventListener!=='function')return;
   ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:language-changed','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
   w.addEventListener('load',schedule);
+  // Invalidate a count after actual case changes; next dashboard visit refetches.
+  w.addEventListener('exporthub:complaint-updated',function(){
+   if(openWorkLoggedOut)return;
+   openWorkEpoch++;openWorkInFlight=false;openWorkLastFetch=0;
+   openWorkCounts.complaints=null;openWorkAuthBackoff.complaints=0;openWorkAuthBackoff.complaintsLegacy=0;
+   schedule()
+  });
+  ['exporthub:login','exporthub:authenticated','exporthub:user-changed'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(false)})});
+  ['exporthub:logout','exporthub:logged-out','exporthub:session-ended'].forEach(function(event){w.addEventListener(event,function(){resetOpenWorkCounts(true)})});
   var fitFrame=0;w.addEventListener('resize',function(){if(fitFrame)return;var raf=w.requestAnimationFrame||function(fn){return setTimeout(fn,16)};fitFrame=raf(function(){fitFrame=0;fitNow()})});
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.

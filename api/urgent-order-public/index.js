@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
+const packing=require('../shared/urgent-packing');
 const apiI18n=require('../shared/i18n');
 const guard=new Map();
 const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
@@ -22,11 +23,15 @@ function groupByToken(doc,v){
 }
 function publicOrder(order){
  return{
-  id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,
+  id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,allLines:order.allLines===true,
+   orderChecks:order.allLines&&order.orderChecks?{pickableStock:order.orderChecks.pickableStock===true?true:order.orderChecks.pickableStock===false?false:null,holdsClear:order.orderChecks.holdsClear===true?true:order.orderChecks.holdsClear===false?false:null,checkResult:order.orderChecks.checkResult||'not_checked',exceptionReason:txt(order.orderChecks.exceptionReason,1000)}:null,
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
+  requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
+  deletion:{state:model.deleteView(order).state,started:model.deleteView(order).started,
+    requestedAt:model.deleteView(order).requestedAt},
   items:(order.items||[]).map(x=>({
-   id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,
+   id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,scope:x.scope||null,
    checkResult:x.checkResult,minibag:!!x.minibag,newArticle:!!x.newArticle,
    problemNote:x.status==='Problem'?txt(x.problemNote,1000):''
   }))
@@ -39,7 +44,8 @@ function ip(req){
 }
 function checkRate(req,action){
  const now=Date.now(),key=crypto.createHash('sha256').update(ip(req)+'|'+action).digest('hex');
- const span=action==='create'?3600000:60000,limit=action==='create'?12:90;
+ const sensitive=action==='create'||action==='packing-preflight';
+ const span=sensitive?3600000:60000,limit=sensitive?12:90;
  const r=guard.get(key);
  if(guard.size>10000){for(const [k,v] of guard)if(now-v.start>3600000)guard.delete(k);}
  if(!r||now-r.start>=span){guard.set(key,{start:now,count:1});return;}
@@ -56,11 +62,32 @@ async function publicAction(req,refs){
   checkRate(req,'list');
   const doc=await internal.readDocument(refs),group=groupByToken(doc,p.accessToken);
   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Invalid or missing tracking link.',403);
-  return{orders:doc.orders.filter(o=>o.reporterId===group.id).map(publicOrder).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),environment:refs.environment};
+  return{orders:doc.orders.filter(o=>!o.deletedAt&&o.reporterId===group.id).map(publicOrder).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),environment:refs.environment};
+ }
+ if(action==='request-delete'){
+  checkRate(req,'request-delete');
+  const id=txt(p.id,90),accessToken=p.accessToken;
+  return internal.write(refs,doc=>{
+   const group=groupByToken(doc,accessToken);
+   if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Ungültiger Überwachungslink.',403);
+   const order=doc.orders.find(o=>o&&o.id===id&&o.reporterId===group.id&&!o.deletedAt);
+   if(!order)throw model.problem('URGENT_NOT_FOUND','Anfrage nicht gefunden.',404);
+   const deletion=model.requestDeletion(order,{id:'REPORTER:'+group.id,name:'Customer Service'});
+   return {deleted:!!order.deletedAt,deletion:{state:deletion.state,requestedAt:deletion.requestedAt},
+     order:order.deletedAt?null:publicOrder(order)};
+  });
+ }
+ if(action==='packing-preflight'){
+  // The anonymous browser sees only position indices, never private pack quantities.
+  // A separate per-IP hourly limit prevents unbounded catalog probing.
+  checkRate(req,'packing-preflight');
+  const catalog=await internal.readPackingCatalog(refs);
+  return {...packing.preflight(p.items,catalog),environment:refs.environment};
  }
  if(action==='create'){
   checkRate(req,'create');
   const now=new Date().toISOString();
+  const catalog=p.allLines===true?null:await internal.readPackingCatalog(refs);
   const secret=credential();
   const provided=txt(p.accessToken,100);
   const result=await internal.write(refs,doc=>{
@@ -69,14 +96,14 @@ async function publicAction(req,refs){
    const reporterEmail=model.email(p.email);
    if(group&&group.email!==reporterEmail)throw model.problem('URGENT_REPORTER_EMAIL_MISMATCH','Use the email address associated with your tracking link.',403);
    if(doc.orders.length>=MAX_ORDERS)throw model.problem('URGENT_CAPACITY','The report service has reached its request limit.',503);
-   if(group&&doc.orders.filter(o=>o.reporterId===group.id).length>=MAX_REPORTER_ORDERS)throw model.problem('URGENT_REPORTER_CAPACITY','This tracking link has reached its request limit.',409);
+   if(group&&doc.orders.filter(o=>!o.deletedAt&&o.reporterId===group.id).length>=MAX_REPORTER_ORDERS)throw model.problem('URGENT_REPORTER_CAPACITY','This tracking link has reached its request limit.',409);
    // Durable daily cap is enforced inside the same ETag-protected write so parallel
    // Azure workers cannot bypass a per-instance memory counter.
    const day=now.slice(0,10),counter=doc.publicDaily&&doc.publicDaily.day===day?Number(doc.publicDaily.count)||0:0;
    if(counter>=MAX_PUBLIC_CREATES_PER_DAY)throw model.problem('URGENT_PUBLIC_DAILY_LIMIT','Daily public reporting capacity reached. Please contact logistics.',429);
    const actor={id:'REPORTER:'+(group?group.id:secret.id),name:'Customer Service'};
-   const order=model.createOrder(p,actor,now);
-   if(doc.orders.some(o=>o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
+   const order=model.createOrder(p,actor,now,catalog);
+   if(doc.orders.some(o=>!o.deletedAt&&o.orderNumber===order.orderNumber))throw model.problem('URGENT_ORDER_EXISTS','This sales order is already reported. Please contact logistics.',409);
    if(!group)group=issueGroup(doc,secret,reporterEmail,now);
    order.reporterId=group.id;
    doc.orders.push(order);
@@ -93,6 +120,7 @@ module.exports=async function(context,req){
  try{
   // No session is read or required. Every read must present the reporter's private capability token.
   const refs=internal.storage(req),result=await publicAction(req,refs);
+  await internal.postSaveP1(body(req).action,result,refs,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
   const status=Number(e&&e.status||e&&e.statusCode)||500;
@@ -105,6 +133,10 @@ module.exports=async function(context,req){
   const responseStatus=!recognized&&status<500?503:status;
   context.log&&context.log.warn&&context.log.warn('urgent-order-public',internalCode,status);
    if(internalCode==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(internal.safeHostDiagnostic(req)));
+  if(publicCode==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
+   // Never expose stored master-data values to anonymous reporters.
+   context.res=json(409,{ok:false,code:publicCode,message:e.message,minibagArticles:e.minibagArticles||[],minibagIndices:e.minibagIndices||[]});return;
+  }
   const serviceError=responseStatus>=500;
   const safeMessages={
    URGENT_STORAGE_MISSING:'Urgent Order ist noch nicht mit dem Datenspeicher verbunden. Bitte die Logistik informieren.',
@@ -115,7 +147,9 @@ module.exports=async function(context,req){
   const message=serviceError
    ?safeMessages[publicCode]||apiI18n.t(req,'api.urgent.serverError')
    :e&&e.message||'Ungültige Anfrage.';
-  context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
+  const response={ok:false,code:publicCode,message,retryable:serviceError&&!['URGENT_WRITE_UNVERIFIED','URGENT_HOST_UNTRUSTED'].includes(publicCode)};
+   if(publicCode==='URGENT_HOST_UNTRUSTED')response.diagnostic=internal.safeHostDiagnostic(req);
+   context.res=json(responseStatus,response);
  }
 };
 module.exports.publicAction=publicAction;

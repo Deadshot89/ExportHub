@@ -9,7 +9,20 @@ test('RC1561: Modus und gewählte Dateien liegen außerhalb des Panels und über
   assert.match(src,/var currentMode='manual',pendingFiles=\[\],pendingUploads=new WeakMap\(\);/);
   assert.match(src,/currentMode=mode;/,'All four ABD modes must survive the view re-render');
   assert.match(src,/setMode\(currentMode,true\);/,'Re-render must restore the tab without repeating shipment prefill');
-  assert.match(src,/if\(currentMode==='invoice'&&pendingFiles\.length\)/,'Invoice uploads remain in memory');
+  assert.doesNotMatch(src,/if\(currentMode==='invoice'&&pendingFiles\.length\)/,'ABD no longer owns invoice uploads');
+});
+
+test('RC1942: invoice upload and analysis UI moved from ABD to Documents',()=>{
+ const docs=fs.readFileSync('assets/rc1940-documents-workspace.js','utf8');
+ const mount=src.slice(src.indexOf('function mount(){'),src.indexOf('function disconnectHostObserver(){'));
+ assert.doesNotMatch(mount,/data-rc1294-mode="invoice"/);
+ assert.doesNotMatch(mount,/id="rc1294InvoicePanel"/);
+ assert.match(mount,/data-rc1294-mode="manual"/);
+ assert.match(mount,/data-rc1294-mode="shipment"/);
+ assert.match(mount,/data-rc1294-mode="saved"/);
+ assert.match(docs,/data-rc1940-files accept="[^"]*\.pdf[^"]*\.xlsx[^"]*\.csv/);
+ assert.match(docs,/scanner\.analyzeFile\(file\)/);
+ assert.match(src,/analyzeFile:analyzeFile/);
 });
 
 test('RC1561: Ereignisse der Dateiauswahl laufen nicht in die ABD-Ansicht weiter',()=>{

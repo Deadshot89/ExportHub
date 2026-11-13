@@ -6,10 +6,16 @@ on:
     paths:
       - 'api/shipment-evidence/**'
       - 'assets/shipment-evidence*'
+      - 'assets/sendungsdokumentation.html'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
       - 'assets/i18n/shipment-evidence.js'
       - 'assets/rc1579-menu-redesign.js'
       - 'test/rc1903-standalone-evidence.test.mjs'
+      - 'test/rc1934-evidence-recovery.test.mjs'
       - 'e2e/specs/rc1903-guest-shipment-documentation.spec.mjs'
+      - 'e2e/specs/rc1903-testservice-visual-proof.spec.mjs'
+      - 'playwright.rc1903-testservice-visual.config.mjs'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1903-shipment-evidence-browser.yml'
       - '.github/workflows/rc1538-testservice-main-supersession.yml'
@@ -42,7 +48,7 @@ jobs:
         run: node --test test/rc1538-testservice-supersession-race.test.mjs
 
       - name: RC1903 API and rights regression
-        run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs
+        run: node --test --test-concurrency=1 test/rc1903-standalone-evidence.test.mjs test/rc1934-evidence-recovery.test.mjs
 
       - name: Build ExportHUB RC1112 environments
         run: |
@@ -55,11 +61,27 @@ jobs:
           npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
 
-      - name: Verify inline anonymous creation and upload in desktop and mobile browsers
+      - name: Verify public link, own read-only records and upload on desktop and mobile
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: production
         run: npx playwright test e2e/specs/rc1903-guest-shipment-documentation.spec.mjs --project=laptop --project=mobile-small
+
+      - name: Verify real TESTSERVICE frontend with mocked customer and photo APIs
+        run: |
+          set -euo pipefail
+          # The browser downloads actual deployed HTML/JS/CSS, but all /api requests are intercepted.
+          # No customer search or shipment upload ever reaches the Azure backend.
+          npx playwright test e2e/specs/rc1903-testservice-visual-proof.spec.mjs --config playwright.rc1903-testservice-visual.config.mjs
+
+      - name: Store TESTSERVICE proof screenshots (synthetic data only)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1903-testservice-visual-proof
+          path: test-results/**/rc1903-testservice-*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Store browser diagnostics on failure
         if: failure()

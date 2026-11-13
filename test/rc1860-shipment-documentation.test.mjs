@@ -77,7 +77,7 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
  const azure=JSON.parse(fs.readFileSync('api/shipment-documentation/function.json','utf8'));
- assert.match(build,/rc1860-shipment-documentation\.js\?v=1860/);
+ assert.match(build,/rc1860-shipment-documentation\.js\?v=1935/);
  assert.match(build,/'assets\/rc1860-shipment-documentation\.js'/);
  assert.match(ui,/getElementById\('rc786ReferenceFilesCard'\)/);
  assert.match(ui,/action:'complaint'/);
@@ -85,7 +85,9 @@ test('RC1860 ist in Haupt-Build und Sendungsansicht eingebunden',()=>{
  assert.match(ui,/runtime\.upload\(ref,prepared,type==='photo'\?'sonstiges':'lieferschein'\)/);
  assert.match(ui,/filenameForProof\(f,type,i\)/);
  assert.match(ui,/if\(!isCurrent\(box,ref\)\)return/);
- assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1860/);
+ assert.match(build,/assets\/i18n\/rc1860-shipment-documentation\.js\?v=1935/);
+ const translations=fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8');
+ for(const key of ['previewUnavailable','linkedError','download','close','linkedPhotosSection'])assert.match(translations,new RegExp('"'+key+'"'));
  assert.equal(azure.bindings[0].type,'httpTrigger');
  assert.deepEqual(azure.bindings[0].methods,['get','post','options']);
 });
@@ -111,6 +113,10 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  t.mock.method(auth,'loginStorageEnvironment',()=> 'production');
  t.mock.method(BlobServiceClient,'fromConnectionString',()=>({
   getContainerClient:()=>({
+   listBlobsFlat:({prefix})=>({byPage:()=>({next:async()=>({
+    value:{segment:{blobItems:[...stored.keys()].filter(name=>name.startsWith(prefix)).map(name=>({name}))},
+     continuationToken:null}
+   })})}),
    getBlockBlobClient:(key)=>{
     paths.push(key);
     return{
@@ -155,6 +161,41 @@ test('API: Auth-geschuetztes Speichern, erneutes Lesen und Kundenbeschwerde mit 
  assert.equal(complaint.status,200);
  assert.equal(complaint.data.record.complaints.length,1);
  assert.equal(complaint.data.record.complaints[0].state,'offen');
+ const complaintId=complaint.data.record.complaints[0].id;
+ const historicalList=await call('GET',{action:'list'});
+ assert.equal(historicalList.status,200);
+ assert.equal(historicalList.data.records.length,1,'Stored REF is shown in the historical register');
+ assert.equal(historicalList.data.records[0].reference,'ABC123');
+ assert.equal(historicalList.data.records[0].fields.colli,'5');
+ assert.equal(historicalList.data.records[0].fields.weightKg,'120.5');
+ assert.deepEqual(historicalList.data.records[0].complaints,[{state:'offen'}],
+  'Summary must exclude complaint text and IDs');
+ assert.equal(JSON.stringify(historicalList.data).includes('Karton beschaedigt'),false);
+ const initiallyOpen=await call('GET',{action:'counts'});
+ assert.equal(initiallyOpen.status,200);
+ assert.deepEqual(initiallyOpen.data,{ok:true,open:1},'REF counter must not reveal case details');
+ const premature=await call('POST',{reference:'ABC123',action:'complaint-status',
+  expectedRevision:2,complaintId,state:'abgeschlossen'});
+ assert.equal(premature.status,422,'Without verified effectiveness, closure is forbidden even through the API');
+ assert.equal(premature.data.code,'EFFECTIVENESS_REQUIRED');
+ const firstReview=await call('POST',{reference:'ABC123',action:'complaint-update',
+  expectedRevision:2,complaintId,rootCause:'Verpackung nicht ausreichend',
+  correctiveAction:'Zweite Lade- und Verpackungskontrolle',
+  checkDate:'2026-11-10',checkMethod:'10 Packstuecke geprueft',
+  checkCriteria:'Null neue Transportschaeden',effectivenessEvidence:'Kontrollliste bestaetigt'});
+ assert.equal(firstReview.status,200);
+ assert.equal(firstReview.data.record.complaints[0].effectivenessResult,'offen');
+ const confirmed=await call('POST',{reference:'ABC123',action:'complaint-update',
+  expectedRevision:3,complaintId,effectivenessResult:'wirksam'});
+ assert.equal(confirmed.status,200);
+ assert.equal(confirmed.data.record.complaints[0].verifiedBy,auth.usernameOf(user),'audit reviewer follows the verified session username, not the display name');
+ const finished=await call('POST',{reference:'ABC123',action:'complaint-status',
+  expectedRevision:4,complaintId,state:'abgeschlossen'});
+ assert.equal(finished.status,200);
+ assert.equal(finished.data.record.complaints[0].state,'abgeschlossen');
+ const afterClosure=await call('GET',{action:'counts'});
+ assert.equal(afterClosure.status,200);
+ assert.equal(afterClosure.data.open,0);
  const stale=await call('POST',{reference:'ABC123',action:'save',expectedRevision:0,fields:{contents:'Ueberschreiben'}});
  assert.equal(stale.status,409);
  assert.equal((await call('GET',{reference:'ABC123'})).data.record.fields.contents,'5 Kartons');
@@ -194,4 +235,37 @@ test('TESTSERVICE kann keine Produktionssendung als eigene Dokumentation freigeb
  assert.equal((await get('ABC123')).status,404);
  assert.equal((await get('XYZ987')).status,200);
  assert.equal(requestedPath,'testservice/shipment-documentation/XYZ987.json');
+});
+
+
+test('RC1860: vier abbestellte Felder fehlen in Sendungsansicht und gespeicherte Werte bleiben erhalten',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ for(const field of ['packaging','shippingMethod','contents','loadSecuring']){
+  assert.doesNotMatch(ui,new RegExp("\\['"+field+"'"),'Shipment view must not render '+field);
+ }
+ assert.match(ui,/Object\.assign\(\{\},activeRecord&&activeRecord\.fields\|\|\{\},values\(box\)\)/,'Save must preserve stored legacy fields');
+ assert.match(ui,/\['carrier',tr\('carrier'\),'text'\]/,'Carrier remains editable');
+ assert.match(ui,/\['remarks',tr\('remarks'\),'textarea',true\]/,'Notes remain editable');
+});
+
+test('RC1860: Datei gilt erst als eingetroffen, wenn REF-Dateiliste sie erneut bestaetigt',()=>{
+ const ui=fs.readFileSync('assets/rc1860-shipment-documentation.js','utf8');
+ const api=fs.readFileSync('api/reference-files/index.js','utf8');
+ assert.match(ui,/var check=await fetch\('\/api\/reference-files\?reference='/);
+ assert.match(ui,/receipt\.name/);
+ assert.match(ui,/q\(f\.id\)===q\(receipt\.id\)/,'Upload receipt must match exact persisted file ID, not a same-name older original');
+ assert.match(ui,/receipt\.azureSaved/);
+ assert.match(ui,/uploadNotListed/);
+ assert.match(ui,/if\(data\.partial===true\)/,'Never hide partial Azure/SharePoint listing failures');
+ assert.match(ui,/tr\('refPartial'\)/,'Inform employees when the REF list is incomplete');
+ assert.match(ui,/referenceFolder:azureOnly===0/);
+ assert.match(api,/function mergeReferenceFileSources\(graphFiles,azure,docs\)/,'Keep separate source identities for same-name originals');
+ assert.match(api,/const files=mergeReferenceFileSources\(listed.files,azure,docs\)/);
+ assert.match(api,/partial:!!\(graphError\|\|azureError\|\|docsError\)/,'Report incomplete storage sources');
+ const ctx={};
+ new Function('window',fs.readFileSync('assets/i18n/rc1860-shipment-documentation.js','utf8'))(ctx);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  for(const key of ['filesVerified','azureOnly','uploadNotListed','uploadNotConfirmed','refPartial'])
+   assert.ok(ctx.ExportHUBShipmentDocumentationI18n.packs[locale][key],locale+' '+key);
+ }
 });

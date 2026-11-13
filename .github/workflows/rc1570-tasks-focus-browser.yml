@@ -1,0 +1,58 @@
+name: RC1570 Aufgabenansicht Read-only Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/specs/rc1570-tasks-focus-production.spec.mjs'
+      - 'test/rc1570-task-focus-production-live-gate.test.mjs'
+      - '.github/workflows/exporthub-production-release.yml'
+      - '.github/workflows/rc1570-tasks-focus-browser.yml'
+      - 'assets/rc1570-tasks-focus.js'
+      - 'assets/i18n/rc1570-tasks-focus.js'
+      - '.github/rc1112/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1570-tasks-focus-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: RC1570 read-only gate and deployment contract
+        run: node --test test/rc1570-task-focus-production-live-gate.test.mjs
+
+      - name: Build current three-environment static package
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Install isolated Playwright and Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: RC1570 synthetic UI browser clicks, paging and safe deletion
+        env:
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: npx playwright test e2e/specs/rc1570-tasks-focus-production.spec.mjs --project=laptop
+
+      - name: Preserve RC1570 browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1570-tasks-browser-${{ github.event.pull_request.number || github.run_id }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14

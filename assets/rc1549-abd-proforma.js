@@ -48,7 +48,7 @@ var packs={
  it:{title:'Inserisci posizioni manualmente',help:'In alternativa al caricamento di documenti o Excel puoi inserire qui le posizioni. Tutti i percorsi usano la stessa verifica ABD.',number:'N. proforma',date:'Data',recipient:'Destinatario',country:'Paese di destinazione',currency:'Valuta',add:'Aggiungi posizione',create:'Verifica posizioni',proforma:'Scarica proforma PDF',item:'Articolo',description:'Descrizione',qty:'Quantità',unit:'Unità',unitPrice:'Prezzo unitario',value:'Valore merce',net:'Netto kg',gross:'Lordo kg',volume:'Volume m³',hs:'Codice HS',origin:'Paese di origine',actions:'Azioni',remove:'Rimuovi',duplicate:'Duplica',summary:'Analisi manuale',total:'Valore totale',groups:'Riepilogo doganale',required:'Inserisci almeno una posizione completa.',recipientRequired:'Inserisci un destinatario.',ready:'Analisi completa. È possibile creare la proforma.',review:'Completa i dati obbligatori.',error:'Operazione non riuscita.'}
 };
 var extras={
- de:{invoiceTitle:'Rechnung für ABD erstellen',
+ de:{invoiceTitle:'Rechnung / Proforma erstellen',
   savedAbdSearchLabel:
    'Suchen',
   savedAbdSearchPlaceholder:
@@ -57,8 +57,8 @@ var extras={
    'Gespeicherte ABD-Anfragen durchsuchen',
   savedAbdSearchCount:
    '{visible} von {total} Anfragen',
- editorHelp:'Rechnung hochladen und erkannte Positionen zur Korrektur übernehmen – oder alle Angaben hier manuell erfassen.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.',logoMissingHint:'Standard-Essentra-Logo aus der SOP-Vorlage. Bei Bedarf hier ersetzen.',logoLoadedHint:'Das ausgewählte Firmenlogo wird im PDF verwendet und auf diesem Gerät gespeichert.',logoRemove:'Eigenes Logo zurücksetzen',logoRemoved:'Standardlogo wiederhergestellt.'},
- en:{invoiceTitle:'Create an invoice for export declaration',
+ editorHelp:'Rechnungsdaten und Positionen manuell erfassen. Geprüfte Daten aus der Rechnungsanalyse können übernommen werden.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.',logoMissingHint:'Standard-Essentra-Logo aus der SOP-Vorlage. Bei Bedarf hier ersetzen.',logoLoadedHint:'Das ausgewählte Firmenlogo wird im PDF verwendet und auf diesem Gerät gespeichert.',logoRemove:'Eigenes Logo zurücksetzen',logoRemoved:'Standardlogo wiederhergestellt.'},
+ en:{invoiceTitle:'Create an invoice / proforma',
   savedAbdSearchLabel:
    'Search',
   savedAbdSearchPlaceholder:
@@ -67,8 +67,8 @@ var extras={
    'Search saved export declaration requests',
   savedAbdSearchCount:
    '{visible} of {total} requests',
- editorHelp:'Import and correct positions from an uploaded invoice or enter all information manually.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.',logoMissingHint:'Essentra logo from the SOP template. You can replace it here.',logoLoadedHint:'This logo will be used in the PDF and saved on this device.',logoRemove:'Reset custom logo',logoRemoved:'Default logo restored.'},
- pl:{invoiceTitle:'Utwórz fakturę do zgłoszenia eksportowego',
+ editorHelp:'Enter invoice details and items manually, or transfer reviewed items from invoice analysis.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.',logoMissingHint:'Essentra logo from the SOP template. You can replace it here.',logoLoadedHint:'This logo will be used in the PDF and saved on this device.',logoRemove:'Reset custom logo',logoRemoved:'Default logo restored.'},
+ pl:{invoiceTitle:'Utwórz fakturę / proformę',
   savedAbdSearchLabel:
    'Szukaj',
   savedAbdSearchPlaceholder:
@@ -77,8 +77,8 @@ var extras={
    'Przeszukaj zapisane zgłoszenia eksportowe',
   savedAbdSearchCount:
    '{visible} z {total} zgłoszeń',
- editorHelp:'Przenieś i popraw dane przesłanej faktury lub wpisz wszystko ręcznie.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.',logoMissingHint:'Domyślne logo Essentra z szablonu SOP. Można je zastąpić.',logoLoadedHint:'Wybrane logo pojawi się w PDF i zostanie zapisane na tym urządzeniu.',logoRemove:'Przywróć logo domyślne',logoRemoved:'Przywrócono logo domyślne.'},
- es:{invoiceTitle:'Crear factura para declaración de exportación',
+ editorHelp:'Wprowadź dane i pozycje ręcznie lub przenieś sprawdzone dane z analizy faktury.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.',logoMissingHint:'Domyślne logo Essentra z szablonu SOP. Można je zastąpić.',logoLoadedHint:'Wybrane logo pojawi się w PDF i zostanie zapisane na tym urządzeniu.',logoRemove:'Przywróć logo domyślne',logoRemoved:'Przywrócono logo domyślne.'},
+ es:{invoiceTitle:'Crear factura / proforma',
   savedAbdSearchLabel:
    'Buscar',
   savedAbdSearchPlaceholder:
@@ -87,8 +87,8 @@ var extras={
    'Buscar solicitudes de exportación guardadas',
   savedAbdSearchCount:
    '{visible} de {total} solicitudes',
- editorHelp:'Importa y corrige los datos de una factura cargada o introdúcelos manualmente.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.',logoMissingHint:'Logotipo Essentra de la plantilla SOP. Puedes sustituirlo aquí.',logoLoadedHint:'El logotipo se usará en el PDF y se guardará en este dispositivo.',logoRemove:'Restaurar logo estándar',logoRemoved:'Logo estándar restaurado.'},
- fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',
+ editorHelp:'Introduce los datos y las partidas manualmente o transfiere datos revisados del análisis de facturas.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.',logoMissingHint:'Logotipo Essentra de la plantilla SOP. Puedes sustituirlo aquí.',logoLoadedHint:'El logotipo se usará en el PDF y se guardará en este dispositivo.',logoRemove:'Restaurar logo estándar',logoRemoved:'Logo estándar restaurado.'},
+ fr:{invoiceTitle:'Créer une facture / proforma',
   savedAbdSearchLabel:
    'Rechercher',
   savedAbdSearchPlaceholder:
@@ -97,8 +97,8 @@ var extras={
    'Rechercher des demandes d’exportation enregistrées',
   savedAbdSearchCount:
    '{visible} sur {total} demandes',
- editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Logo Essentra issu du modèle SOP. Vous pouvez le remplacer.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Restaurer le logo par défaut',logoRemoved:'Logo par défaut restauré.'},
- it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',
+ editorHelp:'Saisissez les données et les articles ou transférez les données vérifiées depuis l’analyse des factures.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Logo Essentra issu du modèle SOP. Vous pouvez le remplacer.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Restaurer le logo par défaut',logoRemoved:'Logo par défaut restauré.'},
+ it:{invoiceTitle:'Crea fattura / proforma',
   savedAbdSearchLabel:
    'Cerca',
   savedAbdSearchPlaceholder:
@@ -107,7 +107,7 @@ var extras={
    'Cerca richieste di esportazione salvate',
   savedAbdSearchCount:
    '{visible} di {total} richieste',
- editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Logo Essentra dal modello SOP. Puoi sostituirlo qui.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Ripristina logo predefinito',logoRemoved:'Logo predefinito ripristinato.'}
+ editorHelp:'Inserisci dati e articoli manualmente oppure trasferisci quelli verificati dall’analisi fatture.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Logo Essentra dal modello SOP. Puoi sostituirlo qui.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Ripristina logo predefinito',logoRemoved:'Logo predefinito ripristinato.'}
 };
 var customsLabels={
  de:{companyDetails:'Firmen- und Steuerdaten',shippingDetails:'Versand- und Zollangaben',senderEori:'EORI des Ausführers (freiwillig)',senderVatId:'USt-IdNr.',senderTaxNumber:'Steuernummer (freiwillig)',senderRegister:'Handelsregister / Sitz',incoterm:'Incoterms 2020',exportReason:'Ausfuhrgrund (freiwillig)',packageCount:'Anzahl Packstücke',packageType:'Verpackungsart',transportMode:'Versandart',shipmentReference:'Sendungs-/Bestellreferenz',freightCost:'Frachtkosten (freiwillig)',customsRequired:'Bitte Bestimmungsland als zweistelligen ISO-Code (z. B. GB) und gültige freiwillige EORI-/Frachtangaben erfassen.',customsHelp:'Bei kostenloser Ware realistischen Warenwert für Zollzwecke angeben. Der PDF-Einzelwert wird aus Warenwert / Menge berechnet.'},
@@ -148,9 +148,17 @@ function number(value){
 function money(value){var n=number(value);return n==null?'':n.toFixed(2)}
 function metric(value){var n=number(value);return n==null?'':n.toFixed(3)}
 function authToken(){
- try{var rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},token=q(rt.authToken||rt.sessionToken);if(token)return token}catch(_){}
- try{for(var i=0;root.sessionStorage&&i<root.sessionStorage.length;i++){var raw=root.sessionStorage.getItem(root.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var parsed=JSON.parse(raw);if(parsed&&parsed.token)return q(parsed.token)}}catch(_){}
- return''
+ // RC1932: never search unrelated sessionStorage records for a bearer token.
+ // Use the same active ExportHUB session and environment as the invoice upload.
+ try{var rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},token=q(rt.authToken||rt.token||rt.sessionToken);if(token)return token}catch(_){}
+ try{
+  var raw=root.sessionStorage&&root.sessionStorage.getItem('exporthub_rc301_tab_session');
+  if(!raw)return'';
+  var session=JSON.parse(raw),token=q(session&&session.token);
+  if(!token||!session.user)return'';
+  var source=q(session.environment||session.dataEnvironment).toLowerCase();
+  return !source||source===environment()?token:''
+ }catch(_){return''}
 }
 function environment(){try{return /-testservice\./i.test(String(root.location&&root.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function headers(){
@@ -191,7 +199,7 @@ async function exportProforma(snapshot,button){
  finally{busy=false;if(button)button.disabled=false;schedule()}
 }
 function host(){return root.document&&root.document.getElementById('rc1294AbdAnalysis')}
-function invoicePanel(){var h=host();return h&&h.querySelector('[data-rc1294-invoice-panel]')}
+function invoicePanel(){return root.document&&root.document.querySelector('#rc1940Documents [data-rc1940-document-editor]')}
 function manualPanel(){return root.document&&root.document.getElementById('rc1549AbdManual')}
 function setStatus(message,kind){var box=manualPanel()&&manualPanel().querySelector('[data-rc1549-status]');if(!box)return;box.hidden=!q(message);box.textContent=q(message);box.setAttribute('data-kind',kind||'info')}
 function input(name,type,placeholder){return'<input '+(type?'type="'+type+'" ':'')+'data-field="'+name+'" placeholder="'+esc(placeholder||'')+'" autocomplete="off">'}
@@ -228,6 +236,90 @@ function fillHeader(){
 function headerValues(){
  var p=manualPanel(),get=function(name){var el=p&&p.querySelector('[data-rc1549-header="'+name+'"]');return q(el?el.value:headerDraft[name])};
  return{invoiceNumber:get('invoiceNumber'),invoiceDate:get('invoiceDate'),customer:get('senderName'),senderName:get('senderName'),senderAddress:get('senderAddress'),recipient:get('recipient'),recipientAddress:get('recipientAddress'),destinationCountry:get('destinationCountry').toUpperCase(),senderEori:get('senderEori'),senderVatId:get('senderVatId'),senderTaxNumber:get('senderTaxNumber'),senderRegister:get('senderRegister'),incoterm:get('incoterm'),exportReason:get('exportReason'),packageCount:get('packageCount'),packageType:get('packageType'),transportMode:get('transportMode'),shipmentReference:get('shipmentReference'),freightCost:get('freightCost'),currency:(get('currency')||'EUR').toUpperCase().slice(0,3)}
+}
+
+/* RC1968: client-side recipient lookup in current ExportHUB customer master. */
+var recipientCopy={
+ de:['Empfänger suchen (Kundennummer oder Name)','Kundennummer / Kundenname','Kein Kunde gefunden','Kundenstammdaten sind nicht geladen','Hauptadresse','Vorhandenen Empfänger und Adresse ersetzen?','Empfänger übernommen. Adresse prüfen.','Empfänger übernommen. Adresse ergänzen.','Weitere Treffer – Suche eingrenzen.'],
+ en:['Search recipient by customer number or name','Customer number / name','No customer found','Customer directory is not loaded','Main address','Replace recipient and address?','Recipient selected. Check the address.','Recipient selected. Enter address.','More matches – refine search.'],
+ pl:['Szukaj odbiorcy po numerze lub nazwie','Numer / nazwa klienta','Nie znaleziono klienta','Dane klientów niedostępne','Adres główny','Zastąpić odbiorcę i adres?','Odbiorca wybrany. Sprawdź adres.','Uzupełnij adres odbiorcy.','Więcej wyników – zawęź wyszukiwanie.'],
+ es:['Buscar destinatario por número o nombre','Número / nombre del cliente','Cliente no encontrado','Directorio no disponible','Dirección principal','¿Sustituir destinatario y dirección?','Destinatario seleccionado. Revisa la dirección.','Completa la dirección.','Más resultados – acota la búsqueda.'],
+ fr:['Chercher destinataire par numéro ou nom','Numéro / nom du client','Aucun client trouvé','Répertoire indisponible','Adresse principale','Remplacer destinataire et adresse ?','Destinataire choisi. Vérifiez l’adresse.','Complétez l’adresse.','Plus de résultats – précisez la recherche.'],
+ it:['Cerca destinatario per numero o nome','Numero / nome cliente','Cliente non trovato','Rubrica clienti non disponibile','Indirizzo principale','Sostituire destinatario e indirizzo?','Destinatario scelto. Verifica indirizzo.','Completa indirizzo.','Altri risultati – perfeziona ricerca.']
+};
+var recipientOptions=[];
+function rct(i){return(recipientCopy[language()]||recipientCopy.de)[i]}
+function rcv(v){return typeof v==='string'||typeof v==='number'?q(v):''}
+function rcdirectory(){
+ var st=null;try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')st=root.__EXPORTHUB_GET_STATE__()}catch(_){}
+ var clean=root.ExportHUBClean||{};st=st||clean.runtime&&clean.runtime.state||clean.state||root.appState||{};
+ return Array.isArray(st.customers)?st.customers:[]
+}
+function rcaddress(c){
+ if(!c||typeof c!=='object')return'';
+ var direct=c.address||c.formattedAddress||c.fullAddress||c.addressText||c.deliveryAddress||c.recipientAddress||c.shipToAddress;
+ if(typeof direct==='string'&&q(direct))return q(direct).slice(0,500);
+ var street=rcv(c.street||c.strasse||c.streetName||c.addressLine1),zip=rcv(c.zip||c.postalCode||c.postcode||c.plz),city=rcv(c.city||c.ort||c.town),country=rcv(c.country||c.land||c.countryName||c.countryCode);
+ return [street,[zip,city].filter(Boolean).join(' '),country].filter(Boolean).join(', ').slice(0,500)
+}
+function rcmatches(term){
+ term=q(term).toLocaleLowerCase('de-DE');if(!term)return[];
+ var out=[];
+ rcdirectory().forEach(function(c){
+  if(!c||typeof c!=='object'||c.deleted===true||c.disabled===true||c.active===false)return;
+  var account=rcv(c.account||c.customerNumber||c.kundennummer||c.customerAccount||c.customerNo||c.number),name=rcv(c.name||c.customerName||c.companyName);
+  var id=account.toLocaleLowerCase('de-DE'),named=name.toLocaleLowerCase('de-DE');if(!name||(!id.includes(term)&&!named.includes(term)))return;
+  var rank=id===term?0:id.startsWith(term)?1:named.startsWith(term)?2:3;
+  var entries=[],seen=Object.create(null);
+  function add(loc,site){
+   if(!loc||typeof loc!=='object')return;
+   var address=rcaddress(loc),recipient=rcv(loc.recipientName||loc.deliveryName||loc.companyName)||name;
+   var key=recipient+'|'+address;if(seen[key])return;seen[key]=true;
+   entries.push({account:account,name:recipient,address:address,site:site,rank:rank})
+  }
+  if(rcaddress(c))add(c,rct(4));
+  ['locations','sites','standorte','deliveryLocations','shippingLocations','addresses','deliveryAddresses','shipToLocations','shipToAddresses','recipientAddresses','customerLocations'].forEach(function(key){
+   (Array.isArray(c[key])?c[key]:[]).forEach(function(loc){add(loc,rcv(loc.name||loc.locationName||loc.siteName||loc.standort)||rct(4))})
+  });
+  if(!entries.length)add(c,rct(4));out.push.apply(out,entries)
+ });
+ out.sort(function(a,b){return a.rank-b.rank||a.account.localeCompare(b.account,'de')||a.site.localeCompare(b.site,'de')});
+ return out
+}
+function rcrender(term){
+ var p=manualPanel(),out=p&&p.querySelector('[data-rc1549-recipient-results]');if(!out)return;
+ out.replaceChildren();recipientOptions=[];
+ if(!q(term))return;
+ var found=rcmatches(term);
+ if(!found.length||!rcdirectory().length){
+  var empty=root.document.createElement('p');empty.textContent=rcdirectory().length?rct(2):rct(3);out.appendChild(empty);return
+ }
+ recipientOptions=found.slice(0,12);
+ recipientOptions.forEach(function(c,i){
+  var button=root.document.createElement('button');button.type='button';button.className='rc1549-recipient-choice';
+  button.setAttribute('data-rc1549-recipient-choice',String(i));
+  var strong=root.document.createElement('strong');strong.textContent=(c.account?c.account+' · ':'')+c.name;
+  var small=root.document.createElement('small');small.textContent=c.site+(c.address?' · '+c.address:'');
+  button.appendChild(strong);button.appendChild(small);out.appendChild(button)
+ });
+ if(found.length>12){var more=root.document.createElement('p');more.textContent=rct(8);out.appendChild(more)}
+}
+function rcchoose(index){
+ var p=manualPanel(),search=p&&p.querySelector('[data-rc1549-recipient-search]'),c=recipientOptions[index];
+ if(!search||!c)return false;
+ if(!rcmatches(search.value).some(function(x){return x.account===c.account&&x.name===c.name&&x.address===c.address&&x.site===c.site})){rcrender(search.value);return false}
+ var name=p.querySelector('[data-rc1549-header="recipient"]'),address=p.querySelector('[data-rc1549-header="recipientAddress"]');
+ if(!name||!address)return false;
+ // Never retain an address from a previously selected recipient when the new
+ // customer has no stored address. Confirm even when a filled address is cleared.
+ var nextAddress=c.address||'';
+ if((q(name.value)&&q(name.value)!==c.name)||(q(address.value)&&q(address.value)!==nextAddress)){
+  if(typeof root.confirm!=='function'||!root.confirm(rct(5)))return false
+ }
+ headerDraft.recipient=c.name;name.value=c.name;
+ headerDraft.recipientAddress=nextAddress;address.value=nextAddress;
+ invalidate();search.value='';rcrender('');
+ setStatus(c.address?rct(6):rct(7),c.address?'ok':'warn');return true
 }
 function normalizeRows(){
  var currency=headerValues().currency;
@@ -268,8 +360,8 @@ function uploadDate(value){
  var match=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
  return match?match[3]+'-'+match[2]+'-'+match[1]:''
 }
-function importUploaded(index){
- var api=root.ExportHUBRC1294ABDAnalysis,source=api&&typeof api.snapshot==='function'?api.snapshot(index):null,positions=source&&source.positions;
+function importAnalysis(source){
+ var positions=source&&source.positions;
  if(!Array.isArray(positions)||!positions.length){setStatus(t('uploadEmpty'),'bad');return false}
  rows=positions.map(function(p){
   var item=emptyRow();
@@ -282,21 +374,44 @@ function importUploaded(index){
  if(q(header.senderName))headerDraft.senderName=q(header.senderName);
  if(q(header.senderAddress))headerDraft.senderAddress=q(header.senderAddress);
  if(uploadDate(header.invoiceDate))headerDraft.invoiceDate=uploadDate(header.invoiceDate);
+ var workspace=root.ExportHUBDocuments1940,existing=root.document&&root.document.getElementById('rc1940Documents');
+ if(!existing&&(!workspace||typeof workspace.open!=='function'||!workspace.open('invoice'))){setStatus(t('error'),'bad');return false}
+ if(existing){var tab=existing.querySelector('[data-rc1790-tab="invoice"]');if(tab)tab.click()}
  mountManual();fillHeader();renderRows();invalidate();setStatus(t('importSuccess'),'ok');
  var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
  return true
+}
+/* RC1962: local D365 importer updates item rows ONLY; no document header. */
+function importPositionsOnly(positions){
+ if(!Array.isArray(positions)||positions.length<1||positions.length>500||
+    positions.some(function(p){return !p||typeof p!=='object'||!(number(p.quantity)>0)})){setStatus(t('uploadEmpty'),'bad');return false}
+ var edited=rows.some(function(r){return !!(q(r.itemNumber)||q(r.description)||q(r.quantity)||q(r.unitPrice)||q(r.value)||q(r.netMassKg)||q(r.grossMassKg)||q(r.commodityCode)||q(r.originCountry))});
+ if(edited&&(typeof root.confirm!=='function'||!root.confirm('Bereits erfasste Artikelpositionen ersetzen?')))return false;
+ var workspace=root.ExportHUBDocuments1940,existing=root.document&&root.document.getElementById('rc1940Documents');
+ if(!existing&&(!workspace||typeof workspace.open!=='function'||!workspace.open('invoice'))){setStatus(t('error'),'bad');return false}
+ if(existing){var tab=existing.querySelector('[data-rc1790-tab="invoice"]');if(tab)tab.click()}
+ rows=positions.map(function(p){
+  var item=emptyRow();
+  ['itemNumber','description','quantity','unit','unitPrice','value','netMassKg','grossMassKg','volumeM3','commodityCode','originCountry'].forEach(function(key){if(p[key]!=null)item[key]=String(p[key])});
+  item.manualValue=p.value!=null;return item
+ });
+ // Keep headerDraft unmodified: all invoice, sender, recipient and shipping fields are entered manually.
+ mountManual();fillHeader();renderRows();invalidate();setStatus(t('importSuccess'),'ok');
+ var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
+ return true
+}
+function importUploaded(index){
+ var api=root.ExportHUBRC1294ABDAnalysis,source=api&&typeof api.snapshot==='function'?api.snapshot(index):null;
+ return importAnalysis(source)
 }
 function enhanceUploaded(){
  var box=root.document&&root.document.querySelector('[data-rc1294-results]');if(!box)return false;
  var docs=box.querySelectorAll('.rc1294-document'),api=root.ExportHUBRC1294ABDAnalysis;
  for(var i=0;i<docs.length;i++){
   var head=docs[i].querySelector('.rc1294-document-head');if(!head)continue;
-  var button=head.querySelector('[data-rc1549-proforma]');
-  if(!button){button=root.document.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1549-proforma','');head.appendChild(button)}
-  var exportLabel=t('proforma');if(button.textContent!==exportLabel)button.textContent=exportLabel;
+  // PDF creation lives in the separate documents workspace.
+  var oldPdf=head.querySelector('[data-rc1549-proforma]');if(oldPdf)oldPdf.remove();
   var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;
-  button.disabled=!readyInvoice(snapshot);button.title=button.disabled?t('addressesRequired'):'';button.setAttribute('data-result-index',String(i));
-  button.onclick=(function(index,target){return function(){var current=api&&typeof api.snapshot==='function'?api.snapshot(index):null;exportProforma(current,target)}})(i,button);
   var importButton=head.querySelector('[data-rc1549-import]');
   if(!importButton){importButton=root.document.createElement('button');importButton.type='button';importButton.className='ghost';importButton.setAttribute('data-rc1549-import','');head.appendChild(importButton)}
   var importLabel=t('editUpload');if(importButton.textContent!==importLabel)importButton.textContent=importLabel;importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
@@ -307,6 +422,7 @@ function enhanceUploaded(){
 function ensureStyle(){
  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1549AbdProformaStyle'))return;
  var style=d.createElement('style');style.id='rc1549AbdProformaStyle';style.textContent='.rc1549-manual{margin-top:16px;padding:14px;border:1px solid #a7f3d0;border-left:4px solid #0f766e;border-radius:12px;background:rgba(240,253,250,.82);color:var(--text,#0f172a)}.rc1549-manual h4{margin:0 0 4px}.rc1549-manual>p{margin:0;color:var(--muted,#475569);font-size:13px}.rc1549-head{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin:12px 0}.rc1549-head label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted,#475569)}.rc1549-head input{box-sizing:border-box;width:100%;min-height:38px;padding:7px 8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll{overflow:auto;border:1px solid #cbd5e1;border-radius:10px;background:var(--card,#fff)}.rc1549-scroll table{border-collapse:collapse;width:100%;min-width:1510px;font-size:11px}.rc1549-scroll th,.rc1549-scroll td{padding:6px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}.rc1549-scroll th{background:rgba(248,250,252,.96);color:#334155;position:sticky;top:0;z-index:1}.rc1549-scroll input{box-sizing:border-box;width:100%;min-width:76px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll td.rc1549-wide input{min-width:230px}.rc1549-row-actions{display:flex;gap:4px}.rc1549-row-actions button{min-width:34px;padding:5px 7px}.rc1549-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc1549-status{margin-top:10px;padding:8px 10px;border-radius:8px;background:#eff6ff;font-size:12px;font-weight:700}.rc1549-status[data-kind="ok"]{background:#ecfdf5;color:#065f46}.rc1549-status[data-kind="warn"]{background:#fff7ed;color:#9a3412}.rc1549-status[data-kind="bad"]{background:#fef2f2;color:#991b1b}.rc1549-result{margin-top:12px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:var(--card,#fff)}.rc1549-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.rc1549-result-head small{display:block;color:#64748b}.rc1549-result-head strong{display:block}.rc1549-metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}.rc1549-metrics>div{display:grid;gap:3px;padding:8px;border:1px solid #dbeafe;border-radius:8px}.rc1549-metrics span{font-size:11px;color:#64748b}@media(max-width:1000px){.rc1549-head{grid-template-columns:1fr 1fr}.rc1549-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rc1549-head,.rc1549-metrics{grid-template-columns:1fr}.rc1549-actions>*{width:100%}}';
+ style.textContent+='.rc1549-recipient-picker{grid-column:1/-1}.rc1549-recipient-picker label{max-width:460px}.rc1549-recipient-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:7px;margin-top:8px}.rc1549-recipient-choice{text-align:left;padding:9px 11px;border:1px solid #94a3b8;border-radius:9px;background:var(--card,#fff);color:var(--text,#0f172a);min-height:48px;cursor:pointer}.rc1549-recipient-choice strong,.rc1549-recipient-choice small{display:block;overflow-wrap:anywhere}.rc1549-recipient-choice small{color:var(--muted,#475569);white-space:pre-line}.rc1549-recipient-choice:focus-visible{outline:2px solid #2563eb;outline-offset:2px}.rc1549-recipient-choice:hover{border-color:#0f766e}';
  style.textContent+='.rc1549-logo-preview{display:flex;align-items:center;gap:12px;margin-top:8px;padding:9px;border:1px solid #cbd5e1;border-radius:8px;background:var(--card,#fff)}.rc1549-logo-preview img{display:block;max-width:194px;max-height:56px;width:auto;height:auto;object-fit:contain}.rc1549-logo-preview img[hidden]{display:none}.rc1549-logo-preview span{flex:1;min-width:160px;font-size:12px;color:var(--muted,#475569)}.rc1549-logo-preview button[hidden]{display:none}';
  style.textContent+='.rc1549-subhead{grid-column:1/-1;margin-top:8px;padding:9px 0 5px;border-bottom:1px solid #cbd5e1;font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--text,#0f172a)}';
  style.textContent+='.rc1549-logo{padding:9px 0 12px}.rc1549-logo input{display:block;margin-top:5px;max-width:100%}.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
@@ -325,6 +441,7 @@ function mountManual(){
   '<label>'+esc(t('country'))+'<input data-rc1549-header="destinationCountry" maxlength="80"></label>'+
   '<label>'+esc(t('sender'))+'<input data-rc1549-header="senderName" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
+  '<div class="rc1549-recipient-picker"><label>'+esc(rct(0))+'<input type="search" data-rc1549-recipient-search placeholder="'+esc(rct(1))+'" maxlength="100" autocomplete="off" aria-controls="rc1549RecipientResults"></label><div id="rc1549RecipientResults" data-rc1549-recipient-results class="rc1549-recipient-results" aria-live="polite"></div></div>'+
   '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label>'+
   '<div class="rc1549-subhead">'+esc(t('companyDetails'))+'</div>'+
@@ -349,6 +466,7 @@ function mountManual(){
  parent.appendChild(panel);fillHeader();renderRows();showLogoPreview();
  panel.addEventListener('input',function(event){
   event.stopPropagation();
+  var search=event.target&&event.target.closest&&event.target.closest('[data-rc1549-recipient-search]');if(search){rcrender(search.value);return}
   var control=event.target&&event.target.closest&&event.target.closest('tbody [data-field]');
   if(control){updateRow(control);return}
   var field=event.target&&event.target.closest&&event.target.closest('[data-rc1549-header]');
@@ -373,6 +491,7 @@ function mountManual(){
  });
  panel.addEventListener('click',function(event){
   event.stopPropagation();
+  var choice=event.target&&event.target.closest&&event.target.closest('[data-rc1549-recipient-choice]');if(choice){event.preventDefault();rcchoose(Number(choice.getAttribute('data-rc1549-recipient-choice')));return}
   var clearLogo=event.target&&event.target.closest&&event.target.closest('[data-rc1549-logo-clear]');
   if(clearLogo){logoDataUri='';rememberLogo();showLogoPreview();setStatus(t('logoRemoved'),'info');return}
   var add=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-add]');if(add){rows.push(emptyRow());renderRows();invalidate();return}
@@ -471,13 +590,12 @@ function enhanceSavedAbdLayout(){
  return true
 }
 function enhance(){
- var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
- if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)entry.textContent=title}
+ // Keep the ABD invoice-analysis tab; the invoice editor belongs to document creation.
  mountManual();enhanceSavedAbdLayout();enhanceUploaded();bindObserver();return true
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
-root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
+root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null},importAnalysis:importAnalysis,importPositionsOnly:importPositionsOnly,createDeliveryNote:async function(snapshot){var result=await post('/api/abd-analysis/export',{action:'export',format:'lieferschein',snapshot:snapshot});download(result.file);return q(result.file&&result.file.name)||'Lieferschein.pdf'}});
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,activate)});
 })(typeof window!=='undefined'?window:globalThis);

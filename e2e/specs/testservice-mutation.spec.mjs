@@ -390,7 +390,9 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   const draftCc=(draft.searchParams.get('cc')||'').split(';').map(email=>email.trim().toLowerCase()).filter(Boolean);
   // Der TESTSERVICE-Kunde hat bewusst keinen manuellen CC im Kundenordner.
   expect(draftCc).toEqual([]);
-  await settleStateSave(page,{timeout:25_000});
+  // Large TESTSERVICE team state can take longer than the historical 18 s
+  // flush cap. Keep the live Azure persistence/readback mandatory, bounded.
+  await settleStateSave(page,{timeout:85_000});
 
   const proof=await page.evaluate(async({token,runId,ref})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
@@ -433,4 +435,133 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   const readNavigationAborts=acknowledgeReadStateNavigationAbort(runtime);
   expect(readNavigationAborts,'RC1255: unerwartet viele abgebrochene State-Reads').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
+});
+
+
+test('RC1985 P0: confirmed task deletion survives two independent TESTSERVICE browser contexts',async({page,browser},testInfo)=>{
+  test.setTimeout(240_000);
+  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1',
+    'Only the signed, mutating TESTSERVICE main gate may exercise the Azure-backed deletion proof.');
+  test.skip(testInfo.project.name!=='laptop','Run the Azure-backed two-client proof only once.');
+
+  const session=await installE2ESession(page);
+  const id='E2E-TASK-'+session.runId;
+  const freshId='E2E-TASK-FRESH-'+session.runId;
+  const at=new Date().toISOString();
+  const task={id,title:'RC1985 E2E two-client delete '+session.runId,
+    sourceType:'manual',area:'E2E TESTSERVICE',status:'open',
+    createdAt:at,updatedAt:at,_e2eRunId:session.runId};
+  const freshTask={id:freshId,title:'RC1985 E2E independent task '+session.runId,
+    sourceType:'manual',area:'E2E TESTSERVICE',status:'open',
+    createdAt:at,updatedAt:at,_e2eRunId:session.runId};
+
+  async function stateRequest(p,mode,payload){
+    return p.evaluate(async ({mode,payload,token})=>{
+      const saving=mode==='save';
+      const response=await fetch('/api/exporthub-state?mode='+mode+(saving?'&ack=1':''),{
+        method:saving?'POST':'GET',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','Accept':'application/json',
+          'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,
+          'X-ExportHUB-Environment':'testservice'},
+        body:saving?JSON.stringify(payload):undefined
+      });
+      const data=await response.json().catch(()=>({}));
+      return{status:response.status,ok:data.ok===true,revision:Number(data.revision||0),
+        ackOnly:data.ackOnly===true,concurrentMerge:data.concurrentMerge===true,
+        code:String(data.code||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,64)};
+    },{mode,payload,token:session.token});
+  }
+  async function readTaskProof(p){
+    return p.evaluate(async ({token,id,freshId})=>{
+      const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+        method:'GET',credentials:'same-origin',cache:'no-store',
+        headers:{'Accept':'application/json','X-ExportHUB-Token':token,
+          'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,
+          'X-ExportHUB-Environment':'testservice'}
+      });
+      const data=await response.json().catch(()=>({}));
+      const s=data.state||{},tasks=Array.isArray(s.tasks)?s.tasks:[],
+        tombstones=Array.isArray(s._teamSyncMeta&&s._teamSyncMeta.tombstones)?
+          s._teamSyncMeta.tombstones:[];
+      return{status:response.status,ok:data.ok===true,
+        deletedExists:tasks.some(t=>t&&t.id===id),
+        independentExists:tasks.some(t=>t&&t.id===freshId),
+        tombstoneConfirmed:tombstones.some(t=>t&&t.collection==='tasks'&&
+          t.id===id&&t.explicitUserAction===true)};
+    },{token:session.token,id,freshId});
+  }
+
+  const guardA=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  const initial=await stateRequest(page,'meta');
+  expect(initial.status).toBe(200);
+  expect(initial.ok).toBe(true);
+  const created=await stateRequest(page,'save',{
+    environment:'testservice',clientVersion:'RC1985-E2E',
+    baseRevision:initial.revision,deviceId:'rc1985-first',
+    operationId:'RC1985-CREATE-'+session.runId,
+    reason:'RC1985 synthetic two-client deletion proof',
+    state:{tasks:[task]}
+  });
+  expect(created.status).toBe(200);
+  expect(created.ackOnly).toBe(true);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const otherContext=await browser.newContext({
+    baseURL:process.env.EXPORTHUB_E2E_BASE_URL||'http://127.0.0.1:4173'
+  });
+  try{
+    const other=await otherContext.newPage();
+    const guardB=attachRuntimeGuards(other,testInfo);
+    await installE2ESession(other);
+    await other.goto(appEntry(),{waitUntil:'domcontentloaded'});
+    await waitReady(other);
+    await expect.poll(()=>other.evaluate(taskId=>
+      (window.__EXPORTHUB_GET_STATE__?.().tasks||[]).some(t=>t&&t.id===taskId),id),
+      {timeout:25_000}).toBe(true);
+
+    await openExportHubView(page,'taskdetail',['Aufgabenansicht'],/Aufgaben/i,
+      {allowProgrammaticFallback:true});
+    await expect(page.locator('[data-rc1570-tv-search]')).toBeVisible();
+    await page.locator('[data-rc1570-tv-search]').fill(task.title);
+    const deleteButton=page.locator('[data-rc1570-tv-delete="'+id+'"]');
+    await expect(deleteButton).toBeVisible({timeout:20_000});
+    page.once('dialog',dialog=>dialog.accept());
+    await deleteButton.click();
+    await expect(page.locator('.rc1570-tv-saved')).toBeVisible({timeout:55_000});
+    await settleStateSave(page,{timeout:35_000});
+    const afterDelete=await readTaskProof(page);
+    expect(afterDelete.status).toBe(200);
+    expect(afterDelete.ok).toBe(true);
+    expect(afterDelete.deletedExists,'Server must confirm the user deletion').toBe(false);
+    expect(afterDelete.tombstoneConfirmed,'Azure must retain an explicit deletion marker').toBe(true);
+
+    // The other context still holds the now-stale original task, and saves
+    // a different new task with its old revision and a distinct device ID.
+    const stale=await stateRequest(other,'save',{
+      environment:'testservice',clientVersion:'RC1985-E2E',
+      baseRevision:created.revision,deviceId:'rc1985-stale-second',
+      operationId:'RC1985-STALE-'+session.runId,
+      reason:'RC1985 synthetic second client stale save',
+      state:{tasks:[{...task,updatedAt:new Date(Date.now()+10000).toISOString()},freshTask]}
+    });
+    expect(stale.status).toBe(200);
+    expect(stale.ackOnly).toBe(true);
+    expect(stale.concurrentMerge,'The second client must exercise a stale-revision merge').toBe(true);
+
+    await other.reload({waitUntil:'domcontentloaded'});
+    await waitReady(other);
+    const final=await readTaskProof(other);
+    expect(final.status).toBe(200);
+    expect(final.ok).toBe(true);
+    expect(final.deletedExists,'A stale client must not restore the deleted task').toBe(false);
+    expect(final.independentExists,'Unrelated work from the second client must survive').toBe(true);
+    expect(final.tombstoneConfirmed,'Explicit deletion must survive the second write').toBe(true);
+    await assertRuntimeClean(guardA,testInfo);
+    await assertRuntimeClean(guardB,testInfo);
+  }finally{
+    await otherContext.close();
+  }
 });

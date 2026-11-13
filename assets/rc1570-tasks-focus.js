@@ -85,8 +85,83 @@ function isMine(task){
 function priority(task){var p=q(task&&task.priority).toUpperCase();return /^P\d$/.test(p)?p:''}
 function urgent(p){return /^P[0-2]$/.test(p)}
 function priorityRank(task){var p=priority(task);return p?Number(p.slice(1)):5}
-function isWeekly(task){return !!(task&&(task.masterTaskRC848||task.weeklySeriesId||task.seriesId||task.recurringSeriesId||/week|woch/i.test(q(task.recurrence))))}
+function isWeekly(task){return !!(task&&((q(task.managedBy)==='RC1152'&&q(task.managedKind)==='recurring')||task.masterTaskRC848||task.weeklySeriesId||task.seriesId||task.recurringSeriesId||/week|woch/i.test(q(task.recurrence))))}
 function ref(task){return q(task&&(task.linkedShipmentRef||task.shipmentRef||task.sourceRef||task.reference))}
+
+/* RC1985: Treat only one unambiguous, same-scope shipment as a source of missing display metadata.
+   Never write an inferred customer number back to a task or override an explicitly cleared number. */
+function linkedShipment(task){
+  var refKey=q(ref(task)).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(refKey))return null;
+  var s=state(),matches=[],seen={};
+  arr(s.shipments).concat(arr(s.savedShipments)).forEach(function(sh){
+    if(!sh||q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()!==refKey)return;
+    if(q(task.companyId)&&q(sh.companyId)&&q(task.companyId)!==q(sh.companyId))return;
+    if(q(task.environment)&&q(sh.environment)&&q(task.environment)!==q(sh.environment))return;
+    var key=q(sh.id||sh.shipmentId)||refKey;
+    if(seen[key])return;seen[key]=true;matches.push(sh);
+  });
+  return matches.length===1?matches[0]:null
+}
+function shipmentCustomerNo(task){
+  var refKey=q(ref(task)).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(refKey))return'';
+  var s=state(),linkedId=q(task&&(task.linkedShipmentId||task.shipmentId)),number='',conflict=false;
+  var companies=new Set(),environments=new Set();
+  arr(s.shipments).concat(arr(s.savedShipments)).forEach(function(sh){
+    if(!sh||q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()!==refKey)return;
+    var shId=q(sh.id||sh.shipmentId);
+    if(linkedId&&shId!==linkedId)return;
+    if(q(task.companyId)&&q(sh.companyId)&&q(task.companyId)!==q(sh.companyId))return;
+    if(q(task.environment)&&q(sh.environment)&&q(task.environment)!==q(sh.environment))return;
+    if(q(sh.companyId))companies.add(low(sh.companyId));
+    if(q(sh.environment))environments.add(low(sh.environment));
+    var direct=q(sh.customerAccount||sh.customerNumber||sh.customerNo||sh.kundennummer||sh.account||
+      sh.customer&&(sh.customer.account||sh.customer.customerNumber));
+    if(!direct&&q(sh.customerId)){
+      var customers=arr(s.customers).filter(function(c){return c&&low(c.id)===low(sh.customerId)});
+      if(customers.length===1)direct=q(customers[0].customerNumber||customers[0].account||customers[0].accountNumber)
+    }
+    if(direct){if(number&&low(number)!==low(direct))conflict=true;else number=direct}
+  });
+  // Matching the REF is not sufficient if copies disagree about the customer,
+  // environment or company. Never choose the first stored copy arbitrarily.
+  return conflict||companies.size>1||environments.size>1?'':number
+}
+/* Collapse only exact same-purpose, same-day, same-owner entries in the overview.
+   All originals remain in task management so duplicate records can be checked/deleted individually. */
+function taskDuplicateKey(task){
+  var r=q(ref(task)).toUpperCase(),d=taskDate(task),source=low(task&&task.sourceType),name=low(title(task));
+  // An AV-missing source represents one document obligation per shipment REF.
+  // Different titles, task areas or rescan dates must not generate new duties.
+  // A different activity (such as ABD creation), source, owner, status, company,
+  // environment or shipment/customer identity still remains distinct.
+  var avDuty=source==='av_missing'&&/^(?:av\s+(?:hochladen|fehlt)|ausgangsvermerk\s+(?:nicht\s+vorhanden|fehlt))(?:\b|[·:])/i.test(name);
+  if(!/^[A-Z0-9]{6}$/.test(r)||(!d&&!avDuty)||!source||!name)return'';
+  return [low(task.companyId),low(task.environment),r,avDuty?'missing-av':name,
+    avDuty?'ausgangsvermerk':low(area(task)),avDuty?'':low(processOf(task)),source,
+    avDuty?'one-av-per-ref':dayKey(d),
+    low(q(task&&((task.effectiveAssignee||task.assignedTo||task.owner||task.assignee||task.assignedToName)))),
+    low(q(task&&(task.seriesId||task.recurringSeriesId||task.weeklySeriesId||task.occurrenceKey||task.weekKey))),
+    statusKey(task)].join('|')
+}
+function sameShipmentEvidence(a,b){
+  var aId=q(a&&(a.linkedShipmentId||a.shipmentId)),bId=q(b&&(b.linkedShipmentId||b.shipmentId));
+  if(aId&&bId&&aId!==bId)return false;
+  var aNo=low(a&&(a.customerNumber||a.linkedAccount||a.customerAccount||a.account)).replace(/\s+/g,'');
+  var bNo=low(b&&(b.customerNumber||b.linkedAccount||b.customerAccount||b.account)).replace(/\s+/g,'');
+  return !(aNo&&bNo&&aNo!==bNo)
+}
+function collapseExactTaskDuplicates(items){
+  var selected=[],byKey={};
+  arr(items).forEach(function(task){
+    var key=taskDuplicateKey(task);if(!key){selected.push(task);return}
+    var indices=byKey[key]||[],index=indices.find(function(i){return sameShipmentEvidence(selected[i],task)});
+    if(index===undefined){indices.push(selected.length);byKey[key]=indices;selected.push(task);return}
+    var old=selected[index];
+    var score=function(x){return (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
+    if(score(task)>score(old))selected[index]=task
+  });
+  return selected
+}
 
 /* model */
 var ui={search:'',scope:'',expanded:{},filters:null};
@@ -101,7 +176,12 @@ function readFilters(){
 }
 function setFilter(key,value){var f=readFilters();if(FILTERS.indexOf(key)<0)return;if(q(value))f[key]=q(value);else delete f[key];try{w.localStorage.setItem(FILTER_KEY,JSON.stringify(f))}catch(_){}}
 function resetFilters(){ui.filters={};try{w.localStorage.removeItem(FILTER_KEY)}catch(_){}}
-function customer(task){return q(task&&(task.customerName||task.linkedCustomer||task.customer))}
+function customer(task){
+  var direct=q(task&&(task.customerName||task.linkedCustomer||task.customer));if(direct)return direct;
+  if(low(task&&task.sourceType)==='manual')return'';
+  var sh=linkedShipment(task);
+  return sh?q(sh.customerName||sh.customer||sh.deliveryName):''
+}
 function processOf(task){return q(task&&(task.processId||task.process))}
 function priorityKey(task){return priority(task)||'P2'}
 function statusKey(task){
@@ -131,7 +211,7 @@ function buildModel(now){
   now=now||new Date();
   var today=dayKey(now),weekEnd=new Date(mondayOf(now));weekEnd.setDate(weekEnd.getDate()+6);var weekEndKey=dayKey(weekEnd);
   var scope=readScope(),needle=low(ui.search),us=users();
-  var all=arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)});
+  var all=collapseExactTaskDuplicates(arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)}));
   var scoped=all.filter(function(x){return scope==='all'||isMine(x)});
   if(needle)scoped=scoped.filter(function(x){return low([title(x),area(x),q(x.group),ownerName(x,us),ref(x),q(x.note),customer(x)].join(' ')).indexOf(needle)>=0});
   var filters=readFilters(),options=filterOptions(scoped.filter(function(x){return !isDone(x)}),us);
@@ -159,16 +239,17 @@ function buildModel(now){
   return model
 }
 // work groups as in the old task list (RC874): same rules, same order
-var GROUPS=['shipments','pod','customer','picks','abds','check','extra'];
+var GROUPS=['shipments','pod','av','customer','picks','abds','check','extra'];
 var GROUP_LIMIT=6;
-var GROUP_KEYS={shipments:'gShipments',pod:'gPod',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
+var GROUP_KEYS={shipments:'gShipments',pod:'gPod',av:'gAv',customer:'gCustomer',picks:'gPicks',abds:'gAbds',check:'gCheck',extra:'gExtra'};
 function fold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function workGroup(task){
-  var x=task||{},a=fold(x.area||x.category||x.section||x.type),tt=fold(x.title||x.name),hay=fold([a,tt,x.note,x.source,x.recurringSource].join(' '));
+  var x=task||{},a=fold(x.area||x.category||x.section||x.type),group=fold(x.group),tt=fold(x.title||x.name),hay=fold([a,group,tt,x.note,x.source,x.recurringSource].join(' '));
   var ship=fold(x.shipmentStatus||x.linkedShipmentStatus||x.deliveryStatus);
   var pickedUp=!!(x.pickedUp===true||x.pickupConfirmed===true||x.pickedUpAt||x.pickupAt||x.abgeholtAt)||/abgeholt|picked up|pickedup/.test(ship);
   var hasPod=!!(x.pod===true||x.hasPod===true||x.podAvailable===true||x.podAt||x.podUrl||x.podFile||x.podDocument);
-  if((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod)return'pod';
+  if(/^(fehlende pod|missing pod)$/.test(group)||/^(fehlende pod|missing pod)$/.test(a)||((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod))return'pod';
+  if(low(x.sourceType)==='av_missing'||/ausgangsvermerk|\bav\s+hochladen\b/.test(hay))return'av';
   if(/kontroll|pruf/.test(a))return'check';
   if(/zusatz|additional/.test(a))return'extra';
   if(/abd|mrn|ausfuhr/.test(hay))return'abds';
@@ -264,7 +345,7 @@ function renderHtml(model,now){
 }
 
 /* actions */
-function findTask(id){return arr(state().tasks).find(function(x){return taskId(x)===q(id)})||null}
+function findTask(id){return arr(state().tasks).find(function(x){return taskId(x)===q(id)})||weeklyMasterTasks().find(function(x){return taskId(x)===q(id)})||null}
 var pendingToggles=new Set();
 async function toggle(id){
   if(!canWrite()){alert(t('noRights'));return}
@@ -294,7 +375,7 @@ function route(v){try{if(typeof w.setView==='function')w.setView(v)}catch(_){}}
    Saves straight into state.tasks; the server merges the changed fields into the stored task. */
 var TV_ID='rc1570TaskView';
 var TV_FLAG='data-rc1570-taskview';
-var tv={mode:'',id:'',search:'',error:''};
+var tv={mode:'',id:'',search:'',error:'',kind:'all',scope:'mine',moreCount:100};
 function knownAreas(){var seen={};arr(state().tasks).forEach(function(x){var a=q(x&&(x.area||x.category));if(a)seen[a]=1});return Object.keys(seen).sort()}
 function knownOwners(){
   var seen={},us=users();us.forEach(function(u){var n=q(u&&(u.name||u.displayName||u.user));if(n)seen[n]=1});
@@ -307,7 +388,12 @@ function customers(){
   arr(state().customers).forEach(function(c){var name=q(c&&(c.name||c.company||c.companyName)),no=q(c&&(c.customerNumber||c.account||c.accountNumber));if(!name||seen[low(name)])return;seen[low(name)]=1;out.push({name:name,no:no})});
   return out.sort(function(a,b){return a.name.localeCompare(b.name)})
 }
-function customerNo(task){return q(task&&(task.customerNumber||task.linkedAccount||task.customerAccount||task.account))}
+function customerNo(task){
+  var x=task&&typeof task==='object'?task:{};
+  if(Object.prototype.hasOwnProperty.call(x,'customerNumber'))return q(x.customerNumber);
+  var prior=q(x.linkedAccount||x.customerAccount||x.account);if(prior)return prior;
+  return low(x.sourceType)==='manual'?'':shipmentCustomerNo(x)
+}
 function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
 function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
 function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
@@ -342,6 +428,21 @@ function syncWeeklySeries(s,task,v){
    rule:{type:'weekly',intervalWeeks:1,weekdays:days},task:template});
  if(index>=0)s.taskSeries[index]=entry;else s.taskSeries.push(entry);
  retireSeriesDays(s,id,days);
+ // Keep eligible future series instances in sync with the confirmed saved Pick task.
+ // Never rewrite historic, completed, in-progress or manually overridden occurrences.
+ var today=dayKey(new Date());
+ arr(s.tasks).forEach(function(row){
+  if(!row||row===task||q(row.seriesId)!==id||!q(row.occurrenceKey)||row.manualOverride===true||isDone(row)||statusOf(row)==='in_progress')return;
+  var date=q(row.originalOccurrenceDate)||q(row.occurrenceKey).split('|').pop();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today)return;
+  row.customerNumber=task.customerNumber;
+  row.linkedAccount=task.linkedAccount;
+  row.customerNumberSetAt=task.customerNumberSetAt;
+  row.pickupTargetId=task.pickupTargetId;
+  row.pickupTargetCompanyKey=task.pickupTargetCompanyKey;
+  row.updatedAt=task.updatedAt;
+  row._syncUpdatedAt=task._syncUpdatedAt;
+ });
  task.seriesId=id;task.weekdays=days;if(!q(task.occurrenceKey))task.isTemplate=true;
  var engine=w.ExportHUBTaskRecurrenceV2,cal=engine&&typeof engine.calendar==='function'?engine.calendar(s.taskCalendar||{}):null;
  if(engine&&typeof engine.materialize==='function'&&cal){
@@ -352,11 +453,65 @@ function syncWeeklySeries(s,task,v){
  return true
 }
 function findUser(name){var n=low(name);if(!n)return null;return users().find(function(u){return [u.id,u.name,u.displayName,u.user,u.username,u.login].map(low).indexOf(n)>=0})||null}
-function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
+function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';if(mode==='edit'||mode==='new')loadPickupTargets();try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
 function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
-function edit(id){if(!findTask(id))return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
+function edit(id){var x=findTask(id);if(!x||x.isVirtualTaskMaster)return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
 function openForm(){if(!canWrite()){alert(t('noRights'));return}openTaskView('new','')}
 function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='in_progress'?'in_progress':'open')}
+
+// RC1875: Task stores only stable FIX transport id; displayed destinations come
+// from the authorized fixed-pickup catalog. Never edit the same numbers twice.
+var pickupTargets=[],pickupTargetsState='idle',pickupTargetsEnv='',pickupCompanyKey='';
+function pickupEnv(){
+ var host=low(w.location&&w.location.hostname||''),path=low(w.location&&w.location.pathname||''),forced=low(w.__EXPORTHUB_FORCED_ENVIRONMENT__||'');
+ if(forced==='demo'||path.indexOf('demo.html')>=0)return 'demo';
+ if(forced==='testservice'||host.indexOf('-testservice.')>=0)return 'testservice';
+ return 'production'
+}
+function pickupRequestedCompany(){
+ var s=state(),u=s.currentUser||s.activeUser||s.user,selected=q(s.activeCompanyId||s.currentCompanyId||s.companyId||s.companyKey||'');
+ if(!u||typeof u!=='object')return selected;
+ var admin=u.admin===true||u.isAdmin===true||u.globalAdmin===true||/^(admin|administrator|globaladmin|global-admin)$/.test(low(u.role||u.userRole||u.level));
+ var values=[u.companyId,u.companyKey,u.tenantId,u.tenant];
+ ['companyIds','allowedCompanyIds'].forEach(function(k){arr(u[k]).forEach(function(v){values.push(v)})});
+ arr(u.companies).forEach(function(v){values.push(typeof v==='string'?v:v&&(v.id||v.key||v.companyId))});
+ var allowed=values.map(q).filter(Boolean),key=function(v){return low(v).normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)};
+ if(selected&&(admin||allowed.some(function(v){return key(v)===key(selected)})))return selected;
+ return allowed[0]||''
+}
+function pickupCompanyKeyOf(value){return low(value).normalize('NFKD').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)}
+function pickupOptions(selected){
+ var key=q(selected),rows=pickupTargets.filter(function(x){return x&&x.active!==false});
+ var html='<option value="">'+esc(t('fPickupNone'))+'</option>';
+ if(key&&!rows.some(function(x){return q(x.id)===key}))
+   html+='<option value="'+esc(key)+'" selected>'+esc(t('fPickupMissing'))+'</option>';
+ rows.forEach(function(x){
+  var id=q(x.id);if(!id)return;
+  html+='<option value="'+esc(id)+'"'+(key===id?' selected':'')+'>'+esc(q(x.siteLabel))+' · '+esc(dayNames(lang())[Number(x.weekday)]||'')+'</option>'
+ });
+ return html
+}
+async function loadPickupTargets(){
+ if(pickupTargetsState==='loading')return;
+ var env=pickupEnv(),requestedCompany=pickupRequestedCompany(),taskIdAtStart=tv.id,modeAtStart=tv.mode;
+ pickupTargetsState='loading';
+ try{
+  var headers={'Accept':'application/json','X-ExportHUB-Environment':env};
+  if(requestedCompany)headers['X-ExportHUB-Company-Id']=requestedCompany;
+  var res=await w.fetch('/api/fixed-pickups?includeInactive=1',{
+   method:'GET',credentials:'same-origin',headers:headers
+  });
+  var data=await res.json();
+  if(!res.ok||!data||data.ok===false||data.environment!==env||!Array.isArray(data.items))throw Error('FIX_TARGETS_UNAVAILABLE');
+  if(requestedCompany!==pickupRequestedCompany()||(requestedCompany&&pickupCompanyKeyOf(data.companyKey)!==pickupCompanyKeyOf(requestedCompany)))throw Error('FIX_COMPANY_MISMATCH');
+  pickupTargets=data.items.filter(function(x){return x&&x.active!==false&&q(x.id)});
+  pickupTargetsEnv=env;pickupCompanyKey=q(data.companyKey);pickupTargetsState=pickupCompanyKey?'ready':'error';
+ }catch(_){pickupTargets=[];pickupTargetsState='error';pickupTargetsEnv='';pickupCompanyKey=''}
+ // Update just the selector: never re-render the form and lose user input.
+ if(tv.mode!==modeAtStart||tv.id!==taskIdAtStart)return;
+ var el=w.document&&w.document.querySelector('#rc1570TaskView [name="pickupTargetId"]');
+ if(el){var value=el.value;el.innerHTML=pickupOptions(value);el.value=value}
+}
 var savePending=false;
 async function persist(reason,id){
   // Queueing a change is not a confirmed server save.
@@ -397,7 +552,8 @@ function applyForm(task,v,isNew){
   var autoDone=v.autoDone!==false;
   if(isNew||v.customerNo!==customerNo(task)||autoDone!==(task.autoDoneOnShipment!==false))task.customerNumberSetAt=now;
   task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;task.autoDoneOnShipment=autoDone;
-  task.linkedShipmentRef=v.ref;task.note=v.note;
+  task.pickupTargetCompanyKey=v.pickupTargetId?(pickupCompanyKey||q(task.pickupTargetCompanyKey)):'';
+  task.pickupTargetId=q(v.pickupTargetId);task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
   task._syncUpdatedAt=now;task._syncDeviceId='manual-task-editor';
@@ -405,17 +561,33 @@ function applyForm(task,v,isNew){
 }
 async function saveForm(form){
   if(savePending)return false;
-  if(!canWrite()){alert(t('noRights'));return false}
+  if(!canWrite()||findTask(tv.id)&&findTask(tv.id).isVirtualTaskMaster&&tv.mode!=='new'){alert(t('noRights'));return false}
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
     date:q(f.date.value),weekdays:Array.from(form.querySelectorAll('[name="weekdays"]:checked')).map(function(node){return Number(node.value)}),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
-    customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
+    customer:q(f.customer.value),customerNo:q(f.customerNo.value),pickupTargetId:q(f.pickupTargetId&&f.pickupTargetId.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
   var showError=function(msg){tv.error=msg;tv.saved='';var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=msg}};
   if(!v.title){showError(t('required'));return false}
+  // Linking a FIX target without a customer number cannot produce a verifiable shipment association.
+  if(v.pickupTargetId&&!v.customerNo){showError(t('fPickupNeedsNumbers'));return false}
+  if(v.pickupTargetId){
+    var requestedCompany=pickupRequestedCompany(),companyMatches=!requestedCompany||pickupCompanyKeyOf(pickupCompanyKey)===pickupCompanyKeyOf(requestedCompany);
+    var originalTarget=tv.id&&findTask(tv.id),same=originalTarget&&q(originalTarget.pickupTargetId)===v.pickupTargetId&&q(originalTarget.pickupTargetCompanyKey)&&(!requestedCompany||pickupCompanyKeyOf(originalTarget.pickupTargetCompanyKey)===pickupCompanyKeyOf(requestedCompany))&&(!pickupCompanyKey||q(originalTarget.pickupTargetCompanyKey)===pickupCompanyKey);
+    if(!(pickupTargetsState==='ready'&&pickupTargetsEnv===pickupEnv()&&pickupCompanyKey&&companyMatches&&pickupTargets.some(function(x){return q(x.id)===v.pickupTargetId}))&&!same){showError(t('fPickupMissing'));return false}
+  }
   if(v.weekly&&!v.weekdays.length){showError(t('fWeekdaysRequired'));return false}
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){showError(t('badDate'));return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',originalTasks=s.tasks,originalSeries=s.taskSeries,originalLedger=s.taskStatusLedger;
+  // Do not create a second manual task for the same shipment, activity, owner and day.
+  // Never rely on the customer's name alone and never combine different task types.
+  if(isNew&&!v.weekly&&/^[A-Z0-9]{6}$/.test(v.ref.toUpperCase())){
+    var wanted=taskDuplicateKey({title:v.title,area:v.area||t('manualArea'),sourceType:'manual',
+      linkedShipmentRef:v.ref,dueDate:v.date,owner:v.owner||q(currentUser().name||currentUser().displayName||currentUser().user),status:v.status});
+    if(wanted&&arr(s.tasks).some(function(row){return low(row&&row.sourceType)==='manual'&&taskDuplicateKey(row)===wanted})){
+      showError(t('duplicateTask'));return false
+    }
+  }
   // Stage changes separately: failed server writes must not replace the live task list.
   var draft=Object.assign({},s,{
     tasks:arr(s.tasks).map(function(x){return x&&typeof x==='object'?Object.assign({},x):x}),
@@ -462,7 +634,7 @@ async function saveForm(form){
   }finally{savePending=false;if(button)button.disabled=false}
 }
 async function changeTaskStatus(status){
-  if(savePending||!canWrite())return false;
+  if(savePending||!canWrite()||findTask(tv.id)&&findTask(tv.id).isVirtualTaskMaster)return false;
   var s=state(),originalTasks=s.tasks,originalLedger=s.taskStatusLedger,task=findTask(tv.id);
   if(!task)return false;
   var rows=arr(s.tasks).map(function(x){return x===task?Object.assign({},x):x});
@@ -487,6 +659,51 @@ async function changeTaskStatus(status){
   }finally{savePending=false}
 }
 
+async function deleteManagedTask(id){
+  if(savePending||!canWrite())return false;
+  var s=state(),task=findTask(id);
+  if(!task)return false;
+  // One genuine system obligation must always survive. Only a second, exactly
+  // matching system task with a different ID may be removed by the user.
+  if(!canDeleteTask(task)){
+    if(typeof w.alert==='function')w.alert(t('managedByShipment'));
+    return false;
+  }
+  var seriesId=q(task.seriesId),entireSeries=!!seriesId&&isWeekly(task);
+  var managedKey=q(task.managedBy)==='RC1152'?q(task.managedKey):'';
+  var message=t(entireSeries||managedKey?'confirmDeleteSeries':'confirmDeleteTask',{title:title(task)});
+  if(typeof w.confirm==='function'&&!w.confirm(message))return false;
+  var originals={tasks:s.tasks,series:s.taskSeries,meta:s._teamSyncMeta,disabled:s.taskManagedDisabled};
+  var targets=arr(s.tasks).filter(function(row){return taskId(row)===q(id)||(entireSeries&&q(row&&row.seriesId)===seriesId)||(managedKey&&q(row&&row.managedBy)==='RC1152'&&q(row.managedKey)===managedKey)});
+  var ids=new Set(targets.map(taskId).filter(Boolean));
+  var deletedSeries=entireSeries?arr(s.taskSeries).filter(function(row){return q(row&&row.id)===seriesId}):[];
+  if(!ids.size&&!managedKey&&!deletedSeries.length)return false;
+  var now=new Date().toISOString(),user=q(currentUser().name||currentUser().displayName||currentUser().user)||'Benutzer';
+  var meta=Object.assign({fields:{},tombstones:[]},s._teamSyncMeta||{});
+  var deletions=targets.map(function(row){return{collection:'tasks',id:taskId(row),deletedAt:now,deletedBy:user,explicitUserAction:true}});
+  if(entireSeries&&deletedSeries.length)deletions.push({collection:'taskSeries',id:seriesId,deletedAt:now,deletedBy:user,explicitUserAction:true});
+  var keys=new Set(deletions.map(function(row){return row.collection+':'+low(row.id)}));
+  meta.tombstones=arr(meta.tombstones).filter(function(row){return row&&!keys.has(q(row.collection)+':'+low(row.id))}).concat(deletions);
+  s.tasks=arr(s.tasks).filter(function(row){return !ids.has(taskId(row))});
+  if(entireSeries)s.taskSeries=arr(s.taskSeries).filter(function(row){return q(row&&row.id)!==seriesId});
+  if(managedKey){s.taskManagedDisabled=Object.assign({},s.taskManagedDisabled||{});s.taskManagedDisabled[managedKey]={disabledAt:now,disabledBy:user};}
+  s._teamSyncMeta=meta;
+  savePending=true;
+  try{
+    await persist('RC1570 task permanently deleted',q(id));
+    tv.mode='list';tv.id='';tv.error='';tv.saved=t('taskDeleted');
+    lastHtml='';lastView='';renderTaskView(true);
+    return true;
+  }catch(err){
+    s.tasks=originals.tasks;s.taskSeries=originals.series;s._teamSyncMeta=originals.meta;s.taskManagedDisabled=originals.disabled;
+    tv.error=t('deleteFailed');tv.saved='';
+    if(typeof w.alert==='function')w.alert(t('deleteFailed'));
+    try{console.error('RC1570 delete was not confirmed by server',err)}catch(_){}
+    lastView='';renderTaskView(true);
+    return false;
+  }finally{savePending=false}
+}
+
 function field(label,html,wide){return'<label class="rc1570-field'+(wide?' rc1570-wide':'')+'"><span>'+esc(label)+'</span>'+html+'</label>'}
 function formHtml(task){
   var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?(low(x.recurrence)==='weekly'||(isWeekly(x)&&(!q(x.plannedDate||x.dueDate||x.dueAt)||arr(state().taskSeries).some(function(s){return q(s&&s.id)===q(x.seriesId)&&s.rule&&s.rule.type==='weekly'})))):false;
@@ -504,6 +721,7 @@ function formHtml(task){
     field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
     field(t('fCustomer'),'<input name="customer" list="rc1570Customers" maxlength="120" autocomplete="off" value="'+esc(task?customer(x):'')+'"><datalist id="rc1570Customers">'+customers().map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.no)+'</option>'}).join('')+'</datalist>')+
     field(t('fCustomerNo'),'<input name="customerNo" maxlength="120" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    field(t('fPickupTarget'),'<select name="pickupTargetId" data-rc1875-pickup-target="1">'+pickupOptions(q(x.pickupTargetId))+'</select>')+
     '<label class="rc1570-field rc1570-wide rc1570-autodone"><span><input type="checkbox" name="autoDone"'+(x.autoDoneOnShipment===false?'':' checked')+'> '+esc(t('fAutoDone'))+'</span><small>'+esc(t('fAutoDoneHint'))+'</small></label>'+
     field(t('fRef'),'<input name="ref" maxlength="40" autocomplete="off" value="'+esc(task?ref(x):'')+'">',true)+
     field(t('fNote'),'<textarea name="note" rows="4" maxlength="2000">'+esc(task?noteOf(x):'')+'</textarea>',true)+
@@ -514,7 +732,7 @@ function detailHtml(task){
   var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),days=weeklyDays(x),rows=[
     [t('fArea'),q(x.area||x.category)||area(x)],[t('fOwner'),ownerName(x,us)],
     [t('fDue'),isWeekly(x)&&days.length?'↻ '+days.map(function(i){return dayNames(lang())[i]}).join(' + '):(d?fmtDate(d):t('noDate'))],[t('fTimeShort'),q(x.time)],
-    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
+    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fPickupTarget'),arr(pickupTargets).find(function(z){return q(z&&z.id)===q(x.pickupTargetId)})?.siteLabel||(q(x.pickupTargetId)?t('fPickupMissing'):t('fPickupNone'))],[t('fRefShort'),rf]
   ];
   if(q(x.doneByShipmentRef))rows.push([t('fDoneByShipment'),q(x.doneByShipmentRef)]);
   else if(customerNo(x)&&!isDone(x)&&x.autoDoneOnShipment!==false)rows.push([t('fAutoDoneShort'),t('autoDoneOn')]);
@@ -522,20 +740,123 @@ function detailHtml(task){
     (tv.saved?'<p class="rc1570-tv-saved" role="status">'+esc(tv.saved)+'</p>':'')+
     '<dl>'+rows.map(function(r){return'<div><dt>'+esc(r[0])+'</dt><dd>'+(q(r[1])?esc(r[1]):'<span class="rc1570-tv-empty">–</span>')+'</dd></div>'}).join('')+'</dl>'+
     (noteOf(x)?'<section class="rc1570-tv-note"><h3>'+esc(t('fNote'))+'</h3><p>'+esc(noteOf(x))+'</p></section>':'')+
-    '<footer class="rc1570-form-actions">'+(canWrite()?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
+    (x.isVirtualTaskMaster?'<p class="rc1570-tv-hint">'+esc(t('weeklyMasterInfo'))+'</p>':'')+
+    '<footer class="rc1570-form-actions">'+(canWrite()&&!x.isVirtualTaskMaster?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
       ['open','in_progress','done'].filter(function(s){return s!==st}).map(function(s){return'<button type="button" class="ghost" data-rc1570-tv-status="'+s+'">'+esc(t({open:'markOpen',in_progress:'markInProgress',done:'markDone'}[s]))+'</button>'}).join(''):'')+
-      (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+'</footer></article>'
+      (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+
+      (canDeleteTask(x)&&canWrite()?'<button type="button" class="ghost rc1570-tv-delete-action" data-rc1570-tv-delete="'+esc(taskId(x))+'">'+esc(t('deleteTask'))+'</button>':'')+
+      (isSystemManagedTask(x)&&!canDeleteTask(x)?'<span class="rc1570-tv-managed-hint">'+esc(t('managedByShipment'))+'</span>':'')+'</footer></article>'
+}
+function weeklyMasterTasks(){
+  var runtime=w.ExportHUBRC1014TaskRuntime,u=currentUser(),s=state(),entries=[];
+  if(runtime&&typeof runtime.managedTaskPlanItems==='function'){
+    try{entries=runtime.managedTaskPlanItems({state:s,currentUser:u,currentUserId:q(u.id||u.userId||u.user||u.username||u.login||u.name),now:new Date()})||[]}catch(_){}
+  }
+  var managed=arr(entries).filter(function(item){return item&&q(item.key)&&q(item.title)}).map(function(item){
+    return{id:'managed:template:'+q(item.key),title:q(item.title),name:q(item.title),area:q(item.group),group:q(item.group),
+      sourceType:'manual',managedBy:'RC1152',managedKey:q(item.key),managedKind:item.referenceArea?'reference-area':'recurring',
+      recurrence:'weekly',weekdays:arr(item.weekdays).slice(),time:q(item.dueTime),description:q(item.description),
+      owner:q(u.name||u.displayName||u.user||u.login||u.id),isVirtualTaskMaster:true}
+  });
+  var tombstones=new Set(arr(s._teamSyncMeta&&s._teamSyncMeta.tombstones).filter(function(x){return low(x&&x.collection)==='taskseries'}).map(function(x){return low(x&&x.id)}));
+  var recurring=arr(s.taskSeries).filter(function(entry){
+    var id=q(entry&&entry.id),rule=entry&&entry.rule,template=entry&&entry.task||{};
+    return id&&rule&&low(rule.type)==='weekly'&&!tombstones.has(low(id))&&q(entry.title||template.title)&&
+      !arr(s.tasks).some(function(task){return q(task&&task.seriesId)===id&&isTemplate(task)&&low(task.sourceType)==='manual'&&id.indexOf('rc1570-series:')===0})
+  }).map(function(entry){
+    var x=entry.task||{},id=q(entry.id);
+    return{id:'series:template:'+id,seriesId:id,title:q(entry.title||x.title),name:q(entry.title||x.title),
+      area:q(entry.area||x.area),group:q(entry.area||x.group),sourceType:q(x.sourceType||entry.sourceType||'manual'),
+      recurrence:'weekly',weekdays:arr(entry.rule.weekdays).slice(),time:q(entry.dueTime||x.time),
+      owner:q(entry.owner||x.owner||entry.assignee||x.assignee),isVirtualTaskMaster:true}
+  });
+  return managed.concat(recurring)
+}
+function managedRows(){
+  var today=dayKey(new Date()),us=users(),rows=arr(state().tasks).concat(weeklyMasterTasks()).filter(function(x){
+    return x&&title(x)&&(!isTemplate(x)||(low(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
+  });
+  if(tv.scope==='mine')rows=rows.filter(isMine);
+  var counters={all:rows.length,overdue:0,weekly:0,once:0,done:0};
+  rows.forEach(function(x){
+    if(isDone(x))counters.done++;
+    if(isWeekly(x))counters.weekly++;else counters.once++;
+    var d=taskDate(x);if(!isDone(x)&&d&&dayKey(d)<today)counters.overdue++;
+  });
+  if(tv.kind==='done')rows=rows.filter(isDone);
+  else if(tv.kind==='overdue')rows=rows.filter(function(x){var d=taskDate(x);return !isDone(x)&&d&&dayKey(d)<today});
+  else if(tv.kind==='weekly')rows=rows.filter(isWeekly);
+  else if(tv.kind==='once')rows=rows.filter(function(x){return !isWeekly(x)});
+  var needle=low(tv.search);
+  if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
+  rows.sort(function(a,b){
+    var ad=taskDate(a),bd=taskDate(b),ak=ad?dayKey(ad):'9999',bk=bd?dayKey(bd):'9999',ao=isDone(a),bo=isDone(b);
+    if(ao!==bo)return ao?1:-1;
+    if(ak!==bk)return ak<bk?-1:1;
+    return title(a).localeCompare(title(b))
+  });
+  return{rows:rows,counts:counters,users:us,today:today}
+}
+function isSystemManagedTask(x){
+  if(x&&(x.masterTaskRC848||x.masterTaskRC846))return true;
+  if(isWeekly(x)&&!q(x&&x.seriesId)&&q(x&&x.managedBy)!=='RC1152')return true;
+  if(low(x&&x.sourceType)==='manual'&&!/^(m848:|task:av-missing:)/i.test(taskId(x)))return false;
+  if(/^(m848:|task:av-missing:)/i.test(taskId(x)))return true;
+  var source=low(x&&x.sourceType);
+  if(source&&source!=='user'&&source!=='custom')return true;
+  return ['Fehlende POD','Offene Sendungen','Offene ABDs'].indexOf(q(x&&x.group))>=0
+}
+function systemDuplicateKeeper(task){
+  if(!isSystemManagedTask(task)||isWeekly(task))return null;
+  var key=taskDuplicateKey(task);if(!key)return null;
+  var seen={},similar=[];
+  arr(state().tasks).forEach(function(row){
+    var id=taskId(row);if(!id||seen[id]||!isSystemManagedTask(row)||isWeekly(row)||taskDuplicateKey(row)!==key||!sameShipmentEvidence(task,row))return;
+    seen[id]=true;similar.push(row)
+  });
+  if(similar.length<2)return null;
+  // An unnumbered legacy item can match two different customers. Never use
+  // it as a bridge that makes conflicting records look deletable.
+  for(var i=0;i<similar.length;i++)for(var j=i+1;j<similar.length;j++)
+    if(!sameShipmentEvidence(similar[i],similar[j]))return null;
+  var canonical=low(task.sourceType)==='av_missing'?'task:av-missing:'+q(ref(task)).toUpperCase():'';
+  var score=function(x){return (canonical&&taskId(x)===canonical?100:0)+
+    (q(x.customerNumber)?4:0)+(q(x.customerName||x.customer)?2:0)+(q(x.linkedShipmentId||x.shipmentId)?1:0)};
+  similar.sort(function(a,b){return score(b)-score(a)||taskId(a).localeCompare(taskId(b))});
+  return similar[0]
+}
+function canDeleteTask(task){
+  if(!isSystemManagedTask(task))return true;
+  var survivor=systemDuplicateKeeper(task);
+  return !!survivor&&taskId(survivor)!==taskId(task)
 }
 function listHtml(){
-  var needle=low(tv.search),us=users(),rows=arr(state().tasks).filter(function(x){
-    // The manager must show completed tasks and editable manual weekly-series masters.
-    return x&&title(x)&&(!isTemplate(x)||(q(x.sourceType)==='manual'&&q(x.seriesId).indexOf('rc1570-series:')===0))
+  var model=managedRows(),rows=model.rows,us=model.users,counts=model.counts,shown=rows.slice(0,tv.moreCount);
+  var tabs=['all','overdue','weekly','once','done'],keys={all:'managerAll',overdue:'overdue',weekly:'managerWeekly',once:'managerOnce',done:'done'};
+  // A matching text key alone does not prove a duplicate: separate customer
+  // accounts or different shipment IDs must never be labelled as duplicates.
+  var duplicateIds={},groups=Object.create(null);
+  model.rows.forEach(function(x){var k=taskDuplicateKey(x);if(k)(groups[k]=groups[k]||[]).push(x)});
+  Object.keys(groups).forEach(function(k){
+    var rows=groups[k];
+    if(rows.length<2||new Set(rows.map(taskId).filter(Boolean)).size<2)return;
+    for(var i=0;i<rows.length;i++)for(var j=i+1;j<rows.length;j++)
+      if(!sameShipmentEvidence(rows[i],rows[j]))return;
+    rows.forEach(function(x){duplicateIds[taskId(x)]=true})
   });
-  if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
-  rows.sort(function(a,b){var da=taskDate(a),db=taskDate(b),ka=da?dayKey(da):'9',kb=db?dayKey(db):'9';return ka<kb?-1:ka>kb?1:title(a).localeCompare(title(b))});
-  var shown=rows.slice(0,200);
-  return'<aside class="rc1570-tv-list"><input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'"><p class="rc1570-tv-hint">'+esc(t('openCount',{count:rows.length}))+'</p><ul>'+
-    shown.map(function(x){var id=taskId(x),d=taskDate(x);return'<li><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'><strong>'+esc(title(x))+'</strong><span>'+esc([d?fmtDate(d):'',ownerName(x,us),customer(x)].filter(Boolean).join(' · '))+'</span></button></li>'}).join('')+'</ul></aside>'
+  return'<aside class="rc1570-tv-list">'+
+    '<input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'">'+
+    '<div class="rc1570-tv-scope rc1570-scope" role="group">'+['mine','all'].map(function(scope){return'<button type="button" data-rc1570-tv-scope="'+scope+'" aria-pressed="'+(tv.scope===scope)+'">'+esc(t(scope==='mine'?'scopeMine':'scopeAll'))+'</button>'}).join('')+'</div>'+
+    '<div class="rc1570-tv-kind" role="group" aria-label="'+esc(t('managerFilter'))+'">'+tabs.map(function(kind){return'<button type="button" data-rc1570-tv-kind="'+kind+'" aria-pressed="'+(tv.kind===kind)+'">'+esc(t(keys[kind]))+' <strong>'+counts[kind]+'</strong></button>'}).join('')+'</div>'+
+    '<p class="rc1570-tv-hint">'+esc(t('managerCount',{count:rows.length}))+'</p>'+
+    '<ul>'+shown.map(function(x){
+      var id=taskId(x),d=taskDate(x),weekly=isWeekly(x),done=isDone(x),late=!done&&d&&dayKey(d)<model.today,system=isSystemManagedTask(x);
+      return'<li class="rc1570-tv-row"'+(late?' data-late="true"':'')+'><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'>'+
+        '<strong>'+esc(title(x))+'</strong><span>'+esc([late?t('overdue'):'',weekly?t('managerWeekly'):t('managerOnce'),d?fmtDate(d):t('noDate'),done?t('done'):'',ownerName(x,us),ref(x),(duplicateIds[id]?t('duplicateLabel'):'')].filter(Boolean).join(' · '))+'</span>'+
+        '</button>'+(canWrite()&&canDeleteTask(x)?'<button type="button" class="rc1570-tv-delete" data-rc1570-tv-delete="'+esc(id)+'" aria-label="'+esc(t('deleteTask'))+'" title="'+esc(t('deleteTask'))+'">×</button>':'')+'</li>'
+    }).join('')+'</ul>'+
+    (rows.length>shown.length?'<button type="button" class="ghost rc1570-tv-more" data-rc1570-tv-more="1">'+esc(t('managerMore',{count:rows.length-shown.length}))+'</button>':'')+
+    '</aside>'
 }
 function taskViewHtml(){
   var task=tv.id?findTask(tv.id):null;
@@ -544,6 +865,7 @@ function taskViewHtml(){
   return'<div class="rc1570-head"><div><span class="rc1570-tv-eyebrow">'+esc(t('title'))+'</span><h2>'+esc(t('viewTitle'))+'</h2></div><div class="rc1570-actions">'+
     (canWrite()?'<button type="button" class="btn" data-rc1570-tv="new">'+esc(t('newTask'))+'</button>':'')+
     '<button type="button" class="ghost" data-rc1570-route="tasks">'+esc(t('toList'))+'</button></div></div>'+
+    (tv.mode==='list'&&tv.saved?'<p class="rc1570-tv-saved" role="status">'+esc(tv.saved)+'</p>':'')+
     '<div class="rc1570-tv-grid">'+listHtml()+'<div class="rc1570-tv-main">'+main+'</div></div>'
 }
 var lastView='';
@@ -574,13 +896,17 @@ function renderTaskView(force){
 function refreshList(panel){
   var aside=panel.querySelector('.rc1570-tv-list'),tmp=w.document.createElement('div');if(!aside)return;
   tmp.innerHTML=listHtml();var next=tmp.firstChild;
-  ['.rc1570-tv-hint','ul'].forEach(function(sel){var o=aside.querySelector(sel),n=next.querySelector(sel);if(o&&n)o.replaceWith(n)});
+  ['.rc1570-tv-scope','.rc1570-tv-kind','.rc1570-tv-hint','ul','.rc1570-tv-more'].forEach(function(sel){var o=aside.querySelector(sel),n=next.querySelector(sel);if(o&&n)o.replaceWith(n);else if(o&&!n)o.remove();else if(n&&!o)aside.appendChild(n)});
   lastView=taskViewHtml()
 }
 function bindTaskView(panel){
   panel.addEventListener('click',function(e){
     if(savePending){e.preventDefault();return}
     var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
+    if((b=el.closest('[data-rc1570-tv-delete]'))){e.preventDefault();deleteManagedTask(b.getAttribute('data-rc1570-tv-delete'));return}
+    if((b=el.closest('[data-rc1570-tv-kind]'))){e.preventDefault();tv.kind=b.getAttribute('data-rc1570-tv-kind');tv.moreCount=100;lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-scope]'))){e.preventDefault();tv.scope=b.getAttribute('data-rc1570-tv-scope')==='all'?'all':'mine';tv.moreCount=100;lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-more]'))){e.preventDefault();tv.moreCount+=100;lastView='';renderTaskView(true);return}
     if((b=el.closest('[data-rc1570-tv-open]'))){e.preventDefault();tv.saved='';openTaskView('show',b.getAttribute('data-rc1570-tv-open'));return}
     if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();changeTaskStatus(b.getAttribute('data-rc1570-tv-status'));return}
     if((b=el.closest('[data-rc1570-tv]'))){
@@ -669,6 +995,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_saveForm:saveForm,_changeTaskStatus:changeTaskStatus,_tv:tv});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,managedRows:managedRows,_deleteManagedTask:deleteManagedTask,applyForm:applyForm,_saveForm:saveForm,_changeTaskStatus:changeTaskStatus,_tv:tv});
 install();
 })(window);

@@ -88,7 +88,7 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
   if(name==='crypto')return crypto;
   if(name==='../shared/auth-store')return auth;
   if(name==='../shared/graph-mail')return{async sendHtmlMail(value){mail=value;return{attempts:1}}};
-  if(name==='../shared/avis-mail-html')return{renderAvisMailHtml:(body)=>body};
+  if(name==='../shared/avis-mail-html')return{renderAvisMailHtml:(body)=>body,activeClosureNotices:()=>[],closureNoticeHtml:()=>''};
   return{};
  }};
  vm.runInNewContext(fs.readFileSync('api/avis-reminder-mail/index.js','utf8'),sandbox);
@@ -99,4 +99,38 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
  assert.equal(JSON.parse(context.res.body).sender,'DespatchNettetal@essentra.com');
  assert.ok(mail.body.includes(legacy));
  assert.ok(!mail.body.includes('exporthub360.de'));
+});
+
+test('SFL always receives Wonderful Forest and per-customer portal overrides are consistent',()=>{
+ for(const file of ['assets/rc1027-lieferavis-immediate.js','assets/rc1166-avis-reminder-overview.js']){
+  const route=browser(file,[
+   {id:'SFL1',name:'SFL',avisPortal:'exporthub360'},
+   {id:'CUSTOM1',name:'Hitachi Energy',avisPortal:'wonderful-forest'},
+   {id:'CUSTOM2',name:'Essentra Sweden',avisPortal:'exporthub360'}
+  ]);
+  assert.equal(route({customerName:'SFL'},branded),legacy,file+' SFL by name');
+  assert.equal(route({customerId:'SFL1'},branded),legacy,file+' SFL saved override blocked');
+  assert.equal(route({customerId:'CUSTOM1'},branded),legacy,file+' customized Wonderful Forest');
+  assert.equal(route({customerId:'CUSTOM2'},legacy),branded,file+' customized ExportHUB360');
+  assert.equal(route({customerName:'SFL'},testservice),testservice,file+' testservice isolated');
+ }
+ const issuer=server('api/customer-avis/index.js');
+ assert.equal(issuer.publicAvisUrl('production','abc',{customerName:'SFL'}),legacy);
+ assert.equal(issuer.publicAvisUrl('production','abc',{customerId:'SFL1'},{name:'SFL',avisPortal:'exporthub360'}),legacy);
+ assert.equal(issuer.publicAvisUrl('production','abc',{customerId:'CUSTOM1'},{name:'Hitachi Energy',avisPortal:'wonderful-forest'}),legacy);
+ assert.equal(issuer.publicAvisUrl('production','abc',{customerId:'CUSTOM2'},{name:'Essentra Sweden',avisPortal:'exporthub360'}),branded);
+ assert.equal(issuer.publicAvisUrl('testservice','abc',{customerName:'SFL'}),testservice);
+ const mail=server('api/avis-reminder-mail/index.js');
+ assert.equal(mail.safeAvisUrl({},branded,{customerName:'SFL'}),legacy);
+ assert.equal(mail.safeAvisUrl({},branded,{customerId:'SFL1'},{name:'SFL',avisPortal:'exporthub360'}),legacy);
+ assert.equal(mail.safeAvisUrl({},branded,{customerId:'CUSTOM1'},{name:'Hitachi Energy',avisPortal:'wonderful-forest'}),legacy);
+ assert.equal(mail.safeAvisUrl({},legacy,{customerId:'CUSTOM2'},{name:'Essentra Sweden',avisPortal:'exporthub360'}),branded);
+});
+test('Customer folder exposes a persistent AVIS portal selector and locks SFL',()=>{
+ const ui=fs.readFileSync('assets/rc1092-customer-mail-contacts.js','utf8');
+ assert.match(ui,/data-rc1092-avis-portal/);
+ assert.match(ui,/function setAvisPortal\(c,portal\)/);
+ assert.match(ui,/await persist\('AVIS-Portal im Kundenordner gespeichert'\)/);
+ assert.match(ui,/if\(sflCustomer\(c\)&&portal!=='wonderful-forest'\)/);
+ assert.match(ui,/choice.disabled=sflCustomer\(c\)/);
 });

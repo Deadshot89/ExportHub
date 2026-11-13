@@ -2,6 +2,8 @@
 // This script is invoked after successful main TESTSERVICE deployment; never on production.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {requireGuestRuntimeRef} from './rc1903-guest-runtime-gate.mjs';
 
 const BASE='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
@@ -14,7 +16,8 @@ const timeoutMs=20000;
 const bytesJpg=Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x00]);
 const bytesPdf=Buffer.from('%PDF-1.7\n1 0 obj\nendobj\n');
 const api=new URL('/api/shipment-evidence',BASE);
-const noStore={'Accept':'application/json','Cache-Control':'no-store','X-ExportHUB-Environment':'testservice'};
+// Match real browser API calls: no client-controlled environment header.
+const noStore={'Accept':'application/json','Cache-Control':'no-store'};
 const safeError=(body)=>String(body?.code||body?.message||'NO_RESPONSE').slice(0,140);
 async function request(method,action,data={},token=''){
  const headers={...noStore,'Origin':BASE};
@@ -37,7 +40,21 @@ assert.equal(healthData?.deployment?.buildId,sha,'Deployment SHA mismatch; refus
 const root=await fetch(new URL('/?rc1903='+sha,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
 assert.equal(root.status,200);
 const html=await root.text();
-assert.match(html,/shipment-evidence-guest\.js\?v=1903/,'Guest form missing from deployed TESTSERVICE HTML');
+const guestBytes=fs.readFileSync(new URL('../assets/shipment-evidence-guest.js',import.meta.url));
+const rootGuestRef=requireGuestRuntimeRef(html,guestBytes,{fingerprintRequired:true});
+const publicPage=await fetch(new URL('/sendungsdokumentation',BASE),{headers:noStore,redirect:'follow',signal:AbortSignal.timeout(timeoutMs)});
+assert.equal(publicPage.status,200,'Public submission URL not reachable');
+const publicHtml=await publicPage.text();
+assert.ok(/id="eh1903-guest-root"/.test(publicHtml),'Public submission page missing its root');
+const publicGuestRef=requireGuestRuntimeRef(publicHtml,guestBytes);
+// Verify both browser URLs return the exact deployed runtime, not only a matching version string.
+// Do this before the first anonymous write; no content hash or stale URL may bypass it.
+for(const ref of new Set([rootGuestRef,publicGuestRef])){
+ const asset=await fetch(new URL(ref,BASE),{headers:noStore,redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
+ assert.equal(asset.status,200,'Public evidence page still serves a stale upload runtime: '+ref);
+ assert.ok(Buffer.from(await asset.arrayBuffer()).equals(guestBytes),
+   'TESTSERVICE runtime bytes do not match the verified main-SHA source: '+ref);
+}
 const noLogin=await request('GET','list');
 assert.equal(noLogin.status,401,'Unauthenticated listing must fail');
 const unique=crypto.randomBytes(5).toString('hex');
@@ -72,9 +89,14 @@ assert.equal(noToken.status,403,'Missing guest token must not retrieve the creat
 const wrongOrigin=await fetch(api,{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),
  headers:{...noStore,'Origin':'https://invalid-test-origin.example','Content-Type':'application/json',
   'X-ExportHUB-Evidence-Token':token},
- body:JSON.stringify({action:'public-save',id:initial.id,expectedRevision:current.revision,fields})
+ body:JSON.stringify({action:'public-upload',id:initial.id,expectedRevision:current.revision,kind:'foto',fileName:'Invalid-Origin.jpg',base64:bytesJpg.toString('base64')})
 });
 assert.equal(wrongOrigin.status,403,'Cross-origin anonymous update must be forbidden');
+const submitted=await request('POST','public-submit',{id:initial.id,expectedRevision:current.revision},token);
+assert.equal(submitted.status,200,'Public submission finalization failed: '+safeError(submitted.payload));
+assert.ok(submitted.payload.record.submittedAt,'Submission status not persisted');
+const locked=await request('POST','public-upload',{id:initial.id,expectedRevision:submitted.payload.record.revision,kind:'foto',fileName:'After-submit.jpg',base64:bytesJpg.toString('base64')},token);
+assert.equal(locked.status,403,'Submitted public record must reject further uploads');
 const fetched=await request('GET','public-get',{id:initial.id},token);
 assert.equal(fetched.status,200);
 assert.equal(fetched.payload.record.files.length,2);

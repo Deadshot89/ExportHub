@@ -114,3 +114,29 @@ test('RC1492: lokale UI-Felder bleiben fuer den State-Guard neutral',()=>{
   const merged=runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming));
   assert.equal(merged.taskSearch,undefined);
 });
+
+
+test('Aufgaben: deaktivierte Wochenserie wird nur mit Aufgaben-Bearbeitungsrecht gespeichert',()=>{
+  const server={tasks:[{id:'managed:wuerth:2026-11-09',title:'Würth Industrie',sourceType:'manual'}],
+    taskManagedDisabled:{},_teamSyncMeta:{fields:{},tombstones:[]}};
+  const incoming=structuredClone(server);
+  incoming.tasks=[];
+  incoming.taskManagedDisabled.wuerth={disabledAt:'2026-11-09T08:45:00Z',disabledBy:'Task editor'};
+  incoming._teamSyncMeta.tombstones.push({collection:'tasks',id:'managed:wuerth:2026-11-09',deletedAt:'2026-11-09T08:45:00Z',explicitUserAction:true});
+  const merged=runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming));
+  assert.ok(merged.taskManagedDisabled.wuerth,'wochenweise Deaktivierung persistiert');
+  assert.deepEqual(merged.tasks,[],'gezielt gelöschte Instanz bleibt gelöscht');
+
+  const restricted=restrictedTaskEditor();
+  restricted.rights.tasks=right('none');
+  restricted.rights.customers=right('edit');
+  assert.throws(()=>runAs(restricted,()=>secureMerge.mergeState(server,incoming)),e=>e&&e.code==='STATE_MODULE_WRITE_FORBIDDEN'&&e.status===403,
+    'Kunden-Bearbeitungsrecht genügt nicht zum Löschen von Aufgaben');
+});
+
+test('Aufgaben: alte Geräte dürfen eine deaktivierte Wochenserie nicht wieder aktivieren',()=>{
+  const server={tasks:[],taskManagedDisabled:{wuerth:{disabledAt:'2026-11-09T08:45:00Z'}},_teamSyncMeta:{fields:{},tombstones:[]}};
+  const stale={tasks:[],taskManagedDisabled:{},_teamSyncMeta:{fields:{},tombstones:[]}};
+  const merged=runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,stale));
+  assert.equal(merged.taskManagedDisabled.wuerth.disabledAt,'2026-11-09T08:45:00Z');
+});

@@ -9,7 +9,10 @@ const STYLE = [
   '#index352OutputRoot{display:block!important;width:210mm!important;margin:0!important;padding:0!important;overflow:visible!important}',
   '#index352OutputRoot>.index352-output-page{box-sizing:border-box!important;width:210mm!important;min-width:210mm!important;max-width:210mm!important;margin:0!important;box-shadow:none!important;border-radius:0!important;break-after:page!important;page-break-after:always!important}',
   '#index352OutputRoot>.index352-output-page:last-child{break-after:auto!important;page-break-after:auto!important}',
-  '#index352OutputRoot>.rc390-page.rc390-load{display:flex!important;flex-direction:column!important;height:auto!important;min-height:296mm!important;max-height:none!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}',
+  '#index352OutputRoot>.rc390-page.rc390-load{display:flex!important;flex-direction:column!important;height:auto!important;min-height:296mm!important;max-height:none!important;overflow:visible!important}',
+  // Keep the existing single-page A4 fit; do not force a new internal
+  // break inside an already-fitted loading list with a signed footer.
+  '#index352OutputRoot>.rc390-page.rc390-load[data-rc1547-single-page]{break-inside:avoid-page!important;page-break-inside:avoid!important}',
   '#index352OutputRoot>.rc390-load .rc390-bottom{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;flex:0 0 auto!important;margin-top:auto!important}',
   '#index352OutputRoot>.rc390-load .rc390-table tr,#index352OutputRoot>.rc390-load .rc390-sign{break-inside:avoid!important;page-break-inside:avoid!important}',
   '}'

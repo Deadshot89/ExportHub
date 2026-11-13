@@ -102,7 +102,13 @@ test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Na
   assert.match(h.inserted[0].textContent,/@media print\{/);
 });
 
-test('Ladeliste wird bei vielen Lieferscheinen nicht kleiner, weil höchstens zehn Zeilen entstehen',()=>{
+test('RC1935: die Ladeliste berücksichtigt zehn echte Zeilen je Lieferscheinspalte',()=>{
   const source=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
-  assert.match(source,/var documentRows=Math\.ceil\(Math\.min\(documentCount,10\)\/2\);/);
+  assert.match(source,/var documentRows=rc1935DocumentGridRows\(documentCount\)/);
+  const helper=source.match(/function rc1935DocumentGridRows\(count\)\{[\s\S]*?\n\}/);
+  assert.ok(helper,'Die echte RC1504-Zeilenberechnung muss vorhanden sein');
+  const rows=new Function(helper[0]+';return rc1935DocumentGridRows;')();
+  assert.equal(rows(10),10,'Zehn Lieferscheine in einer Spalte benötigen zehn Zeilen');
+  assert.equal(rows(20),10,'Zwei Spalten mit zehn Lieferscheinen benötigen zehn Zeilen');
+  assert.equal(rows(28),10,'Drei Spalten bleiben innerhalb zehn Zeilen');
 });

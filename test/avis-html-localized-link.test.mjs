@@ -37,7 +37,7 @@ test('AVIS: HTML mail rejects non-HTTPS URLs and mismatched links',()=>{
 });
 
 test('AVIS: production backend generates HTML only from safe server content',()=>{
- assert.match(endpoint,/const htmlContent=renderAvisMailHtml\(content,url,lang\)/);
+ assert.match(endpoint,/const htmlContent=renderAvisMailHtml\(content,url,lang,closureNoticeHtml\(notices,lang\)\)/);
  assert.match(endpoint,/graphMail\.sendHtmlMail\(\{to,subject:sub,body:htmlContent,sender,cc\}\)/);
  assert.match(graph,/contentType:html\?'HTML':'Text'/);
  assert.match(graph,/function mailSendGranted\(claims\)/);
@@ -57,5 +57,18 @@ test('AVIS: Outlook fallback and six-language user interface remain available',(
 test('AVIS: modified runtime and backend modules parse',()=>{
  for(const file of ['api/shared/avis-mail-html.js','api/shared/graph-mail.js','api/avis-reminder-mail/index.js','assets/rc1166-avis-reminder-overview.js']){
   execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
+ }
+});
+
+test('AVIS: both portal types get a clean localized mail CTA instead of a visible host',()=>{
+ assert.equal(LINK_LABELS.de,'Hier klicken zur Avisierung');
+ for(const origin of [base,'https://www.exporthub360.de/avis/abc']){
+  for(const lang of languages){
+   const localized=new URL(origin);localized.searchParams.set('lang',lang);
+   const html=renderAvisMailHtml('Hello\n'+localized.toString()+'\nRegards',origin,lang);
+   assert.ok(html.includes(LINK_LABELS[lang]),origin+' '+lang);
+   assert.ok(!html.replace(/<[^>]+>/g,'').includes(new URL(origin).hostname),origin+' '+lang);
+   assert.match(html,/<a href="https:\/\//);
+  }
  }
 });
