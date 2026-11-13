@@ -50,7 +50,10 @@ html[data-eh-palette] :is(#rc1900Overview,#rc1901Shipment,#rc1902ShipmentForm,#r
   --primary:var(--eh-p);--primary2:var(--eh-p2);--c:var(--eh-p3);
 }
 
-/* 2 ── Hintergrundleuchten: drei weiche Lichtflächen, langsam driftend ───── */
+/* 2 ── Hintergrundleuchten: drei weiche Lichtflächen, ruhend ───────────────
+   RC1934 (12.11.): kein Dauer-Drift mehr. Die animierten, 90px unscharfen Flächen mussten in jedem Frame neu
+   gerechnet werden (inkl. Glas-Leiste darüber) und machten Scrollen und Seitenwechsel ca. 6x langsamer als
+   im Design Original. Gleiche Farben und Lage, nur ohne Bewegung. */
 html[data-eh-palette] body[data-eh-skin="premium"]::before,
 html[data-eh-palette] body[data-eh-skin="premium"]::after{
   content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(90px);
@@ -58,18 +61,13 @@ html[data-eh-palette] body[data-eh-skin="premium"]::after{
 html[data-eh-palette] body[data-eh-skin="premium"]::before{
   width:640px;height:640px;left:14%;top:-260px;
   background:var(--eh-glow1);box-shadow:780px 420px 0 -60px var(--eh-glow2);
-  animation:rc1930-drift1 22s ease-in-out infinite alternate;
 }
 html[data-eh-palette] body[data-eh-skin="premium"]::after{
   width:560px;height:560px;left:38%;bottom:-320px;
   background:var(--eh-glow3);
-  animation:rc1930-drift2 28s ease-in-out infinite alternate;
 }
 html[data-eh-palette="frost"] body[data-eh-skin="premium"]::before,
 html[data-eh-palette="stahl"] body[data-eh-skin="premium"]::before{width:900px;height:460px;left:-6%;top:-300px;box-shadow:900px 0 0 -40px var(--eh-glow2)}
-@keyframes rc1930-drift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(110px,50px,0) scale(1.1)}}
-@keyframes rc1930-drift2{from{transform:translate3d(0,0,0) scale(1.04)}to{transform:translate3d(-120px,-40px,0) scale(.96)}}
-@media (prefers-reduced-motion:reduce){html[data-eh-palette] body[data-eh-skin="premium"]::before,html[data-eh-palette] body[data-eh-skin="premium"]::after{animation:none}}
 html[data-eh-palette]{background:var(--eh-page)!important}
 html[data-eh-palette][data-eh-skin="premium"] body[data-eh-skin="premium"]{background:transparent!important}
 html[data-eh-palette] body[data-eh-skin="premium"] :is(.app,.main,#app){background:transparent!important}
@@ -98,11 +96,12 @@ html[data-eh-palette] body[data-eh-skin="premium"] :is(input,select,textarea):fo
 /* Hauptknöpfe mit Glanz */
 html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary){position:relative;overflow:hidden}
 html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{
-  content:"";position:absolute;top:0;bottom:0;left:-80px;width:50px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-20deg);
+  content:"";position:absolute;top:0;bottom:0;left:0;width:50px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:translateX(-80px) skewX(-20deg);
   animation:rc1930-shine 4.2s ease-in-out infinite;
 }
-@keyframes rc1930-shine{0%,65%{left:-80px}100%{left:120%}}
+/* RC1934: Glanz nur über transform (Compositor), nicht über left (Layout in jedem Frame) */
+@keyframes rc1930-shine{0%,65%{transform:translateX(-80px) skewX(-20deg)}100%{transform:translateX(320px) skewX(-20deg)}}
 @media (prefers-reduced-motion:reduce){html[data-eh-palette] :is(.rc1900-btn-primary,.rc1902-save,.btn.primary,button.primary)::after{display:none}}
 
 /* 4 ── Kompaktere Größen ─────────────────────────────────────────────── */

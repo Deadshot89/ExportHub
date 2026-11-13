@@ -505,9 +505,11 @@
     fire(old,'change');schedule();
   }
 
+  /* RC1934: erst nach dem Übersetzer (RC1267, ebenfalls requestAnimationFrame) lesen, sonst blitzt kurz deutscher Text auf */
+  function afterTranslation(fn){var raf=window.requestAnimationFrame;if(!raf){setTimeout(fn,0);return;}raf(function(){raf(fn);});}
   function schedule(){
     if(ui.scheduled)return;ui.scheduled=true;
-    (window.requestAnimationFrame||setTimeout)(function(){ui.scheduled=false;try{render();}catch(e){try{console.error('RC1903',e);}catch(_){}}});
+    afterTranslation(function(){ui.scheduled=false;try{render();}catch(e){try{console.error('RC1903',e);}catch(_){}}});
   }
 
   function start(){
@@ -515,6 +517,7 @@
     if(!c){setTimeout(start,300);return;}
     new MutationObserver(schedule).observe(c,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','hidden','disabled','readonly','data-active','data-current-status','aria-invalid','aria-pressed','title']});
     new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-eh-layout','data-eh-newui']});
+    window.addEventListener('exporthub:language-changed',function(){ui.html={};schedule();}); // RC1934
     window.addEventListener('click',onClick,true);
     window.addEventListener('keydown',onKey,true);
     window.addEventListener('input',forward,true);

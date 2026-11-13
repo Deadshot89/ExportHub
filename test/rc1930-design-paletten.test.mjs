@@ -82,8 +82,11 @@ test('RC1930: Builder bindet die Paletten ein, Sprachpakete kennen alle Namen',(
     for(const key of ['classic','premium','neu','frost','graphit','azur','stahl','polar'])assert.ok(String(pack['theme.'+key]||'').trim(),lang+' theme.'+key);
     assert.equal(pack['theme.classic'],'Original');
     assert.equal(pack['theme.premium'],'Indigo');
-    assert.equal(pack['theme.neu'],'Horizont');
   }
+  // RC1934: deutsche Wörter als Designnamen werden übersetzt (Englisch: Horizon, Graphite, Azure, Steel)
+  const de=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8')),en=JSON.parse(fs.readFileSync('assets/i18n/en.json','utf8'));
+  assert.deepEqual(['neu','graphit','azur','stahl'].map(k=>de['theme.'+k]),['Horizont','Graphit','Azur','Stahl']);
+  assert.deepEqual(['neu','graphit','azur','stahl'].map(k=>en['theme.'+k]),['Horizon','Graphite','Azure','Steel']);
 });
 
 test('RC1930: Design-Rahmen (Glocke, Benutzermenü) löst nur Original-Knöpfe aus und ist eingebunden',()=>{
