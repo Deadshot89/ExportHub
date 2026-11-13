@@ -8,7 +8,7 @@ const model=require('../api/shared/urgent-orders.js');
 const actor={id:'CS-1',name:'Customer Service'};
 const logistics={id:'OPS-1',rights:{shipmentoverview:{level:'edit'}}};
 function base(extra={}){
- return {orderNumber:'SO3002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
+ return {orderNumber:'SO300200003002',delivery:'DRP',priority:'P1',transportCostsApproved:true,email:'cs@example.com',language:'de',
   orderType:'DIRECT_OUTBOUND',directOutbound:{
    arrivalAt:'2026-11-09T08:30',arrivalMode:'TRUCK',arrivalProvider:'Example Freight',
    dispatchMethod:'EXPRESS',deliveryNotePresent:true,asnWorking:true,holdsClear:true
@@ -29,9 +29,9 @@ test('Urgent Order supports planned inbound and immediate express shipment',()=>
  // Inbound/express details remain in the order data, but the staff
  // requested a short, personal DU mail instead of an operational data dump.
  assert.match(en.body,/Hi,\n\nIssue: The inbound truck will arrive late/);
- assert.match(en.body,/Sales order: SO3002\nItem: ART-101/);
+ assert.match(en.body,/Sales order: SO300200003002\nItem: ART-101/);
  assert.match(de.body,/Hallo,\n\nProblem: Der Wareneingang ist verspätet/);
- assert.match(de.body,/Auftrag: SO3002\nArtikel: ART-101/);
+ assert.match(de.body,/Auftrag: SO300200003002\nArtikel: ART-101/);
  assert.doesNotMatch(en.body,/Expected arrival:|Outbound service:|EXPRESS|P1/);
  assert.doesNotMatch(de.body,/Geplante Ankunft:|Versandart:|EXPRESS|P1/);
 });
@@ -77,7 +77,10 @@ test('Anonymous reporter front-end and API provide scoped tracking, not public g
  const script=html.match(/<script>([\s\S]*?)<\/script>/);
  assert.ok(script);assert.doesNotThrow(()=>new vm.Script(script[1]));
  assert.equal(apiCfg.bindings[0].route,'urgent-order-public');
- assert.match(pub,/crypto\.randomBytes\(32\)/);
+ const capabilityHelper=fs.readFileSync(new URL('../api/shared/urgent-reporter-capability.js',import.meta.url),'utf8');
+ assert.match(pub,/const credential=reporter\.issue;/);
+ assert.match(capabilityHelper,/crypto\.randomBytes\(32\)/);
+ assert.match(capabilityHelper,/crypto\.createHash\('sha256'\)/);
  assert.match(pub,/groupByToken/);
  // Scope by reporter AND exclude soft-deleted requests; the API's capability isolation remains unchanged.
  assert.match(pub,/\.filter\(o=>!o\.deletedAt&&o\.reporterId===group\.id\)/);

@@ -4,23 +4,16 @@ const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
 const packing=require('../shared/urgent-packing');
+const reporter=require('../shared/urgent-reporter-capability');
 const apiI18n=require('../shared/i18n');
 const guard=new Map();
 const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
 function txt(v,max=250){return String(v==null?'':v).trim().slice(0,max);}
 function json(status,value){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},body:JSON.stringify(value)};}
 function body(req){let value=req&&req.body;if(typeof value==='string'){if(value.length>65000)throw model.problem('URGENT_PAYLOAD_TOO_LARGE','Request is too large.',413);try{value=JSON.parse(value)}catch(_){value={}};}if(!value||typeof value!=='object'||Array.isArray(value))return{};if(JSON.stringify(value).length>65000)throw model.problem('URGENT_PAYLOAD_TOO_LARGE','Request is too large.',413);return value;}
-function credential(){
- const token='uro_'+crypto.randomBytes(32).toString('base64url');
- return{token,tokenHash:hashToken(token),id:crypto.randomUUID()};
-}
-function hashToken(v){return crypto.createHash('sha256').update('ExportHUB360|urgent-reporter|v1|'+String(v)).digest('hex');}
-function groupByToken(doc,v){
- const raw=txt(v,100);
- if(!/^uro_[A-Za-z0-9_-]{43}$/.test(raw))return null;
- const hashed=hashToken(raw);
- return(doc.reporterGroups||[]).find(g=>g&&typeof g.tokenHash==='string'&&g.tokenHash===hashed)||null;
-}
+const credential=reporter.issue;
+const hashToken=reporter.hashToken;
+const groupByToken=reporter.groupByToken;
 function publicOrder(order){
  return{
   id:order.id,orderNumber:order.orderNumber,delivery:order.delivery,priority:order.priority,allLines:order.allLines===true,
@@ -28,6 +21,7 @@ function publicOrder(order){
   orderType:order.orderType||'STANDARD',directOutbound:order.directOutbound||null,
   requestedDispatchDate:order.requestedDispatchDate||null,cutoff:order.cutoff||null,
   createdAt:order.createdAt,updatedAt:order.updatedAt,
+  canRequestDeletion:order.externalSharedFromInternal!==true,
   deletion:{state:model.deleteView(order).state,started:model.deleteView(order).started,
     requestedAt:model.deleteView(order).requestedAt},
   items:(order.items||[]).map(x=>({
@@ -72,6 +66,7 @@ async function publicAction(req,refs){
    if(!group)throw model.problem('URGENT_REPORTER_ACCESS_DENIED','Ungültiger Überwachungslink.',403);
    const order=doc.orders.find(o=>o&&o.id===id&&o.reporterId===group.id&&!o.deletedAt);
    if(!order)throw model.problem('URGENT_NOT_FOUND','Anfrage nicht gefunden.',404);
+   if(order.externalSharedFromInternal===true)throw model.problem('URGENT_REPORTER_DELETE_FORBIDDEN','Extern freigegebene interne Aufträge können nur auf der internen Website gelöscht werden.',403);
    const deletion=model.requestDeletion(order,{id:'REPORTER:'+group.id,name:'Customer Service'});
    return {deleted:!!order.deletedAt,deletion:{state:deletion.state,requestedAt:deletion.requestedAt},
      order:order.deletedAt?null:publicOrder(order)};

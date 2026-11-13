@@ -2756,5 +2756,18 @@
   "urgentOrderV2.issueRegenerate": "Rigenera la bozza dell'e-mail.",
   "urgentOrderV2.issueTooLong": "La descrizione del problema, inclusi i modelli selezionati, non può superare 2000 caratteri.",
   "urgentOrderV2.shippingNotReady": "Disponibile solo dopo la spedizione di tutte le righe.",
-  "urgentOrderV2.mailShippingPreparing": "Preparazione della conferma di spedizione."
+  "urgentOrderV2.mailShippingPreparing": "Preparazione della conferma di spedizione.",
+  "urgentOrderV2.crossviewExistingLinkLabel": "Collega a un link di tracciamento esterno esistente (facoltativo)",
+  "urgentOrderV2.crossviewExistingLinkHelp": "Usa questa opzione solo se l'ordine deve apparire nello stesso link privato. L'email CS deve corrispondere.",
+  "urgentOrderV2.crossviewShareResultLabel": "Link di tracciamento esterno – condividere solo con persone autorizzate",
+  "urgentOrderV2.crossviewCopyLink": "Copia link",
+  "urgentOrderV2.crossviewShareWarning": "Copia e condividi in modo sicuro questo link segreto ora. Non potrà essere recuperato in seguito.",
+  "urgentOrderV2.crossviewShareAction": "Condividi tramite link esterno",
+  "urgentOrderV2.crossviewLinkedLabel": "Collegato a un link di tracciamento esterno privato.",
+  "urgentOrderV2.crossviewShareConfirm": "Questo link privato consente di visualizzare l'ordine senza accedere. Condividilo solo con persone autorizzate. Continuare?",
+  "urgentOrderV2.crossviewShareSuccess": "Link di tracciamento esterno creato. Copialo e condividilo in modo sicuro ora.",
+  "urgentOrderV2.crossviewLinkCopied": "Link di tracciamento esterno copiato.",
+  "urgentOrderV2.crossviewLinkManualCopy": "Seleziona il link e copialo manualmente.",
+  "urgentOrderV2.crossviewLinkedNoDelete": "Questo ordine è stato condiviso internamente. Può essere eliminato solo dal sito interno.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Link di tracciamento esterno esistente per la condivisione (facoltativo)"
 }

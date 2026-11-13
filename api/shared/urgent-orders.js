@@ -15,7 +15,7 @@ function text(v,max=200){return String(v==null?'':v).trim().slice(0,max);}
 function problem(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e;}
 function email(v){const value=text(v,254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)||/[\r\n]/.test(value))throw problem('URGENT_EMAIL_INVALID','Bitte eine gültige CS-E-Mail-Adresse angeben.');return value;}
 function language(v){const raw=text(v,10).toLowerCase();return LANGUAGES.includes(raw)?raw:'de';}
-function orderNumber(v){const raw=text(v,40).toUpperCase();if(!/^SO[A-Z0-9-]{2,38}$/.test(raw))throw problem('URGENT_SO_INVALID','Die Auftragsnummer muss mit SO beginnen.');return raw;}
+function orderNumber(v){const raw=text(v,40).toUpperCase();if(!/^SO3002[0-9]{8}$/.test(raw))throw problem('URGENT_SO_INVALID','Ungültige Auftragsnummer. Bitte eine 14-stellige SO-Nummer eingeben, die mit SO3002 beginnt.');return raw;}
 function positiveInt(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<1||n>10000000)throw problem('URGENT_QUANTITY_INVALID','Jede Position braucht eine gültige Menge größer als 0.');return n;}
 function explicitCheck(v,key){if(typeof v!=='boolean')throw problem('URGENT_CHECK_MISSING','Die CS-Prüfung "'+key+'" muss mit Ja oder Nein beantwortet werden.');return v;}
 
@@ -145,7 +145,12 @@ function createOrder(raw,actor,now=new Date().toISOString(),catalog=null){
   items,history:[{at:now,actorId:ownerId,event:'created'}]};
 }
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
-function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
+function canViewAll(user){
+ if(canManage(user))return true;
+ const rights=user&&user.rights&&user.rights.shipmentoverview||{};
+ return rights.view===true||rights.read===true||['view','read'].includes(String(rights.level||rights.access||'').toLowerCase());
+}
+function canRead(order,user){return canViewAll(user)||!!(user&&user.id&&text(order&&order.createdBy&&order.createdBy.id)===text(user.id));}
 function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),note=''){
  if(order&&order.deletion&&order.deletion.state==='pending')throw problem('URGENT_DELETE_PENDING','Bitte zuerst die offene Löschanfrage entscheiden.',409);
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
@@ -339,4 +344,4 @@ function confirmMailSent(order,mailId,actor,now=new Date().toISOString()){
  return mail;
 }
 
-module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,activeOrder,workStarted,processingOwner,deleteView,requestDeletion,startProcessing,claimDeletionHandler,resolveDeletion};
+module.exports={PRIORITIES,STATUSES,DELIVERY,LANGUAGES,ORDER_TYPES,ARRIVAL_MODES,DISPATCH_METHODS,CLOSED_STATUSES,text,problem,email,language,orderNumber,localDateTime,validateDirectOutbound,dispatchCutoff,createOrder,canManage,canViewAll,canRead,setItemStatus,isClosed,summaryStatus,draftMail,recordMailHandoff,confirmMailSent,activeOrder,workStarted,processingOwner,deleteView,requestDeletion,startProcessing,claimDeletionHandler,resolveDeletion};

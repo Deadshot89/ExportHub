@@ -9,7 +9,7 @@ const translator=require('../api/shared/urgent-mail-translation.js');
 
 function sample(status='Problem'){
  return{
-  orderNumber:'SO3002',email:'cs@example.org',language:'de',priority:'P1',delivery:'DIRECT',
+  orderNumber:'SO300200003002',email:'cs@example.org',language:'de',priority:'P1',delivery:'DIRECT',
   orderType:'STANDARD',
   items:[
    {line:'10',article:'ART-100',quantity:2,status},
@@ -27,12 +27,12 @@ test('Urgent-Order problem mail uses short DU format, real website issue, order,
  assert.equal(draft.body,[
   'Hallo,','',
   'Problem: Artikel 20 fehlt beim Packen.','',
-  'Auftrag: SO3002',
+  'Auftrag: SO300200003002',
   'Artikel: ART-100, ART-200','',
   'Gruß','lager.max'
  ].join('\n'));
  assert.doesNotMatch(draft.body,/P1|Lieferart|Status|Former Creator|Mit freundlichen Grüßen/);
- assert.match(draft.subject,/SO3002/);
+ assert.match(draft.subject,/SO300200003002/);
 });
 
 test('English mail uses informal, localized labels and current user, not untranslated D365 status',()=>{
@@ -40,7 +40,7 @@ test('English mail uses informal, localized labels and current user, not untrans
  assert.equal(draft.body,[
   'Hi,','',
   'Issue: Item 20 is missing in picking.','',
-  'Sales order: SO3002',
+  'Sales order: SO300200003002',
   'Item: ART-100, ART-200','',
   'Cheers,','lager.max'
  ].join('\n'));

@@ -92,7 +92,7 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <form id="newOrder" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-internal-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-internal-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-internal-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-internal-step="1">
 <div class="form-grid">
 <p class="wide info-note" data-i18n="urgentOrderV2.internalHelp">Im internen Formular erfasst du Lageraufträge mit vorhandener Ware. Für Direktumschlag nutze das Meldeformular.</p>
-<label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
+<label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO300200214125" autocomplete="off" autocapitalize="characters" spellcheck="false" required minlength="14" maxlength="14" pattern="SO3002[0-9]{8}" title="14 Zeichen: SO3002 gefolgt von 8 Ziffern"></label>
 <label class="field">Lieferart *<select name="delivery" required><option value="" data-i18n="urgentOrderV2.chooseOrder">Bitte wählen</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label>
 <label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority" required><option value="" selected disabled data-i18n="urgentOrderV2.chooseOrder">Bitte auswählen</option><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label>
 <p class="help" role="note" id="urgentPriorityLegend" data-i18n="urgentOrderV2.priorityLegend">P1 – Special transport · P2 – Express delivery · P3 – Backlog · P4 – Today\u0027s order</p>
@@ -101,6 +101,9 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <label class="field">E-Mail-Sprache *<select name="language" id="csLanguage"><option value="de">Deutsch</option><option value="en">English</option></select></label>
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="off" list="internalUrgentEmailHistory" placeholder="name@firma.com" maxlength="254" required></label>
 <datalist id="internalUrgentEmailHistory"></datalist>
+<label class="field wide"><span data-i18n="urgentOrderV2.crossviewExistingLinkLabel">Link to an existing external tracking link (optional)</span>
+<input type="text" name="externalTrackingLink" autocomplete="off" maxlength="600" placeholder="https://.../urgent-order#access=uro_...">
+<span class="help" data-i18n="urgentOrderV2.crossviewExistingLinkHelp">Use only to show this order under the same private tracking link. The CS email must match.</span></label>
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small" data-i18n="urgentOrderV2.saveEmailOnDevice">E-Mail auf diesem Gerät speichern</button><button type="button" id="clearInternalEmailHistory" class="btn flat small" data-i18n="urgentOrderV2.clearEmailHistory">Gespeicherte E-Mails löschen</button><span class="help" id="profileHint" data-i18n="urgentOrderV2.emailHistoryHint">Gespeicherte E-Mail-Adressen stehen auf diesem Gerät zur Auswahl – ohne Anmeldung oder Benutzerkonto.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3 id="internalStepTwoHeading">Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
@@ -124,6 +127,14 @@ main{width:100%;max-width:none;margin:0;padding:24px clamp(16px,2vw,40px) 64px}h
 <div class="filters"><input id="search" type="search" placeholder="SO, Artikel oder E-Mail suchen" aria-label="Suchen"><select id="filterPriority" aria-label="Priorität"><option value="" data-i18n="urgentOrderV2.allLevels">Alle Stufen</option><option value="P1">P1 – Sondertransport</option><option value="P2">P2 – Express-Lieferung</option><option value="P3">P3 – Backlog</option><option value="P4">P4 – Auftrag von heute</option></select><select id="filterDelivery" aria-label="Lieferart"><option value="" data-i18n="urgentOrderV2.allDeliveries">Alle Lieferarten</option><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directShortDelivery">Direkt</option></select><select id="filterStatus" aria-label="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="Waved">Waved</option><option value="In Progress">In Progress</option><option value="Problem">Problem</option><option value="Loaded">Loaded</option><option value="Shipped">Shipped</option><option value="Invoiced">Invoiced</option><option value="exception">Check required</option></select></div>
 <div id="listMessage" class="message" role="status" aria-live="polite"></div>
 <div class="hintbar" id="listHint">Aufträge nach Priorität und Aktualität sortiert.</div>
+<label class="field"><span data-i18n="urgentOrderV2.crossviewReuseExistingLinkLabel">Existing external tracking link for sharing (optional)</span><input id="externalShareExistingLink" type="text" autocomplete="off" maxlength="600" placeholder="https://.../urgent-order#access=uro_..."></label>
+<div class="message" id="externalShareResult" role="status" hidden>
+ <label class="field"><span data-i18n="urgentOrderV2.crossviewShareResultLabel">External tracking link – share only with authorized people</span>
+ <input id="externalShareUrl" type="text" autocomplete="off" readonly>
+ </label>
+ <button id="copyExternalShareUrl" type="button" class="btn alt small" data-i18n="urgentOrderV2.crossviewCopyLink">Copy link</button>
+ <span class="help" data-i18n="urgentOrderV2.crossviewShareWarning">Copy and securely share this secret link now. It cannot be retrieved later.</span>
+</div>
 <div class="list-head" aria-hidden="true"><span>Auftragsnummer</span><span>Stufe</span><span>Lieferung</span><span>Status</span><span>CS-E-Mail</span><span data-i18n="urgentOrderV2.mailColumnTitle">E-Mail-Verlauf</span><span>Aktionen</span></div>
 <div id="orders" aria-live="polite"><div class="empty">Aufträge werden geladen …</div></div>
 </section>
@@ -172,6 +183,28 @@ function rememberEmail(value){
 function forgetEmails(){try{localStorage.removeItem(EMAIL_HISTORY_KEY);}catch(_){}renderSavedEmails();}
 // RC1811_INTERNAL_EMAIL_HISTORY_END
 let orders=[],canManage=false,viewerId='',modalOrder='',modalKind='',currentTab='open',activeView='open',draftNeedsRegenerate=false;
+let urgentRefreshEpoch=0;
+function clearExternalTrackingSecrets(){
+ $('externalShareUrl').value='';
+ $('externalShareExistingLink').value='';
+ $('externalShareResult').hidden=true;
+ const linked=$('newOrder').elements.externalTrackingLink;
+ if(linked)linked.value='';
+}
+function clearUrgentPrivateView(resetDraft=false,preservePendingLink=false){
+ if(!preservePendingLink)clearExternalTrackingSecrets();
+ orders=[];canManage=false;viewerId='';
+ $('orders').replaceChildren();
+ $('internalOpenCount').textContent='0';$('internalClosedCount').textContent='0';
+ $('listHint').textContent='';
+ $('packingCatalogPanel').hidden=true;
+ $('createButton').disabled=true;$('saveProfile').disabled=true;
+ $('mailOverlay').hidden=true;modalOrder='';modalKind='';draftNeedsRegenerate=false;
+ for(const id of ['mailSubject','mailBody','mailTo','mailIssue'])$(id).value='';
+ if(resetDraft){
+  $('newOrder').reset();$('lineFields').replaceChildren();lineField();showInternalStep(1);
+ }
+}
 function token(){
  try{const rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(rt.authToken||rt.token||rt.sessionToken)return txt(rt.authToken||rt.token||rt.sessionToken)}catch(_){}
  try{const x=JSON.parse(sessionStorage.getItem('exporthub_rc301_tab_session')||'{}');return txt(x.token)}catch(_){return''}
@@ -428,9 +461,24 @@ function render(){
      freightData.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):''
     ].filter(Boolean).map(escapeHtml).join(' · '):'';
   const freightHtml=freightLabel?'<p class="help">'+freightLabel+'</p>':'';
+  const allowedToShare=!order.reporterId&&(canManage||!!(viewerId&&order.createdBy&&order.createdBy.id===viewerId));
+  const externalShare=allowedToShare?'<div class="btn-row"><button type="button" class="btn alt small" data-share-external>'+escapeHtml(localeV2('crossviewShareAction','Share with external link'))+'</button></div>':order.reporterId?'<p class="help">'+escapeHtml(localeV2('crossviewLinkedLabel','Linked to a private external tracking link.'))+'</p>':'';
   const mailColumn=mailColumnMarkup(order);
   const deletionIndicator=order.deletion&&order.deletion.state==='pending'?'<span class="sub" role="status">'+escapeHtml(localeV2('deletePendingLabel',"Deletion pending"))+'</span>':'';
-  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+deletionIndicator+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+mailHistoryMarkup(order)+deleteActionsMarkup(order)+'</div>';
+  details.innerHTML='<summary class="order-summary"><span class="so">'+escapeHtml(order.orderNumber)+'<span class="sub">'+escapeHtml(order.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(order.items||[]).length+' '+localeV2('positions','Positionen'))+'</span></span><span><span class="tag" data-priority="'+escapeHtml(order.priority)+'">'+escapeHtml(priorityText(order.priority))+'</span></span><span>'+escapeHtml(order.delivery==='DIRECT'?'Direkt':'DRP')+'</span><span class="order-status status">'+statusBadge(statusSummary(order))+deletionIndicator+'</span><span class="order-email">'+escapeHtml(order.email)+'<span class="sub">'+escapeHtml(order.language==='en'?'English':'Deutsch')+'</span></span>'+mailColumn+'<span class="order-buttons">'+problem+shipping+'</span></summary><div class="order-detail"><table class="lines-table"><thead><tr><th>Line</th><th>Artikel</th><th>Menge</th><th>Minibag</th><th>CS-Prüfung</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+wholeOrderChecksMarkup(order)+approvalDetailMarkup(order)+freightHtml+externalShare+mailHistoryMarkup(order)+deleteActionsMarkup(order)+'</div>';
+  details.querySelectorAll('[data-share-external]').forEach(button=>button.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(!window.confirm(localeV2('crossviewShareConfirm','This private link allows access without login. Share only with authorized people. Continue?')))return;
+   button.disabled=true;
+   try{
+    const result=await api('share-external',{id:order.id,externalTrackingLink:$('externalShareExistingLink').value.trim()});
+    const url=urgentPublicOrigin()+'/urgent-order#access='+encodeURIComponent(result.accessToken);
+    $('externalShareUrl').value=url;
+    $('externalShareResult').hidden=false;
+    await refresh();
+    setMessage('listMessage',order.orderNumber+' · '+localeV2('crossviewShareSuccess','External tracking link created. Copy and share it securely now.'),'ok');
+   }catch(e){button.disabled=false;setMessage('listMessage',e.message,'error');}
+  }));
   details.querySelectorAll('[data-mail]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDraft(order,b.dataset.mail)}));
   details.querySelectorAll('[data-open-mail-history]').forEach(button=>button.addEventListener('click',ev=>{
    ev.preventDefault();ev.stopPropagation();
@@ -473,8 +521,13 @@ function render(){
  });
 }
 async function refresh(){
+ const epoch=++urgentRefreshEpoch;
  try{
-  const data=await api('list');orders=data.orders||[];canManage=!!data.canManage;viewerId=txt(data.currentUserId||'');
+  const data=await api('list');
+  if(epoch!==urgentRefreshEpoch)return;
+  const newViewer=txt(data.currentUserId||'');
+  if(viewerId&&viewerId!==newViewer)clearExternalTrackingSecrets();
+  orders=data.orders||[];canManage=!!data.canManage;viewerId=newViewer;
    $('packingCatalogPanel').hidden=!data.canImportPackingCatalog;
    if(data.canImportPackingCatalog){api('packing-catalog-status').then(s=>setMessage('packingCatalogMessage',localeV2('packingCatalogAvailable','{count} items available · {unknown} without valid pack sizes.').replace('{count}',s.count).replace('{unknown}',s.unknownPackSize),'ok')).catch(e=>setMessage('packingCatalogMessage',e.message,'warning'));}
   $('access').hidden=true;$('createButton').disabled=false;$('saveProfile').disabled=false;
@@ -482,8 +535,11 @@ async function refresh(){
   renderSavedEmails();
   render();
  }catch(e){
-  $('packingCatalogPanel').hidden=true;
-   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
+  if(epoch!==urgentRefreshEpoch)return;
+  // Keep a just-issued secret visible through temporary read/network failures;
+  // never retain it across an explicit logout, account switch, 401 or 403.
+  clearUrgentPrivateView(false,e.status!==401&&e.status!==403);
+  $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
   $('createButton').disabled=true;$('saveProfile').disabled=true;
   const authMessage=e.status===401?localizedLoginRequired():e.message;
   $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(authMessage)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
@@ -598,7 +654,7 @@ async function submit(ev){
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  if(lateToday&&!approved){showInternalCutoffChoice();return;}
  hideInternalCutoffChoice();
- const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,items};
+ const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,requestedDispatchDate:form.elements.requestedDispatchDate.value,allLines:isAllLines(),orderChecks:isAllLines()?wholeOrderChecks():null,transportCostsApproved:form.elements.priority.value==='P1'&&$('p1CostApproved').checked,externalTrackingLink:form.elements.externalTrackingLink.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
  try{const r=await createWithMinibagReview(body);rememberEmail(body.email);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();syncScope();syncP1Approval();syncInternalCutoff();showInternalStep(1);$('csEmail').value=body.email;$('csLanguage').value=body.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
@@ -720,7 +776,23 @@ async function copyDraft(){
  if(!$('mailSubject').value){setMessage('mailMessage','Bitte zuerst einen Entwurf erzeugen.','error');return;}
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
+window.addEventListener('exporthub:logout',()=>{
+ urgentRefreshEpoch++;
+ clearUrgentPrivateView(true);
+ $('access').hidden=false;$('access').textContent=localizedLoginRequired();
+});
+window.addEventListener('exporthub:user-changed',()=>{
+ urgentRefreshEpoch++;
+ clearUrgentPrivateView(true);
+ refresh();
+});
 $('newOrder').addEventListener('submit',submit);
+$('copyExternalShareUrl').addEventListener('click',async()=>{
+ const url=$('externalShareUrl').value;
+ if(!url)return;
+ try{await navigator.clipboard.writeText(url);setMessage('listMessage',localeV2('crossviewLinkCopied','External tracking link copied.'),'ok');}
+ catch(_){$('externalShareUrl').focus();$('externalShareUrl').select();setMessage('listMessage',localeV2('crossviewLinkManualCopy','Select the link and copy it manually.'),'error');}
+});
  $('packingCatalogImport').addEventListener('click',importPackingCatalog);
 $('internalRequestedDispatchDate').addEventListener('change',syncInternalCutoff);
 $('internalLateSubmitToday').addEventListener('click',()=>internalLateChoice(false));

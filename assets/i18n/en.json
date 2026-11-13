@@ -2756,5 +2756,18 @@
   "urgentOrderV2.issueRegenerate": "Please regenerate the email draft.",
   "urgentOrderV2.issueTooLong": "The problem description including selected templates must not exceed 2,000 characters.",
   "urgentOrderV2.shippingNotReady": "Available only once all items have been shipped.",
-  "urgentOrderV2.mailShippingPreparing": "Preparing shipping confirmation."
+  "urgentOrderV2.mailShippingPreparing": "Preparing shipping confirmation.",
+  "urgentOrderV2.crossviewExistingLinkLabel": "Link to an existing external tracking link (optional)",
+  "urgentOrderV2.crossviewExistingLinkHelp": "Use only to show this order under the same private tracking link. The CS email must match.",
+  "urgentOrderV2.crossviewShareResultLabel": "External tracking link – share only with authorized people",
+  "urgentOrderV2.crossviewCopyLink": "Copy link",
+  "urgentOrderV2.crossviewShareWarning": "Copy and securely share this secret link now. It cannot be retrieved later.",
+  "urgentOrderV2.crossviewShareAction": "Share with external link",
+  "urgentOrderV2.crossviewLinkedLabel": "Linked to a private external tracking link.",
+  "urgentOrderV2.crossviewShareConfirm": "This private link allows access without login. Share only with authorized people. Continue?",
+  "urgentOrderV2.crossviewShareSuccess": "External tracking link created. Copy and share it securely now.",
+  "urgentOrderV2.crossviewLinkCopied": "External tracking link copied.",
+  "urgentOrderV2.crossviewLinkManualCopy": "Select the link and copy it manually.",
+  "urgentOrderV2.crossviewLinkedNoDelete": "This order was shared internally. Delete it from the internal website.",
+  "urgentOrderV2.crossviewReuseExistingLinkLabel": "Existing external tracking link for sharing (optional)"
 }
