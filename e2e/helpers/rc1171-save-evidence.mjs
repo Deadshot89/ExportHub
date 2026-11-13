@@ -28,7 +28,17 @@ function isStateSaveRequest(url){
 }
 
 export function collectStateSaveEvidence(page){
-  const entries=[],pending=new Set();
+  const entries=[],pending=new Set(),inFlight=new Set();
+  let started=0,finished=0,networkFailures=0;
+  function onRequest(request){
+    if(!isStateSaveRequest(request.url()))return;
+    started++;
+    inFlight.add(request);
+  }
+  function onRequestFinished(request){
+    if(!isStateSaveRequest(request.url()))return;
+    if(inFlight.delete(request))finished++;
+  }
   function append(entry){entries.push(entry);if(entries.length>12)entries.shift()}
   function onResponse(response){
     if(!isStateSaveRequest(response.url()))return;
@@ -48,9 +58,13 @@ export function collectStateSaveEvidence(page){
   }
   function onRequestFailed(request){
     if(!isStateSaveRequest(request.url()))return;
+    if(inFlight.delete(request))finished++;
+    networkFailures++;
     append({httpStatus:null,code:'NETWORK_FAILED'});
   }
+  page.on('request',onRequest);
   page.on('response',onResponse);
+  page.on('requestfinished',onRequestFinished);
   page.on('requestfailed',onRequestFailed);
   return {
     async snapshot(){
@@ -59,8 +73,14 @@ export function collectStateSaveEvidence(page){
         Promise.allSettled([...pending]),
         new Promise(resolve=>setTimeout(resolve,3000))
       ]);
-      return entries.map(item=>({...item}));
+      return {responses:entries.map(item=>({...item})),started,finished,inFlight:inFlight.size,networkFailures};
     },
-    dispose(){page.off('response',onResponse);page.off('requestfailed',onRequestFailed)}
+    dispose(){
+      page.off('request',onRequest);
+      page.off('response',onResponse);
+      page.off('requestfinished',onRequestFinished);
+      page.off('requestfailed',onRequestFailed);
+      inFlight.clear();
+    }
   };
 }

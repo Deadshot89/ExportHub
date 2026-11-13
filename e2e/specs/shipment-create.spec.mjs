@@ -13,6 +13,18 @@ import {
 } from '../helpers/exporthub-browser.mjs';
 import {collectStateSaveEvidence} from '../helpers/rc1171-save-evidence.mjs';
 
+// RC1171: One read-only diagnostic boundary for draft and final state saves.
+// Never turn a missing Azure ACK into success; only attach bounded sanitized data.
+async function rc1171SettleWithEvidence(page,recorder,options,stage){
+  try{return await settleStateSave(page,options)}
+  catch(error){
+    const message=String(error&&error.message||'');
+    if(!message.startsWith('Azure-'))throw error;
+    const evidence=await recorder.snapshot();
+    throw new Error(message+' | RC1171 '+stage+' State-Save-API: '+JSON.stringify(evidence));
+  }
+}
+
 async function e2eCustomer(page,runId){
   return page.evaluate(id=>{
     const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
@@ -44,6 +56,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   const runtime=attachRuntimeGuards(page,testInfo);
   const session=await installE2ESession(page);
+  const draftNetwork=collectStateSaveEvidence(page);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
   await openExportHubView(page,'shipment',['Sendung erstellen'],/Sendung erstellen|Versandauftrag/i,{allowProgrammaticFallback:true});
@@ -84,7 +97,11 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   // The customer/location form is an unsaved draft; only transient UI changes
   // may remain. A core-saver-proven no-write is acceptable HERE, never after
   // clicking Save Shipment (those steps retain strict Azure ACK/readback).
-  await settleStateSave(page,{timeout:25_000,allowVerifiedNoChange:true});
+  try{
+    await rc1171SettleWithEvidence(page,draftNetwork,{timeout:25_000,allowVerifiedNoChange:true},'Kundenentwurf');
+  }finally{
+    draftNetwork.dispose();
+  }
   const refInput=await referenceInput(page);
   await expect(refInput).toBeVisible();
   await expect(refInput).toHaveAttribute('readonly','');
@@ -139,14 +156,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   await saveButton.click();
   await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
   try{
-    await settleStateSave(page,{timeout:30_000});
-  }catch(error){
-    // Keep a failed Azure save as a release blocker. Include only status and
-    // allowlisted API error codes; never include response bodies or URLs.
-    const saved=await rc1171Network.snapshot();
-    const message=String(error&&error.message||'');
-    if(!message.startsWith('Azure-'))throw error;
-    throw new Error(message+' | RC1171 State-Save-API: '+JSON.stringify(saved));
+    await rc1171SettleWithEvidence(page,rc1171Network,{timeout:30_000},'Sendung speichern');
   }finally{
     rc1171Network.dispose();
   }

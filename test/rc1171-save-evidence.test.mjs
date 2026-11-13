@@ -30,12 +30,12 @@ test('RC1171: recorder includes only state-save responses, never URL, session or
   });
   const result=await recorder.snapshot();
   recorder.dispose();
-  assert.equal(result.length,2);
-  assert.ok(result.some(item=>item.httpStatus===409&&item.code==='CONCURRENT_UPDATE'));
-  assert.ok(result.some(item=>item.httpStatus===null&&item.code==='NETWORK_FAILED'));
+  assert.equal(result.responses.length,2);
+  assert.ok(result.responses.some(item=>item.httpStatus===409&&item.code==='CONCURRENT_UPDATE'));
+  assert.ok(result.responses.some(item=>item.httpStatus===null&&item.code==='NETWORK_FAILED'));
+  assert.equal(result.networkFailures,1);
   assert.doesNotMatch(JSON.stringify(result),/private|secret|example.test|token/);
-  assert.equal(page.listenerCount('response'),0);
-  assert.equal(page.listenerCount('requestfailed'),0);
+  for(const kind of ['request','response','requestfinished','requestfailed'])assert.equal(page.listenerCount(kind),0);
 });
 
 test('RC1171: unknown API code and response errors stay sanitized and fail-closed',async()=>{
@@ -53,8 +53,27 @@ test('RC1171: unknown API code and response errors stay sanitized and fail-close
   });
   const result=await recorder.snapshot();
   recorder.dispose();
-  assert.deepEqual(result,[
+  assert.deepEqual(result.responses,[
     {httpStatus:500,code:'UNRECOGNIZED'},
     {httpStatus:502,code:'UNRECOGNIZED'}
   ]);
 });
+
+test('RC1171: an in-flight save is visible without leaking request body or URL',async()=>{
+  const page=new EventEmitter();
+  const recorder=collectStateSaveEvidence(page);
+  const request={url:()=> 'https://example.test/api/exporthub-state?mode=save&token=SHOULD_NEVER_LEAK',postData:()=> 'private data'};
+  page.emit('request',request);
+  let snapshot=await recorder.snapshot();
+  assert.deepEqual({started:snapshot.started,finished:snapshot.finished,inFlight:snapshot.inFlight},{started:1,finished:0,inFlight:1});
+  assert.equal(snapshot.responses.length,0);
+  assert.doesNotMatch(JSON.stringify(snapshot),/SHOULD_NEVER_LEAK|private data|example.test/);
+  page.emit('response',{url:request.url,status:()=>200,json:async()=>({ok:true,content:'secret'})});
+  page.emit('requestfinished',request);
+  snapshot=await recorder.snapshot();
+  recorder.dispose();
+  assert.deepEqual({started:snapshot.started,finished:snapshot.finished,inFlight:snapshot.inFlight},{started:1,finished:1,inFlight:0});
+  assert.deepEqual(snapshot.responses,[{httpStatus:200,code:'OK'}]);
+});
+
+
