@@ -123,7 +123,7 @@ function mount(host,options){
   var dom=host.ownerDocument||root.document;
   if(!dom||typeof dom.createElement!=='function')throw new TypeError('SOP2_EDITOR_DOCUMENT_REQUIRED');
   var dict=UI[language(opts.lang)],doc=opts.doc,version=versionOf(doc,opts.version);
-  var sectionInputs={},stepRows=[],titleInput,statusNode,errorNode,conflictNode,conflictMeta,reasonInput,buttons={};
+  var sectionInputs={},stepRows=[],titleInput,statusNode,errorNode,conflictNode,conflictMeta,reasonInput,reasonLabel,buttons={};
   var baseline='',busy=false,conflicted=false,serverDoc=null,destroyed=false,pendingNotice='';
   var report={};
   function status(message,alert){
@@ -245,7 +245,7 @@ function mount(host,options){
     buttons.add.hidden=!editable();
     buttons.approve.hidden=!approvable();
     buttons.reject.hidden=!approvable();
-    reasonInput.hidden=!approvable();
+    reasonLabel.hidden=!approvable();
     buttons.server.hidden=!conflicted||!serverDoc;
     buttons.local.hidden=!conflicted||!serverDoc;
     buttons.local.disabled=!serverDoc||!canEdit(opts.user)||!integrityOk(serverDoc)||
@@ -355,9 +355,7 @@ function mount(host,options){
     });
     var stepArea=append(frame,el(dom,'section','sop2-editor-steps'));
     append(stepArea,el(dom,'h3','',dict.steps));
-    var stepPanel=append(stepArea,el(dom,'div','sop2-editor-step-list'));
-    // Initialized by the declaration below after mounting the panel.
-    stepTarget=stepPanel;
+    stepPanel=append(stepArea,el(dom,'div','sop2-editor-step-list'));
     var steps=Array.isArray(version.content&&version.content.steps)?version.content.steps:[];
     steps.forEach(function(step){buildStep(step);});
     createButton(stepArea,'add',dict.addStep,function(){
@@ -367,7 +365,7 @@ function mount(host,options){
       if(!id){pendingNotice=dict.limit;status(pendingNotice,true);return;}
       buildStep({id:id,de:'',en:''});renumber();pendingNotice='';refreshControls();
     });
-    var reasonLabel=append(frame,el(dom,'label','sop2-editor-reason-label'));
+    reasonLabel=append(frame,el(dom,'label','sop2-editor-reason-label'));
     append(reasonLabel,el(dom,'span','',dict.reason));
     reasonInput=append(reasonLabel,el(dom,'textarea','sop2-editor-reason'));
     reasonInput.rows=2;reasonInput.maxLength=1000;
@@ -400,9 +398,7 @@ function mount(host,options){
     });
     baseline=JSON.stringify(snapshot());pendingNotice='';refreshControls();
   }
-  // stepTarget cannot be inferred from a form or selected DOM node because the
-  // same host can be re-rendered after save. Keep an explicit scoped reference.
-  var stepTarget=null;
+
   function canLeave(forceDiscard){
     if(!dirty())return true;
     if(typeof root.confirm!=='function')return false;
@@ -419,16 +415,8 @@ function mount(host,options){
     if(typeof root.removeEventListener==='function')root.removeEventListener('beforeunload',beforeUnload);
     destroyed=true;clear(host);return true;
   }
-  // Private closure over rows to avoid querying arbitrary DOM or global inputs.
+  // The step list is always scoped to the editor's host.
   var stepPanel=null;
-  // Use a stable local variable after draw constructs the container.
-  // buildStep relies on stepPanel, not the screen-wide document.
-  var originalDraw=draw;
-  draw=function(){
-    var oldCreateElement=dom.createElement; // no DOM monkey patch; reference retained for clarity
-    void oldCreateElement;
-    originalDraw();
-  };
   draw();
   if(typeof root.addEventListener==='function')root.addEventListener('beforeunload',beforeUnload);
   report={isDirty:dirty,canLeave:canLeave,unmount:unmount,
