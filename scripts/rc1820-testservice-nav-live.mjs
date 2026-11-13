@@ -55,7 +55,9 @@ export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT
   try{health=JSON.parse(healthBytes.toString('utf8'))}
   catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
   assertDeploymentIdentity(health,expectedSha);
-  const html=(await read(`/TESTVERSION.html?rc1820=${expectedSha}`)).toString('utf8');
+  // The public TESTSERVICE entrypoint '/' is explicitly rewritten to TESTVERSION.html.
+  // Check its delivered HTML directly instead of the canonicalized file URL (301).
+  const html=(await read(`/?rc1820=${expectedSha}`)).toString('utf8');
   assertMenuHtml(html);
   for(const asset of MENU_ASSETS){
     const source=fs.readFileSync(path.join(root,asset.path));
