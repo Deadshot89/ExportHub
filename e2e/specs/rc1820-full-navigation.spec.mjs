@@ -147,9 +147,10 @@ test('RC1820: rapid navigation keeps menu, active marker, and content synchroniz
  await top.locator('[data-rc1820-go="start|urgentorders"]').click();
  await expect(page.locator('#content')).toHaveText('VIEW:urgentorders');
  await expect(top.locator('[data-rc1820-go="start|urgentorders"]')).toHaveAttribute('aria-current','page');
- await top.locator('[data-rc1820-go="start|dashboard"]').click();
+ // Dashboard is intentionally represented by the visible ExportHUB home brand in the top layout.
+ await top.locator('[data-rc1820-home="1"]').click();
  await expect(page.locator('#content')).toHaveText('VIEW:dashboard');
- await expect(top.locator('[data-rc1820-go="start|dashboard"]')).toHaveAttribute('aria-current','page');
+ await expect(top.locator('[data-rc1820-home="1"]')).toHaveClass(/is-active/);
  await top.locator('[data-rc1820-section="shipments"]').click();
  await expect(top.locator('.rc1820-mega')).toBeVisible();
  await page.evaluate(()=>document.body.setAttribute('data-exporthub-view','urgentorders'));
