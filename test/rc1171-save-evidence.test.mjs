@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
+import fs from 'node:fs';
 import {collectStateSaveEvidence,sanitizeStateSaveResponse} from '../e2e/helpers/rc1171-save-evidence.mjs';
 
 test('RC1171: only known API error codes and HTTP statuses survive redaction',()=>{
@@ -77,3 +78,18 @@ test('RC1171: an in-flight save is visible without leaking request body or URL',
 });
 
 
+
+test('RC1171: missing shipment-saved event remains a red gate with safe API evidence',()=>{
+  const src=fs.readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
+  const start=src.indexOf('const rc1171Network=collectStateSaveEvidence(page);');
+  const end=src.indexOf('const layoutPreserved=',start);
+  assert.ok(start>=0&&end>start,'RC1171 save-event gate must be present');
+  const gate=src.slice(start,end);
+  assert.match(gate,/await expect\.poll\(/,'30-second save-event condition remains mandatory');
+  assert.match(gate,/timeout:30_000/,'save-event timeout is unchanged');
+  assert.match(gate,/catch\(_saveEventError\)/,'missing event has an explicit failure path');
+  assert.match(gate,/const evidence=await rc1171Network\.snapshot\(\)/,'sanitised API/in-flight snapshot survives an absent event');
+  assert.match(gate,/throw new Error\('RC1171 shipment-saved event missing after 30s; Azure persistence unverified/,'missing event cannot be marked as persisted');
+  assert.match(gate,/finally\{\s*rc1171Network\.dispose\(\);/,'API event handlers always cleaned up');
+  assert.doesNotMatch(gate,/_saveEventError\.(?:message|stack)|String\(_saveEventError\)/,'browser error/free-text must not leak');
+});
