@@ -132,8 +132,8 @@ function renderedPills(active,openKey){
  vm.runInNewContext(renderSource+'\nrender(true)',context,{timeout:1000});
  const tabs=[...pills.innerHTML.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-rc1820-section="([^"]*)"/g)]
   .map(m=>({area:m[2],active:m[1].split(/\s+/).includes('is-active')}));
- const startPills=[...pills.innerHTML.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-rc1820-go="start\|(\d+)"/g)]
-  .map(m=>({view:start[Number(m[2])].el.view,active:m[1].split(/\s+/).includes('is-active')}));
+ const startPills=[...pills.innerHTML.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-rc1820-go="start\|([^"]+)"/g)]
+  .map(m=>({view:m[2],active:m[1].split(/\s+/).includes('is-active')}));
  return {tabs,startPills,brand:brand.active,bell:bell.active};
 }
 for(const section of sections.filter(s=>s.key!=='start')){
@@ -160,7 +160,7 @@ for(const view of sections.find(s=>s.key==='start').views){
 
 test('RC1820/RC1579: both navigation runtimes use fresh build asset versions',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.match(build,/rc1820-top-navigation\.js\?v=20261111/);
+ assert.match(build,/rc1820-top-navigation\.js\?v=20261112p0/);
  assert.match(build,/rc1579-menu-redesign\.js\?v=20261112/);
  assert.doesNotMatch(build,/rc1579-menu-redesign\.js\?v=1630/);
 });

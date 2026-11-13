@@ -119,3 +119,41 @@ test('RC1820: every desktop mega-menu tab exclusively highlights the opened area
   await expect(tab).toHaveAttribute('aria-expanded','false');
  }
 });
+
+test('RC1820: rapid navigation keeps menu, active marker, and content synchronized',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await boot(page);
+ await page.evaluate(()=>{
+  document.querySelector('#nav').addEventListener('click',e=>{
+   const b=e.target.closest('button');
+   if(!b)return;
+   const view=b.getAttribute('data-view')||(b.hasAttribute('data-exporthub-urgent-nav')?'urgentorders':b.getAttribute('data-rc1579-proxy'));
+   if(view){document.body.setAttribute('data-exporthub-view',view);document.querySelector('#content').textContent='VIEW:'+view;}
+  },true);
+ });
+ const top=page.locator('#rc1820TopNav');
+ await top.locator('[data-rc1820-section="shipments"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Sendungen');
+ await top.locator('[data-rc1820-section="logistics"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Logistik');
+ await top.locator('[data-rc1820-section="shipments"]').click();
+ await expect(top.locator('.rc1820-mega-title')).toContainText('Sendungen');
+ await top.locator('[data-rc1820-go="sec|shipments:shipmentoverview"]').click();
+ await expect(page.locator('#content')).toHaveText('VIEW:shipmentoverview');
+ await expect(top.locator('.rc1820-mega')).toBeHidden();
+ await top.locator('[data-rc1820-section="tasks"]').click();
+ await top.locator('[data-rc1820-go="sec|tasks:taskdetail"]').click();
+ await expect(page.locator('#content')).toHaveText('VIEW:taskdetail');
+ await top.locator('[data-rc1820-go="start|urgentorders"]').click();
+ await expect(page.locator('#content')).toHaveText('VIEW:urgentorders');
+ await expect(top.locator('[data-rc1820-go="start|urgentorders"]')).toHaveAttribute('aria-current','page');
+ // Dashboard is intentionally represented by the visible ExportHUB home brand in the top layout.
+ await top.locator('[data-rc1820-home="1"]').click();
+ await expect(page.locator('#content')).toHaveText('VIEW:dashboard');
+ await expect(top.locator('[data-rc1820-home="1"]')).toHaveClass(/is-active/);
+ await top.locator('[data-rc1820-section="shipments"]').click();
+ await expect(top.locator('.rc1820-mega')).toBeVisible();
+ await page.evaluate(()=>document.body.setAttribute('data-exporthub-view','urgentorders'));
+ await expect(top.locator('.rc1820-mega')).toBeHidden();
+ await expect(top.locator('[data-rc1820-go="start|urgentorders"]')).toHaveAttribute('aria-current','page');
+});
