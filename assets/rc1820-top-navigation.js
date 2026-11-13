@@ -14,7 +14,7 @@
   es:{quick:'Inicio rápido',quickTitle:'Crear un envío en tres pasos',quickText:'Elegir el cliente, introducir los datos, subir los documentos.',start:'Empezar',menu:'Menú principal',more:'Más'},
   pl:{quick:'Szybki start',quickTitle:'Utwórz przesyłkę w trzech krokach',quickText:'Wybierz klienta, wprowadź dane, prześlij dokumenty.',start:'Zacznij teraz',menu:'Menu główne',more:'Więcej'}
  };
- var bar=null,pills=null,mega=null,bell=null,cta=null,openKey='',lastSig='',scheduled=false,navObserver=null;
+ var bar=null,pills=null,mega=null,bell=null,cta=null,openKey='',lastSig='',scheduled=false,navObserver=null,lastObservedView=null;
 
  function on(){return d.documentElement.getAttribute(ATTR)==='top'}
  function lang(){var l='';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')l=String(w.ExportHUBI18n.language()||'').toLowerCase()}catch(_){}if(!TEXT[l]){var s=d.getElementById('languageSelect');l=String(s&&s.value||'').toLowerCase()}return TEXT[l]?l:'de'}
@@ -118,10 +118,18 @@
   return bar;
  }
  var current=null;
- function target(kind,idx){
-  if(!current)return null;
-  if(kind==='start')return current.start[idx]&&current.start[idx].el;
-  var p=String(idx).split(':'),s=current.sections[+p[0]];return s&&s.items[+p[1]]&&s.items[+p[1]].el;
+ // Resolve clicks by the stable view key, not an index into a rebuilt sidebar.
+ function target(kind,key){
+  var m=model();if(!m)return null;
+  var entries=kind==='start'?m.start:[];
+  if(kind==='sec'){
+   var colon=key.indexOf(':');if(colon<0)return null;
+   var section=key.slice(0,colon),view=key.slice(colon+1);
+   var group=m.sections.find(function(s){return s.key===section});
+   entries=group?group.items:[];key=view;
+  }
+  var hit=entries.find(function(i){return viewOf(i.el)===key&&allowed(i.el)&&i.el.isConnected});
+  return hit?hit.el:null;
  }
  function onClick(e){
   var el=e.target.closest('button,[data-rc1820-go]');if(!el||!bar.contains(el))return;
@@ -131,9 +139,16 @@
   var sec=el.getAttribute('data-rc1820-section');
   if(sec!=null){if(openKey===sec)close();else{openKey=sec;render(true)}return}
   var go=el.getAttribute('data-rc1820-go');
-  if(go){var t=target(go.split('|')[0],go.split('|')[1]);close();if(t)t.click()}
+  if(go){var pos=go.indexOf('|'),t=pos>=0?target(go.slice(0,pos),go.slice(pos+1)):null;close();if(t)t.click()}
  }
  function close(){if(!openKey)return;openKey='';render(true)}
+ // When the actual page changes, dismiss any flyout belonging to the prior view.
+ function onViewTransition(){
+  var next=clean(d.body&&d.body.getAttribute('data-exporthub-view'));
+  if(lastObservedView!==null&&next!==lastObservedView&&openKey)openKey='';
+  lastObservedView=next;
+  schedule();
+ }
  function esc(v){return String(v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 
  function render(force){
@@ -152,7 +167,7 @@
   // Dashboard steckt im Logo (wie im Prototyp), damit alle Punkte in eine Zeile passen
   var dash=null;m.start.forEach(function(i){if(viewOf(i.el)==='dashboard')dash=i.el});
   var brand=bar.querySelector('[data-rc1820-home]');brand.classList.toggle('is-active',!!(!menuOpen&&dash&&isActive(dash)));if(dash){brand.title=labelOf(dash);brand.setAttribute('aria-label','ExportHUB · '+labelOf(dash))}
-  m.start.forEach(function(i,idx){if(i.el===dash){html+='<button type="button" class="rc1820-pill rc1820-pill-home'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>';return}html+='<button type="button" class="rc1820-pill'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+idx+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>'});
+  m.start.forEach(function(i,idx){if(i.el===dash){html+='<button type="button" class="rc1820-pill rc1820-pill-home'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+esc(viewOf(i.el))+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>';return}html+='<button type="button" class="rc1820-pill'+((!menuOpen&&isActive(i.el))?' is-active':'')+'" data-rc1820-go="start|'+esc(viewOf(i.el))+'"'+((!menuOpen&&isActive(i.el))?' aria-current="page"':'')+' style="'+esc(iconVars(i.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(labelOf(i.el))+'</button>'});
   m.sections.forEach(function(s,si){
    var act=menuOpen?s.key===openKey:s.items.some(function(i){return isActive(i.el)});
    html+='<button type="button" class="rc1820-pill rc1820-pill-menu'+(act?' is-active':'')+(openKey===s.key?' is-open':'')+'" data-rc1820-section="'+esc(s.key)+'" aria-expanded="'+(openKey===s.key)+'" aria-haspopup="true" style="'+esc(iconVars(s.el))+'"><span class="rc1820-pill-icon" aria-hidden="true"></span>'+esc(s.label)+'<span class="rc1820-chev" aria-hidden="true"></span></button>';
@@ -172,7 +187,7 @@
   var s=null,si=-1;m.sections.forEach(function(x,i){if(x.key===openKey){s=x;si=i}});
   if(!s){mega.hidden=true;mega.innerHTML='';return}
   var items='';
-  s.items.forEach(function(i,ii){items+='<button type="button" class="rc1820-item'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="sec|'+si+':'+ii+'" style="'+esc(iconVars(i.el))+'"><span class="rc1820-item-icon" aria-hidden="true"></span><span class="rc1820-item-label">'+esc(labelOf(i.el))+'</span></button>'});
+  s.items.forEach(function(i,ii){items+='<button type="button" class="rc1820-item'+(isActive(i.el)?' is-active':'')+'" data-rc1820-go="sec|'+esc(s.key)+':'+esc(viewOf(i.el))+'" style="'+esc(iconVars(i.el))+'"><span class="rc1820-item-icon" aria-hidden="true"></span><span class="rc1820-item-label">'+esc(labelOf(i.el))+'</span></button>'});
   var quick=m.shipment&&s.key==='shipments'?'<div class="rc1820-quick"><span class="rc1820-quick-kicker">'+esc(tx('quick'))+'</span><strong>'+esc(tx('quickTitle'))+'</strong><span>'+esc(tx('quickText'))+'</span><button type="button" class="rc1820-cta" data-rc1820-quick="1">'+esc(tx('start'))+'</button></div>':'';
   mega.innerHTML='<div class="rc1820-mega-list" style="'+esc(iconVars(s.el))+'"><div class="rc1820-mega-title"><span class="rc1820-mega-icon" aria-hidden="true"></span>'+esc(s.label)+'</div><div class="rc1820-mega-grid">'+items+'</div></div>'+quick;
   mega.hidden=false;
@@ -189,7 +204,7 @@
  }
  new MutationObserver(function(){watch();if(!on())close();lastSig='';schedule()}).observe(d.documentElement,{attributes:true,attributeFilter:[ATTR]});
  d.addEventListener('click',function(e){if(openKey&&bar&&!bar.contains(e.target))close()},true);
- w.addEventListener('exporthub:viewchange',schedule);
+ w.addEventListener('exporthub:viewchange',onViewTransition);
  w.addEventListener('exporthub:rendered',schedule);
  w.addEventListener('exporthub:designchange',function(){lastSig='';schedule()});
  // RC1934: der Übersetzer (RC1267) meldet 'exporthub:language-changed'; der alte Name bleibt als Rückfall
@@ -198,9 +213,10 @@
  w.addEventListener('resize',function(){if(openKey&&w.innerWidth<1024)close()});
  function boot(){
   watch();
+  lastObservedView=clean(d.body&&d.body.getAttribute('data-exporthub-view'));
   // Ein View-Wechsel kann die Körper-Ansicht aktualisieren, ohne den alten Nav-Knopf anzufassen.
   if(d.body&&w.MutationObserver&&!d.body.__rc1820ViewWatch){
-   var observer=new w.MutationObserver(schedule);
+   var observer=new w.MutationObserver(onViewTransition);
    observer.observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view']});
    d.body.__rc1820ViewWatch=observer;
   }
