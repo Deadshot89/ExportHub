@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
@@ -77,3 +78,20 @@ test('RC1171: an in-flight save is visible without leaking request body or URL',
 });
 
 
+test('RC1171: no save-event leaves fail-closed diagnostics and removes recorder hooks',()=>{
+  const source=readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
+  const start=source.indexOf('const rc1171Network=collectStateSaveEvidence(page);');
+  const end=source.indexOf('const layoutPreserved=',start);
+  assert.ok(start>0&&end>start,'RC1171 save-event boundary must exist');
+  const snippet=source.slice(start,end);
+  assert.match(snippet,/await saveButton\.click\(\)/);
+  assert.match(snippet,/await expect\.poll\(/);
+  assert.match(snippet,/const evidence=await rc1171Network\.snapshot\(\)\.catch\(/,
+    'Save-event timeout must emit allowlisted state-save evidence');
+  assert.match(snippet,/throw new Error\('RC1171: Sendungs-Save-Event nicht bestätigt/,
+    'Missing save event remains release blocking');
+  assert.match(snippet,/finally\s*\{\s*rc1171Network\.dispose\(\)/,
+    'Recording hooks must always be removed');
+  assert.doesNotMatch(snippet,/await page\.evaluate\([^)]*localStorage/,
+    'No additional private storage introspection in diagnostics');
+});
