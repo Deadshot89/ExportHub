@@ -1,0 +1,71 @@
+/* SOP2 reader — standalone, responsive design. Scoped to this component only. */
+.sop2-reader {
+  --sop2-surface:#fff;
+  --sop2-text:#193047;
+  --sop2-sub:#64748b;
+  --sop2-border:#dce4ec;
+  --sop2-accent:#12688b;
+  --sop2-muted:#f3f7fb;
+  --sop2-shadow:0 16px 44px rgba(25,48,71,.08);
+  box-sizing:border-box;
+  width:100%;
+  max-width:1100px;
+  margin-inline:auto;
+  padding:clamp(18px,3vw,36px);
+  background:var(--sop2-surface);
+  color:var(--sop2-text);
+  border:1px solid var(--sop2-border);
+  border-radius:18px;
+  box-shadow:var(--sop2-shadow);
+  font:inherit;
+  line-height:1.6;
+  overflow-wrap:anywhere;
+}
+.sop2-reader *, .sop2-reader *::before, .sop2-reader *::after {box-sizing:border-box}
+.sop2-reader-header {display:grid;gap:10px;border-bottom:1px solid var(--sop2-border);padding-bottom:20px}
+.sop2-reader-eyebrow {margin:0;color:var(--sop2-accent);font-weight:750;text-transform:uppercase;letter-spacing:.08em;font-size:.74rem}
+.sop2-reader-title {margin:0;font-size:clamp(1.4rem,2.5vw,2.1rem);line-height:1.2;letter-spacing:-.025em;font-weight:750}
+.sop2-reader-meta,.sop2-reader-details {display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--sop2-sub);font-size:.85rem}
+.sop2-reader-meta span {padding:4px 10px;border:1px solid var(--sop2-border);border-radius:999px}
+.sop2-reader-language {display:flex;gap:6px;margin-top:8px}
+.sop2-reader-language-button {font:inherit;font-size:.9rem;font-weight:650;cursor:pointer;border:1px solid var(--sop2-border);background:var(--sop2-muted);color:var(--sop2-text);padding:8px 14px;border-radius:10px;min-height:42px}
+.sop2-reader-language-button[aria-pressed="true"] {background:var(--sop2-accent);color:#fff;border-color:var(--sop2-accent)}
+.sop2-reader-language-button:focus-visible {outline:3px solid #65a6ff;outline-offset:3px}
+.sop2-reader-language-button:hover:not([aria-pressed="true"]) {border-color:var(--sop2-accent)}
+.sop2-reader-notice {margin:18px 0 0;padding:12px 14px;border-radius:10px;border:1px solid;font-weight:650;font-size:.9rem}
+.sop2-reader-notice-approved {color:#16633c;background:#eaf8ef;border-color:#a5dec0}
+.sop2-reader-notice-warning,.sop2-reader-integrity-warning {color:#8c3c13;background:#fff5e7;border-color:#f0cba0}
+.sop2-reader-integrity-warning {margin:10px 0 0;padding:12px 14px;border:1px solid;border-radius:10px;font-weight:750}
+.sop2-reader-details {padding:14px 0}
+.sop2-reader-content {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sop2-reader-section {padding:18px;border:1px solid var(--sop2-border);border-radius:12px;background:var(--sop2-muted)}
+.sop2-reader-section-title {margin:0 0 10px;font-size:1rem;line-height:1.35;font-weight:750}
+.sop2-reader-section p {margin:0;white-space:pre-wrap}
+.sop2-reader-list {margin:0;padding-left:20px}
+.sop2-reader-list li+li {margin-top:6px}
+.sop2-reader-empty {color:var(--sop2-sub);font-style:italic}
+.sop2-reader-steps {grid-column:1/-1}
+.sop2-reader-step-list {margin:0;padding-left:24px;display:grid;gap:12px}
+.sop2-reader-step {background:var(--sop2-surface);border:1px solid var(--sop2-border);border-radius:10px;padding:12px 14px}
+.sop2-reader-step-text {font-weight:550}
+.sop2-reader-reference {display:block;margin-top:6px;color:var(--sop2-sub);font-size:.78rem;overflow-wrap:anywhere}
+@media (max-width:700px) {
+  .sop2-reader {padding:18px;border-radius:12px}
+  .sop2-reader-content {grid-template-columns:minmax(0,1fr)}
+  .sop2-reader-steps {grid-column:auto}
+  .sop2-reader-language-button {flex:1}
+  .sop2-reader-language {width:100%}
+}
+@media (prefers-color-scheme:dark) {
+  .sop2-reader {
+    --sop2-surface:#132332;--sop2-text:#ecf4fa;--sop2-sub:#a1b2c2;
+    --sop2-border:#34495e;--sop2-accent:#68c9ef;--sop2-muted:#1c3043;
+    --sop2-shadow:0 18px 50px rgba(0,0,0,.22);
+  }
+  .sop2-reader-language-button[aria-pressed="true"] {color:#0c2636}
+  .sop2-reader-notice-approved {color:#b8f4d4;background:#164331;border-color:#2b7954}
+  .sop2-reader-notice-warning,.sop2-reader-integrity-warning {color:#ffdbab;background:#49321c;border-color:#90633c}
+}
+@media (prefers-reduced-motion:no-preference) {
+  .sop2-reader-language-button {transition:background-color .16s,border-color .16s}
+}
