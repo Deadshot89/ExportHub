@@ -196,6 +196,12 @@ html[data-eh-design="neon"] .tpv2-dependency-open{color:#fcd34d}
 .tpv2-reminders label{display:flex;gap:8px;align-items:center;min-height:24px;cursor:pointer}
 .tpv2-reminders input[type="checkbox"]{width:20px;height:20px;margin:0}
 .tpv2-reminder-host{position:fixed;right:16px;bottom:16px;z-index:9000;width:min(380px,calc(100vw - 32px))}
+/* QA F03 (13.11.2026): Die Erinnerung (z-index 9000) lag genau ueber der Schaltflaeche "SOP / Hilfe"
+   (rc1705, fixed rechts unten) und machte sie unerreichbar. Erinnerung darueber stapeln und in der Hoehe begrenzen.
+   Steht bewusst vor den RC1762/RC1941-Regeln, die die Erinnerung je Ansicht nach oben verschieben. */
+body:has(#rc1705-sop-launcher) .tpv2-reminder-host{bottom:76px}
+body:has(#rc1705-sop-launcher) .tpv2-reminder-toast{max-height:calc(100dvh - 180px);overflow-y:auto}
+@media(max-width:600px){body:has(#rc1705-sop-launcher) .tpv2-reminder-host{bottom:66px}}
 .tpv2-reminder-toast{display:grid;gap:10px;padding:14px;border:1px solid var(--tpv2-border);border-radius:var(--tpv2-radius);background:var(--tpv2-surface);color:var(--tpv2-text);box-shadow:0 18px 40px rgba(15,23,42,.18)}
 .tpv2-reminder-toast header{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .tpv2-reminder-header-actions{display:flex;align-items:center;gap:6px}
