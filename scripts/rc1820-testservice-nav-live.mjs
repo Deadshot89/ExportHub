@@ -26,10 +26,12 @@ export function assertMenuHtml(html){
 
 export function assertDeploymentIdentity(payload,expectedSha){
   const deployment=payload&&payload.deployment;
-  if(!deployment||deployment.verified!==true||
-     deployment.environment!=='testservice'||deployment.buildId!==expectedSha){
-    throw Error('RC1820: TESTSERVICE deployed SHA is not verified or differs from main');
-  }
+  // Fixed diagnostic categories only: never log API bodies or environment secrets.
+  const mismatch=!deployment?'MISSING_DEPLOYMENT':
+    deployment.verified!==true?'UNVERIFIED':
+    deployment.environment!=='testservice'?'WRONG_ENVIRONMENT':
+    deployment.buildId!==expectedSha?'WRONG_SHA':null;
+  if(mismatch)throw Error('RC1820: TESTSERVICE deployed SHA is not verified or differs from main ('+mismatch+')');
 }
 
 export function assertAssetMatches(localBytes,publishedBytes,name){
@@ -39,8 +41,12 @@ export function assertAssetMatches(localBytes,publishedBytes,name){
   }
 }
 
-export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT}={}){
+export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT,healthAttempts=4,healthDelayMs=2000}={}){
   if(!/^[a-f0-9]{40}$/i.test(String(expectedSha||'')))throw Error('RC1820: expected full 40-character main SHA required');
+  if(!Number.isInteger(healthAttempts)||healthAttempts<1||healthAttempts>6||
+     !Number.isInteger(healthDelayMs)||healthDelayMs<0||healthDelayMs>4000){
+    throw Error('RC1820: bounded health verification settings required');
+  }
   const read=async (relativeUrl)=>{
     const target=new URL(relativeUrl,TESTSERVICE_ORIGIN);
     if(target.origin!==TESTSERVICE_ORIGIN)throw Error('RC1820: invalid TESTSERVICE target');
@@ -50,11 +56,22 @@ export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT
     if(bytes.byteLength>6*1024*1024)throw Error(`RC1820: oversized TESTSERVICE response ${target.pathname}`);
     return bytes;
   };
-  const healthBytes=await read(`/api/exporthub-health?rc1820=${expectedSha}`);
-  let health;
-  try{health=JSON.parse(healthBytes.toString('utf8'))}
-  catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
-  assertDeploymentIdentity(health,expectedSha);
+  // RC1820: RC1553 may have just verified a new deployment while a separate
+  // health GET still receives an older edge response. Re-check independently
+  // with fresh cache-busters; never accept an unverified or wrong-SHA response.
+  for(let attempt=1;attempt<=healthAttempts;attempt++){
+    const healthBytes=await read(`/api/exporthub-health?rc1820=${expectedSha}-${attempt}`);
+    let health;
+    try{health=JSON.parse(healthBytes.toString('utf8'))}
+    catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
+    try{
+      assertDeploymentIdentity(health,expectedSha);
+      break;
+    }catch(error){
+      if(attempt===healthAttempts)throw error;
+      if(healthDelayMs)await new Promise(resolve=>setTimeout(resolve,healthDelayMs));
+    }
+  }
   // The TESTSERVICE public entrypoint is / (rewritten to TESTVERSION.html); direct /TESTVERSION.html may redirect.
   // Continue requiring a direct HTTP 200 without redirects from the canonical entrypoint.
   const html=(await read(`/?rc1820=${expectedSha}`)).toString('utf8');
