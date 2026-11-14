@@ -5,6 +5,7 @@
  */
 const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
 const qmAi=require('../shared/qm-ai');
 const qmPatterns=require('../shared/qm-patterns');
@@ -247,11 +248,13 @@ function addReportNote(item,p,user){
  requireIntactHistory(item);
  event(item,'ERGAENZT',user,note);item.revision++;item.updatedAt=new Date().toISOString();return item
 }
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD',message:'Nur POST erlaubt'});return}
  try{
-  const payload=body(req);const current=await auth.validateSession(req),user=current.user;
+  const payload=body(req);const current=await validateSession(req),user=current.user;
   const action=str(payload.action||'list',30).toLowerCase(),env=auth.environmentFromRequest(req);
   if(action==='attach'){
    const file=parseAttachment(payload),id=str(payload.id,50);
