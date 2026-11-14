@@ -115,3 +115,53 @@ test('Target-Picker CSS hebt ausschließlich stabile Tourziele hervor und unters
   assert.match(css,/\.rc1502-sop-target-status/);
   assert.match(css,/@media\s*\(max-width:\s*760px\)/);
 });
+
+
+test('RC1502: nur die jüngste bestätigte SOP-Speicherung darf den Status saved setzen',async()=>{
+  const {runInNewContext}=await import('node:vm');
+  const source=fs.readFileSync('assets/sop/rc1502-sop-persistence.js','utf8');
+  const callbacks=[];
+  const host={
+    attributes:{},
+    setAttribute(key,value){this.attributes[key]=value;},
+    removeAttribute(key){delete this.attributes[key];},
+    addEventListener(){},
+    removeEventListener(){}
+  };
+  let options;
+  const sandbox={
+    ExportHubIsoSopUi:{
+      mount(_target,bridged){options=bridged;return {destroy(){}};}
+    },
+    ExportHUBClean:{
+      runtime:{pendingSave:false,dirty:false,changeGeneration:0,lastSavedGeneration:0},
+      queueSave(){return true;},
+      flushSave(){return new Promise(resolve=>callbacks.push(resolve));}
+    }
+  };
+  runInNewContext(source,sandbox);
+  const controller=sandbox.ExportHubSopPersistence.mount(host,{});
+  assert.equal(options.suppressDuplicateSave,true);
+  options.onEditorChange({action:'add-step'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(callbacks.length,1);
+  options.onEditorChange({action:'pick-target'});
+  assert.equal(host.attributes['data-sop-persist-status'],'saving');
+  callbacks[0](true);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(callbacks.length,2);
+  assert.equal(host.attributes['data-sop-persist-status'],'saving','Früheres ACK darf neue Änderung nicht freigeben');
+  callbacks[1](true);
+  assert.equal(await controller.persistence(),true);
+  assert.equal(host.attributes['data-sop-persist-status'],'saved');
+  controller.destroy();
+});
+
+test('RC1502: bestätigte SOP-Speicherung vermeidet parallelen unbestätigten save-Aufruf',()=>{
+  const base=fs.readFileSync('assets/sop/rc1007-sop-ui.js','utf8');
+  const picker=fs.readFileSync('assets/sop/rc1502-sop-target-picker-ui.js','utf8');
+  const persistence=fs.readFileSync('assets/sop/rc1502-sop-persistence.js','utf8');
+  assert.ok(persistence.includes('suppressDuplicateSave:true'));
+  assert.ok(base.includes("if(options.suppressDuplicateSave!==true)persist('RC1502 SOP-Entwurf aktualisiert')"));
+  assert.ok(picker.includes("if(options.suppressDuplicateSave!==true)persist('RC1502 Tourziel aktualisiert')"));
+});
