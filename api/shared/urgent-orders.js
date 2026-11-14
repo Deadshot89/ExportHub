@@ -184,12 +184,19 @@ function workStarted(order){
  if(!order)return false;
  if(processingOwner(order))return true;
  if(Array.isArray(order.mailHistory)&&order.mailHistory.length>0)return true;
+ // A confirmed milestone (including goods receipt or an explicitly skipped
+ // step) means the request has been worked, even if no item status changed.
+ if(order.progress&&order.progress.steps&&Object.values(order.progress.steps).some(s=>s&&['done','skipped'].includes(s.state)))return true;
  return (order.items||[]).some(item=>item.status!=='Open')||
    (Array.isArray(order.history)&&order.history.some(e=>e&&
    ['status','mail_open_requested','mail_sent_manually_confirmed'].includes(e.event)));
 }
 function isDispatched(order){
- return (order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status))||isClosed(order);
+ const steps=order&&order.progress&&order.progress.steps||{};
+ // Explicit collection/POD/completion evidence prevents administrative
+ // deletion even if the old item status was never updated.
+ return ['collected','pod','completed'].some(key=>steps[key]&&steps[key].state==='done')||
+   (order.items||[]).some(x=>['Shipped','Invoiced'].includes(x.status))||isClosed(order);
 }
 function appendHistory(order,event,actor,now,extra={}){
  order.history=Array.isArray(order.history)?order.history:[];
@@ -260,7 +267,7 @@ function resolveDeletion(order,actor,approve,now=new Date().toISOString()){
  appendHistory(order,approve?'deletion_approved':'deletion_rejected',who,now);
  return deleteView(order);
 }
-function isClosed(order){return !!(order&&Array.isArray(order.items)&&order.items.length&&order.items.every(x=>CLOSED_STATUSES.includes(x.status)));}
+function isClosed(order){return !!(order&&order.progress&&order.progress.steps&&order.progress.steps.completed&&order.progress.steps.completed.state==='done')||!!(order&&Array.isArray(order.items)&&order.items.length&&order.items.every(x=>CLOSED_STATUSES.includes(x.status)));}
 function summaryStatus(order){const unique=[...new Set((order.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
 function draftMail(order,kind,lang,note,actor){
  const l=language(lang||order.language),issue=kind==='problem';

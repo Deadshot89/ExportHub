@@ -54,6 +54,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 .saved-banner{background:#ecfdf2;border:1px solid #a4d9b6;color:#1b6d42;font-weight:800;border-radius:12px;padding:12px 16px;margin:0 0 12px}@media(prefers-color-scheme:dark){.saved-banner{background:#17402e;border-color:#346f50;color:#b6f1cc}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
+<link rel="stylesheet" href="/assets/urgent-progress-ui.css">
 </head>
 <body>
 <header><div class="brand">ExportHUB360 <span style="opacity:.65">/ Urgent Order melden</span></div></header>
@@ -105,6 +106,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{padding-top:31px}
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
 </main>
+<script src="/assets/urgent-progress-ui.js"></script>
 <script>
 (function(){
 'use strict';
@@ -402,8 +404,9 @@ async function nextWizardStep(){
  showMessage('','');showWizardStep(wizardStep+1);
 }
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Mixed';}
-function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
+function closed(o){return !!(o.progress&&Array.isArray(o.progress.steps)&&o.progress.steps.some(s=>s.key==='completed'&&s.state==='done'))||!!(o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced'))}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
+function progressT(key,fallback){try{const i=window.ExportHUBI18n,name='urgentProgress.'+key;const value=i&&i.t(name,null,i.language());return value&&value!==name?value:fallback;}catch(_){return fallback;}}
 function statusText(code){return code==='Gemischt'||code==='Mixed'?'Mixed':STATUS.includes(code)?code:'Unknown';}
 function priorityText(code){return localeV2(code,({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code);}
 function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
@@ -422,14 +425,27 @@ function render(){
  const target=$('orders');target.innerHTML='';
  if(!rows.length){const emptyLabel=secret?localeV2('noResults','Keine passenden Anfragen in diesem Reiter.'):localeV2('noRequests','Noch keine Anfragen vorhanden. Bitte zuerst eine neue Anfrage melden.');target.innerHTML='<div class="empty">'+esc(emptyLabel)+'</div>';return;}
  for(const o of rows){
-  const node=document.createElement('details');node.className='order';
+  const node=document.createElement('details');node.className='order';node.dataset.urgentId=o.id;
   const status=humanStatus(o);
   const lineHtml=(o.items||[]).map(x=>{
    if(x.scope==='ALL_LINES')return '<div class="item-row"><strong>'+esc(localeV2('wholeOrder','Entire order (all lines)'))+'</strong><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>';
    const exceptionLabel=x.checkResult==='exception'?localeV2('exceptionCheck','Prüfung erforderlich'):'';
    return '<div class="item-row"><div><strong>'+esc(x.article||x.line)+'</strong><div class="muted">'+esc(localeV2('lineShort','Line'))+' '+esc(x.line||'–')+' · '+esc(localeV2('quantityShort','Menge'))+' '+esc(x.quantity)+(exceptionLabel?' · '+esc(exceptionLabel):'')+'</div>'+(x.status==='Problem'&&x.problemNote?'<div class="muted" role="status">'+esc(x.problemNote)+'</div>':'')+'</div><span class="pill '+statusClass(x.status)+'">'+esc(statusText(x.status))+'</span></div>'}).join('');
   const freight=o.orderType==='DIRECT_OUTBOUND'&&o.directOutbound?'<p class="muted">'+esc(localeV2('arrivalShort','Ankunft'))+': <span class="date">'+esc(o.directOutbound.arrivalAt.replace('T',' '))+'</span> · '+esc(o.directOutbound.arrivalProvider)+' · '+esc(localeV2('dispatchShort','Ausgang'))+': '+esc(o.directOutbound.dispatchMethod==='EXPRESS'?localeV2('expressShort','Express'):localeV2('specialShort','Sondertransport'))+'</p>':'';
-  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+freight+wholeChecksMarkup(o)+lineHtml+publicDeleteMarkup(o)+'</div>';
+  node.innerHTML='<summary><div class="order-head"><strong>▸ '+esc(o.orderNumber)+'</strong><span class="pill p-'+esc(o.priority)+'">'+esc(priorityText(o.priority))+'</span><span class="pill '+statusClass(status)+'">'+esc(statusText(status))+'</span></div><div class="muted">'+esc(o.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Urgent Order')+' · '+esc(o.allLines?(localeV2('wholeOrder','Entire order (all lines)')):(o.items||[]).length+' '+localeV2('positions','Positionen'))+' · '+esc(o.delivery==='DIRECT'?'Direkt':'DRP')+'</div></summary><div class="order-details">'+window.UrgentProgressUI.markup(o,{canConfirmReceipt:o.orderType==='DIRECT_OUTBOUND'})+freight+wholeChecksMarkup(o)+lineHtml+publicDeleteMarkup(o)+'</div>';
+  node.querySelectorAll('[data-progress-step]').forEach(button=>button.addEventListener('click',async ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   if(button.dataset.progressStep!=='received')return;
+   if(!window.confirm(progressT('receiptConfirm','Bestätigst du, dass der Wareneingang für diesen Auftrag tatsächlich eingebucht ist?')))return;
+   button.disabled=true;
+   try{
+    const result=await api('confirm-received',{accessToken:secret,id:o.id});
+    const idx=orders.findIndex(x=>x.id===o.id);if(idx>=0)orders[idx]=result.order;
+    const wasOpen=node.open;render();
+    if(wasOpen){const found=[...$('orders').querySelectorAll('details')].find(x=>x.dataset.urgentId===o.id);if(found)found.open=true;}
+    showMessage(progressT('receiptSaved','Wareneingang bestätigt. Die Logistik sieht eine Benachrichtigung.'),'ok');
+   }catch(error){button.disabled=false;showMessage(error.message,'error');}
+  }));
   const deleteButton=node.querySelector('[data-delete-order]');
   if(deleteButton)deleteButton.addEventListener('click',async ev=>{
    ev.preventDefault();ev.stopPropagation();
