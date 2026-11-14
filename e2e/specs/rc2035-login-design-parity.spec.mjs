@@ -19,10 +19,12 @@ test('RC2035: unified logistics login uses equal card heights and shipped backdr
   const card=login.locator('.login-card');
   if(info.project.name==='laptop'){
     await expect(hero).toBeVisible();
-    const a=await hero.boundingBox(),b=await card.boundingBox();
-    expect(a&&b).toBeTruthy();
-    expect(Math.abs(a.height-b.height)).toBeLessThanOrEqual(3);
-    expect(Math.abs(a.y-b.y)).toBeLessThanOrEqual(3);
+    await expect.poll(async()=>{
+      const a=await hero.boundingBox(),b=await card.boundingBox();
+      if(!a||!b)return 999;
+      return Math.max(Math.abs(a.height-b.height),Math.abs(a.y-b.y));
+    }).toBeLessThanOrEqual(3);
+    const a=await hero.boundingBox();
     await expect(hero.locator('img')).toHaveAttribute('src',/rc1630-login-route\.svg/);
     expect(a.height).toBeGreaterThan(600);
   }else{
@@ -58,5 +60,21 @@ test('RC2035: visual environment accent changes without navigating or handling c
   expect(after).toContain('linear-gradient');
   expect(after).not.toBe(before);
   expect(await login.evaluate(el=>getComputedStyle(el).backgroundImage)).toBe(origin);
+  await expect(login.locator('#loginPass')).toBeVisible();
+});
+
+
+test('RC2035: premium motion appears in normal mode and stops for reduced motion',async({page},info)=>{
+  test.skip(info.project.name!=='laptop');
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  const login=page.locator('#login[data-eh360-ui="v2"]');
+  await expect(login).toBeVisible();
+  const card=login.locator('.login-card');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate(el=>getComputedStyle(el).animationName)).toContain('eh2035CardReveal');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  expect(await card.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+  await expect(login.locator('#loginUser')).toBeVisible();
   await expect(login.locator('#loginPass')).toBeVisible();
 });
