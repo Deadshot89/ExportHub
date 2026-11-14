@@ -37,21 +37,22 @@ export function injectSop2(html,file='build.html'){
  if(!/<\/head>/i.test(out))throw new Error(file+': SOP2 HEAD_MISSING');
  const ids=[...STYLE,...SCRIPT].map(x=>x[0]);
  if(ids.some(id=>count(out,id)>1))throw new Error(file+': SOP2 DUPLICATE_ASSET');
- // Strict requirement: the legacy scanner and admin dashboard are already
- // loaded in the correct order. SOP2 mount runs AFTER the original runtime.
- if(count(out,'exporthub-rc1506-sop-coverage-runtime')!==1)
-   throw new Error(file+': SOP2 COVERAGE_RUNTIME_REQUIRED');
- const anchorRx=/<script\s+id=["']exporthub-rc1502-sop-persistence["'][^>]*><\/script>/i;
- if(!anchorRx.test(out))throw new Error(file+': SOP2 PERSISTENCE_ANCHOR_MISSING');
+ // Both established SOP wrappers must exist. RC1502 persistence is injected
+ // before the RC1506 coverage runtime by the existing build chain. SOP2 loads
+ // only after BOTH wrappers, so it cannot be overwritten by the old mount hooks.
+ if(count(out,'exporthub-rc1502-sop-persistence')!==1)
+   throw new Error(file+': SOP2 PERSISTENCE_ANCHOR_MISSING');
+ const anchorRx=/<script\s+id=["']exporthub-rc1506-sop-coverage-runtime["'][^>]*><\/script>/i;
+ if(!anchorRx.test(out))throw new Error(file+': SOP2 COVERAGE_RUNTIME_REQUIRED');
  const styles=STYLE.filter(([id])=>!count(out,id)).map(([id,p])=>tagId(id,p,'css'));
  if(styles.length)out=out.replace(/<\/head>/i,styles.join('\n')+'\n</head>');
  const scripts=SCRIPT.filter(([id])=>!count(out,id)).map(([id,p])=>tagId(id,p,'js'));
  if(scripts.length)out=out.replace(anchorRx,x=>x+'\n'+scripts.join('\n'));
  for(const id of ids)if(count(out,id)!==1)throw new Error(file+': SOP2 ASSET_COUNT '+id);
  const indices=SCRIPT.map(([id])=>out.indexOf('id="'+id+'"'));
+ const persistence=out.indexOf('id="exporthub-rc1502-sop-persistence"');
  const lastLegacy=out.indexOf('id="'+ANCHOR_ID+'"');
- const coverageRuntime=out.indexOf('id="exporthub-rc1506-sop-coverage-runtime"');
- if(coverageRuntime>=lastLegacy||indices.some((i,n)=>i<lastLegacy||(n>0&&i<=indices[n-1])))
+ if(persistence>=lastLegacy||indices.some((i,n)=>i<lastLegacy||(n>0&&i<=indices[n-1])))
    throw new Error(file+': SOP2 SCRIPT_ORDER');
  // Release builder must not ship an activation flag; that requires later consent.
  if(/__EXPORTHUB_SOP2_PHASE1__\s*=\s*true/.test(out))
