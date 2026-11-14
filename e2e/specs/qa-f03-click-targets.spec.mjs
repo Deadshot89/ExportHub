@@ -3,7 +3,7 @@ import {appEntry,waitReady} from '../helpers/exporthub-browser.mjs';
 import {installHitProbe} from '../helpers/qa-hit-targets.mjs';
 
 // QA-Bericht 13.11.2026 F03: Layout-Tests prüften nur horizontales Overflow.
-// Dieser Test prüft in allen acht Designs und allen fünf Projekt-Viewports,
+// Dieser Test prüft in allen acht Designs im Desktop-Browser (Workflow: laptop + desktop),
 // dass sichtbare Klickziele zentral erreichbar sind und nicht von festen
 // Leisten, Toasts oder schwebenden Schaltflächen dauerhaft verdeckt werden.
 const DESIGNS=['classic','premium','neu','frost','graphit','azur','stahl','polar'];

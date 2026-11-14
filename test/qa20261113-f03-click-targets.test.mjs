@@ -30,7 +30,7 @@ test('QA F03: Historien-Filter umbrechen statt rechts aus dem Inhalt zu laufen',
 
 test('QA F03: Hit-Test-Spec ist im Layout-Browser-Gate verdrahtet',()=>{
   const wf=read('.github/workflows/rc1306-layout-browser.yml');
-  assert.match(wf,/e2e\/specs\/qa-f03-click-targets\.spec\.mjs --global-timeout=\d+ --project=mobile-small/);
+  assert.match(wf,/e2e\/specs\/qa-f03-click-targets\.spec\.mjs --global-timeout=\d+ --project=laptop --project=desktop/);
   const spec=read('e2e/specs/qa-f03-click-targets.spec.mjs');
   for(const d of ['classic','premium','neu','frost','graphit','azur','stahl','polar'])assert.ok(spec.includes(`'${d}'`),d);
   assert.match(read('e2e/helpers/qa-hit-targets.mjs'),/elementFromPoint/);

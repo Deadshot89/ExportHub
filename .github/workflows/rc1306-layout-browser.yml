@@ -60,14 +60,14 @@ jobs:
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
 
-      # QA F03: eigener Schritt, weil 8 Designs x 5 Viewports x 12 Ansichten allein ~8-10 min brauchen
+      # QA F03: eigener Schritt (8 Designs x Laptop/Desktop x 12 Ansichten). Handy-Groessen bewusst ausgenommen (Vorgabe 14.11.2026: nur Desktop-Browser).
       # und sonst das globale 10-Minuten-Limit der Playwright-Konfiguration fuer den gemeinsamen Lauf reissen.
-      - name: Verify no permanently covered click targets in all eight designs on all five viewports
+      - name: Verify no permanently covered click targets in all eight designs on laptop and desktop
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/qa-f03-click-targets.spec.mjs --global-timeout=1200000 --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
+        run: npx playwright test e2e/specs/qa-f03-click-targets.spec.mjs --global-timeout=1200000 --project=laptop --project=desktop
 
       - name: Verify Quality CAPA forms and A4 print on mobile and laptop
         env:
