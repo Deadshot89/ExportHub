@@ -2756,5 +2756,10 @@
   "urgentOrderV2.issueRegenerate": "Bitte E-Mail-Vorlage neu erzeugen.",
   "urgentOrderV2.issueTooLong": "Problembeschreibung mit ausgewählten Vorlagen darf maximal 2000 Zeichen enthalten.",
   "urgentOrderV2.shippingNotReady": "Erst möglich, wenn alle Positionen versendet sind.",
-  "urgentOrderV2.mailShippingPreparing": "Versandbestätigung wird vorbereitet."
+  "urgentOrderV2.mailShippingPreparing": "Versandbestätigung wird vorbereitet.",
+  "rc1930.customers": "Kunden",
+  "rc1930.filterCustomers": "Kunden filtern",
+  "rc1930.noMatch": "Keine Treffer",
+  "rc1930.close": "Schließen",
+  "rc1930.showInList": "In der Liste anzeigen"
 }

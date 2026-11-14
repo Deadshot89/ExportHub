@@ -2756,5 +2756,10 @@
   "urgentOrderV2.issueRegenerate": "Vuelve a generar el borrador del correo.",
   "urgentOrderV2.issueTooLong": "La descripción del problema y las plantillas seleccionadas no pueden superar los 2000 caracteres.",
   "urgentOrderV2.shippingNotReady": "Solo disponible cuando se hayan enviado todas las posiciones.",
-  "urgentOrderV2.mailShippingPreparing": "Preparando la confirmación de envío."
+  "urgentOrderV2.mailShippingPreparing": "Preparando la confirmación de envío.",
+  "rc1930.customers": "Clientes",
+  "rc1930.filterCustomers": "Filtrar clientes",
+  "rc1930.noMatch": "Sin resultados",
+  "rc1930.close": "Cerrar",
+  "rc1930.showInList": "Mostrar en la lista"
 }

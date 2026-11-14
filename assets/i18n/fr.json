@@ -2756,5 +2756,10 @@
   "urgentOrderV2.issueRegenerate": "Veuillez régénérer le brouillon d'e-mail.",
   "urgentOrderV2.issueTooLong": "La description du problème, modèles sélectionnés inclus, ne doit pas dépasser 2 000 caractères.",
   "urgentOrderV2.shippingNotReady": "Disponible uniquement lorsque toutes les lignes ont été expédiées.",
-  "urgentOrderV2.mailShippingPreparing": "Préparation de la confirmation d'expédition."
+  "urgentOrderV2.mailShippingPreparing": "Préparation de la confirmation d'expédition.",
+  "rc1930.customers": "Clients",
+  "rc1930.filterCustomers": "Filtrer les clients",
+  "rc1930.noMatch": "Aucun résultat",
+  "rc1930.close": "Fermer",
+  "rc1930.showInList": "Afficher dans la liste"
 }
