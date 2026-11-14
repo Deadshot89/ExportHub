@@ -9,7 +9,7 @@ test('RC1146: signierte TESTSERVICE-E2E-Sitzungen nutzen denselben sicheren ETag
   const source=fs.readFileSync(FAST,'utf8');
   assert.ok(source.includes('verifySignedSessionToken(token)'),'Fast-Auth muss den signierten Sitzungskontext prüfen');
   assert.ok(source.includes('E2E-USER-'),'Fast-Auth darf den Sonderpfad nur für den E2E-Benutzer verwenden');
-  assert.ok(source.includes('e2e\\\\.'),'Fast-Auth muss den E2E-Benutzernamen eingrenzen');
+  assert.ok(source.includes('/^e2e'),'Fast-Auth muss den E2E-Benutzernamen eingrenzen');
   assert.ok(source.includes('const signedTestserviceE2E=isSignedTestserviceE2E(token)'));
   assert.ok(source.includes('const testserviceRequest=signedTestserviceE2E ||'),'Signierte E2E-Token müssen als TESTSERVICE-Request behandelt werden');
   assert.ok(source.includes('const c=(isolated||signedTestserviceE2E)?await testserviceClients():await clients()'),'Signierte E2E-Token müssen den stabilen TESTSERVICE-Blob-Client verwenden');
