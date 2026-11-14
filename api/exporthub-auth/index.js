@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const auth = require('../shared/auth-store');
+const fastAuth = require('../shared/fast-auth-store');
 const apiI18n = require('../shared/i18n');
 const { MODULES, normalizeUser, defaultRights } = require('../shared/user-policy');
 
@@ -105,6 +106,7 @@ function scopedAuth(req){
   revokeUserSessions:(userId,reason,except)=>auth.revokeUserSessions(userId,reason,except,environment)
  };
 }
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth['validateSession'](req,options);}
 async function validatePasswordChangeTicket(ticket, payload, req) {
   const decoded = decodePasswordChangeTicket(ticket);
   const c = await scopedAuth(req).clients();
@@ -420,7 +422,7 @@ async function bootstrapStatus(payload, req) {
 async function changePassword(req, payload) {
   let current;
   try {
-    current = await auth.validateSession(req, { allowPasswordChange: true });
+    current = await validateSession(req, { allowPasswordChange: true });
   } catch (sessionError) {
     const fallbackCodes = ['SESSION_INVALID', 'SESSION_REVOKED', 'AUTH_REQUIRED'];
     if (!payload.passwordChangeTicket || fallbackCodes.indexOf(sessionError && sessionError.code) < 0) throw sessionError;
@@ -476,7 +478,7 @@ async function logout(req) {
 }
 
 async function updateProfile(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   const nextName = auth.text(payload.name || payload.displayName || current.user.name || current.user.user).replace(/\s+/g, ' ').slice(0, 80);
   if (!nextName) throw auth.error('DISPLAY_NAME_REQUIRED', 'Der Anzeigename darf nicht leer sein.', 400);
   const previousName = auth.text(current.user.name || current.user.user);
@@ -515,7 +517,7 @@ async function updateProfile(req, payload) {
 }
 
 async function adminList(req) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const c = await scopedAuth(req).clients();
   const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
@@ -527,7 +529,7 @@ async function adminList(req) {
 }
 
 async function adminCreate(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const username = auth.text(payload.username || payload.user);
   const name = auth.text(payload.name) || username;
@@ -557,7 +559,7 @@ async function adminCreate(req, payload) {
 }
 
 async function adminUpdate(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
@@ -591,7 +593,7 @@ async function adminUpdate(req, payload) {
 }
 
 async function adminSetActive(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const active = payload.active === true;
   const result = await scopedAuth(req).mutateTeam((team) => {
@@ -610,7 +612,7 @@ async function adminSetActive(req, payload) {
 }
 
 async function adminResetPassword(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const startPassword = auth.generatedPassword();
   const result = await scopedAuth(req).mutateTeam((team) => {
@@ -626,7 +628,7 @@ async function adminResetPassword(req, payload) {
 }
 
 async function adminUnlock(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
@@ -640,7 +642,7 @@ async function adminUnlock(req, payload) {
 }
 
 async function adminTerminateSessions(req, payload) {
-  const current = await auth.validateSession(req);
+  const current = await validateSession(req);
   requireGlobalAdmin(current, req);
   const userId = auth.text(payload.userId);
   const sessionId = auth.text(payload.sessionId);
@@ -686,7 +688,7 @@ module.exports = async function (context, req) {
     else if (action === 'change-password') result = await changePassword(req, payload);
     else if (action === 'logout') result = await logout(req);
     else if (action === 'session') {
-      const current = await auth.validateSession(req, { allowPasswordChange: true });
+      const current = await validateSession(req, { allowPasswordChange: true });
       result = { ok: true, mustChange: current.user.mustChange === true || current.session.mustChange === true, user: auth.publicUser(current.user, false) };
     }
     else if (action === 'update-profile') result = await updateProfile(req, payload);
