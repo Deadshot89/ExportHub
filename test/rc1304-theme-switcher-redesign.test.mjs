@@ -116,7 +116,7 @@ test('RC1304: three redesigns are distinct while classic remains untouched',()=>
 
 test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
   assert.match(builder,/rc1304-theme-switcher\.css\?v=1306/);
-  assert.match(builder,/rc1304-theme-switcher\.js\?v=1930/);
+  assert.match(builder,/rc1304-theme-switcher\.js\?v=1933/);
   assert.match(builder,/patchRc1304ThemeRedesign/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.css'/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.js'/);

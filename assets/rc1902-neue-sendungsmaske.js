@@ -127,7 +127,7 @@
       '</div>'+
       '<nav class="rc1902-steps" aria-label="'+esc(tr('rc1902.steps'))+'">'+
         d.blocks.map(function(b){
-          return '<button type="button" class="rc1902-step'+(b.warn?' is-warn':' is-ok')+(ui.current===b.id?' is-current':'')+'" data-rc1902-goto="'+esc(b.id)+'"'+(b.warn?' title="'+esc(tr('rc1902.stepOpen'))+'"':'')+'>'+
+          return '<button type="button" class="rc1902-step'+(b.warn?' is-warn':' is-ok')+(ui.current===b.id?' is-current':'')+'" data-rc739-no-loading="1" data-rc1902-goto="'+esc(b.id)+'"'+(b.warn?' title="'+esc(tr('rc1902.stepOpen'))+'"':'')+'>'+
             '<span class="rc1902-step-num">'+esc(b.num)+'</span><span class="rc1902-step-title">'+esc(b.title)+'</span>'+
             '<span class="rc1902-step-state" aria-hidden="true"></span>'+
           '</button>';
