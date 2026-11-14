@@ -32,6 +32,30 @@ export function assertDeploymentIdentity(payload,expectedSha){
   }
 }
 
+// RC1820: Azure Static Web Apps can briefly serve a prior health identity
+// immediately after a successful deployment. Retry only *unverified identity*,
+// never relax the SHA, environment, redirect, HTTP or byte-for-byte asset gates.
+export async function waitForVerifiedDeploymentIdentity({read,expectedSha,maxAttempts=12,waitFn=(ms)=>new Promise(resolve=>setTimeout(resolve,ms))}){
+  if(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>12)
+    throw Error('RC1820: invalid bounded deployment identity attempt count');
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    // Use a distinct cache key on each retry, like the RC1553 deployment gate.
+    const healthBytes=await read(`/api/exporthub-health?rc1820=${expectedSha}-${attempt}`);
+    let health;
+    try{health=JSON.parse(healthBytes.toString('utf8'))}
+    catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
+    try{
+      assertDeploymentIdentity(health,expectedSha);
+      return attempt;
+    }catch(error){
+      // Never accept a stale, unverified or production SHA. Retry only within
+      // a fixed 33-second window; an unresolved mismatch remains a hard failure.
+      if(attempt===maxAttempts)throw error;
+      await waitFn(3000);
+    }
+  }
+}
+
 export function assertAssetMatches(localBytes,publishedBytes,name){
   if(!Buffer.isBuffer(localBytes)||!Buffer.isBuffer(publishedBytes)||
      hash(localBytes)!==hash(publishedBytes)){
@@ -50,11 +74,7 @@ export async function verifyPublishedMenu({expectedSha,fetchImpl=fetch,root=ROOT
     if(bytes.byteLength>6*1024*1024)throw Error(`RC1820: oversized TESTSERVICE response ${target.pathname}`);
     return bytes;
   };
-  const healthBytes=await read(`/api/exporthub-health?rc1820=${expectedSha}`);
-  let health;
-  try{health=JSON.parse(healthBytes.toString('utf8'))}
-  catch(error){throw Error('RC1820: TESTSERVICE health is not valid JSON',{cause:error})}
-  assertDeploymentIdentity(health,expectedSha);
+  await waitForVerifiedDeploymentIdentity({read,expectedSha});
   // The TESTSERVICE public entrypoint is / (rewritten to TESTVERSION.html); direct /TESTVERSION.html may redirect.
   // Continue requiring a direct HTTP 200 without redirects from the canonical entrypoint.
   const html=(await read(`/?rc1820=${expectedSha}`)).toString('utf8');
