@@ -1,5 +1,6 @@
 'use strict';
 const {BlobServiceClient}=require('@azure/storage-blob');
+const crypto=require('node:crypto');
 const auth=require('../shared/auth-store');
 const fs=require('node:fs');
 const path=require('node:path');
@@ -348,21 +349,26 @@ async function postSaveP1(action,result,refs,options={}){
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
+ let stage='authentication';
  try{
   const current=await withReadRetry(async()=>await auth.validateSession(req));
+  stage='storage';
   const ref=storage(req);
+  stage='handler';
   const result=await execute(req,current.user,ref);
+  stage='post-save';
   await postSaveP1(requestBody(req).action,result,ref,{log:context.log});
   context.res=json(200,{ok:true,...result});
  }catch(e){
+  const requestId=crypto.randomUUID();
   // A temporary storage/network failure without our own problem status is a
   // controlled 503 (retry later), not an unexplained 500.
   const transient=!(e&&e.status)&&isTransientStorageError(e);
   const status=transient?503:Number(e&&e.status||e&&e.statusCode)||500;
   const code=transient?'URGENT_STORAGE_UNAVAILABLE':e&&e.code&&e.status?e.code:(status>=500?'URGENT_ERROR':e&&e.code||'URGENT_ERROR');
-  context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e));
+  context.log&&context.log.warn&&context.log.warn('urgent-orders',code,status,failureDetails(e),'stage='+stage,'requestId='+requestId);
   if(e&&e.code==='URGENT_HOST_UNTRUSTED')context.log&&context.log.warn&&context.log.warn('urgent-host-evidence',JSON.stringify(safeHostDiagnostic(req)));
-  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest')};
+  const response={ok:false,code,message:status>=500?apiI18n.t(req,e&&e.code==='URGENT_HOST_UNTRUSTED'?'api.urgent.hostUntrusted':'api.urgent.serverError'):e&&e.message||apiI18n.t(req,'api.urgent.invalidRequest'),requestId};
   if(code==='URGENT_MINIBAG_CONFIRM_REQUIRED'){
    response.minibagArticles=e.minibagArticles||[];
    response.minibagIndices=e.minibagIndices||[];

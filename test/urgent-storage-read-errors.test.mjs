@@ -107,3 +107,26 @@ test('Urgent write never repeats an upload after a transient write failure',asyn
  await assert.rejects(internal.write(ref,()=>({})),e=>e.code==='ECONNRESET');
  assert.equal(uploads,1);
 });
+
+
+test('Urgent startup returns a safe diagnostic request ID without exposing the underlying exception',async()=>{
+ const authStore=createRequire(import.meta.url)('../api/shared/auth-store.js');
+ const original=authStore.validateSession;
+ const logs=[];
+ try{
+  authStore.validateSession=async()=>{
+   const e=new Error('PRIVATE_SESSION_TOKEN_MUST_NEVER_LEAK');
+   e.code='InternalPrivateThing';
+   throw e;
+  };
+  const ctx={log:{warn(...args){logs.push(args.join(' '));}}};
+  await internal(ctx,{method:'POST',headers:{},body:{action:'list'}});
+  assert.equal(ctx.res.status,500);
+  const response=JSON.parse(ctx.res.body);
+  assert.equal(response.code,'URGENT_ERROR');
+  assert.match(response.requestId,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  assert.match(logs.join('\n'),/stage=authentication/);
+  assert.ok(logs.join('\n').includes('requestId='+response.requestId));
+  assert.doesNotMatch(JSON.stringify(response)+'\n'+logs.join('\n'),/PRIVATE_SESSION_TOKEN_MUST_NEVER_LEAK/);
+ }finally{authStore.validateSession=original;}
+});
