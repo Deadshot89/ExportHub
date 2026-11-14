@@ -51,3 +51,16 @@ test('RC2035: build includes the CSS and vectors for all three Azure environment
  for(const file of ['index.html','TESTVERSION.html','demo.html'])assert.ok(build.includes(file));
  assert.match(build,/html=patchRc1630LoginVisuals\(html,file\)/);
 });
+
+
+test('RC2035: premium motion stays visual-only, respects reduced-motion and retains focus visibility',()=>{
+ assert.match(css,/eh2035HeroReveal/);
+ assert.match(css,/eh2035CardReveal/);
+ assert.match(css,/eh2035AmbientLight/);
+ assert.match(css,/eh2035LogoGlow/);
+ assert.match(css,/#loginBtn:hover:not\(:disabled\)::after/);
+ assert.match(css,/@layer rc971 \{/,'field focus effects must stay in the form style layer');
+ assert.match(css,/@media \(prefers-reduced-motion:reduce\) \{[\s\S]*?animation:none!important/);
+ assert.match(css,/:not\(\.hidden\) > \.login-card/);
+ assert.doesNotMatch(css,/\b(?:fetch\s*\(|localStorage|sessionStorage|document\.cookie|setTimeout\s*\()/);
+});
