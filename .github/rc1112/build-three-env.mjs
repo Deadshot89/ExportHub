@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {integrateSop2} from '../sop2/integrate.mjs';
 import {integrateAbdProforma} from '../rc1549/integrate-abd-proforma.mjs';
 import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
@@ -2266,6 +2267,8 @@ integrateTour(ROOT,OUT);
 integrateEditor(ROOT,OUT);
 integrateTraining(ROOT,OUT);
 integrateCoverageAdmin(ROOT,OUT);
+// SOP2: copy assets and wire a phase-1 opt-in bridge, never turn on the API.
+integrateSop2(ROOT,OUT);
 // ABD invoice editor is present in Production, TESTSERVICE and Demo builds.
 integrateAbdProforma(ROOT,OUT);
 // Must stay last: hashes the files exactly as they are shipped.
