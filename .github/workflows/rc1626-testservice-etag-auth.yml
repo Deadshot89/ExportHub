@@ -5,12 +5,16 @@ on:
     paths:
       - 'api/shared/fast-auth-store.js'
       - 'test/rc1626-testservice-auth-etag-read.test.mjs'
+      - 'test/rc1634-testservice-auth-account-isolation.test.mjs'
+      - 'test/rc1637-testservice-signed-e2e-etag-auth.test.mjs'
       - '.github/workflows/rc1626-testservice-etag-auth.yml'
   push:
     branches: [main]
     paths:
       - 'api/shared/fast-auth-store.js'
       - 'test/rc1626-testservice-auth-etag-read.test.mjs'
+      - 'test/rc1634-testservice-auth-account-isolation.test.mjs'
+      - 'test/rc1637-testservice-signed-e2e-etag-auth.test.mjs'
       - '.github/workflows/rc1626-testservice-etag-auth.yml'
 
 permissions:
@@ -31,4 +35,4 @@ jobs:
       - name: Verify syntax
         run: node --check api/shared/fast-auth-store.js
       - name: Run TESTSERVICE ETag and original production coalescing tests
-        run: node --test test/rc1626-testservice-auth-etag-read.test.mjs test/rc1102-fast-auth-read-coalescing.test.mjs test/rc1146-testservice-auth-completeness.test.mjs
+        run: node --test test/rc1626-testservice-auth-etag-read.test.mjs test/rc1102-fast-auth-read-coalescing.test.mjs test/rc1146-testservice-auth-completeness.test.mjs test/rc1634-testservice-auth-account-isolation.test.mjs test/rc1637-testservice-signed-e2e-etag-auth.test.mjs

@@ -3,11 +3,12 @@
 const auth = require('../shared/auth-store');
 const apiI18n = require('./i18n');
 let clientsPromise = null;
+let testserviceClientsPromise = null;
 let sessionDocumentsPromise = null;
 // Only the TESTSERVICE request path uses the ETag-verified team read cache.
 // The shared production login/session blob is always fetched afresh.
-let testserviceDocumentsPromise = null;
-let verifiedTestserviceTeam = null;
+const testserviceDocumentsPromises = new WeakMap();
+const verifiedTestserviceTeams = new WeakMap();
 
 async function clients(){
   if (!clientsPromise) {
@@ -17,6 +18,21 @@ async function clients(){
     });
   }
   return clientsPromise;
+}
+
+// Keep the isolated TESTSERVICE Blob client stable within this process.
+// Its identity is required by the ETag-verified team cache; creating a new
+// client on every request silently disables the large-blob read optimization.
+// A failed client initialization is not cached, so subsequent requests can
+// retry. No production credential or Blob content is cached here.
+async function testserviceClients(){
+  if(!testserviceClientsPromise){
+    testserviceClientsPromise=auth.testserviceClients().catch(error=>{
+      testserviceClientsPromise=null;
+      throw error;
+    });
+  }
+  return testserviceClientsPromise;
 }
 
 // Only the comparatively small user records are copied. Never share mutable
@@ -33,35 +49,44 @@ function isolateTeamUsers(doc){
 }
 
 async function readVerifiedTestserviceTeam(c){
-  const cache=verifiedTestserviceTeam;
-  if(cache && cache.blob===c.team && cache.etag && typeof c.team.getProperties==='function'){
+  const blob=c&&c.team;
+  const cache=blob&&typeof blob==='object'?verifiedTestserviceTeams.get(blob):null;
+  if(cache && cache.etag && typeof blob.getProperties==='function'){
     try{
-      const props=await c.team.getProperties();
+      const props=await blob.getProperties();
       if(props && props.etag && String(props.etag)===cache.etag)return isolateTeamUsers(cache.document);
     }catch(_){
       // HEAD may be unavailable during a transient incident: read the real
       // full document, never assume a cached user's rights are still current.
     }
   }
-  const doc=await auth.readJson(c.team,auth.emptyTeam());
+  const doc=await auth.readJson(blob,auth.emptyTeam());
   // No ETag = no safe reuse. Every future attempt falls back to full read.
-  verifiedTestserviceTeam=(doc && doc.etag && typeof c.team.getProperties==='function')
-    ? {blob:c.team,etag:String(doc.etag),document:isolateTeamUsers(doc)}
-    : null;
+  if(blob&&typeof blob==='object'&&doc&&doc.etag&&typeof blob.getProperties==='function')
+    verifiedTestserviceTeams.set(blob,{etag:String(doc.etag),document:isolateTeamUsers(doc)});
+  else if(blob&&typeof blob==='object')verifiedTestserviceTeams.delete(blob);
   return doc;
 }
 
 function readSessionDocuments(c,verifiedTestservice=false){
   if(verifiedTestservice){
-    if(!testserviceDocumentsPromise){
-      testserviceDocumentsPromise=Promise.all([
-        auth.readJson(c.auth,auth.emptyAuth()),
-        readVerifiedTestserviceTeam(c)
-      ]).then(([authDoc,teamDoc])=>({authDoc,teamDoc})).finally(()=>{
-        testserviceDocumentsPromise=null;
-      });
-    }
-    return testserviceDocumentsPromise;
+    // In-flight reads must be scoped to both Blob-client identities. Legacy
+    // TESTSERVICE traffic may still use the shared production team blob while
+    // signed E2E traffic uses the TESTSERVICE prefix (or isolated account).
+    // A single process-wide Promise could otherwise cross-share auth/team data.
+    let byTeam=testserviceDocumentsPromises.get(c.auth);
+    if(!byTeam){byTeam=new WeakMap();testserviceDocumentsPromises.set(c.auth,byTeam);}
+    const existing=byTeam.get(c.team);
+    if(existing)return existing;
+    let pending;
+    pending=Promise.all([
+      auth.readJson(c.auth,auth.emptyAuth()),
+      readVerifiedTestserviceTeam(c)
+    ]).then(([authDoc,teamDoc])=>({authDoc,teamDoc})).finally(()=>{
+      if(byTeam.get(c.team)===pending)byTeam.delete(c.team);
+    });
+    byTeam.set(c.team,pending);
+    return pending;
   }
   if(!sessionDocumentsPromise){
     sessionDocumentsPromise=Promise.all([
@@ -116,14 +141,16 @@ async function validateSession(req, options = {}){
   if (!supportsFastPath()) return auth.validateSession(req, options);
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', apiI18n.t(req,'api.common.authRequired'), 401);
-  if (isSignedTestserviceE2E(token)) return auth.validateSession(req, options);
-  // Opt-in only. Prior to verified TESTSERVICE cutover, preserve production
-  // login/session lookup exactly as before (while retaining ETag verification).
-  const testserviceRequest=typeof auth.environmentFromRequest==='function' &&
-    auth.environmentFromRequest(req)==='testservice';
+  const signedTestserviceE2E=isSignedTestserviceE2E(token);
+  // Signed TESTSERVICE E2E sessions intentionally use the TESTSERVICE state
+  // even before the separate-account cutover. Route them through the same
+  // fresh-auth / ETag-verified-team path rather than the uncached legacy core.
+  if(signedTestserviceE2E&&typeof auth.testserviceClients!=='function')return auth.validateSession(req,options);
+  const testserviceRequest=signedTestserviceE2E || (typeof auth.environmentFromRequest==='function' &&
+    auth.environmentFromRequest(req)==='testservice');
   const isolated=typeof auth.loginStorageEnvironment==='function' &&
     auth.loginStorageEnvironment(req)==='testservice';
-  const c=isolated?await auth.testserviceClients():await clients();
+  const c=(isolated||signedTestserviceE2E)?await testserviceClients():await clients();
   const { authDoc, teamDoc } = await readSessionDocuments(c,testserviceRequest);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
   const session = resolved.session;

@@ -15,6 +15,7 @@ function loadCommonJs(relative,mocks) {
   try{return require(absolute);}finally{Module._load=old;}
 }
 function fixture(options={}){
+  let isolatedClientsCalls=0;
   const count={auth:0,team:0,head:0},state={etag:'team-v1',active:true,rights:'view',authEtag:'auth-v1',revoked:false,failHead:false,failRead:false,noEtag:false};
   const teamBlob={name:'team',
     async getProperties(){
@@ -30,7 +31,7 @@ function fixture(options={}){
     bearer(){return 'some-token';},
     async clients(){return blobs;},
     async readJson(blob){
-      if(blob===authBlob){
+      if(blob?.name==='auth'){
         count.auth++;
         return{etag:state.authEtag,value:{sessions:[{id:'S1',revokedAt:state.revoked?'2026-10-22T13:00:00Z':null}]}};
       }
@@ -53,9 +54,19 @@ function fixture(options={}){
     error(code,message,status){return Object.assign(new Error(message),{code,status});},
     environmentFromRequest(req){return req.headers?.['x-exporthub-environment']==='testservice'?'testservice':'production';}
   };
+  if(options.isolated){
+    auth.loginStorageEnvironment=()=> 'testservice';
+    // The real isolated auth-store constructs a fresh Blob client for each
+    // invocation. The fast path must reuse one client to keep ETag reads safe.
+    auth.testserviceClients=async()=>{
+      isolatedClientsCalls++;
+      if(options.failInitOnce&&isolatedClientsCalls===1)throw Error('ISOLATED_CLIENT_UNAVAILABLE');
+      return{auth:{...authBlob},team:{...teamBlob}};
+    };
+  }
   const fast=loadCommonJs('api/shared/fast-auth-store.js',{'../shared/auth-store':auth});
   const testReq={headers:{'x-exporthub-environment':'testservice'}},prodReq={headers:{}};
-  return{fast,state,count,testReq,prodReq};
+  return{fast,state,count,testReq,prodReq,isolatedClientsCalls:()=>isolatedClientsCalls};
 }
 
 test('RC1626: TESTSERVICE unchanged ETag uses HEAD and avoids repeated full team download; session stays fresh',async()=>{
@@ -65,6 +76,31 @@ test('RC1626: TESTSERVICE unchanged ETag uses HEAD and avoids repeated full team
   assert.equal(first.user.id,'U1');
   assert.equal(second.user.id,'U1');
   assert.deepEqual(f.count,{auth:2,team:1,head:1});
+});
+
+test('RC-cost: isolated TESTSERVICE reuses same client for verified ETag HEAD and fresh sessions',async()=>{
+  const f=fixture({isolated:true});
+  await f.fast.validateSession(f.testReq);
+  await f.fast.validateSession(f.testReq);
+  assert.equal(f.isolatedClientsCalls(),1,'isolated Blob client must not change per request');
+  assert.deepEqual(f.count,{auth:2,team:1,head:1},'only ETag HEAD may reuse unchanged team state');
+});
+
+test('RC-cost: isolated ETag changes and revoked sessions remain fail-closed',async()=>{
+  const f=fixture({isolated:true});
+  await f.fast.validateSession(f.testReq);
+  f.state.etag='team-v2';f.state.active=false;
+  await assert.rejects(()=>f.fast.validateSession(f.testReq),e=>e.code==='ACCOUNT_DISABLED');
+  assert.equal(f.count.team,2,'changed ETag must trigger a fresh full team read');
+  assert.equal(f.isolatedClientsCalls(),1);
+});
+
+test('RC-cost: failed isolated client initialization is retried, never cached',async()=>{
+  const f=fixture({isolated:true,failInitOnce:true});
+  await assert.rejects(()=>f.fast.validateSession(f.testReq),/ISOLATED_CLIENT_UNAVAILABLE/);
+  await f.fast.validateSession(f.testReq);
+  assert.equal(f.isolatedClientsCalls(),2);
+  assert.deepEqual(f.count,{auth:1,team:1,head:0});
 });
 
 test('RC1626: changing Azure ETag forces full team reload; disabled account denied',async()=>{

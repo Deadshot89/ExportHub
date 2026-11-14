@@ -66,8 +66,13 @@ test('RC1634: new credentials are opt-in; production clients and normal token ha
  assert.match(src,/async function createSession\(user, deviceId, mustChange, environment='production'\)/);
  assert.match(src,/const target=loginStorageEnvironment\(req\)/);
  const fast=fs.readFileSync('api/shared/fast-auth-store.js','utf8');
- assert.match(fast,/const c=isolated\?await auth\.testserviceClients\(\):await clients\(\)/);
- assert.match(fast,/if \(isSignedTestserviceE2E\(token\)\) return auth\.validateSession/);
+ assert.ok(fast.includes('testserviceClientsPromise=auth.testserviceClients().catch'));
+ assert.ok(fast.includes('const signedTestserviceE2E=isSignedTestserviceE2E(token)'));
+ assert.ok(fast.includes('const c=(isolated||signedTestserviceE2E)?await testserviceClients():await clients()'));
+ assert.ok(fast.includes('const testserviceDocumentsPromises = new WeakMap()'));
+ assert.ok(fast.includes('const verifiedTestserviceTeams = new WeakMap()'));
+ assert.ok(fast.includes('readSessionDocuments(c,testserviceRequest)'));
+ assert.ok(fast.includes("if(signedTestserviceE2E&&typeof auth.testserviceClients!=='function')return auth.validateSession"));
 });
 
 test('RC1634: exporthub-state never seeds missing isolated TESTSERVICE by reading production',()=>{
