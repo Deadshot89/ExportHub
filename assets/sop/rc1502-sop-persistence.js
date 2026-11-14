@@ -19,7 +19,7 @@ function hasPendingChange(clean){
   const changed=Number(runtime.changeGeneration||0),saved=Number(runtime.lastSavedGeneration||0);
   return changed>saved;
 }
-async function confirmedPersist(reason,host){
+async function confirmedPersist(reason,host,isLatest=()=>true){
   const label=text(reason)||'RC1502_SOP_EDITOR_CONFIRMED_SAVED';
   const clean=root.ExportHUBClean;
   try{
@@ -33,10 +33,10 @@ async function confirmedPersist(reason,host){
     }
     const stored=await Promise.resolve(clean.flushSave(label,{force:true,userInitiated:true}));
     if(stored!==true)throw new Error('SOP-Änderung wurde nicht bestätigt gespeichert');
-    setStatus(host,'saved',label);
+    if(isLatest())setStatus(host,'saved',label);
     return true;
   }catch(error){
-    setStatus(host,'error',label);
+    if(isLatest())setStatus(host,'error',label);
     warn('RC1502 SOP-Persistenz fehlgeschlagen',error);
     return false;
   }
@@ -45,13 +45,15 @@ function mount(target,options={}){
   const host=typeof target==='string'&&root.document?root.document.querySelector(target):target;
   const originalChange=typeof options.onEditorChange==='function'?options.onEditorChange:null;
   let chain=Promise.resolve(true);
+  let latestRequest=0;
   function schedule(reason){
     const label=text(reason)||'RC1502_SOP_EDITOR_CONFIRMED_SAVED';
+    const request=++latestRequest;
     setStatus(host,'saving',label);
-    chain=chain.catch(()=>false).then(()=>confirmedPersist(label,host));
+    chain=chain.catch(()=>false).then(()=>confirmedPersist(label,host,()=>request===latestRequest));
     return chain;
   }
-  const bridged=Object.assign({},options,{onEditorChange(change){
+  const bridged=Object.assign({},options,{suppressDuplicateSave:true,onEditorChange(change){
     const action=text(change&&change.action)||'editor-change';
     const result=schedule(`RC1502 SOP-Editor ${action}`);
     if(originalChange){try{originalChange(change);}catch(error){warn('RC1502 onEditorChange Callback fehlgeschlagen',error);}}
