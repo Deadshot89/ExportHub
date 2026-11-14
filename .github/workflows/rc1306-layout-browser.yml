@@ -10,9 +10,14 @@ on:
       - 'assets/rc1304-theme-switcher.css'
       - 'assets/rc1371-dashboard-personalization.js'
       - 'assets/rc1371-dashboard-personalization.css'
+      - 'assets/rc2035-login-parity.css'
+      - 'assets/rc2035-login-ambient.svg'
+      - 'assets/rc1630-login-route.svg'
       - 'assets/i18n/**'
       - 'e2e/specs/rc1306-layout-redesign.spec.mjs'
       - 'e2e/specs/rc1371-dashboard-personalization.spec.mjs'
+      - 'e2e/specs/rc2035-login-design-parity.spec.mjs'
+      - 'test/rc2035-login-design-parity.test.mjs'
       - 'e2e/specs/quality-capa.spec.mjs'
       - 'qualitaet.html'
       - '.github/rc1112/**'
@@ -46,6 +51,13 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
+
+      - name: RC2035 Login-Größen, Logistik-Hintergrund und Umgebungsakzent auf Mobil und Laptop prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc2035-login-design-parity.spec.mjs --project=mobile-small --project=laptop
 
       - name: Verify all four designs and dashboard personalization on all five viewports in Chromium
         env:
