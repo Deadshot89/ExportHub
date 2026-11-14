@@ -110,6 +110,10 @@ jobs:
           BASE_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
           TARGET_ENV: testservice
           TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || '' }}
+          # RC1780: owner-set repository variable. 'disabled' = the Microsoft-Graph SharePoint
+          # server copy is intentionally not available (no app in the Essentra tenant); the
+          # independent copy is written by the ExportHUB browser into the OneDrive folder.
+          POD_SHAREPOINT_SERVER_COPY: ${{ vars.EXPORTHUB_POD_SHAREPOINT_SERVER_COPY || '' }}
         run: |
           set -euo pipefail
           set +x
@@ -203,6 +207,18 @@ jobs:
               echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
             fi
             if [ "$verdict" = "done" ]; then
+              # RC1780: Azure archive errors still fail (exit 8/9 above). Only the SharePoint
+              # server copy that the owner explicitly disabled is reported as a warning.
+              if [ "$optional_drive_pending_batches" -gt 0 ] && [ "${POD_SHAREPOINT_SERVER_COPY:-}" = 'disabled' ]; then
+                echo "::warning title=SharePoint-Serverkopie deaktiviert::$optional_drive_pending_batches Batch-Antworten ohne SharePoint-Serverkopie. Vom Owner deaktiviert (Repository-Variable EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled); Azure-Archiv vollständig, Zweitkopie über den OneDrive-Ordner im Browser (RC1780)."
+                {
+                  echo '### RC1780 – SharePoint-Serverkopie deaktiviert'
+                  echo '- Azure-POD-Archiv: erfolgreich abgearbeitet.'
+                  echo "- SharePoint-Serverkopie bewusst aus (EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled), $optional_drive_pending_batches Batch-Antworten ohne Serverkopie."
+                  echo '- Zweitkopie: ExportHUB schreibt PODs im Browser in den verbundenen OneDrive-Ordner Abliefernachweise.'
+                } >> "$GITHUB_STEP_SUMMARY"
+                optional_drive_pending_batches=0
+              fi
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
                 echo "::error title=POD Microsoft-365 archive incomplete::SharePoint copies remain pending in $optional_drive_pending_batches scanned batches; Azure archive drain succeeded, but the required independent copy is incomplete. See issue #999."
                 {
@@ -303,6 +319,10 @@ jobs:
           BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
           TARGET_ENV: production
           TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || '' }}
+          # RC1780: owner-set repository variable. 'disabled' = the Microsoft-Graph SharePoint
+          # server copy is intentionally not available (no app in the Essentra tenant); the
+          # independent copy is written by the ExportHUB browser into the OneDrive folder.
+          POD_SHAREPOINT_SERVER_COPY: ${{ vars.EXPORTHUB_POD_SHAREPOINT_SERVER_COPY || '' }}
         run: |
           set -euo pipefail
           set +x
@@ -383,6 +403,18 @@ jobs:
               echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
             fi
             if [ "$verdict" = "done" ]; then
+              # RC1780: Azure archive errors still fail (exit 8/9 above). Only the SharePoint
+              # server copy that the owner explicitly disabled is reported as a warning.
+              if [ "$optional_drive_pending_batches" -gt 0 ] && [ "${POD_SHAREPOINT_SERVER_COPY:-}" = 'disabled' ]; then
+                echo "::warning title=SharePoint-Serverkopie deaktiviert::$optional_drive_pending_batches Batch-Antworten ohne SharePoint-Serverkopie. Vom Owner deaktiviert (Repository-Variable EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled); Azure-Archiv vollständig, Zweitkopie über den OneDrive-Ordner im Browser (RC1780)."
+                {
+                  echo '### RC1780 – SharePoint-Serverkopie deaktiviert'
+                  echo '- Azure-POD-Archiv: erfolgreich abgearbeitet.'
+                  echo "- SharePoint-Serverkopie bewusst aus (EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled), $optional_drive_pending_batches Batch-Antworten ohne Serverkopie."
+                  echo '- Zweitkopie: ExportHUB schreibt PODs im Browser in den verbundenen OneDrive-Ordner Abliefernachweise.'
+                } >> "$GITHUB_STEP_SUMMARY"
+                optional_drive_pending_batches=0
+              fi
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
                 echo "::error title=POD Microsoft-365 archive incomplete::SharePoint copies remain pending in $optional_drive_pending_batches scanned batches; Azure archive drain succeeded, but the required independent copy is incomplete. See issue #999."
                 {
