@@ -8,7 +8,7 @@ const setupPath='e2e/helpers/testservice-readiness.mjs';
 test('RC1506: TESTSERVICE-Live-Browser startet erst nach stabilem State-Health',()=>{
   assert.equal(fs.existsSync(setupPath),true,'RC1506 Readiness-Setup fehlt');
   const setup=fs.readFileSync(setupPath,'utf8');
-  assert.match(config,/globalSetup:\s*['"]\.\/e2e\/helpers\/testservice-readiness\.mjs['"]/);
+  assert.match(config,/globalSetup:\s*\[[^\]]*['"]\.\/e2e\/helpers\/testservice-readiness\.mjs['"][^\]]*\]/);
   assert.match(setup,/EXPORTHUB_E2E_LIVE/);
   assert.match(setup,/EXPORTHUB_E2E_PUBLIC_ENV/);
   assert.match(setup,/testservice/);

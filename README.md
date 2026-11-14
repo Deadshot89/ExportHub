@@ -54,9 +54,9 @@ Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Bui
 
 ## Design und responsive Viewports
 
-ExportHUB unterstützt vier vollständig unterschiedliche Layouts: **Classic**, **Modern Business**, **Glass** und **Neon Night**. Der Wechsel betrifft die Informationsarchitektur und Geometrie der Oberfläche, nicht nur Farben oder Hintergründe.
+ExportHUB bietet acht wählbare Designs: **Original** (`classic`), **Indigo** (`premium`), **Horizont** (`neu`) sowie die Farbpaletten **Frost**, **Graphit**, **Azur**, **Stahl** und **Polar**. Die früheren Layouts Modern Business, Glass und Neon Night (`modern`, `glass`, `neon`) sind nicht mehr wählbar; gespeicherte Altwerte werden bewusst auf `classic` zurückgesetzt (siehe `assets/rc1304-theme-switcher.js`).
 
-Das RC1306/RC1308 Browser-Gate prüft alle vier Designs in Chromium auf allen fünf verbindlichen Zielgrößen:
+Das Layout-Browser-Gate (`e2e/specs/rc1306-layout-redesign.spec.mjs`) prüft die Designs in Chromium auf den fünf verbindlichen Zielgrößen:
 
 - Smartphone klein: **360×800**
 - Smartphone Standard: **390×844**
@@ -64,7 +64,7 @@ Das RC1306/RC1308 Browser-Gate prüft alle vier Designs in Chromium auf allen f�
 - Laptop: **1366×768**
 - Desktop: **1920×1080**
 
-Die responsive Logik stapelt Modern Business und Neon unterhalb 1120 px bewusst vertikal; Glass reduziert sein Raster bei Tabletbreite und wird auf Smartphone einspaltig. Alle Varianten prüfen zusätzlich auf horizontales Overflow, doppelte Funktionsblöcke und Runtime-Fehler.
+Geprüft werden horizontales Overflow, doppelte Funktionsblöcke und Runtime-Fehler. Verdeckte Klickziele, überlagernde feste Leisten und abgeschnittene Texte werden davon nicht flächendeckend erfasst.
 
 ## POD-Sicherung und Wiederherstellung
 
