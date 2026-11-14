@@ -243,18 +243,18 @@ test('SOP2 shell styles are scoped, responsive and preserve original coverage cl
  assert.doesNotMatch(styleSrc,/\.rc1506-kpi\s*\{/);
 });
 test('injection is idempotent, includes 9 assets and loads SOP2 after legacy coverage',()=>{
- const original='<html><head><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script></head><body></body></html>';
+ const original='<html><head><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script></head><body></body></html>';
  const once=injectSop2(original,'TESTVERSION.html');
  assert.equal(injectSop2(once,'TESTVERSION.html'),once);
  assert.ok(once.includes('exporthub-sop2-mount'));
- const persistence=once.indexOf('id="exporthub-rc1502-sop-persistence"');
  const rc=once.indexOf('id="exporthub-rc1506-sop-coverage-runtime"');
+ const persistence=once.indexOf('id="exporthub-rc1502-sop-persistence"');
  const mount=once.indexOf('id="exporthub-sop2-mount"');
- assert.ok(mount>rc&&rc>persistence);
+ assert.ok(mount>persistence&&persistence>rc);
  const ids=['exporthub-sop2-i18n','exporthub-sop2-client','exporthub-sop2-reader',
   'exporthub-sop2-editor','exporthub-sop2-coverage','exporthub-sop2-mount'];
  const pos=ids.map(x=>once.indexOf('id="'+x+'"'));
- assert.ok(pos.every(x=>x>rc));
+ assert.ok(pos.every(x=>x>persistence));
  assert.ok(pos.every((x,i)=>i===0||x>pos[i-1]));
  assert.ok(SOP2_ASSETS.length>=9);
  assert.throws(()=>injectSop2(original.replace('</head>','<script>window.__EXPORTHUB_SOP2_PHASE1__=true;</script></head>'),'test.html'),/UNAUTHORIZED/);
@@ -267,7 +267,7 @@ test('build helper copies all SOP2 assets and injects every environment without 
   for(const rel of SOP2_ASSETS){
    const target=path.join(root,rel);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,rel);
   }
-  const page='<html><head><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script></head><body></body></html>';
+  const page='<html><head><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script></head><body></body></html>';
   for(const file of ['index.html','TESTVERSION.html','demo.html'])fs.writeFileSync(path.join(out,file),page);
   const manifest=integrateSop2(root,out);
   assert.equal(manifest.apiEnabled,false);
@@ -309,7 +309,7 @@ test('new mount code contains no API activation or legacy data import',()=>{
 test('SOP2 injection requires both RC1506 coverage and RC1502 persistence wrappers',()=>{
  const base='<html><head><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script></head><body></body></html>';
  assert.throws(()=>injectSop2(base,'test.html'),/PERSISTENCE_ANCHOR_MISSING/);
- const wrongOrder='<html><head><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script></head><body></body></html>';
+ const wrongOrder='<html><head><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script></head><body></body></html>';
  assert.throws(()=>injectSop2(wrongOrder,'test.html'),/SCRIPT_ORDER/);
 });
 
