@@ -86,6 +86,7 @@ const RC1930_PALETTES_STYLE_TAG='<link id="exporthub-rc1930-palettes-style" rel=
 const RC1930_FRAME_SCRIPT_TAG='<script id="exporthub-rc1930-frame-script" defer src="/assets/rc1930-design-rahmen.js?v=1931"><\/script>';
 const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=20261112p0"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
+const RC2035_LOGIN_STYLE_TAG='<link id="exporthub-rc2035-login-parity" rel="stylesheet" href="/assets/rc2035-login-parity.css?v=2035">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
 const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306.1"><\/script>';
@@ -225,9 +226,11 @@ function patchRc1800PremiumDesign(html,file){
 
 function patchRc1630LoginVisuals(html,file){
   html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_STYLE_TAG,'exporthub-rc1630-login-style');
+  html=injectDeferredRuntimeInHead(html,RC2035_LOGIN_STYLE_TAG,'exporthub-rc2035-login-parity');
   html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_SCRIPT_TAG,'exporthub-rc1630-login-script');
   if(!html.includes('rc1630-login-experience.css?v=1630'))throw new Error(file+': RC1630 Login-CSS fehlt');
   if(!html.includes('rc1630-login-experience.js?v=1631'))throw new Error(file+': RC1630 Login-UI fehlt');
+  if(!html.includes('rc2035-login-parity.css?v=2035'))throw new Error(file+': RC2035 Login-Hintergrund fehlt');
   return html;
 }
 
@@ -1965,6 +1968,8 @@ for(const rel of [
   'assets/rc1630-login-experience.css',
   'assets/rc1630-login-experience.js',
   'assets/rc1630-login-route.svg',
+  'assets/rc2035-login-parity.css',
+  'assets/rc2035-login-ambient.svg',
   'assets/rc1306-layout-engine.css',
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',

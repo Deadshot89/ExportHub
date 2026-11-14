@@ -1,44 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" fill="none" role="img" aria-label="">
- <defs>
-  <linearGradient id="panel" x1="96" y1="70" x2="648" y2="312" gradientUnits="userSpaceOnUse"><stop stop-color="#2F649A" stop-opacity=".55"/><stop offset="1" stop-color="#0E2B4E" stop-opacity=".78"/></linearGradient>
-  <linearGradient id="route" x1="100" y1="280" x2="660" y2="66" gradientUnits="userSpaceOnUse"><stop stop-color="#65E0E7"/><stop offset="1" stop-color="#72A6FF"/></linearGradient>
-  <linearGradient id="container" x1="310" y1="167" x2="457" y2="253" gradientUnits="userSpaceOnUse"><stop stop-color="#5C9FE3"/><stop offset="1" stop-color="#2C578E"/></linearGradient>
-  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
- </defs>
- <rect x="36" y="20" width="688" height="316" rx="30" fill="url(#panel)" stroke="#79B8EF" stroke-opacity=".2"/>
- <g stroke="#80B8E4" stroke-opacity=".08"><path d="M36 99H724M36 178H724M36 257H724M132 20V336M228 20V336M324 20V336M420 20V336M516 20V336M612 20V336"/></g>
- <path d="M108 258C189 258 171 129 272 129H393C479 129 473 246 560 246C626 246 608 111 676 111" stroke="url(#route)" stroke-opacity=".22" stroke-width="22" filter="url(#glow)"/>
- <path d="M108 258C189 258 171 129 272 129H393C479 129 473 246 560 246C626 246 608 111 676 111" stroke="url(#route)" stroke-width="3" stroke-linecap="round" stroke-dasharray="9 12"/>
- <g fill="#102B4A" stroke="#73E3EC" stroke-width="3"><circle cx="108" cy="258" r="10"/><circle cx="272" cy="129" r="10"/><circle cx="560" cy="246" r="10"/><circle cx="676" cy="111" r="10"/></g>
- <g fill="#65E0E7"><circle cx="108" cy="258" r="4"/><circle cx="272" cy="129" r="4"/><circle cx="560" cy="246" r="4"/><circle cx="676" cy="111" r="4"/></g>
- <!-- warehouse -->
- <g transform="translate(292 131)">
-  <path d="M8 60 85 18 170 60V150H8V60Z" fill="#17385F" stroke="#83BBE9" stroke-opacity=".75" stroke-width="2.5"/>
-  <path d="M-5 65 85 10 182 65" stroke="#A1D8FE" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
-  <rect x="33" y="79" width="112" height="71" rx="5" fill="url(#container)" stroke="#99D0FF"/>
-  <path d="M33 94H145M33 111H145M33 129H145M59 79V150M89 79V150M118 79V150" stroke="#B5DEFC" stroke-opacity=".45" stroke-width="2"/>
-  <rect x="12" y="69" width="16" height="20" rx="3" fill="#6ACDE4" fill-opacity=".65"/>
- </g>
- <!-- delivery truck -->
- <g transform="translate(492 232)">
-  <rect x="3" y="3" width="91" height="45" rx="5" fill="#B3DFFF"/>
-  <path d="M94 18H118L134 34V48H94V18Z" fill="#50BCE5"/>
-  <path d="M101 23H115L124 33H101V23Z" fill="#153D62"/>
-  <rect x="1" y="44" width="134" height="6" rx="3" fill="#2B5C8B"/>
-  <circle cx="28" cy="51" r="12" fill="#09203A" stroke="#D8F0FF" stroke-width="4"/>
-  <circle cx="108" cy="51" r="12" fill="#09203A" stroke="#D8F0FF" stroke-width="4"/>
-  <path d="M15 16H76M15 25H61M15 34H71" stroke="#3E88BE" stroke-width="3" stroke-linecap="round"/>
- </g>
- <!-- shipment cards -->
- <g transform="translate(102 77)">
-  <rect width="130" height="74" rx="13" fill="#18416B" stroke="#9AD0FA" stroke-opacity=".55"/>
-  <rect x="14" y="17" width="26" height="26" rx="7" fill="#3674AA"/>
-  <path d="m20 29 6 6 10-12" stroke="#8EEDDF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M51 23H113M51 34H95M14 58H110" stroke="#BBE0F8" stroke-opacity=".6" stroke-width="4" stroke-linecap="round"/>
- </g>
- <g transform="translate(543 76)">
-  <rect width="95" height="60" rx="12" fill="#164069" stroke="#8CC5F3" stroke-opacity=".5"/>
-  <path d="M19 17V43M27 17V43M36 17V43M46 17V43M56 17V43M65 17V43M75 17V43" stroke="#8DD9ED" stroke-width="3"/>
- </g>
- <path d="M73 310H202M578 313H689" stroke="#A4CBEA" stroke-opacity=".2" stroke-width="2"/>
+<defs>
+ <linearGradient id="bg" x1="160" y1="0" x2="580" y2="352" gradientUnits="userSpaceOnUse"><stop stop-color="#1A4D8A" stop-opacity=".10"/><stop offset=".62" stop-color="#102E5A" stop-opacity=".10"/><stop offset="1" stop-color="#0A1F42" stop-opacity=".01"/></linearGradient>
+ <linearGradient id="wall" x1="210" y1="180" x2="478" y2="330" gradientUnits="userSpaceOnUse"><stop stop-color="#325F91"/><stop offset=".5" stop-color="#183B6F"/><stop offset="1" stop-color="#0C2A53"/></linearGradient>
+ <linearGradient id="roof" x1="209" y1="187" x2="455" y2="239" gradientUnits="userSpaceOnUse"><stop stop-color="#9DC6EF"/><stop offset=".42" stop-color="#488DD3"/><stop offset="1" stop-color="#1D528B"/></linearGradient>
+ <linearGradient id="road" x1="55" y1="319" x2="700" y2="354" gradientUnits="userSpaceOnUse"><stop stop-color="#0B244A" stop-opacity="0"/><stop offset=".4" stop-color="#215E9A" stop-opacity=".45"/><stop offset="1" stop-color="#0B244A" stop-opacity="0"/></linearGradient>
+ <linearGradient id="box" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFE4A5"/><stop offset="1" stop-color="#C78947"/></linearGradient>
+ <linearGradient id="truck" x1="525" y1="244" x2="665" y2="315" gradientUnits="userSpaceOnUse"><stop stop-color="#E8F7FF"/><stop offset=".5" stop-color="#9CC4E9"/><stop offset="1" stop-color="#4585C2"/></linearGradient>
+ <linearGradient id="trailer" x1="502" y1="248" x2="620" y2="315" gradientUnits="userSpaceOnUse"><stop stop-color="#5AB8F1"/><stop offset="1" stop-color="#1F5098"/></linearGradient>
+ <linearGradient id="route" x1="44" y1="239" x2="706" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#29E4E9"/><stop offset=".7" stop-color="#74DFFA"/><stop offset="1" stop-color="#69ABFF"/></linearGradient>
+ <filter id="glow" x="-40%" y="-70%" width="180%" height="240%"><feGaussianBlur stdDeviation="7"/></filter>
+ <filter id="shadow" x="-40%" y="-50%" width="180%" height="220%"><feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#061A36" flood-opacity=".5"/></filter>
+ <filter id="smallglow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<rect width="760" height="360" fill="url(#bg)"/>
+<!-- logistics trajectory -->
+<path d="M65 289C140 289 149 145 260 145c84 0 86-53 154-53 115 0 118 194 208 147 40-21 28-119 85-128" stroke="#25D8F3" stroke-width="16" opacity=".17" filter="url(#glow)"/>
+<path d="M65 289C140 289 149 145 260 145c84 0 86-53 154-53 115 0 118 194 208 147 40-21 28-119 85-128" stroke="url(#route)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 12" opacity=".95"/>
+<g stroke="#24DDF3" stroke-width="2.5" fill="#0B2C54"><circle cx="65" cy="289" r="8"/><circle cx="260" cy="145" r="8"/><circle cx="414" cy="92" r="8"/><circle cx="622" cy="239" r="8"/><circle cx="707" cy="111" r="8"/></g>
+<g fill="#6DF5F1"><circle cx="65" cy="289" r="3.5"/><circle cx="260" cy="145" r="3.5"/><circle cx="414" cy="92" r="3.5"/><circle cx="622" cy="239" r="3.5"/><circle cx="707" cy="111" r="3.5"/></g>
+<!-- connected dashboard: package / document / scanner -->
+<g transform="translate(68 103)">
+ <rect width="114" height="72" rx="14" fill="#133C67" stroke="#31BCE9" stroke-width="2"/><path d="m24 25 18-10 19 10v22L42 58 24 47z" stroke="#88E5FF" stroke-width="2.5"/><path d="m24 25 18 11 19-11M42 36v22" stroke="#88E5FF" stroke-width="2.5"/><path d="M73 26h27m-27 10h20m-20 10h24" stroke="#66B5E8" stroke-width="2" stroke-linecap="round"/>
+</g>
+<g transform="translate(328 14)">
+ <rect width="108" height="94" rx="15" fill="#123A67" stroke="#2AD1EE" stroke-width="2"/>
+ <path d="M30 18h31l15 16v40H30zM61 18v17h15M40 43h27M40 54h20M40 65h17" stroke="#B6EDFF" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+ <circle cx="81" cy="72" r="14" fill="#37EAC7"/><path d="m75 72 4 4 7-9" stroke="#0A4264" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(608 84)">
+ <rect width="107" height="70" rx="14" fill="#123A67" stroke="#2AD1EE" stroke-width="2"/>
+ <path d="M20 24v-8h9m47 0h10v8M20 48v8h9m47 0h10v-8" stroke="#8BEAFF" stroke-width="2.5" stroke-linecap="round"/>
+ <path d="M35 27v20m7-20v20m5-20v20m7-20v20m6-20v20m6-20v20m6-20v20" stroke="#82DDF5" stroke-width="2"/>
+</g>
+<!-- pavement / reflections -->
+<ellipse cx="416" cy="320" rx="298" ry="25" fill="#194B85" opacity=".42" filter="url(#glow)"/>
+<path d="M74 319h622v10H74z" fill="url(#road)"/>
+<path d="M145 337h445" stroke="#2C7BA6" stroke-width="2" opacity=".40"/>
+<!-- warehouse with dimensional roof, loading bays and warm pallets -->
+<g filter="url(#shadow)">
+<path d="M186 216 322 155 501 209 501 315H186z" fill="url(#wall)" stroke="#75B4EC" stroke-width="2"/>
+<path d="M171 217 322 144 511 204 503 214 320 165 185 229z" fill="url(#roof)" stroke="#9BD1FF" stroke-width="3" stroke-linejoin="round"/>
+<path d="m189 215 133-62 176 52" stroke="#DAF1FF" stroke-width="3" opacity=".5"/>
+<path d="M203 236h69v79h-69zM295 219h96v96h-96zM409 230h66v85h-66z" fill="#0B2548" stroke="#4B94D3" stroke-width="3"/>
+<path d="M204 246h67M204 259h67M204 272h67M204 285h67m1-52v82m-68-29h67M410 245h64M410 263h64M410 280h64" stroke="#4487BB" stroke-opacity=".35" stroke-width="2"/>
+<path d="M295 233h96v4h-96zm0 20h96v3h-96zm0 19h96v3h-96zm0 19h96v3h-96z" fill="#4673A2"/>
+<g fill="#FAF5C6" opacity=".8" filter="url(#smallglow)"><ellipse cx="221" cy="237" rx="25" ry="4"/><ellipse cx="343" cy="220" rx="41" ry="4"/><ellipse cx="443" cy="232" rx="32" ry="4"/></g>
+<path d="M220 225v14m122-28v14m102-4v14" stroke="#E8F9FF" stroke-width="2"/>
+<!-- rack with warm interior goods -->
+<path d="M305 304v-64m24 64v-64m30 64v-64m23 64v-64m-77 23h77m-77 18h77" stroke="#76B7E6" stroke-width="3"/>
+<g fill="#E4AE65"><rect x="310" y="244" width="15" height="17" rx="2"/><rect x="335" y="244" width="20" height="17" rx="2"/><rect x="363" y="245" width="15" height="16" rx="2"/><rect x="310" y="263" width="21" height="16" rx="2"/><rect x="339" y="263" width="15" height="16" rx="2"/><rect x="360" y="263" width="18" height="16" rx="2"/></g>
+<g fill="#DCA45B" stroke="#FFD99A" stroke-width="1"><rect x="226" y="294" width="22" height="20"/><rect x="247" y="301" width="21" height="13"/><rect x="221" y="281" width="20" height="13"/></g>
+</g>
+<!-- Truck, layered for depth -->
+<g filter="url(#shadow)" transform="translate(471 249)">
+ <path d="M0 0h132v66H0z" fill="url(#trailer)" stroke="#93D6FF" stroke-width="2.2"/>
+ <path d="M5 8h122v46H5z" stroke="#88C7EE" stroke-opacity=".50"/>
+ <path d="m85 14 21 18-21 18m17-36 20 18-20 18" stroke="#9EE6FF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M132 22h35l24 20v26h-59z" fill="url(#truck)" stroke="#B6E9FF" stroke-width="2"/>
+ <path d="M141 27h23l17 17h-40z" fill="#15518D" stroke="#D8F1FF" stroke-width="1.6"/>
+ <path d="M130 61h64v8h-64zM0 63h131v6H0z" fill="#0A2851"/>
+ <circle cx="34" cy="67" r="13" fill="#0B203E" stroke="#BCDFFF" stroke-width="3.3"/><circle cx="164" cy="67" r="13" fill="#0B203E" stroke="#BCDFFF" stroke-width="3.3"/>
+ <circle cx="34" cy="67" r="5" fill="#79A9D9"/><circle cx="164" cy="67" r="5" fill="#79A9D9"/>
+ <path d="M186 52h8" stroke="#FFF2BE" stroke-width="4" stroke-linecap="round"/>
+</g>
+<!-- golden pallets by shipping bay -->
+<g transform="translate(177 301)"><rect x="0" y="8" width="58" height="7" rx="2" fill="#945F3B"/><rect x="5" y="-6" width="20" height="14" rx="1.5" fill="#D9A361" stroke="#FFE0A8"/><rect x="27" y="-12" width="25" height="20" rx="2" fill="#D9A361" stroke="#FFE0A8"/></g>
 </svg>

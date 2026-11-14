@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" aria-hidden="true">
+<defs>
+ <linearGradient id="bg" x1="120" y1="20" x2="1800" y2="1080" gradientUnits="userSpaceOnUse"><stop stop-color="#F8FAFF"/><stop offset=".55" stop-color="#F1F6FF"/><stop offset="1" stop-color="#E9F2FF"/></linearGradient>
+ <radialGradient id="halo" cx="0" cy="0" r="1" gradientTransform="translate(1030 410) rotate(90) scale(700 1100)" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF" stop-opacity=".85"/><stop offset="1" stop-color="#C9DDF8" stop-opacity="0"/></radialGradient>
+ <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#AAC3E8" stop-opacity=".37"/><stop offset="1" stop-color="#7DA7E0" stop-opacity=".15"/></linearGradient>
+ <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#6E9ED5" opacity=".07"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="url(#bg)"/><rect width="1920" height="1080" fill="url(#halo)"/><rect width="1920" height="1080" fill="url(#dots)"/>
+<!-- Air freight and ocean freight -->
+<g fill="#90B1DF" opacity=".40"><path d="m720 76 80 27 61-24 18 8-43 29 29 13-3 8-45-9-42 32-14-4 22-37-72-24z"/><path d="M160 108h164l-24 25H193zM194 96h25v-17h17v17h19V72h18v24h18v12h-97z"/><path d="M172 90v-12h12v12h-12zm28-23V53h9v14z"/></g>
+<!-- Global logistics globe -->
+<g opacity=".28" stroke="#8FAFDF" stroke-width="3"><circle cx="1406" cy="86" r="146"/><ellipse cx="1406" cy="86" rx="63" ry="146"/><path d="M1260 86h292M1274 21h264M1274 151h264"/><path d="M1320-34q88 123 0 244m172-244q-88 123 0 244" opacity=".5"/></g>
+<!-- Large warehouse shelving left -->
+<g transform="translate(-96 183)" stroke="#87AADB" opacity=".25" stroke-width="9">
+<path d="M2 36 164-72l281 178v580H0V38m164-110v656m281-478L164 5 0 112m90-13v490m77-439v430m85-376v382m95-327v326"/>
+<path d="M1 215h440M0 360h441M0 509h441M4 649h435" stroke-width="13"/>
+<path d="M2 215 160 310l282-95M2 360 161 451l281-91" stroke-width="4"/>
+</g>
+<!-- Logistics paths -->
+<g stroke="#8AB4ED" stroke-width="2.5" stroke-dasharray="8 13" opacity=".35">
+<path d="M-20 205C265 75 454 37 689 169c148 83 223 79 379 18s347-66 517 66 225 98 365-18"/>
+<path d="M-48 816c202-162 352-104 522-59 247 67 350 87 536-29 168-105 309-37 455-94 235-92 298-254 489-192"/>
+</g>
+<g fill="#FFF" stroke="#B4CDED" stroke-width="2" opacity=".88"><circle cx="188" cy="217" r="7"/><circle cx="630" cy="132" r="6"/><circle cx="1037" cy="192" r="7"/><circle cx="1585" cy="253" r="8"/><circle cx="248" cy="803" r="7"/><circle cx="1441" cy="647" r="7"/></g>
+<!-- Destination markings and arrows -->
+<g opacity=".25" fill="#7EA5D7"><path d="m1705 377 22 23-22 23h20l22-23-22-23z m38 0 22 23-22 23h20l22-23-22-23z m38 0 22 23-22 23h20l22-23-22-23z"/><path d="M1741 517a23 23 0 1 0 46 0 23 23 0 0 0-46 0zm24 53c-18-22-31-39-31-53a31 31 0 0 1 62 0c0 14-13 31-31 53z" fill-rule="evenodd"/></g>
+<!-- Truck outline at upper right -->
+<g stroke="#89AFDE" stroke-width="4" fill="#A2BFE6" fill-opacity=".20" opacity=".48" transform="translate(1695 121)"><rect width="106" height="47" rx="3"/><path d="M106 12h40l20 20v15h-60z"/><path d="M123 16h19l12 12h-31z" fill="#C9DBF2"/><circle cx="28" cy="50" r="11" fill="#9DBAE3"/><circle cx="132" cy="50" r="11" fill="#9DBAE3"/></g>
+<!-- Forklift and pallet at left foot -->
+<g transform="translate(86 800)" fill="#85ACDE" fill-opacity=".30" stroke="#7EA5D6" stroke-opacity=".38" stroke-width="5">
+<path d="M27 67V0h55l23 68M28 5H2v88h128V68H0M48 7v52m55 10V7h13v82" /><path d="M12 88h130v13H12z"/><circle cx="33" cy="104" r="22" fill="#EAF3FF"/><circle cx="111" cy="104" r="22" fill="#EAF3FF"/>
+<path d="M151 34h80v54h-80zM162 13h59v21h-59zM160 90h102" fill="#B2C9E8"/>
+</g>
+<!-- Pallet boxes at bottom right -->
+<g transform="translate(1638 802)" stroke="#9AB8DF" stroke-width="4" opacity=".45" fill="#A6C3E8" fill-opacity=".25"><path d="M-10 112h195v13H-10zM4 60h77v52H4zM86 43h83v69H86zM56 0h81v43H56z"/><path d="M40 60v52m81-69v69M91 0v43M4 75h77m5-10h83" stroke-width="2"/></g>
+<!-- Perspective floor -->
+<g stroke="#A2BEE4" stroke-opacity=".27" stroke-width="1.7">
+<path d="M0 925h1920M0 980h1920M0 1040h1920M960 880-40 1080M960 880 280 1080M960 880 520 1080M960 880 765 1080M960 880 960 1080M960 880 1155 1080M960 880 1400 1080M960 880 1640 1080M960 880 1970 1080"/>
+</g>
+</svg>
