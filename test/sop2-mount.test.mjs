@@ -147,6 +147,7 @@ test('coverage navigation opens SOP2 reader with number and step, not old handbo
  assert.equal(byClass(x.host,'sop2-workspace-coverage').hidden,true);
  assert.equal(view.back(),true);
  assert.equal(byClass(x.host,'sop2-workspace-coverage').hidden,false);
+ assert.equal(x.state.refreshed,true);
 });
 test('SOP2 edit shows only with edit rights, never inferred from old SOP admin UI',async()=>{
  const no=setup({hostname:testHost,flag:true,user:identity('Otto',false)});
@@ -306,4 +307,17 @@ test('SOP2 injection requires both RC1506 coverage and RC1502 persistence wrappe
  assert.throws(()=>injectSop2(base,'test.html'),/PERSISTENCE_ANCHOR_MISSING/);
  const reversed='<html><head><script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js"></script><script id="exporthub-rc1506-sop-coverage-runtime" defer src="/assets/sop/rc1506-sop-coverage-runtime.js"></script></head><body></body></html>';
  assert.throws(()=>injectSop2(reversed,'test.html'),/SCRIPT_ORDER/);
+});
+
+test('after editor changes, switching to reader reloads the current SOP revision',async()=>{
+ const x=setup({hostname:testHost,flag:true});
+ const view=x.root.ExportHubIsoSopUi.mount(x.host);
+ await view.open('SOP-EH-060');
+ byClass(x.host,'sop2-workspace-editor').click();
+ assert.equal(x.state.editor.length,1);
+ byClass(x.host,'sop2-workspace-reader').click();
+ for(let i=0;i<6;i++)await Promise.resolve();
+ assert.equal(x.state.requests.length,2);
+ assert.equal(x.state.reader.length,2);
+ assert.equal(x.state.legacy,0);
 });
