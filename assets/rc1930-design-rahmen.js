@@ -65,7 +65,7 @@
     var nav=form.querySelector('.rc1902-steps');
     if(!html.hasAttribute('data-eh-palette')||!steps.length||!nav){if(form.hasAttribute('data-rc1930-progress'))form.removeAttribute('data-rc1930-progress');return}
     var label=done+'/'+steps.length,pct=Math.round(done/steps.length*100)+'%';
-    var summary=nav.querySelector('.rc1902-summary'),title=tr('rc1930.ready');
+    var summary=nav.querySelector('.rc1902-summary'),title=tr(done===steps.length?'rc1930.ready':'rc1903.open');
     if(summary&&summary.getAttribute('data-rc1930-title')!==title)summary.setAttribute('data-rc1930-title',title);
     if(form.getAttribute('data-rc1930-progress')!==label)form.setAttribute('data-rc1930-progress',label);
     if(nav.getAttribute('data-rc1930-label')!==label)nav.setAttribute('data-rc1930-label',label);

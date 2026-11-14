@@ -131,11 +131,13 @@ test('RC1982: email handoff counts as started work; legacy ownerless processing 
 test('RC1982: public token can delete only own group and never approve another workers deletion',async()=>{
  const original={write:internal.write,readDocument:internal.readDocument};
  const state={orders:[],profiles:{},reporterGroups:[]},refs={environment:'testservice'};
+ // This public route uses the real clock. Keep frozen model fixtures but avoid an expired public date.
+ const liveRequestedDispatchDate=new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10);
  internal.write=async(_ref,mutator)=>mutator(state);
  internal.readDocument=async()=>state;
  try{
-  const first=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO198211'}),refs);
-  const second=await publicApi.publicAction(publicReq({action:'create',...payload,orderNumber:'SO198212',email:'other@example.org'}),refs);
+  const first=await publicApi.publicAction(publicReq({action:'create',...payload,requestedDispatchDate:liveRequestedDispatchDate,orderNumber:'SO198211'}),refs);
+  const second=await publicApi.publicAction(publicReq({action:'create',...payload,requestedDispatchDate:liveRequestedDispatchDate,orderNumber:'SO198212',email:'other@example.org'}),refs);
   const firstId=first.order.id,secondId=second.order.id;
   await assert.rejects(publicApi.publicAction(publicReq({action:'request-delete',id:secondId,accessToken:first.accessToken}),refs),error('URGENT_NOT_FOUND'));
   await assert.rejects(publicApi.publicAction(publicReq({action:'request-delete',id:firstId,accessToken:second.accessToken}),refs),error('URGENT_NOT_FOUND'));

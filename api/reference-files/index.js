@@ -54,9 +54,16 @@ async function graphFetch(url,options,environment='production'){const token=awai
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','api.reference.invalidReference',400);return ref}
 function folderPath(ref){return REFERENCE_FOLDER+'/'+ref}
-function mergeReferenceFileSources(graphFiles,azure,docs){
+function mergeReferenceFileSources(graphFiles,azure,docs,ref){
+ // Never rename storage identities: only derive a verified presentation label.
+ // A technical REF filename may contain the canonical DNC/SIDE suffix.
+ function displayName(name){
+  const original=text(name);
+  const match=/^Lieferschein_([A-Z0-9]{6})_[0-9]{8}-[0-9]{6}_((?:DNC|SIDE)[0-9]{6,20})\.pdf$/i.exec(original);
+  return match&&ref&&match[1].toUpperCase()===text(ref).toUpperCase()?match[2].toUpperCase()+'.pdf':original;
+ }
  // A name is not a storage identity: distinct Graph/AV/REF originals may share a filename.
- const files=Array.from(graphFiles||[]),seen=new Set();
+ const files=Array.from(graphFiles||[]).map(file=>file&&text(file.name)?Object.assign({},file,{displayName:displayName(file.name)}):file),seen=new Set();
  files.forEach(file=>{if(file&&text(file.id))seen.add('graph:'+text(file.id))});
  for(const {storage,items} of [{storage:'azure-av',items:azure},{storage:'azure-refdoc',items:docs}]){
   for(const file of Array.isArray(items)?items:[]){
@@ -65,7 +72,7 @@ function mergeReferenceFileSources(graphFiles,azure,docs){
    const key=storage+':'+id;
    if(seen.has(key))continue;
    seen.add(key);
-   files.push({id,name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+   files.push({id,name,displayName:displayName(name),size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
     lastModifiedDateTime:file.lastModifiedDateTime,storage});
   }
  }
@@ -253,7 +260,7 @@ module.exports=async function(context,req){
    if(!azure.length&&!docs.length)throw graphError;
    listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''};
   }
-  const files=mergeReferenceFileSources(listed.files,azure,docs);
+  const files=mergeReferenceFileSources(listed.files,azure,docs,ref);
   // Never claim "0 documents" when an independent source was unreadable.
   if(!files.length&&(azureError||docsError))throw error('REFERENCE_FILE_SOURCES_INCOMPLETE',
    'Die Dokumentenquellen konnten nicht vollständig geprüft werden. Bitte erneut laden.',503);

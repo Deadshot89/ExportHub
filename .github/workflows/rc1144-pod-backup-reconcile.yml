@@ -127,7 +127,7 @@ jobs:
           graph_target_failure_streak=0
           suppress_drive_backfill=0
           blocked_ambiguous_relink_batches=0
-          # RC1953: 25 metadata rows per page reduce Azure LIST/API round trips.
+          # P0 #999: scan 100 TESTSERVICE metadata rows; remote work stays capped at 2.
           # Actual remote integrity/upload work remains capped at two actions.
           for batch in $(seq 1 200); do
             # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
@@ -143,7 +143,7 @@ jobs:
             fi
             previous_continuation_token="$continuation_token"
             previous_relink_skip_count="$relink_skip_count"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:25,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(25,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:100,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(100,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -174,7 +174,7 @@ jobs:
                 process.stdout.write('again');
               })" "$http_code" "$batch")"
             continuation_token="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(v.nextContinuationToken||''))})")"
-            relink_skip_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(Math.max(0,Math.min(25,Math.floor(Number(v.nextRelinkSkipCount)||0)))))})")"
+            relink_skip_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(Math.max(0,Math.min(100,Math.floor(Number(v.nextRelinkSkipCount)||0)))))})")"
             if [ "$continuation_token" != "$previous_continuation_token" ]; then
               relink_skip_count=0
             fi

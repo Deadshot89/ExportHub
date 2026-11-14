@@ -34,12 +34,36 @@
   function visible(el){return !!(el&&!el.hidden&&el.getClientRects().length);}
 
   /* ---------- Daten aus der bestehenden Maske ---------- */
+  /* RC1935: Für die Fortschrittsanzeige nicht allein auf sichtbare
+     Warnboxen vertrauen: Pflichtangaben können anfangs noch unvalidiert sein.
+     Nur lesend prüfen; die bestehende Speicher-/Freigabelogik bleibt zuständig. */
+  function hasMissingDetails(b){
+    var invalid=[].slice.call(b.querySelectorAll('.badbox,.rc363-missing,[aria-invalid="true"]')).some(function(x){
+      return x.closest('.rc363-process-block')===b&&visible(x);
+    });
+    if(invalid)return true;
+    if(b.id==='rc363BlockCustomer'){
+      try{
+        var store=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
+        var shipment=store&&(store.shipment||store.currentShipment||store.selectedShipment);
+        if(shipment&&!String(shipment.customerId||'').trim())return true;
+      }catch(_){}
+    }
+    if(b.id==='rc363BlockColli'){
+      var rows=[].slice.call(b.querySelectorAll('.rc363-owned-row'));
+      if(!rows.length)return true;
+      return rows.some(function(row){
+        var count=row.querySelector('[data-rc363-field="count"] input');
+        var type=row.querySelector('[data-rc363-field="type"] input,[data-rc363-field="type"] select');
+        return !count||!(Number(String(count.value||'').replace(',','.'))>0)||!type||!String(type.value||'').trim();
+      });
+    }
+    return false;
+  }
   function blocks(){
     var l=layout();if(!l)return [];
     return [].slice.call(l.querySelectorAll('.rc363-process-block')).filter(function(b){return b.id&&b.querySelector(':scope>.rc363-process-head h2');}).map(function(b){
-      var warn=[].slice.call(b.querySelectorAll('.badbox,.rc363-missing,[aria-invalid="true"]')).filter(function(x){
-        var own=x.closest('.rc363-process-block');return own===b&&visible(x);
-      }).length;
+      var warn=hasMissingDetails(b);
       return {id:b.id,el:b,num:txt(b.querySelector(':scope>.rc363-process-head .rc363-process-number')),title:txt(b.querySelector(':scope>.rc363-process-head h2')),warn:warn};
     });
   }
@@ -173,5 +197,5 @@
     schedule();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
-  window.rc1902NeueSendungsmaske={render:render,state:ui};
+  window.rc1902NeueSendungsmaske={render:render,state:ui,hasMissingDetails:hasMissingDetails};
 })();

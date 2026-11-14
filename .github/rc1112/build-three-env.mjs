@@ -84,7 +84,7 @@ const RC1903_CAPTURE_SCRIPT_TAG='<script id="exporthub-rc1903-capture-script" de
 // RC1930: neue Designs Frost, Graphit, Azur, Stahl, Polar (nur html[data-eh-palette])
 const RC1930_PALETTES_STYLE_TAG='<link id="exporthub-rc1930-palettes-style" rel="stylesheet" href="/assets/rc1930-design-paletten.css?v=1933">';
 const RC1930_FRAME_SCRIPT_TAG='<script id="exporthub-rc1930-frame-script" defer src="/assets/rc1930-design-rahmen.js?v=1933"><\/script>';
-const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=20261111"><\/script>';
+const RC1820_TOPNAV_SCRIPT_TAG='<script id="exporthub-rc1820-topnav-script" defer src="/assets/rc1820-top-navigation.js?v=20261112p0"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
 const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
@@ -219,7 +219,7 @@ function patchRc1800PremiumDesign(html,file){
   if(!html.includes('rc1930-design-paletten.css?v=1933'))throw new Error(file+': RC1930 Design-Paletten fehlen');
   html=injectDeferredRuntimeInHead(html,RC1930_FRAME_SCRIPT_TAG,'exporthub-rc1930-frame-script');
   if(!html.includes('rc1930-design-rahmen.js?v=1933'))throw new Error(file+': RC1930 Design-Rahmen fehlt');
-  if(!html.includes('rc1820-top-navigation.css?v=1931')||!html.includes('rc1820-top-navigation.js?v=20261111'))throw new Error(file+': RC1820 Menü oben fehlt');
+  if(!html.includes('rc1820-top-navigation.css?v=1931')||!html.includes('rc1820-top-navigation.js?v=20261112p0'))throw new Error(file+': RC1820 Menü oben fehlt');
   return html;
 }
 
@@ -1900,6 +1900,7 @@ const qualityPage=path.join(ROOT,'qualitaet.html');
 if(!fs.existsSync(qualityPage))throw new Error('CAPA Qualitätsseite qualitaet.html fehlt');
 fs.copyFileSync(qualityPage,path.join(OUT,'qualitaet.html'));
 if(!fs.existsSync(path.join(builtApi,'quality-capa','function.json')))throw new Error('CAPA API wurde nicht in den Release-Build übernommen');
+if(!fs.existsSync(path.join(builtApi,'sop-documents','function.json')))throw new Error('SOP2 API wurde nicht in den Release-Build übernommen');
 fs.mkdirSync(path.join(OUT,'assets'),{recursive:true});
 fs.copyFileSync(path.join(ROOT,'assets/rc1267-i18n.js'),path.join(OUT,'assets/rc1267-i18n.js'));
 fs.cpSync(path.join(ROOT,'assets/i18n'),path.join(OUT,'assets/i18n'),{recursive:true,force:true});
