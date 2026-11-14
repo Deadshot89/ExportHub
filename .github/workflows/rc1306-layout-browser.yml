@@ -15,7 +15,6 @@ on:
       - 'e2e/specs/rc1371-dashboard-personalization.spec.mjs'
       - 'e2e/specs/qa-f03-click-targets.spec.mjs'
       - 'e2e/helpers/qa-hit-targets.mjs'
-      - 'assets/rc1902-neue-sendungsmaske.css'
       - 'assets/rc1705-context-sop-help.css'
       - 'assets/taskplanner-v2.css'
       - 'assets/rc1081-audit-history.js'

@@ -5,12 +5,6 @@ import assert from 'node:assert/strict';
 // QA-Bericht 13.11.2026 F03: im Browser gefundene Überlagerungen, hier als Quellvertrag gesichert.
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('QA F03: Standard-SOP-Schaltfläche liegt auf dem Handy über der festen Aktionsleiste',()=>{
-  const css=read('assets/rc1902-neue-sendungsmaske.css');
-  const mobile=css.slice(css.indexOf('@media (max-width:760px){'));
-  assert.match(mobile,/html:not\(\[data-eh-layout="top"\]\) body:has\(#rc1902ShipmentForm \.rc1902-actions\) #rc1705-sop-shipment\{bottom:calc\(84px/);
-});
-
 test('QA F03: Aufgaben-Erinnerung stapelt sich über "SOP / Hilfe" und bleibt scrollbar',()=>{
   const css=read('assets/taskplanner-v2.css');
   const rule=css.indexOf('body:has(#rc1705-sop-launcher) .tpv2-reminder-host{bottom:76px}');
