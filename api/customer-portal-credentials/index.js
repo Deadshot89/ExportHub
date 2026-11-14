@@ -1,6 +1,7 @@
 'use strict';
 
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const store=require('../shared/customer-portal-store');
 
 function text(v){return String(v==null?'':v).trim()}
@@ -57,11 +58,12 @@ async function clearReauthFailures(req,current){
  });
 }
 
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:''};return}
  if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
  try{
-  const payload=body(req),current=await auth.validateSession(req),r=rights(current.user),action=text(payload.action||'list').toLowerCase();
+  const payload=body(req),current=await validateSession(req),r=rights(current.user),action=text(payload.action||'list').toLowerCase();
   ensureUse(r);
   const environment=auth.environmentFromRequest(req);
   if(action==='status'){
