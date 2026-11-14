@@ -27,7 +27,7 @@ const SCRIPT=[
  ['exporthub-sop2-coverage','/assets/sop2/sop2-coverage.js'],
  ['exporthub-sop2-mount','/assets/sop2/sop2-mount.js']
 ];
-const ANCHOR_ID='exporthub-rc1502-sop-persistence';
+const ANCHOR_ID='exporthub-rc1506-sop-coverage-runtime';
 function count(html,id){return html.split('id="'+id+'"').length-1;}
 function tagId(id,path,kind){return kind==='css'?
  '<link id="'+id+'" rel="stylesheet" href="'+path+'?v=sop2phase1">':
