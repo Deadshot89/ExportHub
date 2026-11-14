@@ -10,6 +10,7 @@ const { isTransientStorageWriteError } = require('../shared/state-save-retry');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { createVerifiedSnapshot } = require('../shared/state-backup-lifecycle');
+const { createTestserviceHealthEtagCache } = require('../shared/testservice-health-etag-cache');
 const { compactStateForStorage } = require('../shared/state-compaction');
 const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
 const apiI18n = require('../shared/i18n');
@@ -32,6 +33,9 @@ const TRANSIENT_SAVE_BACKOFF_BASE_MS = 150;
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
 const API_VERSION = 'RC1458';
 const TEAM_WARM_CACHE = new Map();
+// Public health checks may repeat frequently. Only testservice aggregates are
+// reused after a real Azure HEAD confirms the same account-scoped Blob ETag.
+const readVerifiedTestserviceHealth = createTestserviceHealthEtagCache();
 const AUTH_WARM_CACHE = new Map();
 
 function text(v){ return String(v == null ? '' : v).trim(); }
@@ -120,7 +124,10 @@ async function clients(req,payload){
  let service;try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','api.state.storageInvalid',503,{error:e&&e.message||'CONFIGURATION_ERROR'})}
  const container=service.getContainerClient(isTest?isolated.container:TEAM_CONTAINER),teamBlobName=teamBlobForEnvironment(environment);
  const diagnosticsBlobName=diagnosticsBlobForEnvironment(environment);
- return{container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),
+ // Fingerprint credentials in memory only: never retain/output a connection
+ // string, SAS URL or account name in a health response or cache key.
+ const healthScope=environment==='testservice'?crypto.createHash('sha256').update(cs).update('\n'+(isTest?isolated.container:TEAM_CONTAINER)+'\n'+teamBlobName).digest('hex'):null;
+ return{container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,healthScope,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),
   // Never hand a production team-state handle to isolated TESTSERVICE.
   productionTeam:isTest?null:container.getBlockBlobClient(TEAM_BLOB_BASE),
   auth:container.getBlockBlobClient(isTest?isolated.authBlob:AUTH_BLOB)};
@@ -1116,8 +1123,25 @@ module.exports=async function(context,req){
   if(mode==='health'){
    const c=await clients(req,payload),authStarted=Date.now();
    let authReadable=true,authCheck=null;try{authCheck=await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','api.state.authBlobUnreadable',503,{error:e&&e.message||'UNKNOWN'})}
-   await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
-   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:Number(teamCheck.bytes||0),stateDiagnostics:stateSizeDiagnostics(teamCheck.value&&teamCheck.value.state),collectionFieldBytes:collectionFieldSizeDiagnostics(teamCheck.value&&teamCheck.value.state),authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
+   await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now();
+   const teamSummary=await readVerifiedTestserviceHealth({
+    key:c.healthScope,
+    head:()=>c.team.getProperties(),
+    read:async()=>{
+     const teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery);
+     return{
+      etag:teamCheck.etag||null,
+      cacheable:!!teamCheck.etag&&teamCheck.recoveredFromHistory!==true&&teamCheck.missingCurrent!==true&&teamCheck.corruptCurrent!==true,
+      summary:{
+       teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,
+       teamStateBytes:Number(teamCheck.bytes||0),
+       stateDiagnostics:stateSizeDiagnostics(teamCheck.value&&teamCheck.value.state),
+       collectionFieldBytes:collectionFieldSizeDiagnostics(teamCheck.value&&teamCheck.value.state)
+      }
+     };
+    }
+   }),teamReadMs=Date.now()-teamStarted;
+   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamSummary.teamStateRecoveredFromHistory,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:teamSummary.teamStateBytes,stateDiagnostics:teamSummary.stateDiagnostics,collectionFieldBytes:teamSummary.collectionFieldBytes,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
   const clientsStarted=Date.now(),c=await clients(req,payload),clientsMs=Date.now()-clientsStarted;
   if(mode==='diagnostics-append'){
