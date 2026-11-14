@@ -1,0 +1,68 @@
+name: RC1638 TESTSERVICE Auth Route Fast Path
+
+on:
+  pull_request:
+    paths:
+      - 'api/pod-quality-audit/index.js'
+      - 'api/packaging-admin/index.js'
+      - 'api/pack-stations-admin/index.js'
+      - 'api/customer-portal-credentials/index.js'
+      - 'api/urgent-orders/index.js'
+      - 'api/quality-capa/index.js'
+      - 'api/shipment-documentation/index.js'
+      - 'api/shipment-evidence/index.js'
+      - 'api/avis-reminder-mail/index.js'
+      - 'api/web-push/index.js'
+      - 'api/exporthub-auth/index.js'
+      - 'api/sop-documents/index.js'
+      - 'test/rc1638-testservice-auth-route-fastpath.test.mjs'
+      - '.github/workflows/rc1638-testservice-auth-route-fastpath.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/pod-quality-audit/index.js'
+      - 'api/packaging-admin/index.js'
+      - 'api/pack-stations-admin/index.js'
+      - 'api/customer-portal-credentials/index.js'
+      - 'api/urgent-orders/index.js'
+      - 'api/quality-capa/index.js'
+      - 'api/shipment-documentation/index.js'
+      - 'api/shipment-evidence/index.js'
+      - 'api/avis-reminder-mail/index.js'
+      - 'api/web-push/index.js'
+      - 'api/exporthub-auth/index.js'
+      - 'api/sop-documents/index.js'
+      - 'test/rc1638-testservice-auth-route-fastpath.test.mjs'
+      - '.github/workflows/rc1638-testservice-auth-route-fastpath.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-testservice-auth-routes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Check changed API syntax
+        run: |
+          node --check api/pod-quality-audit/index.js
+          node --check api/packaging-admin/index.js
+          node --check api/pack-stations-admin/index.js
+          node --check api/customer-portal-credentials/index.js
+          node --check api/urgent-orders/index.js
+          node --check api/quality-capa/index.js
+          node --check api/shipment-documentation/index.js
+          node --check api/shipment-evidence/index.js
+          node --check api/avis-reminder-mail/index.js
+          node --check api/web-push/index.js
+          node --check api/exporthub-auth/index.js
+          node --check api/sop-documents/index.js
+      - name: Verify TESTSERVICE ETag route adoption
+        run: node --test test/rc1638-testservice-auth-route-fastpath.test.mjs
