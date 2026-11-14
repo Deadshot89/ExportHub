@@ -1,5 +1,6 @@
 'use strict';
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const packaging=require('../shared/packaging-admin-store');
 const apiI18n=require('../shared/i18n');
 
@@ -28,11 +29,13 @@ function adminName(user){return text(user&&(user.name||user.displayName||user.us
 function messageFor(req,code){return apiI18n.t(req,ERROR_KEYS[code]||'api.packaging.serverError');}
 function audit(team,event,actor,result,extra){const p=result&&result.packaging||{},before=result&&Object.prototype.hasOwnProperty.call(result,'before')?result.before:null,after=result&&Object.prototype.hasOwnProperty.call(result,'after')?result.after:(p&&Object.keys(p).length?p:null);auth.addAudit(team,event,actor,Object.assign({packagingId:text(p.id||before&&before.id||after&&after.id),packagingName:text(p.name||before&&before.name||after&&after.name),active:p.active!==false,before,after},extra||{}));}
 
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
+
 module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
   if(req.method!=='POST'){const code='METHOD_NOT_ALLOWED';context.res=json(405,{ok:false,code,message:messageFor(req,code)});return;}
   try{
-    const payload=body(req),current=await auth.validateSession(req),user=current.user;
+    const payload=body(req),current=await validateSession(req),user=current.user;
     if(!auth.isAdmin(user)){const code='GLOBAL_ADMIN_REQUIRED';throw auth.error(code,messageFor(req,code),403);}
     const environment=auth.environmentFromRequest(req),action=text(payload.action||'list').toLowerCase(),actor=adminName(user);
     if(action==='list'){

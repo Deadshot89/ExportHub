@@ -2,6 +2,7 @@
 
 // SOP2 private API. No legacy SOP or shared team-state mutation.
 const authStore=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const rules=require('../shared/sop-rules');
 const service=require('../shared/sop-service');
 const {defaultStore}=require('../shared/sop-store');
@@ -66,7 +67,7 @@ async function handle(context,req,deps={}) {
     }
 
     // No identity, rights, or environment claimed by the browser is trusted.
-    const session=await auth.validateSession(req);
+    const session=await (fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req):auth.validateSession(req));
     const user=session&&session.user;
     if (!user) throw fail('AUTH_REQUIRED',401);
     const environment=auth.environmentFromRequest(req);

@@ -1,6 +1,7 @@
 'use strict';
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const fs=require('node:fs');
 const path=require('node:path');
 const apiI18n=require('../shared/i18n');
@@ -18,6 +19,7 @@ const TEST_BLOB='testservice/urgent-orders/v1.json';
 const PROD_PACKING_BLOB='urgent-orders/packing-catalog-v1.json';
 const TEST_PACKING_BLOB='testservice/urgent-orders/packing-catalog-v1.json';
 
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function empty(){return{schemaVersion:1,updatedAt:null,orders:[],profiles:{},reporterGroups:[]};}
 function normalize(doc){const d=doc&&typeof doc==='object'?doc:empty();d.orders=Array.isArray(d.orders)?d.orders:[];d.profiles=d.profiles&&typeof d.profiles==='object'&&!Array.isArray(d.profiles)?d.profiles:{};d.reporterGroups=Array.isArray(d.reporterGroups)?d.reporterGroups:[];return d;}
@@ -349,7 +351,7 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
  try{
-  const current=await withReadRetry(async()=>await auth.validateSession(req));
+  const current=await withReadRetry(async()=>await validateSession(req));
   const ref=storage(req);
   const result=await execute(req,current.user,ref);
   await postSaveP1(requestBody(req).action,result,ref,{log:context.log});

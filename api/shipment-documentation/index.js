@@ -4,6 +4,7 @@
 const crypto=require('crypto');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
 const rights=require('../shared/state-write-guard');
 const shipments=require('../shared/av-check');
@@ -63,8 +64,9 @@ function bodyOf(req){
  if(raw&&typeof raw==='object'&&!Buffer.isBuffer(raw))return raw;
  try{return JSON.parse(String(raw||'{}'))}catch(_){throw problem('INVALID_JSON','Ungueltige Eingabe.')}
 }
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
 async function userEnvironment(req){
- const logged=await auth.validateSession(req),env=auth.environmentFromRequest(req),storage=auth.loginStorageEnvironment(req);
+ const logged=await validateSession(req),env=auth.environmentFromRequest(req),storage=auth.loginStorageEnvironment(req);
  const sessionEnv=txt(logged.session&&logged.session.environment,32).toLowerCase();
  if((sessionEnv==='testservice'&&env!=='testservice')||(storage==='testservice'&&sessionEnv!=='testservice'))
   throw problem('SESSION_ENVIRONMENT_MISMATCH','Anmeldung gehoert zu einer anderen Umgebung.',403);

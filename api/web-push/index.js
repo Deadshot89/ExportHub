@@ -10,6 +10,7 @@
 // by its secret endpoint URL, so a device can be switched off without logging in.
 
 const auth = require('../shared/auth-store');
+const fastAuth = require('../shared/fast-auth-store');
 const { isAdmin } = require('../shared/user-policy');
 const webPush = require('../shared/web-push');
 const storeLib = require('../shared/web-push-store');
@@ -35,7 +36,7 @@ function defaultDeps() {
   const container = () => helpers.service().getContainerClient(helpers.TEAM_CONTAINER);
   return {
     store: storeLib.createStore({ container, readJson: helpers.readJson, uploadJson: helpers.uploadJson }),
-    validateSession: (req) => auth.validateSession(req),
+    validateSession: (req) => fastAuth && typeof fastAuth.isSource === 'function' && fastAuth.isSource(auth) ? fastAuth.validateSession(req) : auth.validateSession(req),
     readTeam: async (environment) => {
       const c = await auth.clientsForEnvironment(environment);
       const r = await auth.readJson(c.team, auth.emptyTeam());

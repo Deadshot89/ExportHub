@@ -2,17 +2,20 @@
 
 // RC1577: admin-only, read-only POD quality report (see api/shared/pod-quality-audit.js).
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const audit=require('../shared/pod-quality-audit');
 
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req&&req.body||'{}')}catch(_){return{}}}
 function text(v){return String(v==null?'':v).trim()}
 
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
+
 module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',version:audit.VERSION});return;}
   try{
-    const payload=body(req),current=await auth.validateSession(req);
+    const payload=body(req),current=await validateSession(req);
     if(!auth.isAdmin(current.user))throw auth.error('GLOBAL_ADMIN_REQUIRED','Only global administrators may run the POD audit.',403);
     const action=text(payload.action||'report').toLowerCase();
     if(action!=='report')throw auth.error('INVALID_ACTION','Unknown POD audit action.',400);
