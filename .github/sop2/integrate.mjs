@@ -27,7 +27,7 @@ const SCRIPT=[
  ['exporthub-sop2-coverage','/assets/sop2/sop2-coverage.js'],
  ['exporthub-sop2-mount','/assets/sop2/sop2-mount.js']
 ];
-const ANCHOR_ID='exporthub-rc1506-sop-coverage-runtime';
+const ANCHOR_ID='exporthub-rc1502-sop-persistence';
 function count(html,id){return html.split('id="'+id+'"').length-1;}
 function tagId(id,path,kind){return kind==='css'?
  '<link id="'+id+'" rel="stylesheet" href="'+path+'?v=sop2phase1">':
@@ -39,8 +39,10 @@ export function injectSop2(html,file='build.html'){
  if(ids.some(id=>count(out,id)>1))throw new Error(file+': SOP2 DUPLICATE_ASSET');
  // Strict requirement: the legacy scanner and admin dashboard are already
  // loaded in the correct order. SOP2 mount runs AFTER the original runtime.
- const anchorRx=/<script\s+id=["']exporthub-rc1506-sop-coverage-runtime["'][^>]*><\/script>/i;
- if(!anchorRx.test(out))throw new Error(file+': SOP2 LEGACY_COVERAGE_ANCHOR_MISSING');
+ if(count(out,'exporthub-rc1506-sop-coverage-runtime')!==1)
+   throw new Error(file+': SOP2 COVERAGE_RUNTIME_REQUIRED');
+ const anchorRx=/<script\s+id=["']exporthub-rc1502-sop-persistence["'][^>]*><\/script>/i;
+ if(!anchorRx.test(out))throw new Error(file+': SOP2 PERSISTENCE_ANCHOR_MISSING');
  const styles=STYLE.filter(([id])=>!count(out,id)).map(([id,p])=>tagId(id,p,'css'));
  if(styles.length)out=out.replace(/<\/head>/i,styles.join('\n')+'\n</head>');
  const scripts=SCRIPT.filter(([id])=>!count(out,id)).map(([id,p])=>tagId(id,p,'js'));
@@ -48,7 +50,9 @@ export function injectSop2(html,file='build.html'){
  for(const id of ids)if(count(out,id)!==1)throw new Error(file+': SOP2 ASSET_COUNT '+id);
  const indices=SCRIPT.map(([id])=>out.indexOf('id="'+id+'"'));
  const lastLegacy=out.indexOf('id="'+ANCHOR_ID+'"');
- if(indices.some((i,n)=>i<lastLegacy||(n>0&&i<=indices[n-1])))throw new Error(file+': SOP2 SCRIPT_ORDER');
+ const coverageRuntime=out.indexOf('id="exporthub-rc1506-sop-coverage-runtime"');
+ if(coverageRuntime>=lastLegacy||indices.some((i,n)=>i<lastLegacy||(n>0&&i<=indices[n-1])))
+   throw new Error(file+': SOP2 SCRIPT_ORDER');
  // Release builder must not ship an activation flag; that requires later consent.
  if(/__EXPORTHUB_SOP2_PHASE1__\s*=\s*true/.test(out))
    throw new Error(file+': SOP2 FEATURE_FLAG_UNAUTHORIZED');
