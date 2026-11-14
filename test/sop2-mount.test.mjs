@@ -217,7 +217,11 @@ test('new draft version is always explicit, revision-bound, and not created on v
  byClass(x.host,'sop2-workspace-new-version').click();
  for(let i=0;i<6;i++)await Promise.resolve();
  assert.equal(calls.length,1);
- assert.deepEqual(calls[0],{name:'new-version',payload:{id:'SOP-EH-060',revision:2}});
+ // The callback is created inside the VM realm; assert its contract field by field
+ // instead of deepStrictEqual across different JavaScript prototypes.
+ assert.equal(calls[0].name,'new-version');
+ assert.equal(calls[0].payload.id,'SOP-EH-060');
+ assert.equal(calls[0].payload.revision,2);
  assert.equal(x.state.editor.length,1);
 });
 test('SOP2 integration i18n packs have same nonempty keys in all six languages',()=>{
