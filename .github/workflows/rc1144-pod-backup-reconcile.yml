@@ -207,7 +207,7 @@ jobs:
               echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
             fi
             if [ "$verdict" = "done" ]; then
-              # RC1780: Azure archive errors still fail (exit 8/9 above). Only the SharePoint
+              # RC1780: Azure archive errors keep their hard failure codes. Only the SharePoint
               # server copy that the owner explicitly disabled is reported as a warning.
               if [ "$optional_drive_pending_batches" -gt 0 ] && [ "${POD_SHAREPOINT_SERVER_COPY:-}" = 'disabled' ]; then
                 echo "::warning title=SharePoint-Serverkopie deaktiviert::$optional_drive_pending_batches Batch-Antworten ohne SharePoint-Serverkopie. Vom Owner deaktiviert (Repository-Variable EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled); Azure-Archiv vollständig, Zweitkopie über den OneDrive-Ordner im Browser (RC1780)."
@@ -403,7 +403,7 @@ jobs:
               echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
             fi
             if [ "$verdict" = "done" ]; then
-              # RC1780: Azure archive errors still fail (exit 8/9 above). Only the SharePoint
+              # RC1780: Azure archive errors keep their hard failure codes. Only the SharePoint
               # server copy that the owner explicitly disabled is reported as a warning.
               if [ "$optional_drive_pending_batches" -gt 0 ] && [ "${POD_SHAREPOINT_SERVER_COPY:-}" = 'disabled' ]; then
                 echo "::warning title=SharePoint-Serverkopie deaktiviert::$optional_drive_pending_batches Batch-Antworten ohne SharePoint-Serverkopie. Vom Owner deaktiviert (Repository-Variable EXPORTHUB_POD_SHAREPOINT_SERVER_COPY=disabled); Azure-Archiv vollständig, Zweitkopie über den OneDrive-Ordner im Browser (RC1780)."
