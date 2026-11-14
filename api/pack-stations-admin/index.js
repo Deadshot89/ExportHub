@@ -2,6 +2,7 @@
 const crypto=require('crypto');
 const QRCode=require('qrcode');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const packStore=require('../shared/pack-notification-store');
 
 const SHARED_STATION_ID='PACK-SHARED';
@@ -54,11 +55,13 @@ function ensureSharedStation(list,now){
  return{station,created:false};
 }
 
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return;}
  try{
-  const payload=body(req),current=await auth.validateSession(req),user=current.user;
+  const payload=body(req),current=await validateSession(req),user=current.user;
   if(!auth.isAdmin(user))throw auth.error('GLOBAL_ADMIN_REQUIRED','Nur Administratoren dürfen den Pack-QR-Code verwalten.',403);
   const environment=auth.environmentFromRequest(req),action=text(payload.action||'shared').toLowerCase();
   if(action==='shared'||action==='rotate-shared'){
