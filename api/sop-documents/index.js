@@ -67,8 +67,7 @@ async function handle(context,req,deps={}) {
     }
 
     // No identity, rights, or environment claimed by the browser is trusted.
-    const validator=fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth:auth;
-    const session=await validator.validateSession(req);
+    const session=await (fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req):auth.validateSession(req));
     const user=session&&session.user;
     if (!user) throw fail('AUTH_REQUIRED',401);
     const environment=auth.environmentFromRequest(req);
