@@ -29,6 +29,9 @@ function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'}
 function safe(v){return q(v).replace(/[<>:"/\\|?*\x00-\x1f]+/g,'_').replace(/\s+/g,'_').replace(/^_+|_+$/g,'').slice(0,110)||'POD'}
 function ref(sh){return q(sh&&[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.id,sh.shipmentId].find(Boolean)).toUpperCase()}
+function packs(){var p=w.ExportHUBPodOneDrive1780I18n;return p&&p.packs||{de:{}}}
+function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function'){var l=low(w.ExportHUBI18n.language());if(packs()[l])return l}}catch(_){}return'de'}
+function t(key,vars){var all=packs(),pack=all[lang()]||all.de||{},text=pack[key]||(all.de||{})[key]||key;if(vars)Object.keys(vars).forEach(function(k){text=text.split('{'+k+'}').join(String(vars[k]))});return text}
 function isPdf(bytes){return !!bytes&&bytes.length>4&&bytes[0]===0x25&&bytes[1]===0x50&&bytes[2]===0x44&&bytes[3]===0x46&&bytes[4]===0x2d}
 
 /* ---------- IndexedDB (eigener Speicher, unabhängig vom Notfallordner) ---------- */
@@ -76,9 +79,9 @@ async function connect(options){
  options=options||{};
  var saved=options.choose?null:await getFolder();
  if(saved&&await permission(saved,true)){notify();runSoon(300,true);return saved}
- if(!supported())throw new Error('Dieser Browser kann keinen PC-Ordner verbinden. Bitte Microsoft Edge oder Google Chrome am PC verwenden.');
+ if(!supported())throw new Error(t('browserUnsupported'));
  var handle=await w.showDirectoryPicker({id:'exporthub-pod-onedrive',mode:'readwrite',startIn:'documents'});
- if(!await permission(handle,true))throw new Error('Schreibzugriff auf den Ordner wurde nicht erlaubt.');
+ if(!await permission(handle,true))throw new Error(t('writeDenied'));
  await kvSet(DIR_KEY,handle);
  await saveStatus({connectedAt:new Date().toISOString(),written:0,skipped:0,failed:[],lastRun:'',lastError:''});
  notify();
@@ -222,22 +225,19 @@ function panel(){
  box=doc.createElement('section');box.id='rc1780PodOneDrive';box.className='rc1780-pod-onedrive';
  box.setAttribute('aria-labelledby','rc1780PodOneDriveTitle');
  box.style.cssText='margin-top:14px;padding:12px 14px;border:1px solid var(--line,#d0d7de);border-radius:10px';
- box.innerHTML='<h3 id="rc1780PodOneDriveTitle" style="margin:0 0 4px;font-size:15px">OneDrive-Ordner (Abliefernachweise)</h3>'+
-  '<p class="muted" style="margin:0 0 8px">ExportHUB legt jede gesicherte POD-PDF automatisch in diesen Ordner. OneDrive lädt sie nach SharePoint hoch. Vorhandene Dateien werden nie überschrieben.</p>'+
+ box.innerHTML='<h3 id="rc1780PodOneDriveTitle" style="margin:0 0 4px;font-size:15px"></h3><p class="muted" data-rc1780-intro style="margin:0 0 8px"></p>'+
   '<p id="rc1780PodOneDriveStatus" role="status" aria-live="polite" style="margin:0 0 8px"></p>'+
-  '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
-  '<button type="button" id="rc1780PodOneDriveConnect"></button>'+
-  '<button type="button" class="ghost" id="rc1780PodOneDriveRun">Jetzt abgleichen</button>'+
-  '<button type="button" class="ghost" id="rc1780PodOneDriveDisconnect">Trennen</button></div>';
+  '<div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" id="rc1780PodOneDriveConnect"></button>'+
+  '<button type="button" class="ghost" id="rc1780PodOneDriveRun"></button><button type="button" class="ghost" id="rc1780PodOneDriveDisconnect"></button></div>';
  var anchor=host.querySelector('.rc551-pod-emergency');
  if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);else host.appendChild(box);
  box.querySelector('#rc1780PodOneDriveConnect').addEventListener('click',function(){
-  connect({choose:this.dataset.mode==='choose'}).catch(function(e){if(e&&e.name==='AbortError')return;setText('Fehler: '+q(e&&e.message||e))});
+  connect({choose:this.dataset.mode==='choose'}).catch(function(e){if(e&&e.name==='AbortError')return;setText(t('error',{message:q(e&&e.message||e)}))});
  });
  box.querySelector('#rc1780PodOneDriveRun').addEventListener('click',function(){
-  setText('Abgleich läuft …');runNow({manual:true}).then(function(r){
-   if(r.reason==='needs-permission')setText('Bitte zuerst „Ordner wieder freigeben“ klicken.');
-  }).catch(function(e){setText('Fehler: '+q(e&&e.message||e))});
+  setText(t('running'));runNow({manual:true}).then(function(r){
+   if(r.reason==='needs-permission')setText(t('askPermission'));
+  }).catch(function(e){setText(t('error',{message:q(e&&e.message||e)}))});
  });
  box.querySelector('#rc1780PodOneDriveDisconnect').addEventListener('click',function(){disconnect().catch(function(){})});
  return box;
@@ -249,16 +249,18 @@ function render(){
  info().then(function(s){
   var status=box.querySelector('#rc1780PodOneDriveStatus'),c=box.querySelector('#rc1780PodOneDriveConnect'),
    run=box.querySelector('#rc1780PodOneDriveRun'),off=box.querySelector('#rc1780PodOneDriveDisconnect');
+  box.querySelector('#rc1780PodOneDriveTitle').textContent=t('title');box.querySelector('[data-rc1780-intro]').textContent=t('intro');
+  run.textContent=t('runNow');off.textContent=t('disconnect');
   run.hidden=!s.connected;off.hidden=!s.connected;
-  if(!s.supported){status.textContent='Nur am PC mit Microsoft Edge oder Google Chrome möglich.';c.hidden=true;return}
+  if(!s.supported){status.textContent=t('unsupported');c.hidden=true;return}
   c.hidden=false;c.dataset.mode='';
-  if(!s.connected){status.textContent='Nicht verbunden.';c.textContent='OneDrive-Ordner verbinden';return}
-  if(!s.writable){status.textContent='Ordner „'+s.name+'“ ist gespeichert, aber der Browser braucht eine neue Freigabe. Bis dahin werden keine PODs in den Ordner geschrieben.';c.textContent='Ordner wieder freigeben';return}
-  c.textContent='Anderen Ordner wählen';c.dataset.mode='choose';
-  var parts=['Verbunden mit „'+s.name+'“.'];
-  if(s.running)parts.push('Abgleich läuft …');
-  else if(s.lastRun)parts.push('Letzter Abgleich '+fmt(s.lastRun)+': '+s.totalInFolder+' POD(s) im Ordner.');
-  if(s.failed.length)parts.push(s.failed.length+' POD(s) konnten nicht geschrieben werden, z. B. '+s.failed[0]);
+  if(!s.connected){status.textContent=t('notConnected');c.textContent=t('connect');return}
+  if(!s.writable){status.textContent=t('needsPermission',{name:s.name});c.textContent=t('reconnect');return}
+  c.textContent=t('choose');c.dataset.mode='choose';
+  var parts=[t('connected',{name:s.name})];
+  if(s.running)parts.push(t('running'));
+  else if(s.lastRun)parts.push(t('lastRun',{time:fmt(s.lastRun),count:s.totalInFolder}));
+  if(s.failed.length)parts.push(t('failed',{count:s.failed.length,first:s.failed[0]}));
   status.textContent=parts.join(' ');
  }).catch(function(){}).then(function(){rendering=false});
 }

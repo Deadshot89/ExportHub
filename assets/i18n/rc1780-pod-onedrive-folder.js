@@ -1,0 +1,50 @@
+/* ExportHUB RC1780 – texts of the POD OneDrive folder copy in six languages. */
+(function(root){
+'use strict';
+if(!root||root.ExportHUBPodOneDrive1780I18n)return;
+var I18N={
+ de:{title:'OneDrive-Ordner (Abliefernachweise)',intro:'ExportHUB legt jede gesicherte POD-PDF automatisch in diesen Ordner. OneDrive lädt sie nach SharePoint hoch. Vorhandene Dateien werden nie überschrieben.',
+  connect:'OneDrive-Ordner verbinden',reconnect:'Ordner wieder freigeben',choose:'Anderen Ordner wählen',runNow:'Jetzt abgleichen',disconnect:'Trennen',
+  unsupported:'Nur am PC mit Microsoft Edge oder Google Chrome möglich.',notConnected:'Nicht verbunden.',
+  needsPermission:'Ordner „{name}“ ist gespeichert, aber der Browser braucht eine neue Freigabe. Bis dahin werden keine PODs in den Ordner geschrieben.',
+  connected:'Verbunden mit „{name}“.',running:'Abgleich läuft …',lastRun:'Letzter Abgleich {time}: {count} POD(s) im Ordner.',
+  failed:'{count} POD(s) konnten nicht geschrieben werden, z. B. {first}',askPermission:'Bitte zuerst „Ordner wieder freigeben“ klicken.',error:'Fehler: {message}',
+  browserUnsupported:'Dieser Browser kann keinen PC-Ordner verbinden. Bitte Microsoft Edge oder Google Chrome am PC verwenden.',writeDenied:'Schreibzugriff auf den Ordner wurde nicht erlaubt.'},
+ en:{title:'OneDrive folder (proofs of delivery)',intro:'ExportHUB automatically saves every backed-up POD PDF into this folder. OneDrive uploads it to SharePoint. Existing files are never overwritten.',
+  connect:'Connect OneDrive folder',reconnect:'Allow folder access again',choose:'Choose another folder',runNow:'Sync now',disconnect:'Disconnect',
+  unsupported:'Only possible on a PC with Microsoft Edge or Google Chrome.',notConnected:'Not connected.',
+  needsPermission:'Folder “{name}” is saved, but the browser needs new permission. Until then no PODs are written to the folder.',
+  connected:'Connected to “{name}”.',running:'Sync running …',lastRun:'Last sync {time}: {count} POD(s) in the folder.',
+  failed:'{count} POD(s) could not be written, e.g. {first}',askPermission:'Please click “Allow folder access again” first.',error:'Error: {message}',
+  browserUnsupported:'This browser cannot connect a PC folder. Please use Microsoft Edge or Google Chrome on a PC.',writeDenied:'Write access to the folder was not allowed.'},
+ pl:{title:'Folder OneDrive (potwierdzenia dostawy)',intro:'ExportHUB automatycznie zapisuje każdy zabezpieczony plik PDF POD w tym folderze. OneDrive przesyła go do SharePoint. Istniejące pliki nigdy nie są nadpisywane.',
+  connect:'Połącz folder OneDrive',reconnect:'Ponownie zezwól na dostęp',choose:'Wybierz inny folder',runNow:'Synchronizuj teraz',disconnect:'Rozłącz',
+  unsupported:'Możliwe tylko na komputerze z Microsoft Edge lub Google Chrome.',notConnected:'Nie połączono.',
+  needsPermission:'Folder „{name}” jest zapisany, ale przeglądarka potrzebuje nowego zezwolenia. Do tego czasu żadne POD nie są zapisywane w folderze.',
+  connected:'Połączono z „{name}”.',running:'Synchronizacja trwa …',lastRun:'Ostatnia synchronizacja {time}: {count} POD w folderze.',
+  failed:'Nie udało się zapisać {count} POD, np. {first}',askPermission:'Najpierw kliknij „Ponownie zezwól na dostęp”.',error:'Błąd: {message}',
+  browserUnsupported:'Ta przeglądarka nie może połączyć folderu na komputerze. Użyj Microsoft Edge lub Google Chrome na komputerze.',writeDenied:'Nie zezwolono na zapis w folderze.'},
+ es:{title:'Carpeta de OneDrive (comprobantes de entrega)',intro:'ExportHUB guarda automáticamente cada PDF de POD respaldado en esta carpeta. OneDrive lo sube a SharePoint. Los archivos existentes nunca se sobrescriben.',
+  connect:'Conectar carpeta de OneDrive',reconnect:'Volver a permitir el acceso',choose:'Elegir otra carpeta',runNow:'Sincronizar ahora',disconnect:'Desconectar',
+  unsupported:'Solo es posible en un PC con Microsoft Edge o Google Chrome.',notConnected:'No conectada.',
+  needsPermission:'La carpeta «{name}» está guardada, pero el navegador necesita un nuevo permiso. Hasta entonces no se escriben POD en la carpeta.',
+  connected:'Conectada a «{name}».',running:'Sincronización en curso …',lastRun:'Última sincronización {time}: {count} POD en la carpeta.',
+  failed:'No se pudieron escribir {count} POD, p. ej. {first}',askPermission:'Primero haz clic en «Volver a permitir el acceso».',error:'Error: {message}',
+  browserUnsupported:'Este navegador no puede conectar una carpeta del PC. Usa Microsoft Edge o Google Chrome en un PC.',writeDenied:'No se permitió el acceso de escritura a la carpeta.'},
+ fr:{title:'Dossier OneDrive (preuves de livraison)',intro:'ExportHUB enregistre automatiquement chaque PDF POD sauvegardé dans ce dossier. OneDrive le téléverse vers SharePoint. Les fichiers existants ne sont jamais écrasés.',
+  connect:'Connecter le dossier OneDrive',reconnect:'Autoriser à nouveau le dossier',choose:'Choisir un autre dossier',runNow:'Synchroniser maintenant',disconnect:'Déconnecter',
+  unsupported:'Possible uniquement sur un PC avec Microsoft Edge ou Google Chrome.',notConnected:'Non connecté.',
+  needsPermission:'Le dossier « {name} » est enregistré, mais le navigateur a besoin d’une nouvelle autorisation. D’ici là, aucun POD n’est écrit dans le dossier.',
+  connected:'Connecté à « {name} ».',running:'Synchronisation en cours …',lastRun:'Dernière synchronisation {time} : {count} POD dans le dossier.',
+  failed:'{count} POD n’ont pas pu être écrits, p. ex. {first}',askPermission:'Cliquez d’abord sur « Autoriser à nouveau le dossier ».',error:'Erreur : {message}',
+  browserUnsupported:'Ce navigateur ne peut pas connecter un dossier du PC. Utilisez Microsoft Edge ou Google Chrome sur un PC.',writeDenied:'L’accès en écriture au dossier n’a pas été autorisé.'},
+ it:{title:'Cartella OneDrive (prove di consegna)',intro:'ExportHUB salva automaticamente ogni PDF POD protetto in questa cartella. OneDrive lo carica su SharePoint. I file esistenti non vengono mai sovrascritti.',
+  connect:'Collega cartella OneDrive',reconnect:'Consenti di nuovo l’accesso',choose:'Scegli un’altra cartella',runNow:'Sincronizza ora',disconnect:'Scollega',
+  unsupported:'Possibile solo su PC con Microsoft Edge o Google Chrome.',notConnected:'Non collegata.',
+  needsPermission:'La cartella «{name}» è salvata, ma il browser richiede una nuova autorizzazione. Fino ad allora nessun POD viene scritto nella cartella.',
+  connected:'Collegata a «{name}».',running:'Sincronizzazione in corso …',lastRun:'Ultima sincronizzazione {time}: {count} POD nella cartella.',
+  failed:'Impossibile scrivere {count} POD, ad es. {first}',askPermission:'Fai prima clic su «Consenti di nuovo l’accesso».',error:'Errore: {message}',
+  browserUnsupported:'Questo browser non può collegare una cartella del PC. Usa Microsoft Edge o Google Chrome su un PC.',writeDenied:'L’accesso in scrittura alla cartella non è stato consentito.'}
+};
+root.ExportHUBPodOneDrive1780I18n=Object.freeze({packs:I18N});
+})(typeof window!=='undefined'?window:globalThis);

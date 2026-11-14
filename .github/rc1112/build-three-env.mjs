@@ -137,6 +137,7 @@ const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" de
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
 // RC1780: POD-Zweitkopie in den OneDrive-synchronisierten Ordner (ersetzt die Graph-Serverkopie, #999)
+const RC1780_POD_ONEDRIVE_I18N_TAG='<script id="exporthub-rc1780-pod-onedrive-i18n" defer src="/assets/i18n/rc1780-pod-onedrive-folder.js?v=1780"></script>';
 const RC1780_POD_ONEDRIVE_SCRIPT_TAG='<script id="exporthub-rc1780-pod-onedrive-folder" defer src="/assets/rc1780-pod-onedrive-folder.js?v=1780"></script>';
 const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod" src="/assets/rc1602-official-pod-server-download.js?v=1955"></script>';
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
@@ -369,8 +370,9 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
   html=injectDeferredRuntimeInHead(html,RC1596_POD_FOLDER_SCRIPT_TAG,'exporthub-rc1596-pod-folder-reconnect');
+  html=injectDeferredRuntimeInHead(html,RC1780_POD_ONEDRIVE_I18N_TAG,'exporthub-rc1780-pod-onedrive-i18n');
   html=injectDeferredRuntimeInHead(html,RC1780_POD_ONEDRIVE_SCRIPT_TAG,'exporthub-rc1780-pod-onedrive-folder');
-  if(!html.includes('/assets/rc1780-pod-onedrive-folder.js?v=1780'))throw new Error(file+': RC1780 POD-OneDrive-Ordner fehlt');
+  if(!html.includes('/assets/rc1780-pod-onedrive-folder.js?v=1780')||!html.includes('/assets/i18n/rc1780-pod-onedrive-folder.js?v=1780'))throw new Error(file+': RC1780 POD-OneDrive-Ordner fehlt');
   if(!html.includes('i18n/rc1577-pod-quality-audit.js?v=1577')||!html.includes('/assets/rc1577-pod-quality-audit.js?v=1596')||!html.includes('/assets/rc1596-pod-folder-reconnect.js?v=1596'))throw new Error(file+': RC1577 POD-Prüfung fehlt');
   // RC1630 "Selbst korrigieren" in the IT area (global admins; uploads become pull requests, never live edits)
   html=injectDeferredRuntimeInHead(html,RC1630_SELF_CORRECT_I18N_TAG,'exporthub-rc1630-self-correct-i18n');
@@ -1997,6 +1999,7 @@ for(const rel of [
   'assets/rc1577-pod-quality-audit.js',
   'assets/rc1596-pod-folder-reconnect.js',
   'assets/rc1780-pod-onedrive-folder.js',
+  'assets/i18n/rc1780-pod-onedrive-folder.js',
   'assets/rc1602-official-pod-server-download.js',
   'assets/i18n/rc1577-pod-quality-audit.js',
   'assets/rc1630-self-correct.js',

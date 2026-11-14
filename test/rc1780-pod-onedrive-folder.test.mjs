@@ -144,3 +144,15 @@ test('RC1780: RC1144 only downgrades SharePoint pending when the owner variable 
   assert.equal(run('disabled'),0,'owner disabled the server copy: warning only');
  }
 });
+
+test('RC1780: every UI text key exists in all six language packs',()=>{
+ const w={};
+ vm.runInNewContext(fs.readFileSync('assets/i18n/rc1780-pod-onedrive-folder.js','utf8'),{window:w});
+ const packs=w.ExportHUBPodOneDrive1780I18n.packs;
+ const used=[...new Set([...code.matchAll(/\bt\('([A-Za-z]+)'/g)].map(m=>m[1]))];
+ assert.ok(used.length>=15);
+ for(const l of ['de','en','pl','es','fr','it'])for(const k of used)assert.ok(packs[l][k],l+':'+k);
+ const source=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(source,/i18n\/rc1780-pod-onedrive-folder\.js\?v=1780/);
+ assert.match(source,/'assets\/i18n\/rc1780-pod-onedrive-folder\.js'/);
+});
