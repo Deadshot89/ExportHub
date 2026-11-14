@@ -110,3 +110,67 @@ test('RC1820: main workflow tests deployed assets after identity and before othe
   assert.ok(identity>=0&&gate>identity&&other>gate,'Live menu gate must run immediately after verified TESTSERVICE identity');
   assert.match(workflow,/node scripts\/rc1820-testservice-nav-live\.mjs "\$GITHUB_SHA"/);
 });
+
+test('RC1820: transient prior SHA requires independent fresh health acknowledgement',async()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'rc1820-retry-'));
+  try{
+    for(const asset of MENU_ASSETS){
+      const target=path.join(root,asset.path);
+      fs.mkdirSync(path.dirname(target),{recursive:true});
+      fs.writeFileSync(target,'// checked-in '+asset.path);
+    }
+    const seen=[];
+    const fetchImpl=async target=>{
+      const url=new URL(target);
+      seen.push(url);
+      assert.equal(url.origin,TESTSERVICE_ORIGIN);
+      if(url.pathname==='/api/exporthub-health'){
+        const buildId=seen.filter(x=>x.pathname==='/api/exporthub-health').length===1?'b'.repeat(40):SHA;
+        return new Response(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId}}));
+      }
+      if(url.pathname==='/')return new Response(goodHtml);
+      const asset=MENU_ASSETS.find(x=>url.pathname==='/'+x.path);
+      assert.ok(asset,'Only known menu assets may be fetched');
+      return new Response(fs.readFileSync(path.join(root,asset.path)));
+    };
+    const result=await verifyPublishedMenu({expectedSha:SHA,fetchImpl,root,healthAttempts:2,healthDelayMs:0});
+    assert.equal(result.verified,true);
+    assert.deepEqual(seen.filter(x=>x.pathname==='/api/exporthub-health').map(x=>x.searchParams.get('rc1820')),[SHA+'-1',SHA+'-2']);
+    assert.equal(seen.filter(x=>x.pathname==='/').length,1,'HTML is checked only after exact health identity');
+  }finally{fs.rmSync(root,{recursive:true,force:true})}
+});
+
+test('RC1820: permanently wrong or production identities never open menu proof',async()=>{
+  for(const deployment of [
+    {verified:true,environment:'testservice',buildId:'b'.repeat(40)},
+    {verified:false,environment:'testservice',buildId:SHA},
+    {verified:true,environment:'production',buildId:SHA}
+  ]){
+    const seen=[];
+    const fetchImpl=async target=>{
+      const url=new URL(target);seen.push(url.pathname);
+      if(url.pathname!=='/api/exporthub-health')throw Error('Unsafe navigation after mismatched deployment');
+      return new Response(JSON.stringify({deployment}));
+    };
+    await assert.rejects(
+      verifyPublishedMenu({expectedSha:SHA,fetchImpl,healthAttempts:3,healthDelayMs:0}),
+      /deployed SHA is not verified or differs from main \((WRONG_SHA|UNVERIFIED|WRONG_ENVIRONMENT)\)/
+    );
+    assert.deepEqual(seen,Array(3).fill('/api/exporthub-health'));
+  }
+});
+
+test('RC1820: retry configuration is bounded and invalid health status remains blocking',async()=>{
+  for(const options of [{healthAttempts:0},{healthAttempts:7},{healthDelayMs:-1},{healthDelayMs:4001}]){
+    await assert.rejects(verifyPublishedMenu({expectedSha:SHA,fetchImpl:()=>{throw Error('must not fetch')},...options}),/bounded health verification settings/);
+  }
+  let calls=0;
+  await assert.rejects(
+    verifyPublishedMenu({expectedSha:SHA,healthAttempts:4,healthDelayMs:0,fetchImpl:async()=>{
+      calls++;
+      return new Response('unavailable',{status:503});
+    }}),
+    /HTTP 503/
+  );
+  assert.equal(calls,1,'An actual HTTP failure must not be masked as an edge identity mismatch');
+});
