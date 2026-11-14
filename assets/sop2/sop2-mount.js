@@ -130,6 +130,9 @@ function mount(view,options){
     if(disposed||!leaveEditor())return false;
     seq++;current=null;selected='';step='';mode='read';
     detail.hidden=true;coverageHost.hidden=false;back.hidden=true;message('',false);
+    // After edits/approvals, coverage must re-read the server; never retain a
+    // stale approved count when returning to the dashboard.
+    if(coverage&&typeof coverage.refresh==='function')coverage.refresh();
     return true;
   }
   function focusStep(data,stepId){
@@ -230,7 +233,11 @@ function mount(view,options){
     if(selected)open(selected,step);
     else if(coverage&&typeof coverage.refresh==='function')coverage.refresh();
   }
-  function onRead(){if(!disposed&&current){mode='read';draw();}}
+  function onRead(){if(!disposed&&current){
+    // Editor actions update the server document and its revision. Re-fetch
+    // rather than rendering stale pre-edit content from a cached snapshot.
+    open(current.id,step);
+  }}
   function onEdit(){if(!disposed&&current&&editorApi.canEdit(owner())){mode='edit';draw();}}
   back.addEventListener('click',onBack);
   refresh.addEventListener('click',onRefresh);
