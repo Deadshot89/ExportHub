@@ -77,5 +77,8 @@ html[data-eh-newui][data-rc1902-view="form"] #rc363ShipmentActions .rc363-action
   #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-steps{padding:8px 14px 10px 20px}
   #rc1902ShipmentForm#rc1902ShipmentForm .rc1902-summary{display:none}
   html[data-eh-newui][data-rc1902-view="form"] #content{padding-bottom:90px!important}
+  /* QA F03 (13.11.2026): Die feste Aktionsleiste liegt unten. Die schwebende Standard-SOP-Schaltflaeche
+     (rc1705, fixed links unten) verdeckte sonst "Ladeliste & CMR oeffnen". Im Top-Layout regelt rc1821 die Position. */
+  html:not([data-eh-layout="top"]) body:has(#rc1902ShipmentForm .rc1902-actions) #rc1705-sop-shipment{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
 }
 @media print{#rc1902ShipmentForm{display:none!important}}

@@ -13,6 +13,12 @@ on:
       - 'assets/i18n/**'
       - 'e2e/specs/rc1306-layout-redesign.spec.mjs'
       - 'e2e/specs/rc1371-dashboard-personalization.spec.mjs'
+      - 'e2e/specs/qa-f03-click-targets.spec.mjs'
+      - 'e2e/helpers/qa-hit-targets.mjs'
+      - 'assets/rc1902-neue-sendungsmaske.css'
+      - 'assets/rc1705-context-sop-help.css'
+      - 'assets/taskplanner-v2.css'
+      - 'assets/rc1081-audit-history.js'
       - 'e2e/specs/quality-capa.spec.mjs'
       - 'qualitaet.html'
       - '.github/rc1112/**'
@@ -52,7 +58,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
+        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs e2e/specs/qa-f03-click-targets.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
 
       - name: Verify Quality CAPA forms and A4 print on mobile and laptop
         env:
