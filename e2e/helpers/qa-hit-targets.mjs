@@ -55,6 +55,7 @@ export function installHitProbe(){
     for(const el of candidates()){
       el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
       await new Promise(resolve=>setTimeout(resolve,40));
+      if(!el.isConnected)continue;
       const hit=coveredBy(el);
       if(hit)findings.push({target:describe(el),coveredBy:describe(hit)});
     }

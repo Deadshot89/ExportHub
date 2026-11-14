@@ -37,6 +37,18 @@ for(const design of DESIGNS){
       },view);
       if(!opened)continue;
       await page.waitForTimeout(350);
+      // Die Sendungserfassung lädt Abschnitte nach (Seitenhöhe wächst bis ~3 s nach dem Öffnen).
+      // Erst prüfen, wenn die Seitenhöhe 800 ms stabil ist (max. 8 s), sonst misst der Test einen Zwischenzustand.
+      if(view==='shipment'){
+        await page.evaluate(()=>new Promise(resolve=>{
+          let last=-1,since=performance.now();const started=performance.now();
+          const tick=()=>{const h=document.scrollingElement.scrollHeight;const now=performance.now();
+            if(h!==last){last=h;since=now;}
+            if(now-since>=800||now-started>=8000)return resolve();
+            setTimeout(tick,100);};
+          tick();
+        }));
+      }
       // Die Erinnerung ist ein schließbarer Hinweis; ihr Verhältnis zu "SOP / Hilfe" prüft der Test unten.
       await page.evaluate(()=>{const host=document.getElementById('tpv2ReminderToast');if(host)host.style.display='none'});
       for(const row of await page.evaluate(()=>window.__qaHitTargets()))findings.push({view,...row});
