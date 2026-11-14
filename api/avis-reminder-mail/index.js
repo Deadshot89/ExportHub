@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const graphMail=require('../shared/graph-mail');
 const {renderAvisMailHtml,activeClosureNotices,closureNoticeHtml}=require('../shared/avis-mail-html');
 
@@ -239,11 +240,13 @@ async function record(req,current,id,ref,event,mode,sender){
   return{found}
  })
 }
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
  if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
  try{
-  const current=await auth.validateSession(req);
+  const current=await validateSession(req);
   if(!allowed(current.user))throw auth.error('MAIL_SEND_FORBIDDEN','Für den Versand von Avis-Erinnerungen ist Bearbeitungsrecht in der Sendungsübersicht erforderlich.',403);
   const p=payload(req),action=lower(p.action),previewOnly=action==='preview',id=text(p.shipmentId).toUpperCase(),ref=text(p.reference).toUpperCase(),to=text(p.recipient),target=lower(p.target)==='carrier'?'carrier':'customer',lang=normalizeLanguage(p.language),mode=lower(p.mode)==='initial'?'initial':'reminder';
   if(action&&action!=='preview')throw auth.error('MAIL_ACTION_INVALID','Unbekannte E-Mail-Aktion.',400);
