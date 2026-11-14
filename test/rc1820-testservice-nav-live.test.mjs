@@ -6,7 +6,7 @@ import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {
   TESTSERVICE_ORIGIN,MENU_ASSETS,assertMenuHtml,
-  assertDeploymentIdentity,assertAssetMatches,verifyPublishedMenu
+  assertDeploymentIdentity,assertAssetMatches,waitForVerifiedDeploymentIdentity,verifyPublishedMenu
 } from '../scripts/rc1820-testservice-nav-live.mjs';
 
 const SHA='a'.repeat(40);
@@ -24,6 +24,48 @@ test('RC1820: live health cannot pass for wrong SHA, unverified identity, or pro
   for(const override of [{buildId:'b'.repeat(40)},{verified:false},{environment:'production'}]){
     assert.throws(()=>assertDeploymentIdentity({deployment:{...deployment,...override}},SHA),/deployed SHA/);
   }
+});
+
+test('RC1820: transient stale health identity retries with unique cache keys and exact SHA',async()=>{
+  const requests=[],delays=[];
+  const expected=SHA;
+  const attempts=await waitForVerifiedDeploymentIdentity({
+    expectedSha:expected,maxAttempts:3,waitFn:async ms=>delays.push(ms),
+    read:async relative=>{
+      requests.push(relative);
+      const sha=requests.length<3?'b'.repeat(40):expected;
+      return Buffer.from(JSON.stringify({deployment:{verified:true,environment:'testservice',buildId:sha}}));
+    }
+  });
+  assert.equal(attempts,3);
+  assert.deepEqual(delays,[3000,3000]);
+  assert.deepEqual(requests,[
+    `/api/exporthub-health?rc1820=${SHA}-1`,
+    `/api/exporthub-health?rc1820=${SHA}-2`,
+    `/api/exporthub-health?rc1820=${SHA}-3`
+  ]);
+});
+
+test('RC1820: stale or production identity never passes after bounded retries',async()=>{
+  let reads=0;
+  const read=async()=>{
+    reads++;
+    return Buffer.from(JSON.stringify({deployment:{verified:true,environment:'production',buildId:SHA}}));
+  };
+  await assert.rejects(waitForVerifiedDeploymentIdentity({
+    expectedSha:SHA,maxAttempts:3,waitFn:async()=>{},read
+  }),/deployed SHA is not verified or differs/);
+  assert.equal(reads,3);
+});
+
+test('RC1820: HTTP redirects and non-JSON fail without retries or weakening safety',async()=>{
+  const waitFn=()=>{throw Error('Unexpected retry')};
+  await assert.rejects(waitForVerifiedDeploymentIdentity({
+    expectedSha:SHA,waitFn,read:async()=>Buffer.from('<html>redirect</html>')
+  }),/not valid JSON/);
+  await assert.rejects(waitForVerifiedDeploymentIdentity({
+    expectedSha:SHA,maxAttempts:0,read:async()=>{throw Error('Unexpected GET')}
+  }),/invalid bounded/);
 });
 
 test('RC1820: exact JS bytes must match the checked-out main',()=>{
@@ -56,6 +98,7 @@ test('RC1820: read-only end-to-end HTTP mirror accepts exact TESTSERVICE assets'
     assert.equal(result.verified,true);
     assert.equal(result.menuAssets,2);
     assert.equal(requested.length,4);
+    assert.equal(requested[0].url.searchParams.get('rc1820'),SHA+'-1');
     assert.equal(requested[1].url.pathname,'/','menu HTML must be read through canonical TESTSERVICE entry');
     assert.equal(requested[1].url.searchParams.get('rc1820'),SHA);
     assert.ok(requested.every(x=>x.options.method==='GET'));
