@@ -39,6 +39,13 @@ test('RC2035: visual environment accent changes without navigating or handling c
   await expect(tabs).toHaveCount(2);
   const origin=await login.evaluate(el=>getComputedStyle(el).backgroundImage);
   const form=login.locator('#loginBtn');
+  // Normalize the initial visual selection; TESTVERSION may already have tab 2 active.
+  await tabs.evaluateAll(buttons=>{
+    buttons[1].classList.remove('is-active','active');
+    buttons[1].setAttribute('aria-pressed','false');
+    buttons[0].classList.add('is-active');
+    buttons[0].setAttribute('aria-pressed','true');
+  });
   const before=await form.evaluate(el=>getComputedStyle(el).backgroundImage);
   // Simulate only the visual state. Real environment controls own navigation.
   await tabs.evaluateAll(buttons=>{
