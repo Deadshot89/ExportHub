@@ -35,7 +35,7 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -58,7 +58,16 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs e2e/specs/qa-f03-click-targets.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
+        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs e2e/specs/rc1371-dashboard-personalization.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
+
+      # QA F03: eigener Schritt, weil 8 Designs x 5 Viewports x 12 Ansichten allein ~8-10 min brauchen
+      # und sonst das globale 10-Minuten-Limit der Playwright-Konfiguration fuer den gemeinsamen Lauf reissen.
+      - name: Verify no permanently covered click targets in all eight designs on all five viewports
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/qa-f03-click-targets.spec.mjs --global-timeout=1200000 --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
 
       - name: Verify Quality CAPA forms and A4 print on mobile and laptop
         env:
