@@ -29,6 +29,6 @@ test('RC1638: every remaining session-heavy API route delegates TESTSERVICE auth
 test('RC1638: production authentication semantics remain owned by the existing fast-auth adapter',()=>{
  const fast=fs.readFileSync('api/shared/fast-auth-store.js','utf8');
  assert.ok(fast.includes('readSessionDocuments(c,testserviceRequest)'));
- assert.ok(fast.includes('if(!verifiedTestservice)return Promise.all(['));
+ assert.ok(fast.includes('if(verifiedTestservice){'));
  assert.ok(fast.includes('auth.readJson(c.team,auth.emptyTeam())'));
 });
