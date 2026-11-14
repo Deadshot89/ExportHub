@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
+const fastAuth=require('../shared/fast-auth-store');
 const rights=require('../shared/state-write-guard');
 const {isolationConfig}=require('../shared/testservice-auth-isolation');
 const complaintOps=require('./complaints');
@@ -267,8 +268,9 @@ async function guestRequest(req,method,payload,action){
  }else fail('INVALID_ACTION','Unbekannte Aktion.');
  return json(200,{ok:true,record:publicRecord(record)});
 }
+async function validateSession(req,options){return fastAuth&&typeof fastAuth.isSource==='function'&&fastAuth.isSource(auth)?fastAuth.validateSession(req,options):auth.validateSession(req,options);}
 async function login(req,write){
- const verified=await auth.validateSession(req);
+ const verified=await validateSession(req);
  const user=verified.user;
  if(!rights.canReadAny(user,['shipment','shipmentoverview','documents']))fail('FORBIDDEN','Keine Berechtigung fuer Versandnachweise.',403);
  if(write&&!rights.canEditAny(user,['shipment','documents']))fail('READ_ONLY','Kein Schreibrecht fuer Versandnachweise.',403);
