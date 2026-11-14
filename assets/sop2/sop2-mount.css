@@ -1,0 +1,38 @@
+/* SOP2 Phase 1 only: isolated navigation wrapper, no legacy style overrides. */
+.sop2-workspace{
+ --sop2-surface:#fff;--sop2-soft:#f4f8fc;--sop2-line:#d7e4ee;
+ --sop2-ink:#1a3048;--sop2-accent:#0b7497;
+ border:1px solid var(--sop2-line);border-radius:18px;
+ background:var(--sop2-surface);color:var(--sop2-ink);
+ box-shadow:0 12px 40px rgba(20,47,72,.08);
+ padding:clamp(14px,2.7vw,30px);max-width:1320px;margin:12px auto;
+ font:inherit;line-height:1.55;overflow-wrap:anywhere
+}
+.sop2-workspace *, .sop2-workspace *::before, .sop2-workspace *::after{box-sizing:border-box}
+.sop2-workspace-header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--sop2-line);padding-bottom:12px}
+.sop2-workspace-header h2{font-size:clamp(1.4rem,2vw,2rem);margin:0}
+.sop2-workspace-intro{margin:0;color:#5b7186;font-size:.94rem}
+.sop2-workspace-nav,.sop2-workspace-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0}
+.sop2-workspace button{font:inherit;min-height:44px;font-weight:650;border:1px solid #bed1df;border-radius:10px;padding:8px 15px;background:var(--sop2-soft);color:var(--sop2-ink);cursor:pointer}
+.sop2-workspace :is(button,input,textarea):focus-visible{outline:3px solid #4d9dff;outline-offset:2px}
+.sop2-workspace button:disabled{opacity:.5;cursor:not-allowed}
+.sop2-workspace .sop2-workspace-editor,.sop2-workspace .sop2-workspace-create-submit{background:var(--sop2-accent);color:#fff;border-color:var(--sop2-accent)}
+.sop2-workspace-notice{min-height:20px;font-weight:600;color:#0c6f8a;margin:8px 0}
+.sop2-workspace-error,.sop2-coverage-error{color:#974920!important;background:#fff5eb;border:1px solid #e4b483;padding:12px;border-radius:10px}
+.sop2-workspace-create{max-width:620px;padding:16px;border-radius:14px;background:var(--sop2-soft);border:1px solid var(--sop2-line);display:grid;gap:12px}
+.sop2-workspace-create-label{display:grid;gap:5px;font-size:.92rem;font-weight:650}
+.sop2-workspace-create-input{font:inherit;padding:10px 12px;border-radius:9px;border:1px solid #b9cddb;background:#fff;min-width:0}
+.sop2-workspace [hidden]{display:none!important}
+.sop2-workspace-coverage,.sop2-workspace-detail{min-width:0}
+.sop2-workspace .rc1506-dashboard{max-width:none}
+.sop2-workspace .sop2-reader,.sop2-workspace .sop2-editor{max-width:none;box-shadow:none}
+@media(max-width:740px){
+ .sop2-workspace-header{display:block}
+ .sop2-workspace-nav button,.sop2-workspace-actions button{flex:1 1 45%}
+ .sop2-workspace{padding:12px}
+}
+@media(prefers-color-scheme:dark){
+ .sop2-workspace{--sop2-surface:#16283b;--sop2-soft:#243b50;--sop2-line:#36546b;--sop2-ink:#ebf5ff;--sop2-accent:#177b9e}
+ .sop2-workspace-intro{color:#acc1d3}
+ .sop2-workspace-create-input{background:#142536;color:#ecf6ff;border-color:#41627b}
+}
