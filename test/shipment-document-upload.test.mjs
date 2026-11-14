@@ -163,3 +163,14 @@ test('Dokument-Upload: SharePoint-only muss exakte Datei-Bytes zurückliefern',a
  assert.equal((await azure.result).id,receipt.id);
  assert.equal(azure.calls.length,2,'Azure primary has its own server-side SHA-256 verification');
 });
+
+test('RC2026 release includes document type normalizer before shipment upload',()=>{
+  const source=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  const typeScript='id="exporthub-shipment-doc-normalizer" defer src="/assets/document-reference-normalizer.js';
+  const uploader='id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js';
+  assert.ok(source.indexOf(typeScript)>0,'normalizer must be injected into the website');
+  assert.ok(source.indexOf(uploader)>source.indexOf(typeScript),'deferred normalizer must execute before uploader');
+  assert.ok(source.includes("'assets/document-reference-normalizer.js'"),'normalizer must ship in all three environments');
+  const upload=fs.readFileSync('assets/shipment-document-upload.js','utf8');
+  assert.ok(upload.includes('window.ExportHubDocumentReferenceNormalizer'));
+});

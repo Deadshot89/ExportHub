@@ -1,4 +1,5 @@
 'use strict';
+const crypto=require('crypto');
 // Kunden-Avis: Dokumente aus der Sendungsansicht (REF-Ordner in SharePoint und unabhängige Azure-Kopie).
 // Der Upload benennt Dateien "<Art>_<REF>_<JJJJMMTT-hhmmss>_<Originalname>".
 // Nur Lieferschein, Rechnung und Packliste sind für Kunden sichtbar; Excel und
@@ -6,6 +7,29 @@
 const CATEGORY={lieferschein:'Lieferschein',rechnung:'Rechnung',packliste:'Packliste'};
 const MIME={'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png'};
 const MAX_DOCS=30;
+const VERIFIED_PROOF_TTL_MS=60000,VERIFIED_PROOF_MAX=128;
+const verifiedCopyProofs=new Map();
+function stableProofKey(reference,environment,azure,graph){
+ const revision=text(graph&&graph.modifiedAt);
+ if(!revision||!Number.isFinite(Date.parse(revision)))return'';
+ return [text(environment),text(reference).toUpperCase(),text(azure&&azure.refItemId),
+  text(azure&&azure.sha256),text(graph&&graph.refItemId),String(Number(graph&&graph.size)||0),revision].join('|');
+}
+function hasVerifiedProof(key){
+ if(!key)return false;
+ const until=verifiedCopyProofs.get(key);
+ if(until&&until>Date.now())return true;
+ if(until)verifiedCopyProofs.delete(key);
+ return false;
+}
+function recordVerifiedProof(key){
+ if(!key)return;
+ if(verifiedCopyProofs.size>=VERIFIED_PROOF_MAX){
+  const oldest=verifiedCopyProofs.keys().next().value;
+  if(oldest)verifiedCopyProofs.delete(oldest);
+ }
+ verifiedCopyProofs.set(key,Date.now()+VERIFIED_PROOF_TTL_MS);
+}
 
 function text(v){return String(v==null?'':v).trim()}
 function parseName(name,reference){
@@ -21,7 +45,7 @@ function toRecords(files,reference,source='graph'){
  for(const f of Array.isArray(files)?files:[]){
   const id=text(f&&f.id),parsed=parseName(f&&f.name,reference);
   if(!id||!parsed)continue;
-  out.push({id:'ref-'+id,refItemId:id,refSource:source,name:parsed.original,mime:MIME[parsed.ext]||'application/octet-stream',size:Number(f.size||0)||0,category:parsed.category,inline:null,external:'',blobName:'',uploadedAt:text(f.createdDateTime),sourceName:text(f.name)});
+  out.push({id:'ref-'+id,refItemId:id,refSource:source,name:parsed.original,mime:MIME[parsed.ext]||'application/octet-stream',size:Number(f.size||0)||0,category:parsed.category,inline:null,external:'',blobName:'',uploadedAt:text(f.createdDateTime),modifiedAt:text(f.lastModifiedDateTime),sourceName:text(f.name),sha256:/^[a-f0-9]{64}$/i.test(text(f.sha256))?text(f.sha256).toLowerCase():''});
   if(out.length>=MAX_DOCS)break;
  }
  return out;
@@ -35,11 +59,29 @@ async function load(referenceFolder,reference,environment,log,refDocStore){
   try{azure=toRecords(await refDocStore.list(reference,environment),reference,'azure')}catch(e){warn('azure:'+text(e&&e.code))}
  }
  try{graph=toRecords(await referenceFolder.listFiles(reference,environment),reference,'graph')}catch(e){warn(text(e&&e.code))}
- const seen=new Set(),out=[];
- for(const d of azure.concat(graph)){
-  const key=d.sourceName.toLowerCase();
-  if(seen.has(key))continue;
-  seen.add(key);out.push(d);
+ // A matching name alone cannot prove a matching file. Compare SHA-256
+ // for the Azure/SharePoint copies when the upload names and sizes match.
+ // A failed or unavailable read must never hide a customer document.
+ const out=azure.slice(0,MAX_DOCS);let hashProbes=0;
+ for(const d of graph){
+  const paired=azure.find(a=>a.sourceName.toLowerCase()===d.sourceName.toLowerCase()&&
+    Number(a.size)>0&&Number(a.size)===Number(d.size)&&/^[a-f0-9]{64}$/.test(a.sha256));
+  // Only a byte-verified, version-pinned equality proof may be reused.
+  // Missing/changed Graph modification timestamps always force a new comparison.
+  const proof=paired?stableProofKey(reference,environment,paired,d):'';
+  let duplicate=hasVerifiedProof(proof);
+  if(!duplicate&&paired&&hashProbes<6&&Number(d.size)<=2*1024*1024&&referenceFolder&&typeof referenceFolder.readFile==='function'){
+   hashProbes++;
+   try{
+    const file=await referenceFolder.readFile(d.refItemId,environment);
+    const bytes=file&&file.buffer;
+    if(bytes&&bytes.length===Number(d.size)){
+     duplicate=crypto.createHash('sha256').update(bytes).digest('hex')===paired.sha256;
+     if(duplicate)recordVerifiedProof(proof);
+    }
+   }catch(e){warn('graph-duplicate-verification:'+text(e&&e.code))}
+  }
+  if(!duplicate)out.push(d);
   if(out.length>=MAX_DOCS)break;
  }
  return out;

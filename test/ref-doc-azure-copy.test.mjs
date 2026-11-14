@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -56,13 +57,30 @@ test('Dokument-Azure-Kopie: Liste und Download führen Azure-Dokumente mit Share
 });
 
 // ---- Avis -----------------------------------------------------------------------------
-test('Avis: Azure-Dokumente erscheinen vor gleichnamigen SharePoint-Dateien, ohne Doppelte', async () => {
-  const name = 'Rechnung_AB12CD_20261107-101500_RE.pdf';
-  const azure = [{ id: 'refdoc:' + 'a'.repeat(32), name, size: 5 }];
-  const graph = [{ id: 'G1', name, size: 5 }, { id: 'G2', name: 'Lieferschein_AB12CD_20261107-101501_LS.pdf', size: 6 }];
-  const out = await docsMod.load({ listFiles: async () => graph }, 'AB12CD', 'production', null, { list: async () => azure });
-  assert.deepEqual(out.map(d => [d.category, d.refSource]), [['Rechnung', 'azure'], ['Lieferschein', 'graph']]);
-  assert.equal(out[0].refItemId, 'refdoc:' + 'a'.repeat(32));
+test('Avis: Azure/SharePoint copies collapse only after byte-identical SHA-256 verification', async () => {
+  const name='Rechnung_AB12CD_20261107-101500_RE.pdf';
+  const bytes=Buffer.from('PDF A'),sha=createHash('sha256').update(bytes).digest('hex');
+  const azure=[{id:'refdoc:'+'a'.repeat(32),name,size:bytes.length,sha256:sha}];
+  const graph=[{id:'G1',name,size:bytes.length},{id:'G2',name:'Lieferschein_AB12CD_20261107-101501_LS.pdf',size:6}];
+  const out=await docsMod.load({listFiles:async()=>graph,readFile:async()=>({buffer:bytes})},'AB12CD','production',null,{list:async()=>azure});
+  assert.deepEqual(out.map(d=>[d.category,d.refSource]),[['Rechnung','azure'],['Lieferschein','graph']]);
+  assert.equal(out[0].refItemId,'refdoc:'+'a'.repeat(32));
+});
+
+test('Avis: same filename with different size or content remains two separate files',async()=>{
+ const name='Lieferschein_AB12CD_20261107-101500_DNC000123456.pdf';
+ const bytes=Buffer.from('content A'),other=Buffer.from('content B');
+ const hash=createHash('sha256').update(bytes).digest('hex');
+ const azure=[{id:'refdoc:'+'b'.repeat(32),name,size:bytes.length,sha256:hash}];
+ const differentSize=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:bytes.length+1}],readFile:async()=>({buffer:bytes})},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(differentSize.length,2);
+ const differentContent=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:other.length}],readFile:async()=>({buffer:other})},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(differentContent.length,2);
+ const failure=await docsMod.load({listFiles:async()=>[{id:'G1',name,size:bytes.length}],readFile:async()=>{throw Error('offline')}},
+   'AB12CD','production',null,{list:async()=>azure});
+ assert.equal(failure.length,2);
 });
 
 test('Avis: ist SharePoint ausgefallen, bleiben die Azure-Dokumente sichtbar; umgekehrt ebenso', async () => {
@@ -91,4 +109,43 @@ test('Oberfläche: Hinweis „in Azure gesichert, SharePoint-Kopie fehlt“ in s
     const part = i18n.slice(i18n.indexOf('\n ' + l + ':{'));
     assert.match(part.slice(0, 4000), /savedAzureOnly:'/, l);
   }
+});
+
+test('AVIS: Microsoft Graph REF list includes the exact byte size needed for SHA matching',()=>{
+ const graph=fs.readFileSync('api/shared/reference-folder-upload.js','utf8');
+ assert.match(graph,/select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime'/);
+ assert.match(graph,/files\.push\(\{id,name:text\(item\.name\),size:/);
+});
+
+test('AVIS: verified duplicate proof is reused only for the same Graph file revision',async()=>{
+ const name='Rechnung_AB12CD_20261112-100000_SIDE000123456.pdf';
+ const bytes=Buffer.from('immutable-pdf-copy-for-duplicate-verification');
+ const sha=createHash('sha256').update(bytes).digest('hex');
+ const azure=[{id:'refdoc:'+'c'.repeat(32),name,size:bytes.length,sha256:sha}];
+ let revision='2026-11-12T10:00:00Z',reads=0;
+ const sharepoint={
+  async listFiles(){return[{id:'graph-revision-99',name,size:bytes.length,lastModifiedDateTime:revision}]},
+  async readFile(){reads++;return{buffer:bytes}}
+ };
+ const stored={list:async()=>azure};
+ const first=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ const second=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ assert.equal(first.length,1);assert.equal(second.length,1);
+ assert.equal(reads,1,'a byte-verified, unchanged Graph version avoids repeated downloads');
+ revision='2026-11-12T10:00:01Z';
+ const updated=await docsMod.load(sharepoint,'AB12CD','testservice',null,stored);
+ assert.equal(updated.length,1);
+ assert.equal(reads,2,'a new Graph modification timestamp requires re-verification');
+});
+test('AVIS: no timestamp means no cached proof, even when both bytes matched before',async()=>{
+ const name='Lieferschein_AB12CD_20261112-100100_DNC000123456.pdf';
+ const bytes=Buffer.from('another-pdf-with-no-graph-revision');
+ const sha=createHash('sha256').update(bytes).digest('hex');
+ let reads=0;
+ const graph={listFiles:async()=>[{id:'graph-revision-missing',name,size:bytes.length}],
+  readFile:async()=>{reads++;return{buffer:bytes}}};
+ const azure={list:async()=>[{id:'refdoc:'+'d'.repeat(32),name,size:bytes.length,sha256:sha}]};
+ await docsMod.load(graph,'AB12CD','testservice',null,azure);
+ await docsMod.load(graph,'AB12CD','testservice',null,azure);
+ assert.equal(reads,2);
 });
